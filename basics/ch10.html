@@ -209,7 +209,126 @@
         <strong>왜 그렇게 되는지</strong>를 복제 방식에서부터 따라갑니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-090">
+      <figure class="diagram" data-diagram="D-090" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 486" role="img" aria-labelledby="d-090-1-d090-title d-090-1-d090-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-090-1-d090-title">RDS Multi-AZ 배포와 읽기 전용 복제본의 구조 대비</title>
+            <desc id="d-090-1-d090-desc">왼쪽은 표준 Multi-AZ 인스턴스 배포입니다. 애플리케이션은 엔드포인트 하나만 알고 있고,
+              프라이머리 인스턴스는 커밋을 다른 가용 영역의 대기 인스턴스에 동기적으로 반영한 뒤에야 응답합니다.
+              대기 인스턴스는 읽기 트래픽을 전혀 받지 않으며 오직 장애 조치를 위해 존재합니다.
+              오른쪽은 읽기 전용 복제본입니다. 프라이머리의 변경이 비동기로 전달되므로 약간의 복제 지연이 생길 수 있고,
+              복제본은 자기 엔드포인트를 따로 가져 읽기 트래픽을 실제로 처리하며, 같은 리전뿐 아니라 다른 리전에도 놓을 수 있습니다.
+              아래 표가 다섯 항목으로 이 차이를 정리합니다. 복제 방식, 목적, 엔드포인트 개수, 두 번째 인스턴스가 읽기를 받는지,
+              배치 가능한 범위입니다. 맨 아래 주의 문구는 읽기 가능한 대기 인스턴스 두 개를 갖는
+              Multi-AZ DB 클러스터 배포가 여기 그려진 표준 Multi-AZ 인스턴스 배포와 다른 아키텍처라는 점을 지적합니다.</desc>
+
+            <defs>
+              <marker id="d-090-1-d090-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-090-1-d090-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-090-1-d090-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 좌: Multi-AZ -->
+            <rect class="dg-panel" x="20" y="34" width="330" height="216" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="26">Multi-AZ 배포 (인스턴스 배포)</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="54">가용성 문제를 푸는 구성</text>
+
+            <rect class="dg-node" x="42" y="66" width="130" height="32" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="107" y="87" text-anchor="middle">애플리케이션</text>
+            <path class="dg-edge dg-edge--accent" d="M107 98 L107 112" marker-end="url(#d-090-1-d090-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="32" y="116" width="150" height="30" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="107" y="136" text-anchor="middle">엔드포인트 하나뿐</text>
+            <path class="dg-edge dg-edge--accent" d="M107 146 L107 162" marker-end="url(#d-090-1-d090-ar-accent)"/>
+
+            <text class="dg-fs-sm dg-bold" x="186" y="158" text-anchor="middle">동기 복제</text>
+
+            <rect class="dg-node dg-node--accent" x="34" y="166" width="138" height="58" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="103" y="188" text-anchor="middle">프라이머리</text>
+            <text class="dg-fs-sm dg-muted" x="103" y="208" text-anchor="middle">읽기 · 쓰기</text>
+
+            <rect class="dg-node dg-node--muted" x="200" y="166" width="138" height="58" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="269" y="188" text-anchor="middle">대기 인스턴스</text>
+            <text class="dg-fs-sm dg-bold" x="269" y="208" text-anchor="middle">읽기 트래픽 없음</text>
+
+            <path class="dg-edge dg-edge--accent" d="M174 195 L196 195" marker-end="url(#d-090-1-d090-ar-accent)"/>
+            <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M182 131 L269 131 L269 162"/>
+            <path class="dg-x" d="M262 138 L276 152 M276 138 L262 152"/>
+            <text class="dg-fs-sm dg-muted" x="103" y="244" text-anchor="middle">AZ-a</text>
+            <text class="dg-fs-sm dg-muted" x="269" y="244" text-anchor="middle">AZ-b</text>
+
+            <!-- 우: 읽기 전용 복제본 -->
+            <rect class="dg-panel" x="370" y="34" width="330" height="216" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="384" y="26">읽기 전용 복제본 (Read Replica)</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="54">읽기 확장 문제를 푸는 구성</text>
+
+            <rect class="dg-node" x="470" y="66" width="130" height="32" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="535" y="87" text-anchor="middle">애플리케이션</text>
+            <path class="dg-edge" d="M513 98 L462 112" marker-end="url(#d-090-1-d090-ar)"/>
+            <path class="dg-edge dg-edge--ok" d="M557 98 L608 112" marker-end="url(#d-090-1-d090-ar-ok)"/>
+
+            <rect class="dg-node" x="382" y="116" width="140" height="30" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="452" y="136" text-anchor="middle">쓰기 엔드포인트</text>
+            <rect class="dg-node dg-node--ok" x="548" y="116" width="140" height="30" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="618" y="136" text-anchor="middle">읽기 엔드포인트</text>
+
+            <path class="dg-edge" d="M452 146 L449 162" marker-end="url(#d-090-1-d090-ar)"/>
+            <path class="dg-edge dg-edge--ok" d="M618 146 L621 162" marker-end="url(#d-090-1-d090-ar-ok)"/>
+
+            <text class="dg-fs-sm dg-bold" x="535" y="158" text-anchor="middle">비동기 복제</text>
+
+            <rect class="dg-node" x="382" y="166" width="134" height="58" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="449" y="188" text-anchor="middle">프라이머리</text>
+            <text class="dg-fs-sm dg-muted" x="449" y="208" text-anchor="middle">읽기 · 쓰기</text>
+
+            <rect class="dg-node dg-node--ok" x="554" y="166" width="134" height="58" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="621" y="188" text-anchor="middle">읽기 전용 복제본</text>
+            <text class="dg-fs-sm dg-bold" x="621" y="208" text-anchor="middle">읽기 트래픽 처리</text>
+
+            <path class="dg-edge dg-edge--dashed" d="M518 195 L550 195" marker-end="url(#d-090-1-d090-ar)"/>
+            <text class="dg-fs-sm dg-muted" x="449" y="244" text-anchor="middle">AZ-a</text>
+            <text class="dg-fs-sm dg-muted" x="621" y="244" text-anchor="middle">다른 AZ 또는 다른 리전</text>
+
+            <!-- 비교표 -->
+            <rect class="dg-node dg-node--empty" x="20" y="266" width="680" height="150" rx="4"/>
+            <path class="dg-grid" d="M20 296 L700 296 M20 326 L700 326 M20 356 L700 356 M20 386 L700 386
+                                      M200 266 L200 416 M450 266 L450 416"/>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="286">항목</text>
+            <text class="dg-fs-sm dg-bold" x="210" y="286">Multi-AZ 배포</text>
+            <text class="dg-fs-sm dg-bold" x="460" y="286">읽기 전용 복제본</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="316">복제 방식</text>
+            <text class="dg-fs-sm" x="210" y="316">동기 — 커밋이 양쪽에 반영된 뒤 응답</text>
+            <text class="dg-fs-sm" x="460" y="316">비동기 — 복제 지연이 생길 수 있음</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="346">푸는 문제</text>
+            <text class="dg-fs-sm" x="210" y="346">고가용성 · 재해 복구</text>
+            <text class="dg-fs-sm" x="460" y="346">읽기 성능 확장</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="376">엔드포인트</text>
+            <text class="dg-fs-sm" x="210" y="376">하나 — 장애 조치 후에도 그대로</text>
+            <text class="dg-fs-sm" x="460" y="376">읽기용 엔드포인트가 따로 생김</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="406">배치 범위</text>
+            <text class="dg-fs-sm" x="210" y="406">같은 리전의 다른 AZ</text>
+            <text class="dg-fs-sm" x="460" y="406">같은 리전 또는 교차 리전</text>
+
+            <!-- 주의 -->
+            <rect class="dg-node dg-node--warn" x="20" y="426" width="680" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="448">여기 그린 것은 표준 Multi-AZ 인스턴스 배포입니다</text>
+            <text class="dg-fs-sm" x="34" y="470">Multi-AZ DB 클러스터 배포는 읽기 가능한 대기 인스턴스 두 개를 갖는 별개 아키텍처이므로 섞지 않습니다</text>
+          </svg>
+        </div>
         <figcaption>
           Multi-AZ 배포와 읽기 전용 복제본의 구조 대비 — 왼쪽은 동기 복제로 다른 가용 영역에 대기 인스턴스를 두지만
           그 인스턴스는 읽기를 받지 않고 엔드포인트도 하나뿐이며, 오른쪽은 비동기 복제로 읽기 트래픽을 처리하는
@@ -417,7 +536,129 @@ aws rds describe-db-instances \
         이 관계는 <a href="#maintenance-window">유지 관리 기간 절</a>에서 다시 다룹니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-091">
+      <figure class="diagram" data-diagram="D-091" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 520" role="img" aria-labelledby="d-091-1-d091-title d-091-1-d091-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-091-1-d091-title">같은 프라이머리 장애를 Multi-AZ와 읽기 전용 복제본에 각각 넣었을 때</title>
+            <desc id="d-091-1-d091-desc">위아래 두 구성에 똑같이 프라이머리 인스턴스 장애를 주입한 뒤의 상태입니다.
+              위쪽 Multi-AZ 구성에서는 RDS 가 자동으로 장애 조치를 수행해 대기 인스턴스를 새 프라이머리로 승격하고
+              엔드포인트 DNS 이름이 가리키는 대상만 바뀝니다. 애플리케이션이 쓰는 엔드포인트 문자열은 그대로이므로
+              연결을 다시 맺기만 하면 쓰기가 재개됩니다.
+              아래쪽 읽기 전용 복제본 구성에서는 자동 승격이 일어나지 않습니다. 복제본은 읽기 요청을 계속 처리하지만
+              쓰기 엔드포인트는 죽은 프라이머리를 계속 가리키고 있어 쓰기가 계속 실패합니다.
+              복구하려면 운영자가 복제본을 수동으로 승격해야 하고 승격된 인스턴스는 새 엔드포인트를 갖기 때문에
+              애플리케이션 설정도 함께 바꿔야 합니다.
+              가용성 문제와 읽기 확장 문제는 서로 다른 문제이며 읽기 전용 복제본은 가용성 대책이 아닙니다.</desc>
+
+            <defs>
+              <marker id="d-091-1-d091-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-091-1-d091-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-091-1-d091-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-091-1-d091-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-091-1-d091-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="28">같은 장애를 두 구성에 넣습니다</text>
+            <rect data-dg="state-chip" class="dg-node dg-node--danger" x="520" y="10" width="180" height="26" rx="4"/>
+            <text data-dg="state-label" class="dg-fs-sm dg-bold" x="610" y="28" text-anchor="middle">프라이머리 장애 주입됨</text>
+
+            <!-- ===== 위: Multi-AZ ===== -->
+            <rect class="dg-panel" x="14" y="44" width="692" height="168" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="24" y="64">Multi-AZ 배포</text>
+
+            <rect class="dg-node" x="20" y="112" width="100" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="70" y="132" text-anchor="middle">애플리</text>
+            <text class="dg-fs-sm dg-bold" x="70" y="150" text-anchor="middle">케이션</text>
+
+            <path class="dg-edge dg-edge--accent" d="M120 136 L132 136" marker-end="url(#d-091-1-d091-ar-accent)"/>
+
+            <rect data-dg="maz-endpoint" class="dg-node dg-node--accent" x="138" y="112" width="160" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="218" y="132" text-anchor="middle">엔드포인트 문자열</text>
+            <text class="dg-fs-sm dg-bold" x="218" y="150" text-anchor="middle">그대로입니다</text>
+
+            <!-- DNS 전환 -->
+            <path data-dg="maz-dns-old" class="dg-edge dg-edge--muted dg-edge--dotted"
+                  d="M298 128 L316 128 L316 99 L330 99" marker-end="url(#d-091-1-d091-ar-muted)"/>
+            <path data-dg="maz-dns-new" class="dg-edge dg-edge--accent"
+                  d="M298 146 L316 146 L316 173 L330 173" marker-end="url(#d-091-1-d091-ar-accent)"/>
+            <text class="dg-fs-sm dg-bold" x="272" y="196" text-anchor="middle">DNS 전환</text>
+
+            <rect data-dg="maz-primary" class="dg-node dg-node--danger" x="336" y="72" width="156" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="414" y="94" text-anchor="middle">프라이머리 (AZ-a)</text>
+            <text class="dg-fs-sm dg-bold" x="414" y="114" text-anchor="middle">장애</text>
+            <path data-dg="maz-x" class="dg-x" d="M462 102 L478 118 M478 102 L462 118"/>
+
+            <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M414 126 L414 144"/>
+            <text class="dg-fs-sm dg-muted" x="500" y="140">동기 복제로 이미 최신</text>
+
+            <rect data-dg="maz-standby" class="dg-node dg-node--ok" x="336" y="146" width="156" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="414" y="168" text-anchor="middle">대기 인스턴스 (AZ-b)</text>
+            <text class="dg-fs-sm dg-bold" x="414" y="188" text-anchor="middle">승격 — 새 프라이머리</text>
+
+            <rect data-dg="maz-result" class="dg-node dg-node--ok" x="512" y="52" width="188" height="52" rx="4"/>
+            <text data-dg="maz-verdict" class="dg-fs-sm dg-bold" x="606" y="74" text-anchor="middle">쓰기 재개</text>
+            <text class="dg-fs-sm" x="606" y="94" text-anchor="middle">애플리케이션 설정 변경 없음</text>
+
+            <!-- ===== 아래: 읽기 전용 복제본 ===== -->
+            <rect class="dg-panel" x="14" y="236" width="692" height="200" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="24" y="256">읽기 전용 복제본 구성</text>
+
+            <rect class="dg-node" x="20" y="320" width="100" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="70" y="340" text-anchor="middle">애플리</text>
+            <text class="dg-fs-sm dg-bold" x="70" y="358" text-anchor="middle">케이션</text>
+
+            <path class="dg-edge dg-edge--danger" d="M120 332 L132 306" marker-end="url(#d-091-1-d091-ar-danger)"/>
+            <path class="dg-edge dg-edge--ok" d="M120 356 L132 384" marker-end="url(#d-091-1-d091-ar-ok)"/>
+
+            <rect data-dg="rr-write-ep" class="dg-node dg-node--danger" x="138" y="282" width="160" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="218" y="307" text-anchor="middle">쓰기 엔드포인트</text>
+
+            <rect data-dg="rr-read-ep" class="dg-node dg-node--ok" x="138" y="366" width="160" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="218" y="391" text-anchor="middle">읽기 엔드포인트</text>
+
+            <path data-dg="rr-write-path" class="dg-edge dg-edge--danger" d="M298 302 L330 296" marker-end="url(#d-091-1-d091-ar-danger)"/>
+            <path class="dg-edge dg-edge--ok" d="M298 388 L330 392" marker-end="url(#d-091-1-d091-ar-ok)"/>
+
+            <rect data-dg="rr-primary" class="dg-node dg-node--danger" x="336" y="268" width="156" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="414" y="290" text-anchor="middle">프라이머리</text>
+            <text class="dg-fs-sm dg-bold" x="414" y="310" text-anchor="middle">장애</text>
+            <path data-dg="rr-x" class="dg-x" d="M462 281 L478 297 M478 281 L462 297"/>
+
+            <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M414 322 L414 364"/>
+            <text class="dg-fs-sm dg-muted" x="428" y="348">복제 중단</text>
+
+            <rect data-dg="rr-replica" class="dg-node dg-node--ok" x="336" y="366" width="156" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="414" y="388" text-anchor="middle">읽기 전용 복제본</text>
+            <text class="dg-fs-sm dg-bold" x="414" y="408" text-anchor="middle">자동 승격 없음</text>
+
+            <rect data-dg="rr-result" class="dg-node dg-node--danger" x="512" y="284" width="188" height="122" rx="4"/>
+            <text data-dg="rr-verdict" class="dg-fs-sm dg-bold" x="606" y="308" text-anchor="middle">쓰기는 계속 실패합니다</text>
+            <text class="dg-fs-sm" x="606" y="332" text-anchor="middle">읽기만 복제본에서</text>
+            <text class="dg-fs-sm" x="606" y="350" text-anchor="middle">처리됩니다</text>
+            <text class="dg-fs-sm dg-muted" x="606" y="374" text-anchor="middle">수동 승격이 필요하고</text>
+            <text class="dg-fs-sm dg-muted" x="606" y="392" text-anchor="middle">엔드포인트도 바뀝니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="452" width="680" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="476" text-anchor="middle">가용성과 읽기 확장은 다른 문제입니다</text>
+            <text class="dg-fs-sm" x="360" y="498" text-anchor="middle">읽기 전용 복제본을 아무리 늘려도 프라이머리가 죽으면 쓰기는 돌아오지 않습니다</text>
+          </svg>
+        </div>
         <figcaption>
           같은 장애를 두 구성에 넣었을 때의 차이 — Multi-AZ는 DNS가 대기 인스턴스로 전환되어 같은 엔드포인트로
           쓰기가 재개되지만, 읽기 전용 복제본 구성에서는 자동 승격이 일어나지 않아 쓰기가 계속 실패합니다
@@ -535,7 +776,100 @@ aws rds describe-db-instances \
         Aurora에서는 <strong>모든 인스턴스가 하나의 클러스터 볼륨을 함께 봅니다.</strong>
       </p>
 
-      <figure class="diagram" data-diagram="D-092">
+      <figure class="diagram" data-diagram="D-092" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 424" role="img" aria-labelledby="d-092-1-d092-title d-092-1-d092-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-092-1-d092-title">Aurora 클러스터 — 컴퓨트와 분리된 공유 스토리지 볼륨</title>
+            <desc id="d-092-1-d092-desc">Amazon Aurora 클러스터는 컴퓨트 계층과 스토리지 계층이 분리되어 있습니다.
+              위쪽 컴퓨트 계층에는 쓰기를 담당하는 라이터 인스턴스 하나와 읽기를 담당하는 리더 인스턴스들이 있고,
+              클러스터 엔드포인트는 항상 현재 라이터를 가리키며 리더 엔드포인트는 리더들에게 연결을 분산합니다.
+              아래쪽 스토리지 계층은 세 개의 가용 영역에 걸쳐 여섯 벌의 복사본을 유지하는 하나의 클러스터 볼륨이고
+              모든 인스턴스가 이 볼륨을 공유합니다.
+              그래서 리더를 라이터로 승격할 때 데이터를 옮길 필요가 없고, 리더를 추가해도 데이터가 복사되지 않으며,
+              스토리지는 사용량에 따라 자동으로 늘어납니다.
+              이것이 인스턴스마다 자기 EBS 볼륨을 갖고 복제로 데이터를 따라 보내는 표준 RDS 모델과 근본적으로 다른 점입니다.</desc>
+
+            <defs>
+              <marker id="d-092-1-d092-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-092-1-d092-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node" x="300" y="24" width="120" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="46" text-anchor="middle">애플리케이션</text>
+
+            <path class="dg-edge dg-edge--accent" d="M330 58 L240 80" marker-end="url(#d-092-1-d092-ar-accent)"/>
+            <path class="dg-edge" d="M390 58 L480 80" marker-end="url(#d-092-1-d092-ar)"/>
+
+            <rect class="dg-node dg-node--accent" x="120" y="84" width="180" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="210" y="106" text-anchor="middle">클러스터 엔드포인트</text>
+            <text class="dg-fs-sm dg-muted" x="210" y="134" text-anchor="middle">항상 현재 라이터</text>
+
+            <rect class="dg-node" x="420" y="84" width="180" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="510" y="106" text-anchor="middle">리더 엔드포인트</text>
+            <text class="dg-fs-sm dg-muted" x="510" y="134" text-anchor="middle">리더들에게 연결 분산</text>
+
+            <path class="dg-edge dg-edge--accent" d="M195 118 L185 142" marker-end="url(#d-092-1-d092-ar-accent)"/>
+            <path class="dg-edge" d="M490 118 L390 142" marker-end="url(#d-092-1-d092-ar)"/>
+            <path class="dg-edge" d="M530 118 L540 142" marker-end="url(#d-092-1-d092-ar)"/>
+
+            <!-- 컴퓨트 계층 -->
+            <rect class="dg-node dg-node--accent" x="120" y="146" width="130" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="168" text-anchor="middle">라이터</text>
+            <text class="dg-fs-sm dg-muted" x="185" y="188" text-anchor="middle">읽기 · 쓰기</text>
+
+            <rect class="dg-node" x="325" y="146" width="130" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="390" y="168" text-anchor="middle">리더 1</text>
+            <text class="dg-fs-sm dg-muted" x="390" y="188" text-anchor="middle">읽기 전용</text>
+
+            <rect class="dg-node" x="475" y="146" width="130" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="540" y="168" text-anchor="middle">리더 2</text>
+            <text class="dg-fs-sm dg-muted" x="540" y="188" text-anchor="middle">읽기 전용</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="140">컴퓨트 계층</text>
+            <text class="dg-fs-sm dg-bold" x="20" y="216">리더는 승격되면 그대로 라이터가 됩니다 — 볼륨이 이미 같으므로 데이터 복사가 없습니다</text>
+
+            <!-- 스토리지로 내려가는 경로 -->
+            <path class="dg-edge dg-edge--accent" d="M185 198 L185 244" marker-end="url(#d-092-1-d092-ar-accent)"/>
+            <path class="dg-edge dg-edge--dotted" d="M390 198 L390 244" marker-end="url(#d-092-1-d092-ar)"/>
+            <path class="dg-edge dg-edge--dotted" d="M540 198 L540 244" marker-end="url(#d-092-1-d092-ar)"/>
+
+            <!-- 스토리지 계층 -->
+            <rect class="dg-node dg-node--alt" x="20" y="228" width="680" height="122" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="250">하나의 클러스터 볼륨 — 세 가용 영역에 여섯 벌</text>
+
+            <rect class="dg-panel" x="34" y="258" width="212" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="140" y="276" text-anchor="middle">AZ-a</text>
+            <rect class="dg-node" x="46" y="282" width="88" height="48" rx="4"/>
+            <text class="dg-fs-sm" x="90" y="311" text-anchor="middle">복사본</text>
+            <rect class="dg-node" x="146" y="282" width="88" height="48" rx="4"/>
+            <text class="dg-fs-sm" x="190" y="311" text-anchor="middle">복사본</text>
+
+            <rect class="dg-panel" x="254" y="258" width="212" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="276" text-anchor="middle">AZ-b</text>
+            <rect class="dg-node" x="266" y="282" width="88" height="48" rx="4"/>
+            <text class="dg-fs-sm" x="310" y="311" text-anchor="middle">복사본</text>
+            <rect class="dg-node" x="366" y="282" width="88" height="48" rx="4"/>
+            <text class="dg-fs-sm" x="410" y="311" text-anchor="middle">복사본</text>
+
+            <rect class="dg-panel" x="474" y="258" width="212" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="580" y="276" text-anchor="middle">AZ-c</text>
+            <rect class="dg-node" x="486" y="282" width="88" height="48" rx="4"/>
+            <text class="dg-fs-sm" x="530" y="311" text-anchor="middle">복사본</text>
+            <rect class="dg-node" x="586" y="282" width="88" height="48" rx="4"/>
+            <text class="dg-fs-sm" x="630" y="311" text-anchor="middle">복사본</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="360" width="680" height="56" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="384" text-anchor="middle">RDS 는 인스턴스마다 자기 스토리지 — Aurora 는 전원이 같은 볼륨을 봅니다</text>
+            <text class="dg-fs-sm" x="360" y="406" text-anchor="middle">그래서 리더 추가도 승격도 데이터 복제를 기다리지 않고, 스토리지는 사용량만큼 자동으로 늘어납니다</text>
+          </svg>
+        </div>
         <figcaption>
           Aurora 클러스터의 구조 — 라이터 인스턴스와 리더 인스턴스들이 세 가용 영역에 복제된 하나의 클러스터 볼륨을
           공유하고, 클러스터 엔드포인트는 항상 현재 라이터를, 리더 엔드포인트는 리더들을 부하 분산해 가리킵니다
@@ -748,7 +1082,96 @@ aws rds describe-db-instances \
         둘은 대체재가 아니라 역할이 다릅니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-093">
+      <figure class="diagram" data-diagram="D-093" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 412" role="img" aria-labelledby="d-093-1-d093-title d-093-1-d093-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-093-1-d093-title">자동 백업 보존 기간 · 트랜잭션 로그 · 수동 스냅샷의 관계</title>
+            <desc id="d-093-1-d093-desc">가로축은 30일 전부터 지금까지의 시간입니다.
+              강조된 구간은 자동 백업 보존 기간이며 이 예에서는 7일입니다.
+              이 구간 안에서는 하루 한 번 뜨는 자동 백업 스냅샷과 5분 단위로 쌓이는 트랜잭션 로그가 결합되어
+              구간 안의 임의의 시점으로 복구할 수 있습니다. 이것이 특정 시점 복구, 즉 PITR 입니다.
+              보존 기간을 벗어난 자동 백업은 자동으로 삭제되므로 왼쪽 구간에서는 PITR 이 불가능합니다.
+              반면 사람이 직접 만든 수동 스냅샷은 보존 기간과 무관하게 삭제하기 전까지 남아 있으므로,
+              30일 전이든 1년 전이든 그 스냅샷 시점으로는 복원할 수 있습니다. 다만 그 사이 임의 시점으로는 갈 수 없습니다.
+              아래쪽에 적힌 대로 복원은 기존 인스턴스를 되돌리는 작업이 아니라 새 DB 인스턴스를 만드는 작업이며,
+              새 인스턴스는 새 엔드포인트를 갖기 때문에 애플리케이션 연결 정보를 바꿔야 합니다.</desc>
+
+            <defs>
+              <marker id="d-093-1-d093-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- PITR 구간 -->
+            <rect x="558" y="52" width="136" height="152" rx="4"
+                  fill="var(--dg-accent-soft)" stroke="var(--dg-accent)"
+                  stroke-width="var(--dg-sw-2)" stroke-dasharray="var(--dg-dash-1)"/>
+            <text class="dg-fs-sm dg-bold" x="626" y="44" text-anchor="middle">PITR 가능 구간</text>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">보존 기간 안에서만 임의 시점으로 갈 수 있습니다</text>
+
+            <!-- 행 1: 수동 스냅샷 -->
+            <text class="dg-fs-sm dg-bold" x="20" y="72">수동</text>
+            <text class="dg-fs-sm dg-bold" x="20" y="90">스냅샷</text>
+            <rect class="dg-node dg-node--ok" x="223" y="64" width="20" height="20" rx="3"/>
+            <rect class="dg-node dg-node--ok" x="443" y="64" width="20" height="20" rx="3"/>
+            <text class="dg-fs-sm" x="233" y="100" text-anchor="middle">스냅샷 A</text>
+            <text class="dg-fs-sm" x="453" y="100" text-anchor="middle">스냅샷 B</text>
+            <text class="dg-fs-sm dg-muted" x="140" y="118">삭제하기 전까지 남습니다 — 보존 기간과 무관합니다</text>
+
+            <!-- 행 2: 자동 백업 -->
+            <text class="dg-fs-sm dg-bold" x="20" y="140">자동</text>
+            <text class="dg-fs-sm dg-bold" x="20" y="158">백업</text>
+            <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M140 149 L552 149"/>
+            <text class="dg-fs-sm dg-muted" x="150" y="142">보존 기간이 지난 자동 백업은 삭제됩니다</text>
+            <circle cx="562" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <circle cx="583" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <circle cx="604" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <circle cx="626" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <circle cx="647" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <circle cx="668" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <circle cx="689" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+
+            <!-- 행 3: 트랜잭션 로그 -->
+            <text class="dg-fs-sm dg-bold" x="20" y="186">트랜잭션</text>
+            <text class="dg-fs-sm dg-bold" x="20" y="204">로그</text>
+            <rect x="558" y="176" width="136" height="16" rx="3"
+                  fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <path class="dg-grid" d="M578 176 L578 192 M598 176 L598 192 M618 176 L618 192
+                                      M638 176 L638 192 M658 176 L658 192 M678 176 L678 192"/>
+            <text class="dg-fs-sm dg-muted" x="552" y="188" text-anchor="end">5분 단위로 쌓입니다</text>
+
+            <!-- 축 -->
+            <path class="dg-grid" d="M140 216 L700 216 M140 210 L140 222 M323 210 L323 222
+                                      M507 210 L507 222 M562 204 L562 228 M690 210 L690 222"/>
+            <text class="dg-fs-sm dg-muted dg-num" x="140" y="240" text-anchor="middle">30일 전</text>
+            <text class="dg-fs-sm dg-muted dg-num" x="323" y="240" text-anchor="middle">20일 전</text>
+            <text class="dg-fs-sm dg-muted dg-num" x="490" y="240" text-anchor="middle">10일 전</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="690" y="240" text-anchor="middle">지금</text>
+            <text class="dg-fs-sm dg-bold" x="562" y="260" text-anchor="middle">보존 기간 시작 (여기서는 7일)</text>
+
+            <!-- 복원 -->
+            <rect class="dg-node" x="20" y="272" width="216" height="62" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="294">복구 지점을 고릅니다</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="316">구간 안의 시점 또는 스냅샷 하나</text>
+
+            <path class="dg-edge dg-edge--accent" d="M236 303 L272 303" marker-end="url(#d-093-1-d093-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="278" y="272" width="216" height="62" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="292" y="294">새 DB 인스턴스가 생깁니다</text>
+            <text class="dg-fs-sm dg-muted" x="292" y="316">엔드포인트도 새로 만들어집니다</text>
+
+            <rect class="dg-node dg-node--warn" x="504" y="272" width="196" height="62" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="518" y="294">기존 인스턴스는</text>
+            <text class="dg-fs-sm dg-bold" x="518" y="316">그대로 남아 있습니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="346" width="680" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="370" text-anchor="middle">자동 백업은 구간 안 임의 시점 · 수동 스냅샷은 그 시점 하나</text>
+            <text class="dg-fs-sm" x="360" y="392" text-anchor="middle">복원은 되돌리기가 아니라 새 인스턴스 만들기이며 애플리케이션 연결 정보를 바꿔야 합니다</text>
+          </svg>
+        </div>
         <figcaption>
           자동 백업 보존 기간과 트랜잭션 로그가 겹쳐 만들어지는 특정 시점 복구 가능 구간, 그리고 보존 기간 밖에서도
           남아 있는 수동 스냅샷의 관계 — 복구는 언제나 기존 인스턴스를 되돌리는 것이 아니라 새 인스턴스를 만드는 일입니다
@@ -926,7 +1349,108 @@ aws rds modify-db-snapshot-attribute \
         연결 생성 비용만으로 무너집니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-094">
+      <figure class="diagram" data-diagram="D-094" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 460" role="img" aria-labelledby="d-094-1-d094-title d-094-1-d094-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-094-1-d094-title">RDS Proxy가 연결 폭주를 흡수하는 방식</title>
+            <desc id="d-094-1-d094-desc">위쪽은 프록시 없이 AWS Lambda 함수가 데이터베이스에 직접 붙는 경우입니다.
+              Lambda 는 요청량에 따라 동시 실행 환경을 수백 개까지 늘리고 실행 환경마다 자기 연결을 엽니다.
+              연결 수가 DB 인스턴스의 max_connections 를 넘는 순간 새 연결이 거부되고,
+              한 번 거부되기 시작하면 재시도가 다시 연결을 요구하면서 상황이 더 나빠집니다.
+              아래쪽은 같은 Lambda 앞에 RDS Proxy 를 둔 경우입니다.
+              함수들은 프록시에 붙고 프록시는 미리 만들어 둔 소수의 데이터베이스 연결을 풀에 유지하며 재사용합니다.
+              애플리케이션 쪽 연결 수가 아무리 급증해도 데이터베이스가 실제로 보는 연결 수는 통제된 범위에 머무릅니다.
+              부수 효과로 장애 조치가 일어날 때 프록시가 새 인스턴스로 연결을 다시 맺어 주므로
+              애플리케이션이 DNS 갱신을 기다리는 시간이 줄어 전환이 빨라집니다.</desc>
+
+            <defs>
+              <marker id="d-094-1-d094-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-094-1-d094-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-094-1-d094-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">같은 트래픽, 프록시가 있고 없고의 차이</text>
+
+            <!-- 레인 A: 프록시 없음 -->
+            <rect class="dg-panel" x="14" y="40" width="692" height="150" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="24" y="60">프록시 없음 — 실행 환경마다 자기 연결을 엽니다</text>
+
+            <rect class="dg-node" x="24" y="70" width="120" height="18" rx="3"/>
+            <text class="dg-fs-sm" x="84" y="84" text-anchor="middle">Lambda 실행 환경</text>
+            <rect class="dg-node" x="24" y="92" width="120" height="18" rx="3"/>
+            <text class="dg-fs-sm" x="84" y="106" text-anchor="middle">Lambda 실행 환경</text>
+            <rect class="dg-node" x="24" y="114" width="120" height="18" rx="3"/>
+            <text class="dg-fs-sm" x="84" y="128" text-anchor="middle">Lambda 실행 환경</text>
+            <rect class="dg-node" x="24" y="136" width="120" height="18" rx="3"/>
+            <text class="dg-fs-sm" x="84" y="150" text-anchor="middle">Lambda 실행 환경</text>
+            <text class="dg-fs-sm dg-bold" x="84" y="172" text-anchor="middle">동시 실행 수백 개</text>
+
+            <path class="dg-edge dg-edge--danger" d="M144 79 L434 112" marker-end="url(#d-094-1-d094-ar-danger)"/>
+            <path class="dg-edge dg-edge--danger" d="M144 101 L434 120" marker-end="url(#d-094-1-d094-ar-danger)"/>
+            <path class="dg-edge dg-edge--danger" d="M144 123 L434 128" marker-end="url(#d-094-1-d094-ar-danger)"/>
+            <path class="dg-edge dg-edge--danger" d="M144 145 L434 136" marker-end="url(#d-094-1-d094-ar-danger)"/>
+            <text class="dg-fs-sm dg-bold" x="290" y="88" text-anchor="middle">연결도 수백 개</text>
+
+            <rect class="dg-node dg-node--danger" x="440" y="92" width="160" height="64" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="520" y="118" text-anchor="middle">DB 인스턴스</text>
+            <text class="dg-fs-sm dg-mono" x="520" y="140" text-anchor="middle">max_connections</text>
+
+            <path class="dg-x" d="M612 108 L628 124 M628 108 L612 124"/>
+            <text class="dg-fs-sm dg-bold" x="612" y="146">새 연결이</text>
+            <text class="dg-fs-sm dg-bold" x="612" y="164">거부됩니다</text>
+
+            <!-- 레인 B: 프록시 -->
+            <rect class="dg-panel" x="14" y="202" width="692" height="168" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="24" y="222">RDS Proxy — 소수의 연결을 풀에 두고 돌려 씁니다</text>
+
+            <rect class="dg-node" x="24" y="232" width="120" height="18" rx="3"/>
+            <text class="dg-fs-sm" x="84" y="246" text-anchor="middle">Lambda 실행 환경</text>
+            <rect class="dg-node" x="24" y="254" width="120" height="18" rx="3"/>
+            <text class="dg-fs-sm" x="84" y="268" text-anchor="middle">Lambda 실행 환경</text>
+            <rect class="dg-node" x="24" y="276" width="120" height="18" rx="3"/>
+            <text class="dg-fs-sm" x="84" y="290" text-anchor="middle">Lambda 실행 환경</text>
+            <rect class="dg-node" x="24" y="298" width="120" height="18" rx="3"/>
+            <text class="dg-fs-sm" x="84" y="312" text-anchor="middle">Lambda 실행 환경</text>
+            <text class="dg-fs-sm dg-bold" x="84" y="334" text-anchor="middle">동시 실행 수백 개</text>
+
+            <path class="dg-edge dg-edge--accent" d="M144 241 L244 264" marker-end="url(#d-094-1-d094-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M144 263 L244 274" marker-end="url(#d-094-1-d094-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M144 285 L244 284" marker-end="url(#d-094-1-d094-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M144 307 L244 294" marker-end="url(#d-094-1-d094-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="250" y="240" width="140" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="320" y="266" text-anchor="middle">RDS Proxy</text>
+            <text class="dg-fs-sm" x="320" y="288" text-anchor="middle">연결 풀 유지</text>
+            <text class="dg-fs-sm" x="320" y="306" text-anchor="middle">연결 재사용</text>
+
+            <path class="dg-edge dg-edge--ok" d="M390 268 L434 274" marker-end="url(#d-094-1-d094-ar-ok)"/>
+            <path class="dg-edge dg-edge--ok" d="M390 292 L434 288" marker-end="url(#d-094-1-d094-ar-ok)"/>
+            <text class="dg-fs-sm dg-bold" x="412" y="322" text-anchor="middle">연결 소수</text>
+
+            <rect class="dg-node dg-node--ok" x="440" y="250" width="160" height="64" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="520" y="276" text-anchor="middle">DB 인스턴스</text>
+            <text class="dg-fs-sm" x="520" y="298" text-anchor="middle">연결 수가 통제됩니다</text>
+
+            <text class="dg-fs-sm dg-bold" x="612" y="264">부수 효과</text>
+            <text class="dg-fs-sm" x="612" y="284">장애 조치 시</text>
+            <text class="dg-fs-sm" x="612" y="302">연결 전환이</text>
+            <text class="dg-fs-sm" x="612" y="320">빨라집니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="382" width="680" height="62" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="406" text-anchor="middle">"서버리스인데 DB 연결이 터진다"의 해법은 인스턴스 확대가 아닙니다</text>
+            <text class="dg-fs-sm" x="360" y="428" text-anchor="middle">연결 수를 줄이는 계층을 사이에 넣는 것이 답이며 그것이 RDS Proxy 입니다</text>
+          </svg>
+        </div>
         <figcaption>
           연결 폭주 경로와 RDS Proxy가 흡수하는 경로의 대비 — 프록시가 데이터베이스 연결 풀을 유지하며 재사용하므로
           애플리케이션 연결 수가 급증해도 데이터베이스 쪽 연결 수는 통제된 범위에 머무릅니다

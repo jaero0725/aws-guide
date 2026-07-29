@@ -107,7 +107,65 @@
         <strong>"코드 변경 없이"라는 한정어와 충돌</strong>합니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-080">
+      <figure class="diagram" data-diagram="D-080" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 420" role="img" aria-labelledby="d-080-1-d080-title d-080-1-d080-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-080-1-d080-title">공유 스토리지 선택 매트릭스 — 프로토콜과 동시 접근 범위</title>
+            <desc id="d-080-1-d080-desc">세로축은 스토리지가 노출하는 인터페이스이고 가로축은 몇 대가 동시에 붙을 수 있는가입니다.
+              맨 아래 블록 인터페이스에는 Amazon EBS 가 있으며 기본적으로 인스턴스 한 대에 붙는 볼륨입니다.
+              그 위 NFS 행에는 Amazon EFS 가 있고 여러 가용 영역의 리눅스 인스턴스 수천 대가 같은 파일 시스템을 동시에 마운트할 수 있습니다.
+              그 위 SMB 행에는 FSx for Windows File Server 가 있으며 윈도우 파일 공유와 Active Directory 통합이 필요한 경우의 답입니다.
+              맨 위 고성능 병렬 행에는 FSx for Lustre 가 있고 대규모 계산 클러스터가 S3 데이터를 밀리초 미만 지연으로 읽어야 할 때 씁니다.
+              애플리케이션 코드를 고치지 않고 공유 스토리지를 붙여야 한다는 요구는 운영체제가 리눅스면 EFS 로,
+              윈도우면 FSx for Windows File Server 로 수렴합니다. 객체 API 로 다시 짜야 하는 S3 는 이 요구의 답이 아닙니다.</desc>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">인터페이스와 동시 접근 범위로 자리가 정해집니다</text>
+
+            <text class="dg-fs-sm dg-bold" x="240" y="62" text-anchor="middle">인스턴스 한 대</text>
+            <text class="dg-fs-sm dg-bold" x="430" y="62" text-anchor="middle">여러 인스턴스</text>
+            <text class="dg-fs-sm dg-bold" x="620" y="62" text-anchor="middle">여러 AZ에서 동시에</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="62">동시 접근 →</text>
+
+            <path class="dg-grid" d="M20 70 L700 70 M20 138 L700 138 M20 206 L700 206
+                                      M20 274 L700 274 M20 342 L700 342
+                                      M150 70 L150 342 M340 70 L340 342 M530 70 L530 342"/>
+
+            <!-- 고성능 병렬 -->
+            <text class="dg-fs-sm dg-bold" x="26" y="98">고성능 병렬</text>
+            <text class="dg-fs-sm dg-muted" x="26" y="118">POSIX · HPC</text>
+            <rect class="dg-node" x="348" y="78" width="174" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="435" y="100" text-anchor="middle">FSx for Lustre</text>
+            <text class="dg-fs-sm dg-muted" x="435" y="120" text-anchor="middle">S3 연동 · 계산 클러스터</text>
+
+            <!-- SMB -->
+            <text class="dg-fs-sm dg-bold" x="26" y="166">SMB</text>
+            <text class="dg-fs-sm dg-muted" x="26" y="186">Windows</text>
+            <rect class="dg-node dg-node--accent" x="538" y="146" width="162" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="619" y="168" text-anchor="middle">FSx for Windows</text>
+            <text class="dg-fs-sm dg-muted" x="619" y="188" text-anchor="middle">Active Directory 통합</text>
+
+            <!-- NFS -->
+            <text class="dg-fs-sm dg-bold" x="26" y="234">NFS</text>
+            <text class="dg-fs-sm dg-muted" x="26" y="254">Linux</text>
+            <rect class="dg-node dg-node--accent" x="538" y="214" width="162" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="619" y="236" text-anchor="middle">Amazon EFS</text>
+            <text class="dg-fs-sm dg-muted" x="619" y="256" text-anchor="middle">여러 AZ · 자동 확장</text>
+
+            <!-- 블록 -->
+            <text class="dg-fs-sm dg-bold" x="26" y="302">블록</text>
+            <text class="dg-fs-sm dg-muted" x="26" y="322">파일 시스템은 직접</text>
+            <rect class="dg-node" x="158" y="282" width="174" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="245" y="304" text-anchor="middle">Amazon EBS</text>
+            <text class="dg-fs-sm dg-muted" x="245" y="324" text-anchor="middle">기본은 인스턴스 하나</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="360">인터페이스 ↑</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="368" width="680" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="390" text-anchor="middle">"코드를 바꾸지 않고 공유 스토리지" — 리눅스면 EFS, 윈도우면 FSx for Windows</text>
+            <text class="dg-fs-sm" x="360" y="408" text-anchor="middle">객체 API 로 다시 짜야 하는 S3 는 이 요구의 답이 아닙니다</text>
+          </svg>
+        </div>
         <figcaption>
           프로토콜과 동시 접근 범위를 축으로 배치한 공유 스토리지 선택 매트릭스 —
           Amazon EFS(NFS · 다중 가용 영역), FSx for Windows File Server(SMB),
@@ -391,7 +449,97 @@ sudo mount -t nfs4 -o nfsvers=4.1 \
         지연 시간 요구를 만족시키는 근거입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-081">
+      <figure class="diagram" data-diagram="D-081" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 480" role="img" aria-labelledby="d-081-1-d081-title d-081-1-d081-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-081-1-d081-title">Storage Gateway 세 종류에서 온프레미스와 AWS의 경계</title>
+            <desc id="d-081-1-d081-desc">가운데 세로선이 온프레미스와 AWS 의 경계입니다.
+              파일 게이트웨이에서는 서버들이 평소처럼 NFS 나 SMB 로 파일 공유를 마운트하고,
+              게이트웨이 어플라이언스가 그 파일을 S3 객체로 옮깁니다. 파일 하나가 객체 하나에 대응하므로
+              S3 쪽에서도 원래 파일 형태로 보입니다.
+              볼륨 게이트웨이에서는 서버가 iSCSI 블록 볼륨을 보고, 게이트웨이가 그 볼륨의 스냅샷을 AWS 에 EBS 스냅샷으로 저장합니다.
+              테이프 게이트웨이에서는 기존 백업 소프트웨어가 가상 테이프 라이브러리를 진짜 테이프 장비로 인식하고,
+              가상 테이프가 S3 와 Glacier 아카이브로 넘어갑니다.
+              세 종류 모두에서 자주 쓰는 데이터는 온프레미스 어플라이언스의 로컬 캐시에 남습니다.
+              그래서 대부분의 읽기가 로컬 디스크 속도로 처리되고, 클라우드로 옮기면서도 낮은 지연 시간 요구를 만족시킬 수 있습니다.</desc>
+
+            <defs>
+              <marker id="d-081-1-d081-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-081-1-d081-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="30">무엇이 남고 무엇이 넘어가는가</text>
+
+            <text class="dg-fs-sm dg-bold" x="20" y="52">온프레미스</text>
+            <text class="dg-fs-sm dg-bold" x="380" y="52">AWS</text>
+            <path class="dg-edge dg-edge--dashdot dg-edge--muted" d="M360 58 L360 400"/>
+
+            <!-- 파일 게이트웨이 -->
+            <text class="dg-fs-sm dg-bold" x="20" y="76">파일 게이트웨이</text>
+            <rect class="dg-node" x="20" y="84" width="120" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="80" y="108" text-anchor="middle">서버</text>
+            <text class="dg-fs-sm dg-muted" x="80" y="128" text-anchor="middle">NFS · SMB 마운트</text>
+
+            <path class="dg-edge" d="M140 114 L152 114" marker-end="url(#d-081-1-d081-ar)"/>
+
+            <rect class="dg-node dg-node--accent" x="158" y="84" width="182" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="249" y="108" text-anchor="middle">게이트웨이 어플라이언스</text>
+            <text class="dg-fs-sm dg-bold" x="249" y="128" text-anchor="middle">로컬 캐시가 여기 남습니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M340 114 L374 114" marker-end="url(#d-081-1-d081-ar-accent)"/>
+
+            <rect class="dg-node" x="380" y="84" width="320" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="540" y="108" text-anchor="middle">Amazon S3 객체</text>
+            <text class="dg-fs-sm dg-muted" x="540" y="128" text-anchor="middle">파일 하나가 객체 하나로 그대로 보입니다</text>
+
+            <!-- 볼륨 게이트웨이 -->
+            <text class="dg-fs-sm dg-bold" x="20" y="196">볼륨 게이트웨이</text>
+            <rect class="dg-node" x="20" y="204" width="120" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="80" y="228" text-anchor="middle">서버</text>
+            <text class="dg-fs-sm dg-muted" x="80" y="248" text-anchor="middle">iSCSI 블록 볼륨</text>
+
+            <path class="dg-edge" d="M140 234 L152 234" marker-end="url(#d-081-1-d081-ar)"/>
+
+            <rect class="dg-node dg-node--accent" x="158" y="204" width="182" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="249" y="228" text-anchor="middle">캐시 볼륨 · 저장 볼륨</text>
+            <text class="dg-fs-sm dg-bold" x="249" y="248" text-anchor="middle">로컬 캐시가 여기 남습니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M340 234 L374 234" marker-end="url(#d-081-1-d081-ar-accent)"/>
+
+            <rect class="dg-node" x="380" y="204" width="320" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="540" y="228" text-anchor="middle">EBS 스냅샷</text>
+            <text class="dg-fs-sm dg-muted" x="540" y="248" text-anchor="middle">스냅샷에서 EBS 볼륨을 만들 수 있습니다</text>
+
+            <!-- 테이프 게이트웨이 -->
+            <text class="dg-fs-sm dg-bold" x="20" y="316">테이프 게이트웨이</text>
+            <rect class="dg-node" x="20" y="324" width="120" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="80" y="348" text-anchor="middle">백업 소프트웨어</text>
+            <text class="dg-fs-sm dg-muted" x="80" y="368" text-anchor="middle">기존 그대로</text>
+
+            <path class="dg-edge" d="M140 354 L152 354" marker-end="url(#d-081-1-d081-ar)"/>
+
+            <rect class="dg-node dg-node--accent" x="158" y="324" width="182" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="249" y="348" text-anchor="middle">가상 테이프 라이브러리</text>
+            <text class="dg-fs-sm dg-bold" x="249" y="368" text-anchor="middle">테이프 장비로 인식됩니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M340 354 L374 354" marker-end="url(#d-081-1-d081-ar-accent)"/>
+
+            <rect class="dg-node" x="380" y="324" width="320" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="540" y="348" text-anchor="middle">S3 · Glacier 아카이브</text>
+            <text class="dg-fs-sm dg-muted" x="540" y="368" text-anchor="middle">테이프 장비와 유지보수 계약이 사라집니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="410" width="680" height="60" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="434" text-anchor="middle">세 종류 모두 자주 쓰는 데이터는 온프레미스 캐시에 남습니다</text>
+            <text class="dg-fs-sm" x="360" y="456" text-anchor="middle">"클라우드로 옮기되 접근 지연은 지금과 같아야 한다"는 요구를 만족시키는 근거가 이 캐시입니다</text>
+          </svg>
+        </div>
         <figcaption>
           Storage Gateway 세 종류에서 온프레미스에 남는 것과 AWS로 넘어가는 것의 경계 —
           파일 게이트웨이는 파일 공유를 S3 객체로, 볼륨 게이트웨이는 iSCSI 볼륨을 스냅샷으로,
@@ -485,7 +633,57 @@ sudo mount -t nfs4 -o nfsvers=4.1 \
         그 시간이 <strong>허용 기간</strong>을 넘으면 회선으로 보내는 선택지는 전부 소거됩니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-082">
+      <figure class="diagram" data-diagram="D-082" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 404" role="img" aria-labelledby="d-082-1-d082-title d-082-1-d082-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-082-1-d082-title">데이터 전송 수단 결정 — 데이터량과 가용 대역폭</title>
+            <desc id="d-082-1-d082-desc">가로축은 실제로 쓸 수 있는 회선 대역폭이고 세로축은 옮겨야 하는 데이터의 양입니다.
+              왼쪽 위, 즉 데이터는 많은데 회선이 좁은 영역이 Snow Family 의 자리입니다.
+              같은 양을 회선으로 보내면 몇 주에서 몇 달이 걸리는 구간이라 장비에 담아 물리적으로 보내는 편이 빠릅니다.
+              오른쪽 위, 데이터도 많고 회선도 충분한 영역이 AWS DataSync 의 자리입니다.
+              한 번 옮기고 끝나는 것이 아니라 온프레미스와 AWS 사이를 주기적으로 동기화해야 할 때 특히 여기가 답입니다.
+              아래쪽 넓은 띠는 AWS Transfer Family 입니다. 이쪽은 데이터량보다 프로토콜이 판단 기준으로,
+              거래처가 이미 SFTP 나 FTPS 로 파일을 주고받고 있어 그 방식을 바꿀 수 없을 때 씁니다.
+              판단은 언제나 같은 질문에서 시작합니다. 지금 회선으로 이 데이터를 다 보내는 데 며칠이 걸리는가입니다.</desc>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">회선으로 며칠이 걸리는지가 첫 질문입니다</text>
+
+            <text class="dg-fs-sm dg-bold" x="20" y="76">데이터량</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="96">많음</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="290">적음</text>
+
+            <path class="dg-grid" d="M90 56 L90 302 M90 302 L706 302"/>
+
+            <!-- Snow Family -->
+            <rect class="dg-node dg-node--warn" x="96" y="62" width="292" height="124" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="242" y="92" text-anchor="middle">Snow Family</text>
+            <text class="dg-fs-sm" x="242" y="116" text-anchor="middle">장비에 담아 물리적으로 보냅니다</text>
+            <text class="dg-fs-sm dg-bold" x="242" y="140" text-anchor="middle">회선으로 몇 주 이상 걸리는 구간</text>
+            <text class="dg-fs-sm dg-muted" x="242" y="164" text-anchor="middle">현장에 회선이 아예 없는 경우도 포함</text>
+
+            <!-- DataSync -->
+            <rect class="dg-node dg-node--accent" x="396" y="62" width="298" height="124" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="545" y="92" text-anchor="middle">AWS DataSync</text>
+            <text class="dg-fs-sm" x="545" y="116" text-anchor="middle">회선으로 빠르게 옮깁니다</text>
+            <text class="dg-fs-sm dg-bold" x="545" y="140" text-anchor="middle">반복 동기화가 필요하면 여기입니다</text>
+            <text class="dg-fs-sm dg-muted" x="545" y="164" text-anchor="middle">일정 예약 · 검증 · 증분 전송</text>
+
+            <!-- Transfer Family -->
+            <rect class="dg-node" x="96" y="194" width="598" height="100" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="395" y="224" text-anchor="middle">AWS Transfer Family</text>
+            <text class="dg-fs-sm" x="395" y="248" text-anchor="middle">SFTP · FTPS · FTP · AS2 로 들어오는 파일을 S3 나 EFS 에 받습니다</text>
+            <text class="dg-fs-sm dg-bold" x="395" y="272" text-anchor="middle">판단 기준은 데이터량이 아니라 상대가 쓰는 프로토콜입니다</text>
+
+            <text class="dg-fs-sm dg-muted" x="100" y="322">좁음</text>
+            <text class="dg-fs-sm dg-bold" x="395" y="322" text-anchor="middle">가용 대역폭 →</text>
+            <text class="dg-fs-sm dg-muted" x="700" y="322" text-anchor="end">넓음</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="336" width="680" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="360" text-anchor="middle">"지금 회선으로 다 보내는 데 몇 달" 이면 그 구간은 물리 전송의 영역입니다</text>
+            <text class="dg-fs-sm" x="360" y="382" text-anchor="middle">한 번 옮기고 끝이 아니라 계속 맞춰야 한다면 DataSync 를 먼저 봅니다</text>
+          </svg>
+        </div>
         <figcaption>
           데이터량과 가용 대역폭을 두 축으로 놓고 나눈 전송 수단 영역 —
           회선으로 몇 달이 걸리는 구간이 물리 전송의 영역이고,

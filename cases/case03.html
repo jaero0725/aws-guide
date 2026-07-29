@@ -103,7 +103,102 @@
         </table>
       </div>
 
-      <figure class="diagram" data-diagram="D-072">
+      <figure class="diagram" data-diagram="D-072" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 430" role="img" aria-labelledby="d-072-1-d072-title d-072-1-d072-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-072-1-d072-title">스토리지 클래스 수명주기 전환 타임라인</title>
+            <desc id="d-072-1-d072-desc">객체 하나가 만들어진 날부터 210일까지의 시간축 위에서 수명주기 규칙이 어떻게 클래스를 옮기는지 보여 줍니다.
+              0일부터 30일까지는 S3 Standard, 30일부터 90일까지는 S3 Standard-IA,
+              90일부터 180일까지는 S3 Glacier Instant Retrieval 또는 Flexible Retrieval,
+              180일 이후는 S3 Glacier Deep Archive 구간입니다.
+              각 구간 아래의 막대는 그 클래스의 최소 저장 기간으로 Standard-IA 는 30일, Glacier 계열은 90일, Deep Archive 는 180일입니다.
+              이 기간을 채우기 전에 삭제하거나 다른 클래스로 옮기면 남은 일수만큼의 저장 요금이 그대로 청구됩니다.
+              초기 표시자는 45일에 있으며 그 시점의 클래스는 S3 Standard-IA 입니다.
+              아래 주의 카드는 128 KB 미만 객체가 Standard-IA 나 One Zone-IA 로 전환되지 않는다는 예외를 표시합니다.
+              이 그림은 금액을 다루지 않고 클래스가 언제 바뀌는가와 어떤 전환이 규칙 위반인가만 다룹니다.</desc>
+
+            <defs>
+              <marker id="d-072-1-d072-ar-warn" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--warn" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="28">객체 하나가 시간축을 따라 옮겨 다닙니다</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="48">수명주기 규칙은 객체 생성 후 경과 일수를 기준으로 클래스를 바꿉니다</text>
+
+            <!-- 현재 지점 표시자 (초기 45일) -->
+            <g data-dg="day-marker" transform="translate(195 0)">
+              <rect class="dg-node dg-node--accent" x="-40" y="60" width="80" height="26" rx="4"/>
+              <text data-dg="day-label" class="dg-fs-sm dg-bold dg-num" x="0" y="78" text-anchor="middle">45일째</text>
+              <path class="dg-edge dg-edge--accent" d="M0 86 L0 190"/>
+              <circle cx="0" cy="120" r="6" fill="var(--dg-accent)" stroke="none"/>
+            </g>
+
+            <!-- 구간 -->
+            <rect data-dg="seg-standard" class="dg-node" x="60" y="96" width="90" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="105" y="118" text-anchor="middle">S3</text>
+            <text class="dg-fs-sm dg-bold" x="105" y="136" text-anchor="middle">Standard</text>
+
+            <rect data-dg="seg-ia" class="dg-node dg-node--accent" x="150" y="96" width="180" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="240" y="118" text-anchor="middle">S3 Standard-IA</text>
+            <text class="dg-fs-sm dg-muted" x="240" y="136" text-anchor="middle">즉시 접근 · 검색 요금 발생</text>
+
+            <rect data-dg="seg-glacier" class="dg-node" x="330" y="96" width="270" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="118" text-anchor="middle">S3 Glacier Instant / Flexible Retrieval</text>
+            <text class="dg-fs-sm dg-muted" x="465" y="136" text-anchor="middle">Instant 는 즉시 · Flexible 은 복원 요청 필요</text>
+
+            <rect data-dg="seg-deep" class="dg-node" x="600" y="96" width="90" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="645" y="118" text-anchor="middle">S3 Glacier</text>
+            <text class="dg-fs-sm dg-bold" x="645" y="136" text-anchor="middle">Deep Archive</text>
+
+            <!-- 축 -->
+            <path class="dg-grid" d="M60 152 L700 152 M60 146 L60 160 M150 146 L150 160 M330 146 L330 160 M600 146 L600 160"/>
+            <text class="dg-fs-sm dg-muted dg-num" x="60" y="176" text-anchor="middle">0일</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="150" y="176" text-anchor="middle">30일</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="330" y="176" text-anchor="middle">90일</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="600" y="176" text-anchor="middle">180일</text>
+            <text class="dg-fs-sm dg-muted" x="700" y="176" text-anchor="end">경과 일수 →</text>
+
+            <!-- 최소 저장 기간 -->
+            <text class="dg-fs-sm dg-bold" x="20" y="206">최소 저장 기간 — 이 막대가 끝나기 전에 삭제하거나 옮기면 남은 일수만큼 저장 요금이 청구됩니다</text>
+
+            <rect x="60" y="214" width="90" height="22" rx="3"
+                  fill="var(--dg-muted-soft)" stroke="var(--dg-muted)"
+                  stroke-width="var(--dg-sw-1)" stroke-dasharray="var(--dg-dash-2)"/>
+            <text class="dg-fs-sm dg-muted" x="105" y="230" text-anchor="middle">없음</text>
+
+            <rect data-dg="min-ia" x="150" y="214" width="90" height="22" rx="3"
+                  fill="var(--dg-warn-soft)" stroke="var(--dg-warn)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold dg-num" x="195" y="230" text-anchor="middle">30일</text>
+
+            <rect data-dg="min-glacier" x="330" y="214" width="270" height="22" rx="3"
+                  fill="var(--dg-warn-soft)" stroke="var(--dg-warn)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold dg-num" x="465" y="230" text-anchor="middle">90일</text>
+
+            <rect data-dg="min-deep" x="600" y="214" width="90" height="22" rx="3"
+                  fill="var(--dg-warn-soft)" stroke="var(--dg-warn)"
+                  stroke-width="var(--dg-sw-1)" stroke-dasharray="var(--dg-dash-1)"/>
+            <text class="dg-fs-sm dg-bold dg-num" x="645" y="230" text-anchor="middle">180일</text>
+
+            <!-- 위반 표시 -->
+            <g data-dg="warn-min-duration" data-state="off">
+              <path class="dg-edge dg-edge--warn dg-edge--dashed" d="M240 248 L240 264 L330 264"
+                    marker-end="url(#d-072-1-d072-ar-warn)"/>
+              <text class="dg-fs-sm dg-bold" x="248" y="282">최소 저장 기간을 채우기 전의 전환</text>
+            </g>
+
+            <!-- 128 KB 예외 -->
+            <rect class="dg-node dg-node--warn" x="20" y="294" width="680" height="54" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="316">128 KB 미만 객체는 전환 대상에서 빠집니다</text>
+            <text data-dg="small-object-note" class="dg-fs-sm" x="34" y="338">Standard-IA · One Zone-IA · Glacier Instant Retrieval · Intelligent-Tiering 으로 가는 전환에 적용됩니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="358" width="680" height="58" rx="4"/>
+            <text data-dg="verdict" class="dg-fs-md dg-bold" x="360" y="382" text-anchor="middle">45일째 — 지금 이 객체의 클래스는 S3 Standard-IA 입니다</text>
+            <text class="dg-fs-sm" x="360" y="404" text-anchor="middle">전환 시점은 객체 생성일 기준이며, 옮겨 간 클래스의 최소 저장 기간이 다시 시작합니다</text>
+          </svg>
+        </div>
         <figcaption>
           객체 하나가 경과 일수 축을 따라 S3 Standard에서 Standard-IA(30일), Glacier 계열(90일),
           Glacier Deep Archive(180일)로 이동하는 수명 주기 타임라인 —

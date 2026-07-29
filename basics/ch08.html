@@ -74,7 +74,93 @@
         이 사실은 뒤의 <a href="#performance">성능</a> 절에서 요청 분산의 근거가 됩니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-070">
+      <figure class="diagram" data-diagram="D-070" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 430" role="img" aria-labelledby="d-070-1-d070-title d-070-1-d070-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-070-1-d070-title">S3 객체 모델과 접근 경로 — 폴더가 아니라 접두사</title>
+            <desc id="d-070-1-d070-desc">Amazon S3 버킷 하나가 담고 있는 객체 목록은 계층 구조가 아니라 평평한 키 목록입니다.
+              왼쪽 버킷 안의 네 객체는 슬래시가 들어간 키를 갖지만 그 슬래시는 디렉터리 구분자가 아니라 키 문자열의 일부입니다.
+              가운데는 객체 하나의 구성으로, 키와 버전 ID와 사용자 메타데이터와 본문 데이터로 이루어집니다.
+              오른쪽 아래는 REST 엔드포인트의 형태이며 가상 호스팅 방식에서 버킷 이름이 호스트 앞에 오고 리전이 뒤따르며
+              경로 부분 전체가 하나의 키가 됩니다. 콘솔에서 폴더처럼 보이는 것은 ListObjectsV2 호출에 접두사와 구분자를 주었을 때
+              같은 접두사를 공유하는 키들을 묶어 보여 주는 표현일 뿐이며, S3 안에 디렉터리라는 실체는 존재하지 않습니다.</desc>
+
+            <defs>
+              <marker id="d-070-1-d070-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-070-1-d070-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 버킷 -->
+            <rect class="dg-node dg-node--alt" x="20" y="46" width="330" height="180" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="70">버킷 — 평평한 키 목록</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="34" y="90">my-bucket</text>
+
+            <rect class="dg-node" x="34" y="100" width="302" height="26" rx="4"/>
+            <text class="dg-fs-sm dg-mono" x="44" y="118">logs/2026/07/app.log</text>
+            <rect class="dg-node dg-node--accent" x="34" y="130" width="302" height="26" rx="4"/>
+            <text class="dg-fs-sm dg-mono dg-bold" x="44" y="148">logs/2026/07/db.log</text>
+            <rect class="dg-node" x="34" y="160" width="302" height="26" rx="4"/>
+            <text class="dg-fs-sm dg-mono" x="44" y="178">images/logo.png</text>
+            <rect class="dg-node" x="34" y="190" width="302" height="26" rx="4"/>
+            <text class="dg-fs-sm dg-mono" x="44" y="208">index.html</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="36">키는 중첩되지 않습니다 — 전부 같은 깊이입니다</text>
+
+            <!-- 객체 하나의 구성 -->
+            <path class="dg-edge dg-edge--accent" d="M340 143 L376 143" marker-end="url(#d-070-1-d070-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="382" y="46" width="318" height="180" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="396" y="70">객체 하나의 구성</text>
+
+            <text class="dg-fs-sm dg-bold" x="396" y="96">키 (Key)</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="490" y="96">logs/2026/07/db.log</text>
+            <path class="dg-grid" d="M396 104 L688 104"/>
+
+            <text class="dg-fs-sm dg-bold" x="396" y="126">버전 ID</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="490" y="126">3sL9…Qk (버전 관리 시)</text>
+            <path class="dg-grid" d="M396 134 L688 134"/>
+
+            <text class="dg-fs-sm dg-bold" x="396" y="156">메타데이터</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="490" y="156">Content-Type, x-amz-meta-*</text>
+            <path class="dg-grid" d="M396 164 L688 164"/>
+
+            <text class="dg-fs-sm dg-bold" x="396" y="186">본문 데이터</text>
+            <text class="dg-fs-sm dg-muted" x="490" y="186">0 바이트 ~ 5 TB</text>
+            <path class="dg-grid" d="M396 194 L688 194"/>
+
+            <text class="dg-fs-sm dg-bold" x="396" y="216">식별자</text>
+            <text class="dg-fs-sm dg-muted" x="490" y="216">버킷 + 키 + 버전 ID</text>
+
+            <!-- REST 엔드포인트 -->
+            <rect class="dg-node" x="20" y="252" width="680" height="88" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="276">REST 엔드포인트 (가상 호스팅 방식)</text>
+
+            <text class="dg-fs-md dg-mono" x="34" y="308">https://</text>
+            <text class="dg-fs-md dg-mono dg-bold" x="106" y="308">my-bucket</text>
+            <text class="dg-fs-md dg-mono" x="187" y="308">.s3.</text>
+            <text class="dg-fs-md dg-mono dg-bold" x="223" y="308">ap-northeast-2</text>
+            <text class="dg-fs-md dg-mono" x="349" y="308">.amazonaws.com/</text>
+            <text class="dg-fs-md dg-mono dg-bold" x="484" y="308">logs/2026/07/db.log</text>
+
+            <path class="dg-edge dg-edge--dotted" d="M146 314 L146 326"/>
+            <text class="dg-fs-sm dg-muted" x="146" y="337" text-anchor="middle">버킷</text>
+            <path class="dg-edge dg-edge--dotted" d="M286 314 L286 326"/>
+            <text class="dg-fs-sm dg-muted" x="286" y="337" text-anchor="middle">리전</text>
+            <path class="dg-edge dg-edge--accent" d="M570 314 L570 326"/>
+            <text class="dg-fs-sm dg-bold" x="570" y="337" text-anchor="middle">키 전체가 한 덩어리</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="352" width="680" height="62" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="376" text-anchor="middle">S3 에 폴더라는 실체는 없습니다 — 슬래시는 키 문자열의 일부일 뿐입니다</text>
+            <text class="dg-fs-sm" x="360" y="398" text-anchor="middle">콘솔의 폴더 모양은 ListObjectsV2 에 prefix 와 delimiter 를 주어 같은 접두사를 묶어 보여 준 결과입니다</text>
+          </svg>
+        </div>
         <figcaption>
           버킷 · 키 · 버전 ID · 메타데이터로 이루어진 S3 객체 모델과 REST 엔드포인트 형태 —
           키 안의 슬래시는 디렉터리가 아니라 접두사이며, S3에 폴더라는 실체는 존재하지 않습니다
@@ -202,7 +288,67 @@
         이 사실을 모르면 시나리오 문항에서 불필요한 조치를 정답으로 고르게 됩니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-071">
+      <figure class="diagram" data-diagram="D-071" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 424" role="img" aria-labelledby="d-071-1-d071-title d-071-1-d071-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-071-1-d071-title">신규 S3 버킷의 보안 기본값 세 가지와 꺼져 있는 하나</title>
+            <desc id="d-071-1-d071-desc">지금 아무 설정 없이 만든 Amazon S3 버킷의 초기 상태를 네 개의 스위치로 보여 줍니다.
+              퍼블릭 액세스 차단은 켜져 있고, 객체 소유권이 BucketOwnerEnforced 라서 ACL 은 완전히 비활성이며,
+              새로 올라오는 모든 객체는 SSE-S3 즉 AES-256 으로 자동 암호화됩니다. 세 스위치 모두 기본이 켜짐입니다.
+              반면 네 번째 스위치인 버킷 버전 관리는 여전히 꺼진 상태로 시작하며 이 값은 지금까지 바뀐 적이 없습니다.
+              "S3 는 기본이 다 열려 있으니 잠가야 한다"는 오래된 설명은 2023년의 기본값 변경 이후로 틀린 말이 되었고,
+              실제로 직접 켜야 하는 것은 버전 관리 하나입니다. 버전 관리는 삭제와 덮어쓰기로부터의 복구,
+              그리고 복제 규칙의 전제 조건이기 때문에 중요합니다.</desc>
+
+            <text class="dg-fs-md dg-bold" x="20" y="30">버킷을 만들고 아무 설정도 건드리지 않은 상태</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="50">스위치 세 개는 이미 켜져 있고, 하나만 꺼져 있습니다</text>
+
+            <!-- 1. 퍼블릭 액세스 차단 -->
+            <rect class="dg-node dg-node--ok" x="20" y="64" width="680" height="66" rx="4"/>
+            <rect x="36" y="84" width="46" height="26" rx="13"
+                  fill="var(--dg-ok-soft)" stroke="var(--dg-ok)" stroke-width="var(--dg-sw-2)"/>
+            <circle cx="69" cy="97" r="9" fill="var(--dg-ok)" stroke="none"/>
+            <text class="dg-fs-sm dg-bold" x="92" y="93">ON</text>
+            <text class="dg-fs-md dg-bold" x="134" y="92">퍼블릭 액세스 차단 (Block Public Access)</text>
+            <text class="dg-fs-sm dg-muted" x="134" y="114">계정·버킷 양쪽에서 네 설정 모두 켜짐 — 버킷 정책으로도 퍼블릭 공개가 막힙니다</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="92" y="114">기본</text>
+
+            <!-- 2. ACL 비활성 -->
+            <rect class="dg-node dg-node--ok" x="20" y="140" width="680" height="66" rx="4"/>
+            <rect x="36" y="160" width="46" height="26" rx="13"
+                  fill="var(--dg-ok-soft)" stroke="var(--dg-ok)" stroke-width="var(--dg-sw-2)"/>
+            <circle cx="69" cy="173" r="9" fill="var(--dg-ok)" stroke="none"/>
+            <text class="dg-fs-sm dg-bold" x="92" y="169">ON</text>
+            <text class="dg-fs-md dg-bold" x="134" y="168">ACL 비활성 — ObjectOwnership = BucketOwnerEnforced</text>
+            <text class="dg-fs-sm dg-muted" x="134" y="190">버킷 소유자가 모든 객체를 소유하고 ACL 은 아예 평가되지 않습니다. 권한은 정책으로만</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="92" y="190">기본</text>
+
+            <!-- 3. SSE-S3 자동 암호화 -->
+            <rect class="dg-node dg-node--ok" x="20" y="216" width="680" height="66" rx="4"/>
+            <rect x="36" y="236" width="46" height="26" rx="13"
+                  fill="var(--dg-ok-soft)" stroke="var(--dg-ok)" stroke-width="var(--dg-sw-2)"/>
+            <circle cx="69" cy="249" r="9" fill="var(--dg-ok)" stroke="none"/>
+            <text class="dg-fs-sm dg-bold" x="92" y="245">ON</text>
+            <text class="dg-fs-md dg-bold" x="134" y="244">신규 객체 자동 암호화 — SSE-S3 (AES-256)</text>
+            <text class="dg-fs-sm dg-muted" x="134" y="266">업로드가 요청 헤더 없이도 저장 시 암호화됩니다. 추가 요금도 성능 저하도 없습니다</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="92" y="266">기본</text>
+
+            <!-- 4. 버전 관리 OFF -->
+            <rect class="dg-node dg-node--warn" x="20" y="292" width="680" height="66" rx="4"/>
+            <rect x="36" y="312" width="46" height="26" rx="13"
+                  fill="var(--dg-warn-soft)" stroke="var(--dg-warn)" stroke-width="var(--dg-sw-2)"/>
+            <circle cx="49" cy="325" r="9" fill="var(--dg-warn)" stroke="none"/>
+            <text class="dg-fs-sm dg-bold" x="92" y="321">OFF</text>
+            <text class="dg-fs-md dg-bold" x="134" y="320">버킷 버전 관리 (Versioning)</text>
+            <text class="dg-fs-sm dg-muted" x="134" y="342">꺼짐이 기본이며 바뀐 적이 없습니다. 덮어쓰기·삭제 복구와 복제 규칙의 전제 조건입니다</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="92" y="342">기본</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="368" width="680" height="44" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="386" text-anchor="middle">"S3 는 기본이 열려 있다"는 설명은 2023년 이후로 틀렸습니다</text>
+            <text class="dg-fs-sm" x="360" y="405" text-anchor="middle">직접 켜야 하는 것은 버전 관리 하나입니다</text>
+          </svg>
+        </div>
         <figcaption>
           신규 버킷의 보안 기본값 세 가지 — 퍼블릭 액세스 차단이 켜져 있고, ACL이 비활성이며,
           신규 객체가 SSE-S3로 자동 암호화됩니다. 반면 버전 관리는 여전히 꺼진 상태로 시작합니다
@@ -583,7 +729,102 @@
         한 버킷의 수명 주기 구성은 <strong>최대 1,000개 규칙</strong>까지 가질 수 있습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-072">
+      <figure class="diagram" data-diagram="D-072" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 430" role="img" aria-labelledby="d-072-1-d072-title d-072-1-d072-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-072-1-d072-title">스토리지 클래스 수명주기 전환 타임라인</title>
+            <desc id="d-072-1-d072-desc">객체 하나가 만들어진 날부터 210일까지의 시간축 위에서 수명주기 규칙이 어떻게 클래스를 옮기는지 보여 줍니다.
+              0일부터 30일까지는 S3 Standard, 30일부터 90일까지는 S3 Standard-IA,
+              90일부터 180일까지는 S3 Glacier Instant Retrieval 또는 Flexible Retrieval,
+              180일 이후는 S3 Glacier Deep Archive 구간입니다.
+              각 구간 아래의 막대는 그 클래스의 최소 저장 기간으로 Standard-IA 는 30일, Glacier 계열은 90일, Deep Archive 는 180일입니다.
+              이 기간을 채우기 전에 삭제하거나 다른 클래스로 옮기면 남은 일수만큼의 저장 요금이 그대로 청구됩니다.
+              초기 표시자는 45일에 있으며 그 시점의 클래스는 S3 Standard-IA 입니다.
+              아래 주의 카드는 128 KB 미만 객체가 Standard-IA 나 One Zone-IA 로 전환되지 않는다는 예외를 표시합니다.
+              이 그림은 금액을 다루지 않고 클래스가 언제 바뀌는가와 어떤 전환이 규칙 위반인가만 다룹니다.</desc>
+
+            <defs>
+              <marker id="d-072-1-d072-ar-warn" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--warn" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="28">객체 하나가 시간축을 따라 옮겨 다닙니다</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="48">수명주기 규칙은 객체 생성 후 경과 일수를 기준으로 클래스를 바꿉니다</text>
+
+            <!-- 현재 지점 표시자 (초기 45일) -->
+            <g data-dg="day-marker" transform="translate(195 0)">
+              <rect class="dg-node dg-node--accent" x="-40" y="60" width="80" height="26" rx="4"/>
+              <text data-dg="day-label" class="dg-fs-sm dg-bold dg-num" x="0" y="78" text-anchor="middle">45일째</text>
+              <path class="dg-edge dg-edge--accent" d="M0 86 L0 190"/>
+              <circle cx="0" cy="120" r="6" fill="var(--dg-accent)" stroke="none"/>
+            </g>
+
+            <!-- 구간 -->
+            <rect data-dg="seg-standard" class="dg-node" x="60" y="96" width="90" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="105" y="118" text-anchor="middle">S3</text>
+            <text class="dg-fs-sm dg-bold" x="105" y="136" text-anchor="middle">Standard</text>
+
+            <rect data-dg="seg-ia" class="dg-node dg-node--accent" x="150" y="96" width="180" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="240" y="118" text-anchor="middle">S3 Standard-IA</text>
+            <text class="dg-fs-sm dg-muted" x="240" y="136" text-anchor="middle">즉시 접근 · 검색 요금 발생</text>
+
+            <rect data-dg="seg-glacier" class="dg-node" x="330" y="96" width="270" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="118" text-anchor="middle">S3 Glacier Instant / Flexible Retrieval</text>
+            <text class="dg-fs-sm dg-muted" x="465" y="136" text-anchor="middle">Instant 는 즉시 · Flexible 은 복원 요청 필요</text>
+
+            <rect data-dg="seg-deep" class="dg-node" x="600" y="96" width="90" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="645" y="118" text-anchor="middle">S3 Glacier</text>
+            <text class="dg-fs-sm dg-bold" x="645" y="136" text-anchor="middle">Deep Archive</text>
+
+            <!-- 축 -->
+            <path class="dg-grid" d="M60 152 L700 152 M60 146 L60 160 M150 146 L150 160 M330 146 L330 160 M600 146 L600 160"/>
+            <text class="dg-fs-sm dg-muted dg-num" x="60" y="176" text-anchor="middle">0일</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="150" y="176" text-anchor="middle">30일</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="330" y="176" text-anchor="middle">90일</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="600" y="176" text-anchor="middle">180일</text>
+            <text class="dg-fs-sm dg-muted" x="700" y="176" text-anchor="end">경과 일수 →</text>
+
+            <!-- 최소 저장 기간 -->
+            <text class="dg-fs-sm dg-bold" x="20" y="206">최소 저장 기간 — 이 막대가 끝나기 전에 삭제하거나 옮기면 남은 일수만큼 저장 요금이 청구됩니다</text>
+
+            <rect x="60" y="214" width="90" height="22" rx="3"
+                  fill="var(--dg-muted-soft)" stroke="var(--dg-muted)"
+                  stroke-width="var(--dg-sw-1)" stroke-dasharray="var(--dg-dash-2)"/>
+            <text class="dg-fs-sm dg-muted" x="105" y="230" text-anchor="middle">없음</text>
+
+            <rect data-dg="min-ia" x="150" y="214" width="90" height="22" rx="3"
+                  fill="var(--dg-warn-soft)" stroke="var(--dg-warn)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold dg-num" x="195" y="230" text-anchor="middle">30일</text>
+
+            <rect data-dg="min-glacier" x="330" y="214" width="270" height="22" rx="3"
+                  fill="var(--dg-warn-soft)" stroke="var(--dg-warn)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold dg-num" x="465" y="230" text-anchor="middle">90일</text>
+
+            <rect data-dg="min-deep" x="600" y="214" width="90" height="22" rx="3"
+                  fill="var(--dg-warn-soft)" stroke="var(--dg-warn)"
+                  stroke-width="var(--dg-sw-1)" stroke-dasharray="var(--dg-dash-1)"/>
+            <text class="dg-fs-sm dg-bold dg-num" x="645" y="230" text-anchor="middle">180일</text>
+
+            <!-- 위반 표시 -->
+            <g data-dg="warn-min-duration" data-state="off">
+              <path class="dg-edge dg-edge--warn dg-edge--dashed" d="M240 248 L240 264 L330 264"
+                    marker-end="url(#d-072-1-d072-ar-warn)"/>
+              <text class="dg-fs-sm dg-bold" x="248" y="282">최소 저장 기간을 채우기 전의 전환</text>
+            </g>
+
+            <!-- 128 KB 예외 -->
+            <rect class="dg-node dg-node--warn" x="20" y="294" width="680" height="54" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="316">128 KB 미만 객체는 전환 대상에서 빠집니다</text>
+            <text data-dg="small-object-note" class="dg-fs-sm" x="34" y="338">Standard-IA · One Zone-IA · Glacier Instant Retrieval · Intelligent-Tiering 으로 가는 전환에 적용됩니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="358" width="680" height="58" rx="4"/>
+            <text data-dg="verdict" class="dg-fs-md dg-bold" x="360" y="382" text-anchor="middle">45일째 — 지금 이 객체의 클래스는 S3 Standard-IA 입니다</text>
+            <text class="dg-fs-sm" x="360" y="404" text-anchor="middle">전환 시점은 객체 생성일 기준이며, 옮겨 간 클래스의 최소 저장 기간이 다시 시작합니다</text>
+          </svg>
+        </div>
         <figcaption>
           객체 하나가 경과 일수에 따라 S3 Standard에서 Standard-IA(30일), Glacier 계열(90일),
           Deep Archive(180일)로 전환되는 타임라인 — 최소 저장 기간을 어기는 전환과
@@ -804,7 +1045,110 @@ aws s3api put-bucket-versioning \
         원본과 대상 버킷은 같은 계정일 수도 다른 계정일 수도 있습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-075">
+      <figure class="diagram" data-diagram="D-075" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 440" role="img" aria-labelledby="d-075-1-d075-title d-075-1-d075-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-075-1-d075-title">S3 복제의 전제 조건과 세 가지 제약</title>
+            <desc id="d-075-1-d075-desc">왼쪽 원본 버킷에서 오른쪽 대상 버킷으로 객체가 복제되는 흐름입니다.
+              양쪽 버킷 모두 버전 관리가 켜져 있어야 하며 한쪽이라도 꺼져 있으면 복제 규칙을 만들 수 없습니다.
+              원본 버킷 안에는 규칙을 만들기 전부터 있던 객체와 규칙을 만든 뒤 올라온 객체가 있는데,
+              자동으로 대상에 도착하는 것은 규칙 생성 이후의 객체뿐입니다.
+              기존 객체를 옮기려면 S3 Batch Operations 의 배치 복제를 따로 실행해야 합니다.
+              세 번째 제약은 삭제 마커 전파이며 DeleteMarkerReplication 은 기본이 비활성이라
+              원본에서 객체를 지워도 대상에는 삭제 마커가 생기지 않습니다.
+              같은 리전이면 SRR, 다른 리전이면 CRR 이라 부르지만 이 세 제약은 양쪽 모두에 똑같이 적용됩니다.</desc>
+
+            <defs>
+              <marker id="d-075-1-d075-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-075-1-d075-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="28">복제는 버전 관리 위에서만 동작합니다</text>
+
+            <!-- 원본 버킷 -->
+            <rect class="dg-node" x="20" y="44" width="270" height="152" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="68">원본 버킷</text>
+            <rect x="176" y="52" width="100" height="22" rx="4"
+                  fill="var(--dg-ok-soft)" stroke="var(--dg-ok)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="226" y="68" text-anchor="middle">버전 관리 ON</text>
+
+            <rect class="dg-node dg-node--muted" x="34" y="86" width="242" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="46" y="104">규칙 생성 이전 객체</text>
+            <text class="dg-fs-sm dg-muted" x="46" y="121">이미 버킷에 있던 것들</text>
+
+            <rect class="dg-node dg-node--ok" x="34" y="136" width="242" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="46" y="154">규칙 생성 이후 객체</text>
+            <text class="dg-fs-sm dg-muted" x="46" y="171">새로 올라온 것들</text>
+
+            <!-- 복제 경로 -->
+            <text class="dg-fs-sm dg-bold" x="360" y="60" text-anchor="middle">복제 규칙</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="78" text-anchor="middle">같은 리전 = SRR</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="94" text-anchor="middle">다른 리전 = CRR</text>
+
+            <path class="dg-edge dg-edge--dashed dg-edge--muted" d="M280 107 L340 107"/>
+            <path class="dg-x" d="M348 100 L362 114 M362 100 L348 114"/>
+            <text class="dg-fs-sm dg-bold" x="372" y="112">복제 안 됨</text>
+
+            <path class="dg-edge dg-edge--ok" d="M280 157 L426 157" marker-end="url(#d-075-1-d075-ar-ok)"/>
+            <text class="dg-fs-sm dg-bold" x="353" y="150" text-anchor="middle">비동기 복제</text>
+
+            <!-- 대상 버킷 -->
+            <rect class="dg-node" x="430" y="44" width="270" height="152" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="444" y="68">대상 버킷</text>
+            <rect x="586" y="52" width="100" height="22" rx="4"
+                  fill="var(--dg-ok-soft)" stroke="var(--dg-ok)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="636" y="68" text-anchor="middle">버전 관리 ON</text>
+
+            <rect class="dg-node dg-node--empty" x="444" y="86" width="242" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="456" y="104">비어 있습니다</text>
+            <text class="dg-fs-sm dg-muted" x="456" y="121">배치 복제를 실행해야 채워집니다</text>
+
+            <rect class="dg-node dg-node--ok" x="444" y="136" width="242" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="456" y="154">규칙 생성 이후 객체</text>
+            <text class="dg-fs-sm dg-muted" x="456" y="171">여기만 자동으로 채워집니다</text>
+
+            <!-- 제약 3종 -->
+            <text class="dg-fs-md dg-bold" x="20" y="224">외우면 되는 제약 세 가지</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="236" width="218" height="112" rx="4"/>
+            <circle cx="42" cy="260" r="11" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="42" y="265" text-anchor="middle">1</text>
+            <text class="dg-fs-sm dg-bold" x="60" y="265">버전 관리 필수</text>
+            <text class="dg-fs-sm" x="34" y="290">원본과 대상 양쪽 모두</text>
+            <text class="dg-fs-sm" x="34" y="308">켜져 있어야 합니다.</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="330">하나라도 꺼져 있으면 규칙</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="344">생성 자체가 거부됩니다</text>
+
+            <rect class="dg-node" x="251" y="236" width="218" height="112" rx="4"/>
+            <circle cx="273" cy="260" r="11" fill="var(--dg-fill-alt)" stroke="var(--dg-stroke)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="273" y="265" text-anchor="middle">2</text>
+            <text class="dg-fs-sm dg-bold" x="291" y="265">기존 객체는 제외</text>
+            <text class="dg-fs-sm" x="265" y="290">규칙을 만들기 전에 있던</text>
+            <text class="dg-fs-sm" x="265" y="308">객체는 옮겨지지 않습니다.</text>
+            <text class="dg-fs-sm dg-muted" x="265" y="330">S3 Batch Operations 의</text>
+            <text class="dg-fs-sm dg-muted" x="265" y="344">배치 복제를 따로 실행합니다</text>
+
+            <rect class="dg-node" x="482" y="236" width="218" height="112" rx="4"/>
+            <circle cx="504" cy="260" r="11" fill="var(--dg-fill-alt)" stroke="var(--dg-stroke)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="504" y="265" text-anchor="middle">3</text>
+            <text class="dg-fs-sm dg-bold" x="522" y="265">삭제 마커는 선택</text>
+            <text class="dg-fs-sm" x="496" y="290">DeleteMarkerReplication</text>
+            <text class="dg-fs-sm" x="496" y="308">은 기본이 비활성입니다.</text>
+            <text class="dg-fs-sm dg-muted" x="496" y="330">원본에서 지워도 대상에는</text>
+            <text class="dg-fs-sm dg-muted" x="496" y="344">삭제 마커가 생기지 않습니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="360" width="680" height="62" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="384" text-anchor="middle">"복제를 켰는데 예전 파일이 안 보인다"는 고장이 아니라 설계입니다</text>
+            <text class="dg-fs-sm" x="360" y="406" text-anchor="middle">복제는 규칙이 생긴 뒤의 쓰기에만 반응합니다 — 과거는 배치 복제의 몫입니다</text>
+          </svg>
+        </div>
         <figcaption>
           복제 규칙의 전제와 제약 — 원본과 대상 양쪽에 버전 관리가 필요하고,
           규칙을 만들기 전에 있던 객체는 자동으로 복제되지 않으며,
@@ -914,7 +1258,100 @@ aws s3api put-bucket-versioning \
         선택 기준도 거기서 나옵니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-073">
+      <figure class="diagram" data-diagram="D-073" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 420" role="img" aria-labelledby="d-073-1-d073-title d-073-1-d073-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-073-1-d073-title">S3 암호화 네 가지의 키 관리 주체 비교</title>
+            <desc id="d-073-1-d073-desc">SSE-S3, SSE-KMS, SSE-C, 클라이언트 측 암호화를 네 개의 열에 놓고
+              키를 누가 만드는가, 키가 어디에 저장되는가, 요청마다 키를 보내야 하는가,
+              키 사용 호출이 AWS CloudTrail 에 기록되는가를 비교합니다.
+              SSE-S3 는 AWS 가 키를 만들고 S3 내부에 두며 키 사용 기록이 남지 않습니다.
+              SSE-KMS 는 AWS KMS 에 있는 키를 쓰고 Decrypt 와 GenerateDataKey 호출이 CloudTrail 에 그대로 남으므로
+              누가 언제 어떤 객체를 복호화했는지 추적할 수 있고 키 정책으로 권한을 따로 나눌 수 있습니다.
+              SSE-C 는 고객이 키를 보관하고 요청마다 HTTPS 로 키를 보내며 S3 는 키를 저장하지 않습니다.
+              클라이언트 측 암호화는 데이터가 S3 에 닿기 전에 이미 암호문이라 S3 는 평문을 본 적이 없습니다.
+              "키 사용을 감사해야 한다" 또는 "키를 직접 회전하고 접근 권한을 따로 통제해야 한다"는 요구는
+              강조된 SSE-KMS 열을 가리킵니다.</desc>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">키는 어디에 있고, 누가 만들고, 사용 기록이 남는가</text>
+
+            <path class="dg-grid" d="M162 50 L563 50 M162 50 L162 56 M563 50 L563 56"/>
+            <text class="dg-fs-sm dg-muted" x="362" y="44" text-anchor="middle">서버 측 암호화 — S3 가 복호화합니다</text>
+            <text class="dg-fs-sm dg-muted" x="632" y="44" text-anchor="middle">클라이언트 측</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="56" width="680" height="270" rx="4"/>
+            <rect class="dg-node dg-node--accent" x="295" y="56" width="135" height="270" rx="4"/>
+
+            <path class="dg-grid" d="M20 96 L700 96 M20 142 L700 142 M20 188 L700 188
+                                      M20 234 L700 234 M20 280 L700 280
+                                      M160 56 L160 326 M565 56 L565 326"/>
+
+            <!-- 헤더 -->
+            <text class="dg-fs-md dg-bold" x="228" y="82" text-anchor="middle">SSE-S3</text>
+            <text class="dg-fs-md dg-bold" x="362" y="82" text-anchor="middle">SSE-KMS</text>
+            <text class="dg-fs-md dg-bold" x="498" y="82" text-anchor="middle">SSE-C</text>
+            <text class="dg-fs-md dg-bold" x="632" y="76" text-anchor="middle">클라이언트 측</text>
+            <text class="dg-fs-sm dg-muted" x="632" y="92" text-anchor="middle">CSE</text>
+            <text class="dg-fs-sm dg-muted" x="28" y="82">비교 항목</text>
+
+            <!-- 1. 키를 만드는 주체 -->
+            <text class="dg-fs-sm dg-bold" x="28" y="116">키를 만드는</text>
+            <text class="dg-fs-sm dg-bold" x="28" y="134">주체</text>
+            <text class="dg-fs-sm" x="228" y="125" text-anchor="middle">AWS</text>
+            <text class="dg-fs-sm dg-bold" x="362" y="116" text-anchor="middle">고객 또는 AWS</text>
+            <text class="dg-fs-sm dg-muted" x="362" y="134" text-anchor="middle">KMS 키</text>
+            <text class="dg-fs-sm" x="498" y="125" text-anchor="middle">고객</text>
+            <text class="dg-fs-sm" x="632" y="125" text-anchor="middle">고객</text>
+
+            <!-- 2. 키가 있는 곳 -->
+            <text class="dg-fs-sm dg-bold" x="28" y="162">키가 저장되는</text>
+            <text class="dg-fs-sm dg-bold" x="28" y="180">곳</text>
+            <text class="dg-fs-sm" x="228" y="162" text-anchor="middle">S3 서비스</text>
+            <text class="dg-fs-sm" x="228" y="180" text-anchor="middle">내부</text>
+            <text class="dg-fs-sm dg-bold" x="362" y="171" text-anchor="middle">AWS KMS</text>
+            <text class="dg-fs-sm" x="498" y="162" text-anchor="middle">고객 쪽</text>
+            <text class="dg-fs-sm dg-muted" x="498" y="180" text-anchor="middle">S3 는 저장 안 함</text>
+            <text class="dg-fs-sm" x="632" y="162" text-anchor="middle">고객 쪽</text>
+            <text class="dg-fs-sm dg-muted" x="632" y="180" text-anchor="middle">또는 KMS</text>
+
+            <!-- 3. 요청마다 키 전달 -->
+            <text class="dg-fs-sm dg-bold" x="28" y="208">요청마다 키를</text>
+            <text class="dg-fs-sm dg-bold" x="28" y="226">보내는가</text>
+            <text class="dg-fs-sm" x="228" y="217" text-anchor="middle">아니오</text>
+            <text class="dg-fs-sm" x="362" y="208" text-anchor="middle">아니오</text>
+            <text class="dg-fs-sm dg-muted" x="362" y="226" text-anchor="middle">키 ID 만 지정</text>
+            <text class="dg-fs-sm dg-bold" x="498" y="208" text-anchor="middle">예 — 매 요청</text>
+            <text class="dg-fs-sm dg-muted" x="498" y="226" text-anchor="middle">HTTPS 필수</text>
+            <text class="dg-fs-sm" x="632" y="208" text-anchor="middle">아니오</text>
+            <text class="dg-fs-sm dg-muted" x="632" y="226" text-anchor="middle">이미 암호문</text>
+
+            <!-- 4. CloudTrail -->
+            <text class="dg-fs-sm dg-bold" x="28" y="254">키 사용이</text>
+            <text class="dg-fs-sm dg-bold" x="28" y="272">CloudTrail 에</text>
+            <text class="dg-fs-sm dg-muted" x="228" y="263" text-anchor="middle">남지 않음</text>
+            <text class="dg-fs-sm dg-bold" x="362" y="254" text-anchor="middle">남습니다</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="362" y="272" text-anchor="middle">Decrypt</text>
+            <text class="dg-fs-sm dg-muted" x="498" y="263" text-anchor="middle">남지 않음</text>
+            <text class="dg-fs-sm dg-muted" x="632" y="254" text-anchor="middle">S3 는 모름</text>
+            <text class="dg-fs-sm dg-muted" x="632" y="272" text-anchor="middle">(KMS 쓰면 남음)</text>
+
+            <!-- 5. 판별 단서 -->
+            <text class="dg-fs-sm dg-bold" x="28" y="309">판별 단서</text>
+            <text class="dg-fs-sm" x="228" y="300" text-anchor="middle">기본값 그대로</text>
+            <text class="dg-fs-sm dg-muted" x="228" y="318" text-anchor="middle">손댈 것 없음</text>
+            <text class="dg-fs-sm dg-bold" x="362" y="300" text-anchor="middle">감사 · 회전</text>
+            <text class="dg-fs-sm dg-bold" x="362" y="318" text-anchor="middle">권한 분리</text>
+            <text class="dg-fs-sm" x="498" y="300" text-anchor="middle">키를 AWS 에</text>
+            <text class="dg-fs-sm" x="498" y="318" text-anchor="middle">맡길 수 없음</text>
+            <text class="dg-fs-sm" x="632" y="300" text-anchor="middle">전송 전부터</text>
+            <text class="dg-fs-sm" x="632" y="318" text-anchor="middle">암호화 필요</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="340" width="680" height="62" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="364" text-anchor="middle">"키 사용을 감사해야 한다" · "키를 직접 회전한다" · "복호화 권한을 따로 나눈다"</text>
+            <text class="dg-fs-md dg-bold" x="360" y="388" text-anchor="middle">세 요구는 전부 SSE-KMS 로 수렴합니다</text>
+          </svg>
+        </div>
         <figcaption>
           암호화 네 가지의 키 관리 주체 비교 — 키를 누가 만들고 어디에 두는지,
           키 사용 호출이 AWS CloudTrail에 기록되는지가 갈리며,
@@ -1023,7 +1460,108 @@ aws s3api put-bucket-versioning \
     <section aria-labelledby="access-control">
       <h2 id="access-control">접근 제어 — 요청은 어디서 막히는가</h2>
 
-      <figure class="diagram" data-diagram="D-074">
+      <figure class="diagram" data-diagram="D-074" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 470" role="img" aria-labelledby="d-074-1-d074-title d-074-1-d074-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-074-1-d074-title">S3 요청이 통과하는 접근 제어 관문의 순서</title>
+            <desc id="d-074-1-d074-desc">Amazon S3 로 들어온 요청이 위에서 아래로 네 개의 관문을 지납니다.
+              첫 관문은 퍼블릭 액세스 차단으로 익명 요청과 퍼블릭 부여만을 대상으로 하며 여기서 걸리면 버킷 정책을 아무리 열어도 소용이 없습니다.
+              둘째는 버킷 정책이며 리소스 기반 정책이라 명시적 거부가 있으면 여기서 결과가 확정됩니다.
+              셋째는 요청 주체에 붙은 IAM 자격 증명 기반 정책이고 허용이 어디에도 없으면 암묵적 거부로 끝납니다.
+              넷째는 객체 ACL 인데 신규 버킷은 ObjectOwnership 이 BucketOwnerEnforced 라 ACL 이 비활성이므로 평가 자체가 일어나지 않습니다.
+              왼쪽 분기는 프리사인 URL 로, URL 자체가 권한을 새로 만드는 것이 아니라 서명한 주체의 권한을 빌려 오는 것이므로
+              같은 관문을 똑같이 통과하며 서명자가 권한을 잃으면 URL 도 함께 죽습니다.
+              접근이 막혔을 때는 어느 관문에서 막혔는지를 이 순서대로 짚어 나가면 됩니다.</desc>
+
+            <defs>
+              <marker id="d-074-1-d074-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-074-1-d074-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-074-1-d074-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-074-1-d074-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="28">요청은 위에서 아래로 관문을 지납니다 — 어디서 막혔는지가 진단의 전부입니다</text>
+
+            <!-- 프리사인 URL 분기 -->
+            <rect class="dg-panel" x="20" y="44" width="168" height="150" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="30" y="66">프리사인 URL</text>
+            <text class="dg-fs-sm" x="30" y="88">URL 은 권한을 새로</text>
+            <text class="dg-fs-sm" x="30" y="106">만들지 않습니다.</text>
+            <text class="dg-fs-sm dg-bold" x="30" y="128">서명한 주체의 권한을</text>
+            <text class="dg-fs-sm dg-bold" x="30" y="146">그대로 빌려 옵니다.</text>
+            <text class="dg-fs-sm dg-muted" x="30" y="170">서명자가 권한을 잃으면</text>
+            <text class="dg-fs-sm dg-muted" x="30" y="188">URL 도 함께 죽습니다</text>
+
+            <path class="dg-edge dg-edge--dashed" d="M188 76 L196 76" marker-end="url(#d-074-1-d074-ar)"/>
+
+            <!-- 요청 -->
+            <rect class="dg-node dg-node--accent" x="200" y="52" width="320" height="46" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="72" text-anchor="middle">S3 API 요청</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="90" text-anchor="middle">서명된 요청 (IAM 주체) 또는 익명 요청</text>
+
+            <path class="dg-edge dg-edge--accent" d="M360 98 L360 112" marker-end="url(#d-074-1-d074-ar-accent)"/>
+
+            <!-- 관문 1 -->
+            <rect class="dg-node" x="200" y="118" width="320" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="216" y="139">1. 퍼블릭 액세스 차단</text>
+            <text class="dg-fs-sm dg-muted" x="216" y="157">익명·퍼블릭 부여만 대상 · 계정과 버킷 양쪽</text>
+            <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M520 141 L562 141" marker-end="url(#d-074-1-d074-ar-danger)"/>
+            <text class="dg-fs-sm dg-bold" x="570" y="136">차단 — 버킷 정책이</text>
+            <text class="dg-fs-sm dg-bold" x="570" y="152">열려 있어도 무시됩니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M360 164 L360 178" marker-end="url(#d-074-1-d074-ar-accent)"/>
+
+            <!-- 관문 2 -->
+            <rect class="dg-node" x="200" y="184" width="320" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="216" y="205">2. 버킷 정책 (리소스 기반)</text>
+            <text class="dg-fs-sm dg-muted" x="216" y="223">버킷에 붙은 정책 · 교차 계정 허용도 여기서</text>
+            <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M520 207 L562 207" marker-end="url(#d-074-1-d074-ar-danger)"/>
+            <text class="dg-fs-sm dg-bold" x="570" y="202">명시적 Deny 는</text>
+            <text class="dg-fs-sm dg-bold" x="570" y="218">여기서 확정됩니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M360 230 L360 244" marker-end="url(#d-074-1-d074-ar-accent)"/>
+
+            <!-- 관문 3 -->
+            <rect class="dg-node" x="200" y="250" width="320" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="216" y="271">3. IAM 정책 (자격 증명 기반)</text>
+            <text class="dg-fs-sm dg-muted" x="216" y="289">요청 주체에 붙은 정책 · SCP 와 권한 경계도 함께</text>
+            <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M520 273 L562 273" marker-end="url(#d-074-1-d074-ar-danger)"/>
+            <text class="dg-fs-sm dg-bold" x="570" y="268">허용이 없으면</text>
+            <text class="dg-fs-sm dg-bold" x="570" y="284">암묵적 거부</text>
+
+            <path class="dg-edge dg-edge--accent" d="M360 296 L360 310" marker-end="url(#d-074-1-d074-ar-accent)"/>
+
+            <!-- 관문 4 -->
+            <rect class="dg-node dg-node--muted" x="200" y="316" width="320" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="216" y="337">4. 객체 ACL</text>
+            <text class="dg-fs-sm dg-muted" x="216" y="355">BucketOwnerEnforced 가 기본 — 평가 안 됨</text>
+            <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M520 339 L562 339" marker-end="url(#d-074-1-d074-ar-muted)"/>
+            <text class="dg-fs-sm dg-muted" x="570" y="334">비활성이라 사실상</text>
+            <text class="dg-fs-sm dg-muted" x="570" y="350">없는 관문입니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M360 362 L360 376" marker-end="url(#d-074-1-d074-ar-accent)"/>
+
+            <!-- 허용 -->
+            <rect class="dg-node dg-node--ok" x="200" y="382" width="320" height="38" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="406" text-anchor="middle">허용 — 객체에 접근합니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="432" width="680" height="30" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="452" text-anchor="middle">앞 관문에서 막히면 뒤 관문이 열려 있어도 소용없습니다 — 진단은 항상 위에서부터</text>
+          </svg>
+        </div>
         <figcaption>
           S3 요청이 퍼블릭 액세스 차단, 버킷 정책, IAM 정책, ACL(기본 비활성)을 차례로 통과하는 경로 —
           프리사인 URL은 서명한 주체의 권한을 빌린다는 사실을 별도 분기로 표시합니다

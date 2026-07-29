@@ -2,13 +2,14 @@
   "name": "aws-guide",
   "private": true,
   "type": "module",
-  "description": "AWS Certified Solutions Architect – Associate 대비 한국어 정적 학습 사이트. 빌드 없이 브라우저에서 바로 열립니다. 런타임 의존성 0 (차트 라이브러리는 assets/vendor 에 동봉).",
+  "description": "AWS Certified Solutions Architect – Associate (SAA-C03) 대비 한국어 정적 학습 사이트. 빌드 없이 브라우저에서 바로 열립니다. 런타임 의존성 0 (차트 라이브러리는 assets/vendor 에 동봉).",
   "scripts": {
     "validate": "node tools/validate.mjs --all",
     "index": "node tools/build-index.mjs",
     "inline": "node tools/inline-diagrams.mjs",
     "check-inline": "node tools/inline-diagrams.mjs --check",
-    "build": "node tools/inline-diagrams.mjs && node tools/build-index.mjs && node tools/validate.mjs --all --strict --deploy",
+    "build": "node tools/inline-diagrams.mjs && node tools/build-index.mjs && node tools/validate.mjs --all",
+    "verify": "node tools/inline-diagrams.mjs && node tools/build-index.mjs && node tools/validate.mjs --all --strict --deploy",
     "serve": "python3 -m http.server 8000"
   }
 }

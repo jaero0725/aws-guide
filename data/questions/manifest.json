@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-07-29",
   "examCode": "SAA-C03",
-  "totalQuestions": 400,
+  "totalQuestions": 457,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -35,11 +35,31 @@
       "diagnostic": false
     },
     {
+      "setId": "basics-ch07",
+      "file": "basics-ch07.json",
+      "title": "로드 밸런싱과 오토스케일링 확인 문제",
+      "exam": "BASICS",
+      "domain": "로드 밸런싱과 오토스케일링",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
       "setId": "basics-ch08",
       "file": "basics-ch08.json",
       "title": "S3와 오브젝트 스토리지 확인 문제",
       "exam": "BASICS",
       "domain": "S3와 오브젝트 스토리지",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch10",
+      "file": "basics-ch10.json",
+      "title": "RDS와 관계형 데이터베이스 확인 문제",
+      "exam": "BASICS",
+      "domain": "RDS와 관계형 데이터베이스",
       "count": 10,
       "mock": false,
       "diagnostic": false
@@ -72,6 +92,16 @@
       "domain": "Design Cost-Optimized Architectures",
       "count": 68,
       "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-mock-1",
+      "file": "saa-mock-1.json",
+      "title": "SAA-C03 모의고사 1회 — 65문항 혼합",
+      "exam": "SAA",
+      "domain": "Mixed",
+      "count": 37,
+      "mock": true,
       "diagnostic": false
     },
     {

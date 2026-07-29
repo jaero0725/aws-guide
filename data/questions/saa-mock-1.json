@@ -570,6 +570,486 @@
         { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html", "title": "Amazon RDS 리소스 암호화" }
       ],
       "tags": ["shared-responsibility", "rds", "encryption"]
+    },
+    {
+      "id": "saa-mock-1-021",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch12",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "주문 처리 흐름이 다섯 개의 AWS Lambda 함수를 순서대로 호출합니다. 지금은 함수마다 다음 함수를 직접 호출하고 재시도와 오류 분기, 진행 상태 저장을 코드로 구현해 유지가 어렵습니다. 운영 부담이 가장 적은(LEAST operational overhead) 개선은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "AWS Step Functions 상태 머신으로 단계를 정의하고 재시도와 오류 처리를 워크플로 설정으로 옮긴다." },
+        { "id": "B", "text": "함수 사이마다 Amazon SQS 큐를 넣고 각 함수가 다음 큐로 메시지를 보내도록 바꾼다." },
+        { "id": "C", "text": "다섯 함수를 하나의 큰 함수로 합치고 단계별 상태를 메모리 변수로 관리한다." },
+        { "id": "D", "text": "각 함수의 타임아웃과 재시도 횟수를 늘리고 실패 시 처음부터 다시 실행하게 한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "여러 단계를 순서대로 거치며 각 단계의 성공과 실패에 따라 흐름이 갈리는 작업은 오케스트레이션 문제입니다. Step Functions는 상태 머신 정의에 재시도 정책, 오류 분기, 대기, 병렬 실행을 선언적으로 넣을 수 있고 실행 이력이 단계별로 남아 문제 지점을 바로 찾을 수 있습니다. 그 결과 애플리케이션 코드에서 흐름 제어와 상태 저장 로직이 사라져 유지 대상이 줄어듭니다. 반대로 단계 사이가 느슨하게 결합되고 순서보다 완충이 중요하다면 큐가 더 맞는 선택입니다.",
+      "distractorNotes": {
+        "B": "큐를 넣으면 결합은 느슨해지지만 전체 흐름의 진행 상태와 실패 지점을 추적하는 일은 여전히 팀이 만들어야 합니다.",
+        "C": "함수를 합치면 실행 시간 한도에 걸리기 쉽고 한 단계 실패가 전체 실패가 됩니다. 메모리 변수는 재시도 사이에 남지 않습니다.",
+        "D": "타임아웃과 재시도를 늘리는 것은 증상 완화일 뿐입니다. 처음부터 다시 실행하면 이미 성공한 단계가 중복 수행되어 부작용이 생깁니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-task-state.html", "title": "AWS Step Functions 태스크 상태" },
+        { "url": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-invocation.html", "title": "AWS Lambda 함수 호출" }
+      ],
+      "tags": ["decoupling", "step-functions", "lambda-resilience", "serverless"]
+    },
+    {
+      "id": "saa-mock-1-022",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch13",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "내부 API가 Amazon ECS 서비스로 실행되며 원하는 태스크 수는 1이고 서브넷도 한 가용 영역의 것 하나만 지정되어 있습니다. 최근 그 가용 영역 장애로 API가 완전히 멈췄습니다. 가장 가용성이 높은(MOST highly available) 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "태스크의 CPU와 메모리를 두 배로 늘려 장애 상황에서도 처리 능력이 남게 한다." },
+        { "id": "B", "text": "서비스에 여러 가용 영역의 서브넷을 지정하고 원하는 태스크 수를 2 이상으로 올린다." },
+        { "id": "C", "text": "같은 구성의 서비스를 다른 리전에 하나 더 만들고 장애 시 사람이 전환한다." },
+        { "id": "D", "text": "태스크 정의의 재시작 정책을 조정해 태스크가 실패하면 즉시 같은 자리에서 다시 시작하게 한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "가용 영역 장애를 견디려면 인스턴스나 태스크가 여러 가용 영역에 흩어져 있어야 합니다. ECS 서비스에 여러 서브넷을 지정하면 스케줄러가 태스크를 가용 영역에 나눠 배치하고, 하나가 사라져도 남은 영역의 태스크가 요청을 계속 처리합니다. 원하는 태스크 수가 1이면 어디에 두든 그 하나가 사라지는 순간 중단이므로 개수를 늘리는 것이 함께 필요합니다. 로드 밸런서를 앞에 두면 비정상 태스크가 자동으로 대상에서 빠져 복구가 매끄러워집니다.",
+      "distractorNotes": {
+        "A": "태스크를 크게 만들어도 그 태스크가 있는 가용 영역이 사라지면 서비스는 그대로 멈춥니다. 규모는 가용성 문제를 해결하지 않습니다.",
+        "C": "다른 리전 배치는 리전 장애 대비책이며 비용과 운영이 크게 늘어납니다. 가용 영역 장애는 같은 리전 안에서 훨씬 저렴하게 해결됩니다.",
+        "D": "재시작은 태스크 자체의 실패에만 도움이 됩니다. 가용 영역이 사용 불가가 되면 같은 자리에서 다시 시작할 수 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_CreateService.html", "title": "Amazon ECS CreateService" },
+        { "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html", "title": "Amazon ECS 서비스 로드 밸런싱" }
+      ],
+      "tags": ["asg-multi-az", "ecs", "high-availability", "single-point-of-failure"]
+    },
+    {
+      "id": "saa-mock-1-023",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch18",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 기업의 Amazon RDS 데이터베이스는 자동 백업이 켜져 있고 Multi-AZ로 배포되어 있습니다. 감사에서 리전 전체가 사용 불가가 되는 시나리오에 대한 대비가 없다는 지적이 나왔고, 복구 시간은 여러 시간이 걸려도 됩니다. 가장 비용 효율적인(MOST cost-effective) 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "다른 리전에 같은 크기의 대기 인스턴스를 상시 가동하고 애플리케이션도 함께 배포해 둔다." },
+        { "id": "B", "text": "데이터베이스 스냅샷을 다른 리전으로 자동 복사해 두고 필요할 때 그 리전에서 복원한다." },
+        { "id": "C", "text": "Multi-AZ 대기 인스턴스를 하나 더 추가해 세 개의 가용 영역에 걸치도록 구성한다." },
+        { "id": "D", "text": "자동 백업 보존 기간을 최대로 늘려 같은 리전에 더 많은 복구 지점을 확보한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "Multi-AZ는 가용 영역 장애를 위한 기능이며 백업도 같은 리전에 있으므로, 리전 전체가 사용 불가가 되면 둘 다 도움이 되지 않습니다. 복구 시간이 여러 시간 허용된다면 상시 자원을 다른 리전에 띄우는 대신 스냅샷을 그 리전으로 복사해 두었다가 필요할 때 복원하는 백업 및 복원 전략이 가장 저렴합니다. 평상시 비용은 저장 비용 정도로 유지되고 복구가 필요할 때만 자원을 만들기 때문입니다. 복구 시간 요구가 몇 분 수준으로 짧아지면 그때 웜 스탠바이나 교차 리전 복제로 올라가게 됩니다.",
+      "distractorNotes": {
+        "A": "다중 사이트에 가까운 구성이라 요구를 초과 충족하지만 평상시 비용이 가장 큽니다. 복구 시간이 여러 시간 허용된다는 조건과 맞지 않습니다.",
+        "C": "가용 영역을 더 늘려도 리전 장애에는 아무 효과가 없습니다. 지적된 위험을 그대로 남겨 둡니다.",
+        "D": "보존 기간을 늘리면 시점 복구 범위는 넓어지지만 백업이 여전히 같은 리전에 있습니다. 리전이 사용 불가면 접근할 수 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CopyDBSnapshot.html", "title": "Amazon RDS CopyDBSnapshot" },
+        { "url": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html", "title": "클라우드의 재해 복구 옵션" }
+      ],
+      "tags": ["dr-strategies", "rto-rpo-tradeoff", "rds", "multi-region"]
+    },
+    {
+      "id": "saa-mock-1-024",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch18",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "한 팀이 EC2 기반 웹 애플리케이션을 리전 규모 장애에서도 다시 세울 수 있게 준비하려 합니다. 복구는 반나절 안에 끝나면 되고 평상시 비용은 최소로 유지해야 합니다. 어떤 준비가 이 요구에 맞습니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "표준 AMI와 EBS 스냅샷을 대상 리전으로 정기적으로 복사해 둔다." },
+        { "id": "B", "text": "인프라 구성을 AWS CloudFormation 템플릿으로 만들어 두어 대상 리전에서 즉시 배포할 수 있게 한다." },
+        { "id": "C", "text": "대상 리전에 운영과 동일한 규모의 Auto Scaling 그룹을 상시 가동한다." },
+        { "id": "D", "text": "대상 리전에 로드 밸런서와 데이터베이스를 미리 만들어 트래픽을 절반씩 나눈다." },
+        { "id": "E", "text": "운영 리전의 인스턴스 수를 두 배로 늘리고 세 개의 가용 영역에 나눠 배치한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "복구 시간이 반나절까지 허용되고 비용을 최소화해야 한다면 백업 및 복원 전략이 맞습니다. 이 전략의 핵심은 복구에 필요한 재료를 대상 리전에 미리 옮겨 두는 것이며, 그 재료는 데이터 사본과 환경을 재현할 수 있는 정의입니다. 이미지와 스냅샷이 데이터를, 템플릿이 네트워크와 리소스 구성을 담당해 사람이 콘솔에서 하나씩 만들 필요가 없어집니다. 평상시에는 저장 비용만 발생하므로 상시 자원을 띄우는 전략보다 훨씬 저렴합니다.",
+      "distractorNotes": {
+        "C": "상시 가동은 웜 스탠바이 이상의 전략이며 요구보다 훨씬 비쌉니다. 반나절 복구가 허용된다는 조건이 이 비용을 정당화하지 못합니다.",
+        "D": "두 리전이 평상시 트래픽을 나누는 것은 액티브-액티브 구성입니다. 가장 비싼 선택지이며 비용 최소화 요구와 충돌합니다.",
+        "E": "운영 리전 안에서 아무리 늘려도 그 리전이 사용 불가가 되면 전부 함께 사라집니다. 리전 장애 대비가 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html", "title": "클라우드의 재해 복구 옵션" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CopyImage.html", "title": "Amazon EC2 CopyImage" }
+      ],
+      "tags": ["dr-strategies", "rto-rpo-tradeoff", "multi-region", "cost-optimization"]
+    },
+    {
+      "id": "saa-mock-1-025",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "운영 계정의 Amazon S3 버킷이 재해 복구용으로 다른 리전 버킷에 복제되고 있습니다. 훈련 중 운영 버킷에서 객체를 삭제했더니 대상 버킷의 사본은 그대로 남아 있었습니다. 이 동작에 대한 설명으로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "복제는 객체 생성만 처리하며 어떤 설정으로도 삭제를 대상 버킷에 반영할 수 없다." },
+        { "id": "B", "text": "삭제가 반영되지 않은 것은 복제 지연이며 시간이 지나면 대상 객체도 자동으로 사라진다." },
+        { "id": "C", "text": "대상 버킷에 버전 관리가 꺼져 있어 삭제 이벤트가 무시된 것이다." },
+        { "id": "D", "text": "삭제 마커 복제는 복제 규칙에서 따로 켜야 하며, 켜지 않으면 삭제가 대상에 전파되지 않는다." }
+      ],
+      "answer": ["D"],
+      "explanation": "버전 관리 버킷에서 객체를 지우면 실제로는 삭제 마커가 추가되며, 이 마커의 복제 여부는 복제 규칙의 별도 설정으로 결정됩니다. 기본값에서는 마커가 복제되지 않으므로 원본에서 지운 객체가 대상에는 남고, 이는 실수나 악의적 삭제로부터 사본을 보호하는 안전장치로 동작합니다. 다만 두 버킷을 같은 상태로 유지해야 하는 요구가 있다면 이 설정을 켜야 기대와 실제가 일치합니다. 어느 쪽이든 특정 버전 ID를 지정한 영구 삭제는 복제되지 않는다는 점도 함께 기억할 부분입니다.",
+      "distractorNotes": {
+        "A": "삭제 마커 복제를 켜면 삭제도 대상에 반영됩니다. 반영할 방법이 없다는 서술은 틀렸습니다.",
+        "B": "복제 지연은 보통 짧은 시간 안에 해소됩니다. 며칠이 지나도 사라지지 않는 것은 지연이 아니라 설정의 결과입니다.",
+        "C": "복제 자체가 원본과 대상 양쪽에 버전 관리를 요구하므로 대상 버킷의 버전 관리는 이미 켜져 있습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-what-is-isnot-replicated.html", "title": "복제되는 항목과 복제되지 않는 항목" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketReplication.html", "title": "Amazon S3 PutBucketReplication" }
+      ],
+      "tags": ["s3-replication", "s3", "versioning", "disaster-recovery"]
+    },
+    {
+      "id": "saa-mock-1-026",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch12",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "온프레미스의 자바 애플리케이션들이 표준 메시징 프로토콜로 통신하는 상용 메시지 브로커를 사용합니다. 이 시스템을 AWS로 옮기면서 애플리케이션 코드와 프로토콜은 그대로 두고 브로커 운영 부담만 없애려 합니다. 가장 적절한 선택은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Amazon SQS 큐로 옮기고 애플리케이션의 메시징 계층을 SQS API로 다시 작성한다." },
+        { "id": "B", "text": "Amazon MQ 브로커를 만들어 기존 프로토콜로 접속하도록 엔드포인트만 바꾼다." },
+        { "id": "C", "text": "Amazon SNS 주제를 만들어 각 애플리케이션이 구독하도록 구조를 바꾼다." },
+        { "id": "D", "text": "EC2 인스턴스에 같은 브로커 소프트웨어를 직접 설치하고 클러스터를 구성한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "기존 애플리케이션이 표준 메시징 프로토콜에 의존하고 코드를 바꿀 수 없다는 조건이 나오면 관리형 브로커인 Amazon MQ가 정답 신호입니다. 익숙한 프로토콜과 API를 그대로 쓰면서 프로비저닝, 패치, 이중화 구성을 서비스가 맡아 주기 때문에 마이그레이션 비용이 가장 작습니다. 반대로 코드를 새로 쓸 수 있고 클라우드 네이티브한 확장성이 필요하다면 SQS나 SNS가 더 나은 선택입니다. 즉 이 판단은 서비스의 우열이 아니라 애플리케이션을 고칠 수 있는가로 갈립니다.",
+      "distractorNotes": {
+        "A": "SQS는 확장성이 뛰어나지만 고유 API를 사용하므로 애플리케이션의 메시징 계층을 다시 작성해야 합니다. 코드를 바꾸지 않는다는 조건과 충돌합니다.",
+        "C": "SNS는 발행과 구독 모델이라 기존 큐 기반 흐름과 의미가 다르고 프로토콜도 호환되지 않습니다. 구조 변경이 필요합니다.",
+        "D": "직접 설치는 프로토콜 호환을 만족하지만 패치와 이중화, 장애 대응이 모두 팀 몫으로 남습니다. 운영 부담을 없애려는 목적과 반대입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/broker.html", "title": "Amazon MQ 브로커" },
+        { "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html", "title": "Amazon SQS CreateQueue" }
+      ],
+      "tags": ["decoupling", "amazon-mq", "sqs", "migration"]
+    },
+    {
+      "id": "saa-mock-1-027",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch11",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 SaaS 기업의 Amazon DynamoDB 테이블이 단일 리전에 있습니다. 새 요구사항은 리전 전체 장애 시 몇 분 안에 다른 리전에서 읽기와 쓰기를 모두 계속하는 것이며, 애플리케이션은 리전별로 이미 배포되어 있습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "테이블을 글로벌 테이블로 구성해 대상 리전에 복제본을 추가한다." },
+        { "id": "B", "text": "시점 복구를 활성화하고 장애 시 대상 리전으로 복원해 애플리케이션을 연결한다." },
+        { "id": "C", "text": "온디맨드 백업을 매시간 만들어 대상 리전으로 복사해 둔다." },
+        { "id": "D", "text": "대상 리전에 빈 테이블을 만들고 애플리케이션이 두 리전에 동시에 쓰도록 코드를 바꾼다." }
+      ],
+      "answer": ["A"],
+      "explanation": "복구 시간이 몇 분이고 대상 리전에서 쓰기까지 받아야 한다면 데이터가 이미 그 리전에 있어야 합니다. 글로벌 테이블은 지정한 리전들에 테이블 복제본을 두고 변경을 서로 전파하므로, 한 리전이 사용 불가가 되어도 다른 리전의 복제본이 그대로 읽기와 쓰기를 처리합니다. 백업이나 복원 기반 방식은 복원 시간이 필요해 몇 분 수준의 목표를 맞추기 어렵습니다. 다만 여러 리전에서 같은 항목을 동시에 수정하면 마지막 쓰기가 이기는 방식으로 정리된다는 특성은 설계에서 고려해야 합니다.",
+      "distractorNotes": {
+        "B": "시점 복구는 실수로 인한 데이터 손상에 유효하지만 복원에 시간이 걸립니다. 몇 분 안에 서비스를 재개하는 요구를 충족하기 어렵습니다.",
+        "C": "매시간 백업은 최대 한 시간치 데이터 손실을 의미하며 복사와 복원 시간도 추가됩니다. 목표와 격차가 큽니다.",
+        "D": "애플리케이션이 이중 쓰기를 직접 구현하면 부분 실패와 순서 문제를 스스로 해결해야 합니다. 관리형 복제를 두고 복잡도를 자초하는 선택입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateGlobalTable.html", "title": "Amazon DynamoDB CreateGlobalTable" },
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateContinuousBackups.html", "title": "Amazon DynamoDB UpdateContinuousBackups" }
+      ],
+      "tags": ["dynamodb", "global-tables", "multi-region", "disaster-recovery"]
+    },
+    {
+      "id": "saa-mock-1-028",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch10",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "Multi-AZ Amazon RDS를 쓰는 애플리케이션이 장애 조치 훈련에서 수 분 동안 오류를 냈습니다. 원인은 연결이 끊긴 뒤 애플리케이션이 새 엔드포인트로 다시 연결하지 못한 것이었습니다. 중단 시간을 줄이려면 어떤 조치를 취해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Amazon RDS 프록시를 앞에 두어 장애 조치 동안 연결을 유지하고 재연결을 대신 처리하게 한다." },
+        { "id": "B", "text": "애플리케이션이 데이터베이스 엔드포인트를 캐시하지 않고 재시도할 때마다 다시 해석하도록 고친다." },
+        { "id": "C", "text": "읽기 전용 복제본을 추가하고 장애 시 애플리케이션이 그 복제본으로 쓰기를 보내게 한다." },
+        { "id": "D", "text": "데이터베이스 인스턴스 클래스를 더 큰 것으로 변경해 장애 조치 자체가 일어나지 않게 한다." },
+        { "id": "E", "text": "애플리케이션 인스턴스를 더 많은 가용 영역에 배치해 연결 오류가 분산되게 한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "Multi-AZ 장애 조치는 같은 엔드포인트 이름이 새 인스턴스를 가리키도록 바뀌는 방식으로 일어납니다. 따라서 애플리케이션이 시작할 때 해석한 주소를 계속 붙들고 있으면 전환이 끝난 뒤에도 사라진 인스턴스로 접속을 시도합니다. 이름을 다시 해석하도록 재연결 로직을 고치는 것이 근본 대응이고, RDS 프록시를 앞에 두면 연결 풀을 유지한 채 전환을 흡수해 애플리케이션이 느끼는 중단이 더 짧아집니다. 두 조치는 서로 대체 관계가 아니라 함께 쓸 때 효과가 큽니다.",
+      "distractorNotes": {
+        "C": "읽기 전용 복제본은 비동기 복제이며 자동으로 승격되지 않습니다. 복제본에 쓰기를 보낼 수도 없어 요구를 충족하지 못합니다.",
+        "D": "인스턴스를 키워도 하드웨어 장애나 유지 관리로 인한 장애 조치는 여전히 발생합니다. 전환 자체를 없앨 수는 없습니다.",
+        "E": "애플리케이션 계층을 분산하는 것은 좋은 관행이지만 데이터베이스 재연결 실패라는 원인과는 관련이 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html", "title": "Amazon RDS 프록시 사용" },
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html", "title": "Multi-AZ DB 인스턴스 배포" }
+      ],
+      "tags": ["rds-multi-az", "rds-proxy", "failover", "high-availability"]
+    },
+    {
+      "id": "saa-mock-1-029",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch12",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "S3 업로드 이벤트로 실행되는 AWS Lambda 함수가 Amazon RDS에 결과를 씁니다. 대량 업로드가 몰리면 함수가 수천 개까지 동시에 실행되면서 데이터베이스 연결이 고갈되어 전체 처리가 실패합니다. 처리 지연은 허용됩니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "함수의 메모리를 늘려 실행 시간을 줄이고 동시 실행이 자연히 감소하도록 한다." },
+        { "id": "B", "text": "데이터베이스 인스턴스를 최대 크기로 변경해 연결 수 한도를 최대한 끌어올린다." },
+        { "id": "C", "text": "함수에 예약된 동시성을 설정해 동시 실행 수가 데이터베이스가 감당할 범위를 넘지 않게 한다." },
+        { "id": "D", "text": "함수의 타임아웃을 최대로 늘려 연결을 얻을 때까지 기다리도록 한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "서버리스의 빠른 확장은 뒤에 있는 관계형 데이터베이스처럼 확장이 느린 구성 요소를 압도할 수 있습니다. 예약된 동시성은 해당 함수의 동시 실행 상한을 정하므로, 다운스트림이 감당할 수 있는 수준으로 유입 속도를 제한하는 장치가 됩니다. 처리 지연이 허용된다는 조건이 있으므로 초과분은 이벤트 소스의 재시도나 큐에 남았다가 순차적으로 처리되면 됩니다. 같은 기능이 다른 함수의 동시성을 보장하는 용도로도 쓰이지만, 여기서는 상한을 두는 쪽이 목적입니다.",
+      "distractorNotes": {
+        "A": "실행 시간이 짧아져도 동시에 실행되는 함수 수 자체는 유입량이 결정합니다. 연결 고갈의 원인이 제거되지 않습니다.",
+        "B": "인스턴스를 키우면 한도가 늘어 잠시 버틸 수 있지만 유입이 더 커지면 같은 문제가 반복됩니다. 비용도 상시 증가합니다.",
+        "D": "연결을 얻지 못한 채 대기하는 함수가 늘어나면 요금이 발생하는 대기 시간만 길어지고 결국 타임아웃으로 실패합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html", "title": "Lambda 함수 동시성 구성" },
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html", "title": "Amazon RDS 프록시 사용" }
+      ],
+      "tags": ["lambda-resilience", "lambda", "rds", "throttling"]
+    },
+    {
+      "id": "saa-mock-1-030",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "정적 웹사이트가 Amazon CloudFront로 제공되며 오리진은 한 리전의 Amazon S3 버킷입니다. 그 리전에 문제가 생겼을 때 사용자에게 오류가 보이지 않도록 하고 싶고, 다른 리전에는 이미 동일한 콘텐츠의 버킷이 복제되어 있습니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "두 버킷을 오리진 그룹으로 묶어 기본 오리진이 실패하면 보조 오리진으로 자동 전환되게 한다." },
+        { "id": "B", "text": "캐시 만료 시간을 최대로 늘려 오리진 장애 중에도 엣지 캐시가 계속 응답하게 한다." },
+        { "id": "C", "text": "두 개의 CloudFront 배포를 만들고 사용자에게 장애 시 다른 주소를 안내한다." },
+        { "id": "D", "text": "오리진 요청 정책을 수정해 실패한 요청이 자동으로 재시도되도록 설정한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "CloudFront의 오리진 장애 조치는 기본 오리진과 보조 오리진을 하나의 오리진 그룹으로 묶고, 지정한 실패 응답이 오면 같은 요청을 보조 오리진으로 다시 보내는 방식입니다. 사용자는 요청을 다시 하지 않아도 되고 도메인도 그대로여서 장애가 드러나지 않습니다. 콘텐츠가 이미 두 리전에 복제되어 있다는 조건이 이 구성을 곧바로 가능하게 합니다. 반대로 오리진이 살아 있는데 느린 것이 문제라면 캐시 정책과 오리진 실드 같은 다른 수단을 보게 됩니다.",
+      "distractorNotes": {
+        "B": "캐시된 객체만 응답할 수 있고 캐시에 없는 요청은 그대로 실패합니다. 만료를 늘리면 콘텐츠 갱신도 늦어집니다.",
+        "C": "사용자가 주소를 바꾸는 방식은 자동 복구가 아니며 장애가 그대로 노출됩니다. 안내가 전달되지 않는 사용자는 계속 실패합니다.",
+        "D": "같은 오리진으로 재시도하면 그 리전이 문제일 때 결과가 달라지지 않습니다. 대체 대상이 있어야 의미가 있습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html", "title": "Amazon CloudFront란 무엇입니까?" },
+        { "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CustomOriginConfig.html", "title": "CloudFront CustomOriginConfig" }
+      ],
+      "tags": ["cloudfront", "s3-replication", "high-availability", "disaster-recovery"]
+    },
+    {
+      "id": "saa-mock-1-031",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch18",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "한 기업이 정적 마케팅 사이트를 두 리전에서 제공해 한 리전이 사용 불가가 되어도 접속이 유지되게 하려 합니다. 사이트는 Amazon S3 버킷에 있고 사용자 지정 도메인을 사용합니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "두 리전 버킷 사이에 교차 리전 복제를 구성해 콘텐츠를 자동으로 동기화한다." },
+        { "id": "B", "text": "Amazon Route 53에 상태 확인을 붙인 장애 조치 라우팅 레코드를 만들어 주 리전이 비정상이면 보조로 응답하게 한다." },
+        { "id": "C", "text": "버킷 이름을 두 리전에서 동일하게 만들어 클라이언트가 자동으로 다른 리전을 찾게 한다." },
+        { "id": "D", "text": "주 리전 버킷의 버전 관리를 켜고 이전 버전을 보관해 장애 시 되돌린다." },
+        { "id": "E", "text": "도메인의 TTL을 하루로 늘려 장애 중에도 캐시된 응답이 유지되게 한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "리전 장애를 견디려면 데이터가 두 리전에 모두 있어야 하고, 클라이언트를 살아 있는 리전으로 보내는 장치가 있어야 합니다. 교차 리전 복제가 첫 번째 요구를, 상태 확인을 연결한 장애 조치 라우팅이 두 번째 요구를 담당합니다. 상태 확인이 주 대상을 비정상으로 판정하면 Route 53이 보조 레코드로 응답하므로 사용자는 같은 도메인으로 계속 접속합니다. 이때 레코드의 TTL이 너무 길면 전환이 늦어지므로 짧게 잡는 것이 함께 필요합니다.",
+      "distractorNotes": {
+        "C": "버킷 이름은 파티션 안에서 전역적으로 고유해야 하므로 두 리전에 같은 이름을 만들 수 없습니다. 클라이언트가 리전을 알아서 바꾸지도 않습니다.",
+        "D": "버전 관리는 잘못된 변경이나 삭제를 되돌리는 기능입니다. 리전 자체가 사용 불가일 때는 접근할 수 없습니다.",
+        "E": "TTL을 늘리면 장애 조치 시 클라이언트가 옛 응답을 오래 붙들고 있어 전환이 지연됩니다. 요구와 반대 방향입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html", "title": "객체 복제" },
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_HealthCheckConfig.html", "title": "Route 53 HealthCheckConfig" }
+      ],
+      "tags": ["route53-failover", "s3-replication", "multi-region", "disaster-recovery"]
+    },
+    {
+      "id": "saa-mock-1-032",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch09",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 기업이 Windows 애플리케이션이 사용하는 SMB 파일 공유를 AWS로 옮깁니다. 파일 공유는 가용 영역 하나에 장애가 나도 계속 제공되어야 하고, 사용자 권한은 기존 디렉터리와 연동되어야 합니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Amazon FSx for Windows File Server를 다중 가용 영역 배포로 만들어 디렉터리와 연결한다." },
+        { "id": "B", "text": "EC2 인스턴스 한 대에 파일 서버 역할을 설치하고 EBS 볼륨을 크게 붙인다." },
+        { "id": "C", "text": "Amazon S3 버킷을 만들고 애플리케이션이 객체 API로 파일을 읽고 쓰도록 고친다." },
+        { "id": "D", "text": "Amazon EFS 파일 시스템을 만들어 Windows 인스턴스에서 마운트한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "SMB 프로토콜과 디렉터리 기반 권한이 요구로 나오면 Windows 파일 서버용 관리형 서비스가 정답 신호입니다. 다중 가용 영역 배포를 선택하면 파일 시스템이 두 가용 영역에 걸쳐 구성되어 한쪽 영역에 장애가 나도 같은 이름으로 접근이 유지됩니다. 애플리케이션은 기존 경로와 프로토콜을 그대로 쓰므로 코드를 고칠 필요가 없습니다. 반대로 Linux 계열의 NFS 공유가 필요하면 EFS가 같은 자리를 차지합니다.",
+      "distractorNotes": {
+        "B": "직접 구축한 파일 서버는 그 인스턴스와 가용 영역이 단일 장애점이 됩니다. 이중화와 패치, 백업도 모두 팀 몫입니다.",
+        "C": "객체 스토리지는 파일 잠금과 디렉터리 의미를 제공하지 않고 애플리케이션 수정이 필요합니다. SMB 요구와 맞지 않습니다.",
+        "D": "EFS는 NFS 기반이며 Windows 인스턴스 지원 대상이 아닙니다. 프로토콜과 권한 모델이 요구와 다릅니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html", "title": "FSx for Windows File Server의 다중 AZ 가용성" },
+        { "url": "https://docs.aws.amazon.com/directoryservice/latest/admin-guide/what_is.html", "title": "AWS Directory Service란 무엇입니까?" }
+      ],
+      "tags": ["efs-vs-fsx", "fsx", "high-availability", "storage"]
+    },
+    {
+      "id": "saa-mock-1-033",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch11",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "운영자가 잘못된 배치 작업을 실행해 Amazon DynamoDB 테이블의 항목 수만 건이 잘못된 값으로 덮어써졌습니다. 사고는 20분 뒤에 발견되었고 테이블은 계속 서비스 중입니다. 데이터 손실을 가장 적게 하는 복구 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "테이블의 온디맨드 백업 중 가장 최근 것을 새 테이블로 복원해 전환한다." },
+        { "id": "B", "text": "시점 복구를 사용해 사고 직전 시점으로 새 테이블을 복원한 뒤 애플리케이션을 전환한다." },
+        { "id": "C", "text": "글로벌 테이블 복제본에서 손상되지 않은 항목을 골라 다시 써 넣는다." },
+        { "id": "D", "text": "DynamoDB 스트림을 활성화하고 잘못된 변경을 되돌리는 함수를 만들어 실행한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "시점 복구가 켜져 있으면 보존 기간 안의 임의 시점 상태로 테이블을 복원할 수 있어, 사고 직전 몇 분 전으로 되돌리면 손실 범위가 최소가 됩니다. 복원은 원래 테이블을 덮어쓰지 않고 새 테이블로 만들어지므로, 검증한 뒤 애플리케이션이 가리키는 대상을 바꾸는 절차가 안전합니다. 정기 백업은 마지막 백업 이후의 변경을 모두 잃게 되어 같은 상황에서 손실이 훨씬 큽니다. 스트림은 변경을 전파하는 도구이지 과거를 되돌리는 도구가 아니라는 점도 함께 구분해야 합니다.",
+      "distractorNotes": {
+        "A": "온디맨드 백업은 만든 시점의 상태만 담고 있어 그 이후 정상 변경분까지 함께 사라집니다. 손실을 최소화한다는 조건에 미치지 못합니다.",
+        "C": "글로벌 테이블 복제본은 잘못된 쓰기까지 그대로 복제합니다. 손상되지 않은 사본이 남아 있지 않습니다.",
+        "D": "스트림은 활성화한 이후의 변경만 담기며 이미 지나간 사고를 되돌릴 기록을 제공하지 않습니다. 사후 대응 수단이 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateContinuousBackups.html", "title": "Amazon DynamoDB UpdateContinuousBackups" },
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateBackup.html", "title": "Amazon DynamoDB CreateBackup" }
+      ],
+      "tags": ["dynamodb", "backup", "rto-rpo-tradeoff", "data-protection"]
+    },
+    {
+      "id": "saa-mock-1-034",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch13",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "AWS Fargate에서 실행되는 문서 처리 서비스가 태스크마다 로컬 저장소에 중간 파일을 쓰고, 태스크가 교체되면 처리 중이던 문서 정보가 사라집니다. 태스크는 여러 가용 영역에 배치되어 있습니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "공유해야 하는 파일은 Amazon EFS 파일 시스템에 두고 태스크 정의에서 볼륨으로 마운트한다." },
+        { "id": "B", "text": "처리 진행 상태를 Amazon DynamoDB 같은 외부 저장소에 기록해 태스크가 바뀌어도 이어서 처리하게 한다." },
+        { "id": "C", "text": "태스크 하나만 실행하도록 서비스 구성을 바꿔 상태가 흩어지지 않게 한다." },
+        { "id": "D", "text": "태스크에 더 큰 임시 저장 공간을 할당해 중간 파일이 사라지지 않게 한다." },
+        { "id": "E", "text": "가용 영역 하나에만 태스크를 배치해 파일이 같은 위치에 유지되게 한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "컨테이너는 언제든 교체될 수 있다는 전제 위에서 설계해야 하므로, 살아남아야 하는 데이터는 컨테이너 밖에 두는 것이 원칙입니다. 여러 태스크가 같은 파일을 봐야 한다면 여러 가용 영역에서 동시에 마운트할 수 있는 공유 파일 시스템이 맞고, 진행 상태처럼 구조화된 정보는 외부 데이터 저장소가 맞습니다. 이렇게 상태를 밖으로 빼면 태스크 수를 자유롭게 늘리고 줄일 수 있어 복원력과 확장성이 함께 좋아집니다. 상태를 컨테이너 안에 유지하려는 선택지는 모두 확장성을 희생하게 됩니다.",
+      "distractorNotes": {
+        "C": "태스크를 하나로 줄이면 그 태스크가 단일 장애점이 되고 처리량도 제한됩니다. 복원력을 높이려는 목적과 반대입니다.",
+        "D": "임시 저장 공간은 태스크가 살아 있는 동안만 유지됩니다. 태스크가 교체되면 크기와 무관하게 내용이 사라집니다.",
+        "E": "한 가용 영역에 몰면 그 영역 장애가 곧 전체 중단이 됩니다. 파일 공유 문제도 해결되지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RegisterTaskDefinition.html", "title": "Amazon ECS RegisterTaskDefinition" },
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html", "title": "Amazon EFS 작동 방식" }
+      ],
+      "tags": ["container-choice", "fargate", "efs", "stateless"]
+    },
+    {
+      "id": "saa-mock-1-035",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch12",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "Amazon SQS 큐를 이벤트 소스로 사용하는 AWS Lambda 함수가 일부 메시지에서 계속 실패합니다. 팀은 함수에 실패 시 전송 대상을 설정했는데도 실패한 메시지가 그쪽으로 가지 않고 큐에서 반복 처리되고 있습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "함수의 실패 시 전송 대상을 다시 설정하고 이벤트 소스 매핑을 비활성화했다가 켠다." },
+        { "id": "B", "text": "함수 타임아웃을 줄여 실패를 빨리 확정하고 전송 대상으로 넘어가게 한다." },
+        { "id": "C", "text": "큐에 리드라이브 정책을 설정해 최대 수신 횟수를 넘긴 메시지가 배달 못 한 편지 큐로 이동하게 한다." },
+        { "id": "D", "text": "함수의 예약된 동시성을 늘려 실패한 메시지가 더 빨리 재시도되게 한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "실패 시 전송 대상은 함수를 비동기로 호출했을 때 적용되는 설정입니다. 큐를 이벤트 소스로 연결하면 Lambda가 큐를 폴링해 동기적으로 함수를 호출하므로 이 설정이 관여하지 않고, 실패한 메시지는 가시성 제한 시간이 지나면 큐에 다시 나타납니다. 이 경우 격리는 큐 쪽 기능인 리드라이브 정책이 담당하며, 최대 수신 횟수를 넘긴 메시지가 배달 못 한 편지 큐로 옮겨집니다. 호출 방식이 무엇인지에 따라 오류 처리 장치가 달라진다는 것이 이 문항의 판단 지점입니다.",
+      "distractorNotes": {
+        "A": "설정을 다시 만들어도 폴링 기반 호출에는 적용되지 않습니다. 원인이 구성 오류가 아니라 동작 방식의 차이입니다.",
+        "B": "타임아웃을 줄이면 정상 메시지까지 중간에 끊길 수 있습니다. 실패 메시지의 목적지도 달라지지 않습니다.",
+        "D": "동시성을 늘리면 실패가 더 빨리 반복될 뿐이며 문제 메시지가 큐를 계속 점유하는 상황이 악화됩니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventsourcemapping.html", "title": "Lambda 이벤트 소스 매핑" },
+        { "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html", "title": "Amazon SQS 배달 못 한 편지 큐" }
+      ],
+      "tags": ["sqs-visibility-dlq", "lambda-resilience", "sqs", "error-handling"]
+    },
+    {
+      "id": "saa-mock-1-036",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch18",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "감사에서 운영 계정의 관리자 자격 증명이 침해되면 백업까지 함께 삭제될 수 있다는 위험이 지적되었습니다. 회사는 Amazon EBS와 Amazon RDS 백업을 AWS Backup으로 관리하며 조직에는 별도의 보안 계정이 있습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "백업 보존 기간을 최대로 늘려 삭제되더라도 복구할 시간을 확보한다." },
+        { "id": "B", "text": "백업 계획에 다른 계정의 백업 볼트로 복사하는 작업을 추가하고 그 볼트의 접근 권한을 분리한다." },
+        { "id": "C", "text": "운영 계정 안에 두 번째 백업 볼트를 만들어 복구 지점을 이중으로 저장한다." },
+        { "id": "D", "text": "백업 삭제 API 호출을 CloudTrail로 기록하고 경보를 설정해 사후에 확인한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "같은 계정 안에 있는 사본은 그 계정의 권한을 가진 사람이 지울 수 있으므로 자격 증명 침해 시나리오에서 보호막이 되지 못합니다. AWS Backup은 백업 계획에서 복구 지점을 다른 계정의 볼트로 복사할 수 있고, 그 계정의 권한을 운영 팀과 분리하면 침해된 자격 증명으로는 사본에 손댈 수 없습니다. 즉 방어의 핵심은 백업의 개수가 아니라 백업을 통제하는 권한 경계를 나누는 것입니다. 리전까지 나누면 리전 장애 대비 효과도 함께 얻습니다.",
+      "distractorNotes": {
+        "A": "보존 기간은 자동 만료 시점을 정할 뿐이며 권한을 가진 사람의 삭제를 막지 못합니다. 위험의 성격이 다릅니다.",
+        "C": "같은 계정 안의 두 번째 볼트도 동일한 자격 증명으로 접근할 수 있습니다. 침해 시나리오에서 사본이 함께 사라집니다.",
+        "D": "기록과 경보는 탐지 수단이며 삭제 자체를 막지 못합니다. 이미 지워진 백업은 알림을 받아도 되돌릴 수 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/aws-backup/latest/devguide/whatisbackup.html", "title": "AWS Backup이란 무엇입니까?" },
+        { "url": "https://docs.aws.amazon.com/aws-backup/latest/devguide/API_CreateBackupPlan.html", "title": "AWS Backup CreateBackupPlan" }
+      ],
+      "tags": ["aws-backup", "disaster-recovery", "data-protection", "organizations"]
+    },
+    {
+      "id": "saa-mock-1-037",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch09",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "세 가용 영역의 EC2 인스턴스가 하나의 Amazon EFS 파일 시스템을 공유합니다. 파일 시스템에는 마운트 대상이 한 가용 영역에만 만들어져 있습니다. 이 구성에 대한 평가로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "마운트 대상이 있는 가용 영역에 장애가 나면 다른 영역의 인스턴스도 파일 시스템에 접근하지 못한다." },
+        { "id": "B", "text": "EFS는 리전 서비스이므로 마운트 대상 위치와 무관하게 모든 인스턴스가 계속 접근할 수 있다." },
+        { "id": "C", "text": "마운트 대상이 하나여도 EFS가 자동으로 다른 가용 영역에 대체 대상을 만들어 준다." },
+        { "id": "D", "text": "이 구성은 데이터 내구성을 떨어뜨려 파일이 단일 가용 영역에만 저장된다." }
+      ],
+      "answer": ["A"],
+      "explanation": "EFS는 데이터를 여러 가용 영역에 저장하지만, 인스턴스가 파일 시스템에 접속하는 창구는 서브넷에 만들어진 마운트 대상입니다. 마운트 대상이 한 영역에만 있으면 다른 영역의 인스턴스는 그 하나를 통해 접속하게 되고, 그 영역이 사용 불가가 되면 전부 접근을 잃습니다. 그래서 인스턴스가 있는 각 가용 영역마다 마운트 대상을 만드는 것이 표준 구성이며, 영역을 넘는 트래픽도 함께 줄어듭니다. 데이터가 여러 영역에 저장된다는 사실과 접근 경로가 이중화되어 있다는 사실은 별개라는 점이 핵심입니다.",
+      "distractorNotes": {
+        "B": "리전 서비스라는 성격은 데이터 저장 범위를 뜻합니다. 접근은 마운트 대상을 거치므로 대상이 사라지면 접속이 끊깁니다.",
+        "C": "마운트 대상은 사용자가 서브넷마다 만들어야 하며 자동으로 생성되지 않습니다. 구성 누락은 그대로 남습니다.",
+        "D": "표준 EFS 스토리지 클래스는 여러 가용 영역에 데이터를 저장합니다. 문제는 내구성이 아니라 접근 경로의 단일 장애점입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html", "title": "Amazon EFS 작동 방식" },
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/performance.html#performancemodes.html", "title": "Amazon EFS 성능" }
+      ],
+      "tags": ["efs", "single-point-of-failure", "high-availability", "storage"]
     }
   ]
 }

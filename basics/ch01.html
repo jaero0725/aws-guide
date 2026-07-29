@@ -67,7 +67,90 @@
         시험 문항은 요구사항의 성격으로 이 셋 중 하나를 지목합니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-001">
+      <figure class="diagram" data-diagram="D-001" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 460" role="img" aria-labelledby="d-001-1-d001-title d-001-1-d001-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-001-1-d001-title">리전 · 가용 영역 · 엣지 로케이션의 포함 관계</title>
+            <desc id="d-001-1-d001-desc">AWS 글로벌 인프라의 포함 관계를 그린 그림입니다.
+              하나의 리전 안에 여러 개의 가용 영역이 들어 있고, 가용 영역 하나는 다시 전력과 네트워크가 분리된
+              여러 데이터센터로 이루어집니다. 로컬 존과 Wavelength 존은 물리적으로는 리전 밖에 있지만
+              부모 리전에 딸린 확장으로 취급됩니다.
+              오른쪽의 엣지 로케이션과 리전 엣지 캐시는 리전 바깥에서 최종 사용자에게 가장 가까운 계층이며
+              콘텐츠를 캐시해 응답 거리를 줄입니다.
+              아래 두 카드는 이 그림이 직접 부정하는 흔한 오해입니다.
+              가용 영역은 데이터센터 한 동이 아니고, 리전 사이에는 데이터가 자동으로 복제되지 않습니다.</desc>
+
+            <defs>
+              <marker id="d-001-1-d001-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 리전 -->
+            <rect class="dg-panel" x="20" y="56" width="440" height="290" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="32" y="76">AWS 리전 · ap-northeast-2</text>
+
+            <rect class="dg-node dg-node--alt" x="34" y="88" width="204" height="150" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="44" y="106">가용 영역 a</text>
+            <rect class="dg-node" x="44" y="114" width="184" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="136" y="135" text-anchor="middle">데이터센터 1</text>
+            <rect class="dg-node" x="44" y="150" width="184" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="136" y="171" text-anchor="middle">데이터센터 2</text>
+            <rect class="dg-node" x="44" y="186" width="184" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="136" y="207" text-anchor="middle">데이터센터 3</text>
+
+            <rect class="dg-node dg-node--alt" x="246" y="88" width="200" height="150" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="256" y="106">가용 영역 b</text>
+            <rect class="dg-node" x="256" y="114" width="180" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="346" y="135" text-anchor="middle">데이터센터 1</text>
+            <rect class="dg-node" x="256" y="150" width="180" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="346" y="171" text-anchor="middle">데이터센터 2</text>
+            <rect class="dg-node" x="256" y="186" width="180" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="346" y="207" text-anchor="middle">데이터센터 3</text>
+
+            <rect class="dg-node dg-node--empty" x="34" y="250" width="412" height="82" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="44" y="268">부모 리전에 딸린 확장 — 물리적으로는 리전 밖</text>
+            <rect class="dg-node" x="44" y="276" width="196" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="142" y="296" text-anchor="middle">로컬 존</text>
+            <text class="dg-fs-sm dg-muted" x="142" y="314" text-anchor="middle">지연에 민감한 워크로드</text>
+            <rect class="dg-node" x="250" y="276" width="190" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="345" y="296" text-anchor="middle">Wavelength 존</text>
+            <text class="dg-fs-sm dg-muted" x="345" y="314" text-anchor="middle">통신사 5G 네트워크 안</text>
+
+            <!-- 리전 밖 -->
+            <rect class="dg-panel" x="480" y="56" width="220" height="290" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="490" y="76">리전 밖 — 사용자에 가까운 계층</text>
+
+            <rect class="dg-node" x="492" y="88" width="196" height="76" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="590" y="112" text-anchor="middle">리전 엣지 캐시</text>
+            <text class="dg-fs-sm dg-muted" x="590" y="132" text-anchor="middle">엣지와 오리진 사이의</text>
+            <text class="dg-fs-sm dg-muted" x="590" y="152" text-anchor="middle">더 넓은 캐시 계층</text>
+
+            <rect class="dg-node dg-node--accent" x="492" y="192" width="196" height="76" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="590" y="216" text-anchor="middle">엣지 로케이션</text>
+            <text class="dg-fs-sm dg-muted" x="590" y="236" text-anchor="middle">CloudFront 캐시가</text>
+            <text class="dg-fs-sm dg-muted" x="590" y="256" text-anchor="middle">놓이는 가장 앞단</text>
+
+            <rect class="dg-node dg-node--alt" x="530" y="296" width="120" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="590" y="318" text-anchor="middle">최종 사용자</text>
+
+            <path class="dg-edge dg-edge--accent" d="M460 126 L488 126" marker-end="url(#d-001-1-d001-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M590 164 L590 188" marker-end="url(#d-001-1-d001-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M590 268 L590 292" marker-end="url(#d-001-1-d001-ar)"/>
+
+            <!-- 오해 교정 -->
+            <rect class="dg-node dg-node--danger" x="20" y="364" width="340" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="386">오해 1 — "AZ = 데이터센터 한 동"</text>
+            <text class="dg-fs-sm" x="34" y="408">가용 영역 하나가 전력·네트워크가 분리된</text>
+            <text class="dg-fs-sm" x="34" y="430">여러 데이터센터로 구성됩니다</text>
+
+            <rect class="dg-node dg-node--danger" x="380" y="364" width="320" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="394" y="386">오해 2 — "리전 간 자동 복제"</text>
+            <text class="dg-fs-sm" x="394" y="408">리전은 서로 격리되어 있어 교차 리전</text>
+            <text class="dg-fs-sm" x="394" y="430">복제는 직접 구성해야 일어납니다</text>
+          </svg>
+        </div>
         <figcaption>
           AWS 글로벌 인프라의 세 계층 — 리전 안에 여러 가용 영역이 있고, 가용 영역 하나가
           다시 여러 데이터센터로 구성됩니다. 로컬 존과 Wavelength 존은 부모 리전에 딸린
@@ -288,7 +371,105 @@ aws ec2 describe-availability-zones \
         고객은 그 위에 올린 데이터 · 자격 증명 · 권한 · 네트워크 구성 · 암호화 선택을 책임집니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-002">
+      <figure class="diagram" data-diagram="D-002" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 480" role="img" aria-labelledby="d-002-1-d002-title d-002-1-d002-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-002-1-d002-title">책임 공유 모델의 경계선 이동</title>
+            <desc id="d-002-1-d002-desc">같은 일곱 개 계층을 EC2, Amazon RDS, AWS Lambda 세 서비스에 대해 나란히 놓고
+              AWS 책임과 고객 책임의 경계선이 어디에 그어지는지 비교합니다.
+              EC2 에서는 물리 시설과 가상화까지만 AWS 책임이고 게스트 OS 패치부터 위쪽은 모두 고객 책임입니다.
+              Amazon RDS 에서는 게스트 OS 와 데이터베이스 엔진 패치까지 AWS 가 맡고, 확장과 가용성 구성부터 고객이 맡습니다.
+              AWS Lambda 에서는 확장과 가용성까지 AWS 가 맡고 고객에게는 코드와 데이터, 접근 제어만 남습니다.
+              관리형으로 갈수록 경계선이 위로 올라가며, 어느 계층에서든 데이터 분류와 암호화, 접근 제어는 항상 고객 책임입니다.
+              "이 상황에서 패치는 누구 책임인가"라는 문항의 답이 서비스마다 다른 이유가 바로 이 경계선의 위치입니다.</desc>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="34">계층</text>
+            <text class="dg-fs-md dg-bold" x="295" y="34" text-anchor="middle">Amazon EC2</text>
+            <text class="dg-fs-md dg-bold" x="465" y="34" text-anchor="middle">Amazon RDS</text>
+            <text class="dg-fs-md dg-bold" x="630" y="34" text-anchor="middle">AWS Lambda</text>
+            <text class="dg-fs-sm dg-muted" x="295" y="54" text-anchor="middle">IaaS</text>
+            <text class="dg-fs-sm dg-muted" x="465" y="54" text-anchor="middle">관리형</text>
+            <text class="dg-fs-sm dg-muted" x="630" y="54" text-anchor="middle">서버리스</text>
+
+            <!-- L7 데이터 -->
+            <text class="dg-fs-sm" x="20" y="90">데이터 · 암호화 · IAM</text>
+            <rect class="dg-node" x="220" y="68" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="91" text-anchor="middle">고객</text>
+            <rect class="dg-node" x="390" y="68" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="91" text-anchor="middle">고객</text>
+            <rect class="dg-node" x="560" y="68" width="140" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="91" text-anchor="middle">고객</text>
+
+            <!-- L6 앱 -->
+            <text class="dg-fs-sm" x="20" y="134">애플리케이션 · 스키마</text>
+            <rect class="dg-node" x="220" y="112" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="135" text-anchor="middle">고객</text>
+            <rect class="dg-node" x="390" y="112" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="135" text-anchor="middle">고객</text>
+            <rect class="dg-node" x="560" y="112" width="140" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="135" text-anchor="middle">고객</text>
+
+            <!-- L5 확장 -->
+            <text class="dg-fs-sm" x="20" y="178">확장 · 가용성 구성</text>
+            <rect class="dg-node" x="220" y="156" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="179" text-anchor="middle">고객</text>
+            <rect class="dg-node" x="390" y="156" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="179" text-anchor="middle">고객</text>
+            <rect class="dg-node dg-node--muted" x="560" y="156" width="140" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="179" text-anchor="middle">AWS</text>
+
+            <!-- L4 런타임 -->
+            <text class="dg-fs-sm" x="20" y="222">런타임 · 엔진 패치</text>
+            <rect class="dg-node" x="220" y="200" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="223" text-anchor="middle">고객</text>
+            <rect class="dg-node dg-node--muted" x="390" y="200" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="223" text-anchor="middle">AWS</text>
+            <rect class="dg-node dg-node--muted" x="560" y="200" width="140" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="223" text-anchor="middle">AWS</text>
+
+            <!-- L3 게스트 OS -->
+            <text class="dg-fs-sm" x="20" y="266">게스트 OS · OS 패치</text>
+            <rect class="dg-node" x="220" y="244" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="267" text-anchor="middle">고객</text>
+            <rect class="dg-node dg-node--muted" x="390" y="244" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="267" text-anchor="middle">AWS</text>
+            <rect class="dg-node dg-node--muted" x="560" y="244" width="140" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="267" text-anchor="middle">AWS</text>
+
+            <!-- L2 가상화 -->
+            <text class="dg-fs-sm" x="20" y="310">가상화 계층</text>
+            <rect class="dg-node dg-node--muted" x="220" y="288" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="311" text-anchor="middle">AWS</text>
+            <rect class="dg-node dg-node--muted" x="390" y="288" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="311" text-anchor="middle">AWS</text>
+            <rect class="dg-node dg-node--muted" x="560" y="288" width="140" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="311" text-anchor="middle">AWS</text>
+
+            <!-- L1 물리 -->
+            <text class="dg-fs-sm" x="20" y="354">물리 시설 · 하드웨어</text>
+            <rect class="dg-node dg-node--muted" x="220" y="332" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="355" text-anchor="middle">AWS</text>
+            <rect class="dg-node dg-node--muted" x="390" y="332" width="150" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="355" text-anchor="middle">AWS</text>
+            <rect class="dg-node dg-node--muted" x="560" y="332" width="140" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="355" text-anchor="middle">AWS</text>
+
+            <!-- 경계선 -->
+            <path class="dg-edge dg-edge--accent" d="M212 284 L378 284"/>
+            <path class="dg-edge dg-edge--accent" d="M382 196 L548 196"/>
+            <path class="dg-edge dg-edge--accent" d="M552 152 L708 152"/>
+            <path class="dg-edge dg-edge--accent dg-edge--dashed" d="M378 284 L382 196"/>
+            <path class="dg-edge dg-edge--accent dg-edge--dashed" d="M548 196 L552 152"/>
+
+            <text class="dg-fs-sm dg-bold" x="212" y="278" text-anchor="end">경계선</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="392">회색 파선 칸이 AWS 책임, 실선 칸이 고객 책임입니다</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="406" width="680" height="62" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="430" text-anchor="middle">관리형으로 갈수록 경계선이 위로 올라갑니다</text>
+            <text class="dg-fs-sm" x="360" y="452" text-anchor="middle">단 맨 위의 데이터 · 암호화 · 접근 제어는 어떤 서비스에서도 고객 책임으로 남습니다</text>
+          </svg>
+        </div>
         <figcaption>
           책임 공유 모델의 경계선 — 아래쪽 물리 계층은 AWS가, 위쪽 데이터와 접근 제어는 고객이 맡으며,
           IaaS에서 서버리스로 갈수록 경계선이 위로 올라갑니다
@@ -409,7 +590,76 @@ aws ec2 describe-availability-zones \
         기둥을 알면 무엇이 우선인지 빨리 판단할 수 있습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-004">
+      <figure class="diagram" data-diagram="D-004" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 440" role="img" aria-labelledby="d-004-1-d004-title d-004-1-d004-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-004-1-d004-title">Well-Architected 6기둥과 SAA 4개 도메인의 대응</title>
+            <desc id="d-004-1-d004-desc">왼쪽은 AWS Well-Architected Framework 의 여섯 기둥이고 오른쪽은 SAA-C03 시험의 네 개 도메인입니다.
+              보안 기둥은 도메인 1 보안 아키텍처 설계에, 안정성 기둥은 도메인 2 복원력 있는 아키텍처 설계에,
+              성능 효율성 기둥은 도메인 3 고성능 아키텍처 설계에, 비용 최적화 기둥은 도메인 4 비용 최적화 아키텍처 설계에
+              각각 그대로 대응합니다.
+              운영 우수성과 지속 가능성 두 기둥은 시험 도메인에 대응하지 않으므로 개념만 이해하고 넘어갑니다.
+              도메인 가중치가 30, 26, 24, 20 퍼센트 순이므로 학습 시간도 그 순서로 배분합니다.</desc>
+
+            <defs>
+              <marker id="d-004-1-d004-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-004-1-d004-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="165" y="34" text-anchor="middle">Well-Architected 6기둥</text>
+            <text class="dg-fs-md dg-bold" x="555" y="34" text-anchor="middle">SAA-C03 4개 도메인</text>
+
+            <rect class="dg-node dg-node--muted" x="40" y="56" width="250" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="52" y="83">1. 운영 우수성</text>
+            <text class="dg-fs-sm dg-muted" x="300" y="83">대응 도메인 없음</text>
+
+            <rect class="dg-node" x="40" y="112" width="250" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="52" y="139">2. 보안 (Security)</text>
+
+            <rect class="dg-node" x="40" y="168" width="250" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="52" y="195">3. 안정성 (Reliability)</text>
+
+            <rect class="dg-node" x="40" y="224" width="250" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="52" y="251">4. 성능 효율성</text>
+
+            <rect class="dg-node" x="40" y="280" width="250" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="52" y="307">5. 비용 최적화</text>
+
+            <rect class="dg-node dg-node--muted" x="40" y="336" width="250" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="52" y="363">6. 지속 가능성</text>
+            <text class="dg-fs-sm dg-muted" x="300" y="363">대응 도메인 없음</text>
+
+            <rect class="dg-node dg-node--accent" x="430" y="106" width="250" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="444" y="130">도메인 1 · 30%</text>
+            <text class="dg-fs-sm" x="444" y="151">보안 아키텍처 설계</text>
+
+            <rect class="dg-node" x="430" y="174" width="250" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="444" y="198">도메인 2 · 26%</text>
+            <text class="dg-fs-sm" x="444" y="219">복원력 있는 아키텍처 설계</text>
+
+            <rect class="dg-node" x="430" y="242" width="250" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="444" y="266">도메인 3 · 24%</text>
+            <text class="dg-fs-sm" x="444" y="287">고성능 아키텍처 설계</text>
+
+            <rect class="dg-node" x="430" y="310" width="250" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="444" y="334">도메인 4 · 20%</text>
+            <text class="dg-fs-sm" x="444" y="355">비용 최적화 아키텍처 설계</text>
+
+            <path class="dg-edge dg-edge--accent" d="M290 134 L426 134" marker-end="url(#d-004-1-d004-ar-accent)"/>
+            <path class="dg-edge" d="M290 190 L426 202" marker-end="url(#d-004-1-d004-ar)"/>
+            <path class="dg-edge" d="M290 246 L426 270" marker-end="url(#d-004-1-d004-ar)"/>
+            <path class="dg-edge" d="M290 302 L426 338" marker-end="url(#d-004-1-d004-ar)"/>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="404">운영 우수성과 지속 가능성은 시험 도메인에 대응하지 않습니다 — 개념만 이해하고 넘어갑니다</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="428">학습 시간은 도메인 가중치 순서(30 · 26 · 24 · 20)로 배분합니다</text>
+          </svg>
+        </div>
         <figcaption>
           Well-Architected 6개 기둥과 SAA 4개 도메인의 대응.
           <strong>기둥 2~5가 시험 도메인 1~4에 그대로 이어지고,
@@ -630,7 +880,75 @@ aws s3 sync ./build s3://example-app-assets</code></pre>
         정책은 조직 루트 · OU · 개별 계정 중 어디에나 붙일 수 있습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-003">
+      <figure class="diagram" data-diagram="D-003" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 440" role="img" aria-labelledby="d-003-1-d003-title d-003-1-d003-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-003-1-d003-title">AWS Organizations 계층과 SCP 상한</title>
+            <desc id="d-003-1-d003-desc">조직 루트 아래에 조직 단위(OU)가 놓이고 그 아래에 멤버 계정이 들어가는 트리 구조입니다.
+              서비스 제어 정책은 조직 루트, OU, 개별 계정 어느 수준에나 붙을 수 있고,
+              붙은 지점부터 그 아래 전체의 권한 상한이 됩니다.
+              왼쪽 쐐기는 아래로 내려갈수록 상한이 좁아진다는 것을 나타냅니다.
+              상위에서 막은 것을 하위에서 다시 열 수는 없기 때문에 실효 권한은 경로 위의 모든 상한이 겹치는 부분입니다.
+              SCP 는 권한을 부여하지 않고 상한만 정하며, 멤버 계정의 루트 사용자에게도 적용됩니다.</desc>
+
+            <defs>
+              <marker id="d-003-1-d003-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 상한 쐐기 -->
+            <path d="M24 60 L166 60 L140 340 L50 340 Z"
+                  fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="86" text-anchor="middle">권한 상한</text>
+            <text class="dg-fs-sm" x="95" y="186" text-anchor="middle">아래로 갈수록</text>
+            <text class="dg-fs-sm" x="95" y="206" text-anchor="middle">좁아집니다</text>
+            <text class="dg-fs-sm dg-muted" x="95" y="316" text-anchor="middle">실효 권한</text>
+
+            <!-- 트리 -->
+            <rect class="dg-node" x="380" y="56" width="160" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="460" y="86" text-anchor="middle">조직 루트</text>
+            <rect x="520" y="44" width="46" height="22" rx="4"
+                  fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="543" y="60" text-anchor="middle">SCP</text>
+
+            <rect class="dg-node" x="210" y="150" width="180" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="300" y="180" text-anchor="middle">OU · 운영</text>
+            <rect x="370" y="138" width="46" height="22" rx="4"
+                  fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="393" y="154" text-anchor="middle">SCP</text>
+
+            <rect class="dg-node" x="470" y="150" width="180" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="560" y="180" text-anchor="middle">OU · 샌드박스</text>
+
+            <rect class="dg-node" x="200" y="250" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="245" y="277" text-anchor="middle">계정 A</text>
+            <rect class="dg-node" x="300" y="250" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="345" y="277" text-anchor="middle">계정 B</text>
+            <rect class="dg-node" x="460" y="250" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="505" y="277" text-anchor="middle">계정 C</text>
+            <rect class="dg-node" x="560" y="250" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="605" y="277" text-anchor="middle">계정 D</text>
+            <rect x="630" y="238" width="46" height="22" rx="4"
+                  fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <text class="dg-fs-sm dg-bold" x="653" y="254" text-anchor="middle">SCP</text>
+
+            <path class="dg-edge" d="M460 104 L300 146" marker-end="url(#d-003-1-d003-ar)"/>
+            <path class="dg-edge" d="M460 104 L560 146" marker-end="url(#d-003-1-d003-ar)"/>
+            <path class="dg-edge" d="M300 198 L245 246" marker-end="url(#d-003-1-d003-ar)"/>
+            <path class="dg-edge" d="M300 198 L345 246" marker-end="url(#d-003-1-d003-ar)"/>
+            <path class="dg-edge" d="M560 198 L505 246" marker-end="url(#d-003-1-d003-ar)"/>
+            <path class="dg-edge" d="M560 198 L605 246" marker-end="url(#d-003-1-d003-ar)"/>
+
+            <text class="dg-fs-sm dg-muted" x="200" y="318">계정 A · B 는 루트 SCP 와 OU SCP 두 겹의 상한 아래에 있습니다</text>
+            <text class="dg-fs-sm dg-muted" x="200" y="340">계정 D 는 루트 SCP 와 자기 계정 SCP 의 상한 아래에 있습니다</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="360" width="680" height="66" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="384" text-anchor="middle">SCP 는 루트 · OU · 계정 어느 수준에나 붙어 하위 전체의 권한 상한이 됩니다</text>
+            <text class="dg-fs-sm" x="360" y="406" text-anchor="middle">권한을 부여하지는 않으며, 멤버 계정의 루트 사용자에게도 적용됩니다</text>
+          </svg>
+        </div>
         <figcaption>
           AWS Organizations의 계층 구조 — 조직 루트 아래 OU가 놓이고 그 아래 멤버 계정이 들어가며,
           SCP는 루트 · OU · 계정 어느 수준에나 붙어 하위 전체의 권한 상한이 됩니다

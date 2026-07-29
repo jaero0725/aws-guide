@@ -67,7 +67,99 @@
         시험 문항이 어려워지는 지점은 언제나 <strong>이 네 자리에 붙은 정책이 하나의 결정으로 합쳐지는 규칙</strong>입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-010">
+      <figure class="diagram" data-diagram="D-010" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 500" role="img" aria-labelledby="d-010-1-d010-title d-010-1-d010-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-010-1-d010-title">IAM 구성요소 관계도 — 정책이 붙는 네 자리와 역할의 두 축</title>
+            <desc id="d-010-1-d010-desc">위쪽 절반은 하나의 요청이 평가될 때 모이는 정책 네 종류를 보여 줍니다.
+              자격 증명 기반 정책은 사용자·그룹·역할에 붙고, 리소스 기반 정책은 리소스 자체에 붙으며 Principal 요소를 반드시 가집니다.
+              권한 경계는 사용자와 역할의 상한을, 세션 정책은 AssumeRole 호출 시 전달되어 그 세션만의 상한을 정합니다.
+              아래쪽 절반은 IAM 역할이 두 개의 정책으로 이루어진다는 사실을 보여 줍니다.
+              신뢰 정책은 누가 이 역할을 맡을 수 있는가를, 권한 정책은 이 역할이 무엇을 할 수 있는가를 정합니다.
+              사용자와 그룹만 그린 관계도로는 이 네 자리와 두 축을 설명할 수 없습니다.</desc>
+
+            <defs>
+              <marker id="d-010-1-d010-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-010-1-d010-ar-plain" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- ===== 섹션 A: 정책이 붙는 네 자리 ===== -->
+            <text class="dg-fs-md dg-bold" x="20" y="28">평가 시 모이는 정책 네 자리</text>
+
+            <!-- 주체 -->
+            <rect class="dg-panel" x="20" y="56" width="170" height="196" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="76">주체와 자격 증명</text>
+            <rect class="dg-node" x="34" y="88" width="142" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="105" y="106" text-anchor="middle">IAM 사용자</text>
+            <text class="dg-fs-sm dg-muted" x="105" y="123" text-anchor="middle">장기 자격 증명</text>
+            <rect class="dg-node" x="34" y="142" width="142" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="105" y="160" text-anchor="middle">IAM 그룹</text>
+            <text class="dg-fs-sm dg-muted" x="105" y="177" text-anchor="middle">정책 그릇 · 주체 아님</text>
+            <rect class="dg-node dg-node--accent" x="34" y="196" width="142" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="105" y="214" text-anchor="middle">IAM 역할</text>
+            <text class="dg-fs-sm dg-muted" x="105" y="231" text-anchor="middle">임시 자격 증명</text>
+
+            <!-- 네 자리 -->
+            <rect class="dg-panel" x="220" y="48" width="280" height="296" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="234" y="68">요청 하나에 함께 평가됩니다</text>
+            <rect class="dg-node" x="232" y="76" width="256" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="98" text-anchor="middle">1. 자격 증명 기반 정책</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="118" text-anchor="middle">사용자 · 그룹 · 역할에 부착</text>
+            <rect class="dg-node dg-node--accent" x="232" y="142" width="256" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="164" text-anchor="middle">2. 리소스 기반 정책</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="184" text-anchor="middle">리소스에 부착 · Principal 필수</text>
+            <rect class="dg-node" x="232" y="208" width="256" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="230" text-anchor="middle">3. 권한 경계</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="250" text-anchor="middle">사용자 · 역할의 상한 (교집합)</text>
+            <rect class="dg-node" x="232" y="274" width="256" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="296" text-anchor="middle">4. 세션 정책</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="316" text-anchor="middle">AssumeRole 시 전달 · 그 세션만</text>
+
+            <!-- 리소스 -->
+            <rect class="dg-panel" x="530" y="56" width="170" height="196" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="544" y="76">리소스</text>
+            <rect class="dg-node" x="544" y="88" width="142" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="615" y="106" text-anchor="middle">Amazon S3 버킷</text>
+            <text class="dg-fs-sm dg-muted" x="615" y="123" text-anchor="middle">버킷 정책</text>
+            <rect class="dg-node" x="544" y="142" width="142" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="615" y="160" text-anchor="middle">AWS KMS 키</text>
+            <text class="dg-fs-sm dg-muted" x="615" y="177" text-anchor="middle">키 정책</text>
+            <rect class="dg-node" x="544" y="196" width="142" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="615" y="214" text-anchor="middle">Amazon SQS 큐</text>
+            <text class="dg-fs-sm dg-muted" x="615" y="231" text-anchor="middle">큐 정책</text>
+
+            <path class="dg-edge dg-edge--accent" d="M190 154 L216 154" marker-end="url(#d-010-1-d010-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M500 154 L526 154" marker-end="url(#d-010-1-d010-ar)"/>
+            <text class="dg-fs-sm" x="203" y="145" text-anchor="middle">요청</text>
+            <text class="dg-fs-sm" x="513" y="145" text-anchor="middle">접근</text>
+
+            <!-- ===== 섹션 B: 역할의 두 축 ===== -->
+            <path class="dg-grid" d="M20 364 L700 364"/>
+            <text class="dg-fs-md dg-bold" x="20" y="388">IAM 역할은 정책 두 개로 이루어집니다</text>
+
+            <rect class="dg-node" x="20" y="404" width="240" height="72" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="140" y="428" text-anchor="middle">신뢰 정책</text>
+            <text class="dg-fs-sm dg-muted" x="140" y="448" text-anchor="middle">누가 이 역할을 맡을 수 있는가</text>
+            <text class="dg-fs-sm dg-muted" x="140" y="466" text-anchor="middle">Principal 을 적는 유일한 자리</text>
+
+            <rect class="dg-node dg-node--accent" x="290" y="416" width="140" height="48" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="446" text-anchor="middle">IAM 역할</text>
+
+            <rect class="dg-node" x="460" y="404" width="240" height="72" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="580" y="428" text-anchor="middle">권한 정책</text>
+            <text class="dg-fs-sm dg-muted" x="580" y="448" text-anchor="middle">이 역할이 무엇을 할 수 있는가</text>
+            <text class="dg-fs-sm dg-muted" x="580" y="466" text-anchor="middle">Action 과 Resource 를 적음</text>
+
+            <path class="dg-edge" d="M260 440 L286 440" marker-end="url(#d-010-1-d010-ar-plain)"/>
+            <path class="dg-edge" d="M460 440 L434 440" marker-end="url(#d-010-1-d010-ar-plain)"/>
+          </svg>
+        </div>
         <figcaption>
           IAM 구성요소의 관계 — 사용자와 그룹과 역할이 자격 증명이고, 정책은 자격 증명 · 리소스 ·
           권한 경계 · 세션 네 자리에 붙습니다. 역할은 신뢰 정책(누가 맡을 수 있는가)과
@@ -159,7 +251,83 @@
         오답 유도로 가장 많이 쓰이는 패턴입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-014">
+      <figure class="diagram" data-diagram="D-014" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 430" role="img" aria-labelledby="d-014-1-d014-title d-014-1-d014-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-014-1-d014-title">역할 수임과 STS 임시 자격 증명</title>
+            <desc id="d-014-1-d014-desc">위쪽은 안티패턴입니다. EC2 인스턴스 안에 장기 액세스 키를 심어 두면 만료가 없기 때문에
+              유출되었을 때 사람이 직접 키를 찾아 회수하고 교체해야 합니다.
+              아래쪽은 권장 구성입니다. EC2 인스턴스 프로파일, 다른 계정의 주체, SAML 2.0 이나 OIDC 로 연결된 페더레이션 ID —
+              세 경로가 모두 AWS STS 의 AssumeRole 계열 호출로 수렴하고, 그 결과로 AccessKeyId, SecretAccessKey,
+              SessionToken, 만료 시각을 가진 임시 자격 증명을 받습니다.
+              역할의 신뢰 정책이 이 주체들을 허용해야 수임이 성공하며, 임시 자격 증명은 만료되면 자동으로 무효가 되므로
+              회수 절차 자체가 필요 없다는 점이 두 구성을 가르는 핵심입니다.</desc>
+
+            <defs>
+              <marker id="d-014-1-d014-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-014-1-d014-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- ===== 안티패턴 ===== -->
+            <text class="dg-fs-md dg-bold" x="24" y="30">안티패턴 — 장기 액세스 키를 심는다</text>
+
+            <rect class="dg-node dg-node--danger" x="24" y="44" width="170" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="109" y="66" text-anchor="middle">EC2 인스턴스</text>
+            <text class="dg-fs-sm" x="109" y="86" text-anchor="middle">액세스 키 파일로 저장</text>
+
+            <rect class="dg-node" x="254" y="44" width="140" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="324" y="78" text-anchor="middle">AWS 서비스</text>
+
+            <path class="dg-edge dg-edge--danger" d="M194 72 L250 72" marker-end="url(#d-014-1-d014-ar-danger)"/>
+
+            <rect class="dg-node dg-node--danger" x="440" y="44" width="270" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="575" y="66" text-anchor="middle">만료가 없습니다</text>
+            <text class="dg-fs-sm" x="575" y="86" text-anchor="middle">유출되면 사람이 직접 회수·교체</text>
+
+            <path class="dg-grid" d="M24 122 L710 122"/>
+
+            <!-- ===== 권장 구성 ===== -->
+            <text class="dg-fs-md dg-bold" x="24" y="150">권장 — 세 경로가 모두 AssumeRole 로 수렴한다</text>
+
+            <rect class="dg-node" x="24" y="166" width="190" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="119" y="186" text-anchor="middle">EC2 인스턴스 프로파일</text>
+            <text class="dg-fs-sm dg-muted" x="119" y="206" text-anchor="middle">인스턴스 메타데이터로 수령</text>
+
+            <rect class="dg-node" x="24" y="230" width="190" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="119" y="250" text-anchor="middle">교차 계정 주체</text>
+            <text class="dg-fs-sm dg-muted" x="119" y="270" text-anchor="middle">다른 계정의 사용자·역할</text>
+
+            <rect class="dg-node" x="24" y="294" width="190" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="119" y="314" text-anchor="middle">페더레이션 ID</text>
+            <text class="dg-fs-sm dg-muted" x="119" y="334" text-anchor="middle">SAML 2.0 · OIDC</text>
+
+            <rect class="dg-node dg-node--accent" x="280" y="228" width="140" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="350" y="250" text-anchor="middle">AWS STS</text>
+            <text class="dg-fs-sm" x="350" y="270" text-anchor="middle">AssumeRole</text>
+
+            <path class="dg-edge dg-edge--accent" d="M214 192 L276 240" marker-end="url(#d-014-1-d014-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M214 256 L276 256" marker-end="url(#d-014-1-d014-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M214 320 L276 272" marker-end="url(#d-014-1-d014-ar)"/>
+
+            <rect class="dg-node dg-node--ok" x="470" y="192" width="240" height="128" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="590" y="216" text-anchor="middle">임시 자격 증명</text>
+            <text class="dg-fs-sm dg-mono" x="490" y="240">AccessKeyId</text>
+            <text class="dg-fs-sm dg-mono" x="490" y="262">SecretAccessKey</text>
+            <text class="dg-fs-sm dg-mono" x="490" y="284">SessionToken</text>
+            <text class="dg-fs-sm dg-mono dg-bold" x="490" y="306">Expiration (만료 시각)</text>
+
+            <path class="dg-edge dg-edge--accent" d="M420 256 L466 256" marker-end="url(#d-014-1-d014-ar)"/>
+
+            <text class="dg-fs-sm dg-muted" x="24" y="378">역할의 신뢰 정책이 위 세 주체를 허용해야 AssumeRole 이 성공합니다</text>
+            <text class="dg-fs-sm dg-muted" x="24" y="402">임시 자격 증명은 만료되면 자동으로 무효 — 회수 절차 자체가 필요 없습니다</text>
+          </svg>
+        </div>
         <figcaption>
           역할 수임과 임시 자격 증명 — EC2 인스턴스 프로파일 · 교차 계정 · 페더레이션 세 경로가
           모두 AssumeRole 계열 호출을 거쳐 만료 시각이 있는 임시 자격 증명으로 수렴합니다.
@@ -331,7 +499,67 @@ aws sts get-caller-identity \
         특히 <code>Principal</code>의 유무가 자격 증명 기반 정책과 리소스 기반 정책을 가릅니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-012">
+      <figure class="diagram" data-diagram="D-012" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 490" role="img" aria-labelledby="d-012-1-d012-title d-012-1-d012-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-012-1-d012-title">IAM 정책 문서 구조 해부</title>
+            <desc id="d-012-1-d012-desc">실제 JSON 정책 문서를 왼쪽에 놓고 오른쪽에 각 요소의 역할을 붙인 해부도입니다.
+              Version 은 정책 언어 버전이고, Statement 는 명령문 배열이며, 그 안에서 Effect 가 Allow 또는 Deny 를,
+              Action 이 어떤 API 작업을, Resource 가 어떤 리소스 ARN 을, Condition 이 언제 적용되는지를 정합니다.
+              강조된 Principal 행이 이 그림의 결론입니다. Principal 은 누구에게 허용하는가를 적는 요소이며
+              리소스 기반 정책에만 존재합니다. 자격 증명 기반 정책은 이미 붙어 있는 사용자·그룹·역할이 곧 주체이므로
+              Principal 을 적지 않습니다. 아래 두 카드가 이 비대칭을 나란히 대비시킵니다.</desc>
+
+            <!-- 행 배경 (짝수 줄 얼룩) -->
+            <rect x="20" y="68" width="690" height="22" rx="2" fill="var(--dg-muted-soft)"/>
+            <rect x="20" y="116" width="690" height="22" rx="2" fill="var(--dg-muted-soft)"/>
+            <rect x="20" y="164" width="690" height="22" rx="2" fill="var(--dg-accent-soft)"
+                  stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+            <rect x="20" y="212" width="690" height="22" rx="2" fill="var(--dg-muted-soft)"/>
+
+            <path class="dg-grid" d="M502 44 L502 360"/>
+            <text class="dg-fs-sm dg-bold" x="30" y="38">정책 문서 (JSON)</text>
+            <text class="dg-fs-sm dg-bold" x="514" y="38">각 요소가 답하는 질문</text>
+
+            <!-- JSON 본문 -->
+            <text class="dg-fs-sm dg-mono" x="30" y="60">{</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="84">&#160;&#160;"Version": "2012-10-17",</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="108">&#160;&#160;"Statement": [{</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="132">&#160;&#160;&#160;&#160;"Sid": "AllowRead",</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="156">&#160;&#160;&#160;&#160;"Effect": "Allow",</text>
+            <text class="dg-fs-sm dg-mono dg-bold" x="30" y="180">&#160;&#160;&#160;&#160;"Principal": {"AWS": "arn:aws:iam::111122223333:root"},</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="204">&#160;&#160;&#160;&#160;"Action": ["s3:GetObject"],</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="228">&#160;&#160;&#160;&#160;"Resource": "arn:aws:s3:::my-bucket/*",</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="252">&#160;&#160;&#160;&#160;"Condition": {</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="276">&#160;&#160;&#160;&#160;&#160;&#160;"StringEquals": {"aws:PrincipalOrgID": "o-ab12cd34"}</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="300">&#160;&#160;&#160;&#160;}</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="324">&#160;&#160;}]</text>
+            <text class="dg-fs-sm dg-mono" x="30" y="348">}</text>
+
+            <!-- 주석 -->
+            <text class="dg-fs-sm" x="514" y="84">정책 언어 버전 (고정값)</text>
+            <text class="dg-fs-sm" x="514" y="108">명령문 배열 · 여러 개 가능</text>
+            <text class="dg-fs-sm" x="514" y="132">선택 · 사람이 읽는 식별자</text>
+            <text class="dg-fs-sm" x="514" y="156">Allow 인가 Deny 인가</text>
+            <text class="dg-fs-sm dg-bold" x="514" y="180">누구에게 — 여기가 핵심</text>
+            <text class="dg-fs-sm" x="514" y="204">어떤 API 작업을</text>
+            <text class="dg-fs-sm" x="514" y="228">어떤 리소스 ARN 에</text>
+            <text class="dg-fs-sm" x="514" y="252">언제 — 조건 키</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node" x="20" y="382" width="330" height="72" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="185" y="406" text-anchor="middle">자격 증명 기반 정책</text>
+            <text class="dg-fs-sm" x="185" y="426" text-anchor="middle">Principal 없음</text>
+            <text class="dg-fs-sm dg-muted" x="185" y="444" text-anchor="middle">주체는 정책이 붙은 대상 자신</text>
+
+            <rect class="dg-node dg-node--accent" x="370" y="382" width="330" height="72" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="535" y="406" text-anchor="middle">리소스 기반 정책</text>
+            <text class="dg-fs-sm" x="535" y="426" text-anchor="middle">Principal 필수</text>
+            <text class="dg-fs-sm dg-muted" x="535" y="444" text-anchor="middle">누구에게 허용할지 적어야 함</text>
+
+            <text class="dg-fs-sm dg-muted" x="360" y="476" text-anchor="middle">이 비대칭이 두 정책 유형을 구분하는 가장 빠른 표식입니다</text>
+          </svg>
+        </div>
         <figcaption>
           정책 문서의 요소 해부 — Version과 Statement 아래에 Sid, Effect, Action, Resource,
           Condition이 놓이고, Principal은 리소스 기반 정책에만 나타납니다.
@@ -511,7 +739,132 @@ aws sts get-caller-identity \
         명시적 허용만이 기본 거부를 뒤집습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-011">
+      <figure class="diagram" data-diagram="D-011" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 700" role="img" aria-labelledby="d-011-1-d011-title d-011-1-d011-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-011-1-d011-title">IAM 정책 평가 순서 흐름도</title>
+            <desc id="d-011-1-d011-desc">하나의 API 요청이 최종 결정에 이르기까지 거치는 관문을 위에서 아래로 그린 흐름도입니다.
+              모든 요청은 기본적으로 암묵적으로 거부된 상태에서 출발합니다. 첫 관문에서 정책 유형을 통틀어 명시적 Deny 를 찾고,
+              하나라도 있으면 나머지를 보지 않고 즉시 거부합니다. 이어서 Organizations SCP 의 상한, 리소스 기반 정책,
+              권한 경계, 세션 정책, 자격 증명 기반 정책을 차례로 평가하며, 어느 한 관문이라도 허용하지 않으면
+              오른쪽 거부 레일을 따라 최종 거부로 빠집니다. 리소스 기반 정책이 명시적으로 허용하면 동일 계정 주체는
+              왼쪽 지름길을 따라 곧바로 최종 허용에 도달합니다. 결론은 명시적 거부가 명시적 허용을 이기고,
+              명시적 허용이 기본값인 암묵적 거부를 이긴다는 우선순위입니다.</desc>
+
+            <defs>
+              <marker id="d-011-1-d011-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-011-1-d011-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-011-1-d011-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text data-dg="verdict" class="dg-fs-sm dg-muted" x="360" y="24" text-anchor="middle">기본값은 암묵적 거부입니다 — 명시적 Allow 가 있어야만 통과합니다</text>
+
+            <!-- ============ 메인 평가 컬럼 (x 130..430) ============ -->
+            <g data-dg="step-request">
+              <rect class="dg-node dg-node--alt" x="130" y="40" width="300" height="54" rx="4"/>
+              <text class="dg-fs-md dg-bold" x="280" y="62" text-anchor="middle">API 요청 도착</text>
+              <text class="dg-fs-sm dg-muted" x="280" y="81" text-anchor="middle">Principal · Action · Resource · Condition</text>
+            </g>
+
+            <g data-dg="gate-deny">
+              <rect class="dg-node" x="130" y="124" width="300" height="54" rx="4"/>
+              <text class="dg-fs-md dg-bold" x="280" y="146" text-anchor="middle">1. 명시적 Deny 가 있는가</text>
+              <text class="dg-fs-sm dg-muted" x="280" y="165" text-anchor="middle">모든 정책 유형을 통틀어 먼저 검사</text>
+            </g>
+
+            <g data-dg="gate-scp">
+              <rect class="dg-node" x="130" y="208" width="300" height="54" rx="4"/>
+              <text class="dg-fs-md dg-bold" x="280" y="230" text-anchor="middle">2. SCP 가 허용하는가</text>
+              <text class="dg-fs-sm dg-muted" x="280" y="249" text-anchor="middle">상한만 정함 · 루트 사용자에도 적용</text>
+            </g>
+
+            <g data-dg="gate-resource">
+              <rect class="dg-node" x="130" y="292" width="300" height="54" rx="4"/>
+              <text class="dg-fs-md dg-bold" x="280" y="314" text-anchor="middle">3. 리소스 기반 정책이 Allow 인가</text>
+              <text class="dg-fs-sm dg-muted" x="280" y="333" text-anchor="middle">동일 계정이면 여기서 허용될 수 있음</text>
+            </g>
+
+            <g data-dg="gate-boundary">
+              <rect class="dg-node" x="130" y="376" width="300" height="54" rx="4"/>
+              <text class="dg-fs-md dg-bold" x="280" y="398" text-anchor="middle">4. 권한 경계가 허용하는가</text>
+              <text class="dg-fs-sm dg-muted" x="280" y="417" text-anchor="middle">자격 증명 기반 정책과 교집합</text>
+            </g>
+
+            <g data-dg="gate-session">
+              <rect class="dg-node" x="130" y="460" width="300" height="54" rx="4"/>
+              <text class="dg-fs-md dg-bold" x="280" y="482" text-anchor="middle">5. 세션 정책이 허용하는가</text>
+              <text class="dg-fs-sm dg-muted" x="280" y="501" text-anchor="middle">AssumeRole 호출 시 전달한 정책</text>
+            </g>
+
+            <g data-dg="gate-identity">
+              <rect class="dg-node" x="130" y="544" width="300" height="54" rx="4"/>
+              <text class="dg-fs-md dg-bold" x="280" y="566" text-anchor="middle">6. 자격 증명 기반 정책이 Allow 인가</text>
+              <text class="dg-fs-sm dg-muted" x="280" y="585" text-anchor="middle">사용자 · 그룹 · 역할에 붙은 정책</text>
+            </g>
+
+            <!-- 메인 흐름 (강조 경로) -->
+            <path data-dg="flow-1" class="dg-edge dg-edge--accent" d="M280 94 L280 120" marker-end="url(#d-011-1-d011-ar)"/>
+            <path data-dg="flow-2" class="dg-edge dg-edge--accent" d="M280 178 L280 204" marker-end="url(#d-011-1-d011-ar)"/>
+            <path data-dg="flow-3" class="dg-edge dg-edge--accent" d="M280 262 L280 288" marker-end="url(#d-011-1-d011-ar)"/>
+            <path data-dg="flow-4" class="dg-edge dg-edge--accent" d="M280 346 L280 372" marker-end="url(#d-011-1-d011-ar)"/>
+            <path data-dg="flow-5" class="dg-edge dg-edge--accent" d="M280 430 L280 456" marker-end="url(#d-011-1-d011-ar)"/>
+            <path data-dg="flow-6" class="dg-edge dg-edge--accent" d="M280 514 L280 540" marker-end="url(#d-011-1-d011-ar)"/>
+            <path data-dg="flow-7" class="dg-edge dg-edge--accent" d="M280 598 L280 624" marker-end="url(#d-011-1-d011-ar)"/>
+
+            <text class="dg-fs-sm" x="290" y="197">아니오</text>
+            <text class="dg-fs-sm" x="290" y="281">예</text>
+            <text class="dg-fs-sm" x="290" y="365">Allow 없음</text>
+            <text class="dg-fs-sm" x="290" y="449">예</text>
+            <text class="dg-fs-sm" x="290" y="533">예</text>
+            <text class="dg-fs-sm" x="290" y="617">예</text>
+
+            <!-- ============ 거부 레일 (오른쪽) ============ -->
+            <path data-dg="deny-explicit" class="dg-edge dg-edge--danger dg-edge--dashed" d="M430 151 L580 151"/>
+            <path data-dg="deny-scp" class="dg-edge dg-edge--danger dg-edge--dashed" d="M430 235 L580 235"/>
+            <path data-dg="deny-boundary" class="dg-edge dg-edge--danger dg-edge--dashed" d="M430 403 L580 403"/>
+            <path data-dg="deny-session" class="dg-edge dg-edge--danger dg-edge--dashed" d="M430 487 L580 487"/>
+            <path data-dg="deny-identity" class="dg-edge dg-edge--danger dg-edge--dashed" d="M430 571 L580 571"/>
+            <path data-dg="deny-rail" class="dg-edge dg-edge--danger" d="M580 151 L580 620" marker-end="url(#d-011-1-d011-ar-danger)"/>
+
+            <circle cx="580" cy="235" r="3.5" fill="var(--dg-danger)"/>
+            <circle cx="580" cy="403" r="3.5" fill="var(--dg-danger)"/>
+            <circle cx="580" cy="487" r="3.5" fill="var(--dg-danger)"/>
+            <circle cx="580" cy="571" r="3.5" fill="var(--dg-danger)"/>
+
+            <text class="dg-fs-sm" x="436" y="144">예 · 즉시 거부</text>
+            <text class="dg-fs-sm" x="436" y="228">아니오 · 상한 밖</text>
+            <text class="dg-fs-sm" x="436" y="396">아니오 · 경계 밖</text>
+            <text class="dg-fs-sm" x="436" y="480">아니오 · 세션 밖</text>
+            <text class="dg-fs-sm" x="436" y="564">아니오 · 암묵 거부</text>
+
+            <!-- ============ 허용 지름길 (왼쪽) ============ -->
+            <path data-dg="allow-shortcut" class="dg-edge dg-edge--ok dg-edge--dashdot"
+                  d="M130 319 L65 319 L65 656 L96 656" marker-end="url(#d-011-1-d011-ar-ok)"/>
+            <text class="dg-fs-sm" x="126" y="311" text-anchor="end">예 · 지름길</text>
+
+            <!-- ============ 최종 결정 ============ -->
+            <g data-dg="final-allow">
+              <rect class="dg-node dg-node--ok" x="100" y="628" width="330" height="56" rx="4"/>
+              <text class="dg-fs-lg dg-bold" x="265" y="653" text-anchor="middle">최종 결정: 허용</text>
+              <text class="dg-fs-sm" x="265" y="673" text-anchor="middle">명시적 Allow 가 있고 어떤 Deny 에도 걸리지 않음</text>
+            </g>
+
+            <g data-dg="final-deny">
+              <rect class="dg-node dg-node--danger" x="450" y="628" width="260" height="56" rx="4"/>
+              <text class="dg-fs-lg dg-bold" x="580" y="653" text-anchor="middle">최종 결정: 거부</text>
+              <text class="dg-fs-sm" x="580" y="673" text-anchor="middle">명시적 Deny 또는 Allow 없음</text>
+            </g>
+          </svg>
+        </div>
         <figcaption>
           IAM 정책 평가 흐름 — 요청이 들어오면 먼저 모든 정책에서 명시적 거부를 찾고,
           하나라도 있으면 그 자리에서 거부로 확정됩니다. 거부가 없으면 SCP · 권한 경계 · 세션 정책이
@@ -616,7 +969,109 @@ aws sts get-caller-identity \
         어느 쪽에 적느냐가 관리 방식과 교차 계정 동작을 바꿉니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-013">
+      <figure class="diagram" data-diagram="D-013" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 460" role="img" aria-labelledby="d-013-1-d013-title d-013-1-d013-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-013-1-d013-title">자격 증명 기반 정책과 리소스 기반 정책의 결합 규칙</title>
+            <desc id="d-013-1-d013-desc">같은 두 정책이 동일 계정과 교차 계정에서 서로 다르게 결합한다는 것을 진리표로 증명합니다.
+              왼쪽 동일 계정에서는 자격 증명 기반 정책과 리소스 기반 정책이 합집합으로 작동하므로 둘 중 하나만 허용해도 요청이 통과합니다.
+              오른쪽 교차 계정에서는 호출자 계정의 자격 증명 기반 정책과 리소스 소유 계정의 리소스 기반 정책이
+              양쪽 모두 허용해야만 통과하고, 한쪽만 허용하면 거부됩니다.
+              단 어느 쪽 구성이든 어느 정책에든 명시적 거부가 하나라도 있으면 그것이 모든 허용을 이깁니다.</desc>
+
+            <defs>
+              <marker id="d-013-1-d013-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-lg dg-bold" x="185" y="30" text-anchor="middle">동일 계정</text>
+            <text class="dg-fs-lg dg-bold" x="537" y="30" text-anchor="middle">교차 계정</text>
+
+            <!-- ===== 왼쪽: 동일 계정 토폴로지 ===== -->
+            <rect class="dg-panel" x="24" y="54" width="322" height="130" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="36" y="74">계정 A</text>
+            <rect class="dg-node" x="36" y="90" width="130" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="101" y="118" text-anchor="middle">IAM 사용자</text>
+            <rect class="dg-node" x="206" y="90" width="130" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="271" y="118" text-anchor="middle">S3 버킷</text>
+            <path class="dg-edge dg-edge--accent" d="M166 113 L202 113" marker-end="url(#d-013-1-d013-ar)"/>
+            <text class="dg-fs-sm dg-muted" x="101" y="160" text-anchor="middle">자격 증명 기반 정책</text>
+            <text class="dg-fs-sm dg-muted" x="271" y="160" text-anchor="middle">버킷 정책</text>
+
+            <!-- ===== 오른쪽: 교차 계정 토폴로지 ===== -->
+            <rect class="dg-panel" x="374" y="54" width="150" height="130" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="384" y="74">계정 A</text>
+            <rect class="dg-node" x="386" y="90" width="126" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="449" y="118" text-anchor="middle">IAM 사용자</text>
+            <text class="dg-fs-sm dg-muted" x="449" y="160" text-anchor="middle">자격 증명 기반 정책</text>
+
+            <rect class="dg-panel" x="550" y="54" width="150" height="130" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="560" y="74">계정 B</text>
+            <rect class="dg-node" x="562" y="90" width="126" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="625" y="118" text-anchor="middle">S3 버킷</text>
+            <text class="dg-fs-sm dg-muted" x="625" y="160" text-anchor="middle">버킷 정책</text>
+            <path class="dg-edge dg-edge--accent" d="M524 113 L546 113" marker-end="url(#d-013-1-d013-ar)"/>
+
+            <!-- ===== 진리표: 동일 계정 ===== -->
+            <rect class="dg-node dg-node--alt" x="24" y="210" width="322" height="26" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="79" y="228" text-anchor="middle">자격 증명 기반</text>
+            <text class="dg-fs-sm dg-bold" x="189" y="228" text-anchor="middle">리소스 기반</text>
+            <text class="dg-fs-sm dg-bold" x="295" y="228" text-anchor="middle">결과</text>
+            <rect class="dg-node" x="24" y="236" width="322" height="90" rx="4"/>
+            <path class="dg-grid" d="M24 266 L346 266 M24 296 L346 296 M134 236 L134 326 M244 236 L244 326"/>
+
+            <text class="dg-fs-sm" x="79" y="256" text-anchor="middle">Allow</text>
+            <text class="dg-fs-sm dg-muted" x="189" y="256" text-anchor="middle">없음</text>
+            <rect class="dg-node dg-node--ok" x="250" y="240" width="90" height="22" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="256" text-anchor="middle">허용</text>
+
+            <text class="dg-fs-sm dg-muted" x="79" y="286" text-anchor="middle">없음</text>
+            <text class="dg-fs-sm" x="189" y="286" text-anchor="middle">Allow</text>
+            <rect class="dg-node dg-node--ok" x="250" y="270" width="90" height="22" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="286" text-anchor="middle">허용</text>
+
+            <text class="dg-fs-sm" x="79" y="316" text-anchor="middle">Deny</text>
+            <text class="dg-fs-sm" x="189" y="316" text-anchor="middle">Allow</text>
+            <rect class="dg-node dg-node--danger" x="250" y="300" width="90" height="22" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="295" y="316" text-anchor="middle">거부</text>
+
+            <!-- ===== 진리표: 교차 계정 ===== -->
+            <rect class="dg-node dg-node--alt" x="374" y="210" width="326" height="26" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="429" y="228" text-anchor="middle">계정 A 자격 증명</text>
+            <text class="dg-fs-sm dg-bold" x="539" y="228" text-anchor="middle">계정 B 버킷 정책</text>
+            <text class="dg-fs-sm dg-bold" x="647" y="228" text-anchor="middle">결과</text>
+            <rect class="dg-node" x="374" y="236" width="326" height="90" rx="4"/>
+            <path class="dg-grid" d="M374 266 L700 266 M374 296 L700 296 M484 236 L484 326 M594 236 L594 326"/>
+
+            <text class="dg-fs-sm" x="429" y="256" text-anchor="middle">Allow</text>
+            <text class="dg-fs-sm dg-muted" x="539" y="256" text-anchor="middle">없음</text>
+            <rect class="dg-node dg-node--danger" x="602" y="240" width="90" height="22" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="647" y="256" text-anchor="middle">거부</text>
+
+            <text class="dg-fs-sm dg-muted" x="429" y="286" text-anchor="middle">없음</text>
+            <text class="dg-fs-sm" x="539" y="286" text-anchor="middle">Allow</text>
+            <rect class="dg-node dg-node--danger" x="602" y="270" width="90" height="22" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="647" y="286" text-anchor="middle">거부</text>
+
+            <text class="dg-fs-sm" x="429" y="316" text-anchor="middle">Allow</text>
+            <text class="dg-fs-sm" x="539" y="316" text-anchor="middle">Allow</text>
+            <rect class="dg-node dg-node--ok" x="602" y="300" width="90" height="22" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="647" y="316" text-anchor="middle">허용</text>
+
+            <!-- ===== 결론 ===== -->
+            <rect class="dg-node dg-node--accent" x="24" y="352" width="322" height="56" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="185" y="376" text-anchor="middle">합집합 (union)</text>
+            <text class="dg-fs-sm" x="185" y="396" text-anchor="middle">둘 중 하나만 Allow 여도 통과</text>
+
+            <rect class="dg-node dg-node--accent" x="374" y="352" width="326" height="56" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="537" y="376" text-anchor="middle">양쪽 모두 필요</text>
+            <text class="dg-fs-sm" x="537" y="396" text-anchor="middle">두 정책이 모두 Allow 여야 통과</text>
+
+            <text class="dg-fs-sm dg-muted" x="360" y="440" text-anchor="middle">어느 구성이든 어느 정책에든 명시적 Deny 가 하나 있으면 그것이 이깁니다</text>
+          </svg>
+        </div>
         <figcaption>
           두 정책 유형의 결합 — 같은 계정 안에서는 자격 증명 기반과 리소스 기반 중
           하나만 허용해도 통과하지만, 계정 경계를 넘으면 호출자 계정의 자격 증명 기반 정책과
@@ -915,7 +1370,68 @@ aws sts get-caller-identity \
         둘을 구분하는 것이 도메인 1에서 반복적으로 요구됩니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-015">
+      <figure class="diagram" data-diagram="D-015" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 420" role="img" aria-labelledby="d-015-1-d015-title d-015-1-d015-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-015-1-d015-title">SCP · 권한 경계 · 세션 정책의 상한 관계</title>
+            <desc id="d-015-1-d015-desc">세 겹 벤 다이어그램으로 실효 권한이 세 상한의 교집합이라는 것을 보입니다.
+              왼쪽 위 원은 Organizations SCP, 오른쪽 위 원은 권한 경계, 아래 원은 세션 정책이며
+              세 원이 모두 겹치는 가운데 영역만이 실제로 사용할 수 있는 권한입니다.
+              세 정책 모두 권한을 부여하지 않고 상한만 정하므로, 이 교집합 안이라도 자격 증명 기반 정책이나
+              리소스 기반 정책이 명시적으로 허용해야 요청이 통과합니다.
+              SCP 는 멤버 계정의 루트 사용자에게도 적용되고, 권한 경계는 자격 증명 기반 정책과 교집합으로 작동하며,
+              세션 정책은 AssumeRole 호출 시 전달되어 그 세션에만 적용됩니다.
+              또한 어느 정책에든 명시적 거부가 하나라도 있으면 교집합과 무관하게 즉시 거부됩니다.</desc>
+
+            <!-- 세 상한 -->
+            <circle cx="168" cy="158" r="88"
+                    fill="var(--dg-fill-alt)" fill-opacity="0.5"
+                    stroke="var(--dg-stroke)" stroke-width="var(--dg-sw-1)"/>
+            <circle cx="256" cy="158" r="88"
+                    fill="var(--dg-fill-alt)" fill-opacity="0.5"
+                    stroke="var(--dg-stroke)" stroke-width="var(--dg-sw-1)"
+                    stroke-dasharray="var(--dg-dash-1)"/>
+            <circle cx="212" cy="234" r="88"
+                    fill="var(--dg-fill-alt)" fill-opacity="0.5"
+                    stroke="var(--dg-stroke)" stroke-width="var(--dg-sw-1)"
+                    stroke-dasharray="var(--dg-dash-3)"/>
+
+            <text class="dg-fs-md dg-bold" x="130" y="112" text-anchor="middle">SCP</text>
+            <text class="dg-fs-sm dg-muted" x="130" y="130" text-anchor="middle">조직 상한</text>
+            <text class="dg-fs-md dg-bold" x="286" y="112" text-anchor="middle">권한 경계</text>
+            <text class="dg-fs-sm dg-muted" x="286" y="130" text-anchor="middle">주체 상한</text>
+            <text class="dg-fs-md dg-bold" x="212" y="290" text-anchor="middle">세션 정책</text>
+            <text class="dg-fs-sm dg-muted" x="212" y="308" text-anchor="middle">세션 상한</text>
+
+            <circle cx="212" cy="183" r="34"
+                    fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-2)"/>
+            <text class="dg-fs-sm dg-bold" x="212" y="188" text-anchor="middle">실효 권한</text>
+
+            <text class="dg-fs-sm dg-muted" x="212" y="356" text-anchor="middle">가운데 교집합 안에서만 권한이 생깁니다</text>
+            <text class="dg-fs-sm dg-muted" x="212" y="376" text-anchor="middle">여기에 명시적 Allow 까지 있어야 통과합니다</text>
+
+            <!-- 설명 카드 -->
+            <rect class="dg-node" x="420" y="56" width="280" height="76" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="434" y="80">SCP — 조직 차원의 상한</text>
+            <text class="dg-fs-sm dg-muted" x="434" y="100">권한을 부여하지 않습니다</text>
+            <text class="dg-fs-sm dg-muted" x="434" y="120">멤버 계정 루트 사용자에도 적용</text>
+
+            <rect class="dg-node" x="420" y="144" width="280" height="76" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="434" y="168">권한 경계 — 주체의 상한</text>
+            <text class="dg-fs-sm dg-muted" x="434" y="188">자격 증명 기반 정책과 교집합</text>
+            <text class="dg-fs-sm dg-muted" x="434" y="208">경계만으로는 권한이 생기지 않음</text>
+
+            <rect class="dg-node" x="420" y="232" width="280" height="76" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="434" y="256">세션 정책 — 세션의 상한</text>
+            <text class="dg-fs-sm dg-muted" x="434" y="276">AssumeRole 호출 시 전달</text>
+            <text class="dg-fs-sm dg-muted" x="434" y="296">역할의 권한을 더 좁힙니다</text>
+
+            <rect class="dg-node dg-node--danger" x="420" y="320" width="280" height="76" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="434" y="344">명시적 Deny 는 교집합을 무시</text>
+            <text class="dg-fs-sm" x="434" y="364">어느 정책에든 Deny 가 하나라도</text>
+            <text class="dg-fs-sm" x="434" y="384">있으면 그 즉시 거부됩니다</text>
+          </svg>
+        </div>
         <figcaption>
           실효 권한은 교집합입니다 — SCP가 정한 계정 상한, 권한 경계가 정한 엔터티 상한,
           세션 정책이 정한 세션 상한, 그리고 자격 증명 기반 정책의 허용이
@@ -1066,7 +1582,83 @@ aws sts get-caller-identity \
         <strong>AWS IAM Identity Center</strong>입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-016">
+      <figure class="diagram" data-diagram="D-016" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 420" role="img" aria-labelledby="d-016-1-d016-title d-016-1-d016-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-016-1-d016-title">AWS IAM Identity Center 로그인 흐름과 구식 구성 비교</title>
+            <desc id="d-016-1-d016-desc">위쪽은 권장 구성입니다. Active Directory 나 외부 IdP 같은 외부 ID 소스가
+              AWS IAM Identity Center 한 곳에 연결되고, 권한 집합이 정책 묶음을 정의하며,
+              Identity Center 가 계정마다 그 권한 집합에 대응하는 역할을 만들어 두고 사용자는 로그인 후 그 역할을 수임합니다.
+              자격 증명은 외부 ID 소스 한 곳에만 존재하고 각 계정에는 임시 자격 증명만 흘러갑니다.
+              아래쪽은 구식 구성입니다. 계정마다 IAM 사용자와 비밀번호, 액세스 키를 따로 만들면
+              사람 수와 계정 수의 곱만큼 장기 자격 증명이 늘어나고 퇴사자 회수 지점도 그만큼 늘어납니다.</desc>
+
+            <defs>
+              <marker id="d-016-1-d016-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="28">권장 — 자격 증명이 한 곳에만 존재한다</text>
+
+            <rect class="dg-node" x="20" y="48" width="140" height="96" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="90" y="74" text-anchor="middle">외부 ID 소스</text>
+            <text class="dg-fs-sm dg-muted" x="90" y="98" text-anchor="middle">Active Directory</text>
+            <text class="dg-fs-sm dg-muted" x="90" y="118" text-anchor="middle">외부 IdP (SAML)</text>
+            <text class="dg-fs-sm dg-muted" x="90" y="138" text-anchor="middle">또는 내장 디렉터리</text>
+
+            <rect class="dg-node dg-node--accent" x="196" y="48" width="150" height="96" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="271" y="74" text-anchor="middle">IAM Identity Center</text>
+            <text class="dg-fs-sm" x="271" y="98" text-anchor="middle">단일 로그인 포털</text>
+            <text class="dg-fs-sm dg-muted" x="271" y="118" text-anchor="middle">사용자·그룹을 여기서</text>
+            <text class="dg-fs-sm dg-muted" x="271" y="138" text-anchor="middle">한 번만 관리</text>
+
+            <rect class="dg-node" x="382" y="48" width="140" height="96" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="452" y="74" text-anchor="middle">권한 집합</text>
+            <text class="dg-fs-sm dg-muted" x="452" y="98" text-anchor="middle">Permission Set</text>
+            <text class="dg-fs-sm dg-muted" x="452" y="118" text-anchor="middle">재사용 가능한</text>
+            <text class="dg-fs-sm dg-muted" x="452" y="138" text-anchor="middle">정책 묶음</text>
+
+            <rect class="dg-node" x="558" y="46" width="152" height="30" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="634" y="66" text-anchor="middle">계정 A — 역할 수임</text>
+            <rect class="dg-node" x="558" y="81" width="152" height="30" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="634" y="101" text-anchor="middle">계정 B — 역할 수임</text>
+            <rect class="dg-node" x="558" y="116" width="152" height="30" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="634" y="136" text-anchor="middle">계정 C — 역할 수임</text>
+
+            <path class="dg-edge dg-edge--accent" d="M160 96 L192 96" marker-end="url(#d-016-1-d016-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M346 96 L378 96" marker-end="url(#d-016-1-d016-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M522 96 L542 96 L542 61 L554 61" marker-end="url(#d-016-1-d016-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M542 96 L554 96" marker-end="url(#d-016-1-d016-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M542 96 L542 131 L554 131" marker-end="url(#d-016-1-d016-ar)"/>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="172">계정에는 임시 자격 증명만 흘러갑니다 — 계정 안에 IAM 사용자를 만들지 않습니다</text>
+
+            <path class="dg-grid" d="M20 192 L700 192"/>
+
+            <!-- 구식 구성 -->
+            <text class="dg-fs-md dg-bold" x="20" y="220">구식 — 계정마다 IAM 사용자를 만든다</text>
+
+            <rect class="dg-node dg-node--danger" x="20" y="238" width="210" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="125" y="262" text-anchor="middle">계정 A</text>
+            <text class="dg-fs-sm" x="125" y="284" text-anchor="middle">IAM 사용자 · 비밀번호</text>
+            <text class="dg-fs-sm" x="125" y="306" text-anchor="middle">장기 액세스 키</text>
+
+            <rect class="dg-node dg-node--danger" x="255" y="238" width="210" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="262" text-anchor="middle">계정 B</text>
+            <text class="dg-fs-sm" x="360" y="284" text-anchor="middle">IAM 사용자 · 비밀번호</text>
+            <text class="dg-fs-sm" x="360" y="306" text-anchor="middle">장기 액세스 키</text>
+
+            <rect class="dg-node dg-node--danger" x="490" y="238" width="210" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="595" y="262" text-anchor="middle">계정 C</text>
+            <text class="dg-fs-sm" x="595" y="284" text-anchor="middle">IAM 사용자 · 비밀번호</text>
+            <text class="dg-fs-sm" x="595" y="306" text-anchor="middle">장기 액세스 키</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="352">같은 사람이 계정마다 별도 자격 증명을 갖습니다</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="376">사람 수 × 계정 수만큼 자격 증명이 늘고, 퇴사 시 회수 지점도 그만큼 늘어납니다</text>
+          </svg>
+        </div>
         <figcaption>
           IAM Identity Center의 로그인 경로 — 외부 ID 소스나 내장 디렉터리에서 인증한 뒤,
           권한 집합이 각 계정의 역할로 변환되어 역할 수임으로 이어집니다.
