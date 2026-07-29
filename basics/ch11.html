@@ -1,0 +1,1295 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>11장 · NoSQL · 캐시 · 분석 DB — AWS SAA Guide</title>
+  <meta name="description" content="Amazon DynamoDB의 파티션 키 설계와 핫 파티션, 로컬 보조 인덱스와 글로벌 보조 인덱스의 결정적 차이, 온디맨드와 프로비저닝 용량 모드, 읽기 일관성 옵션, 스트림과 DAX, 글로벌 테이블, TTL과 백업. Amazon ElastiCache의 Redis와 Memcached 선택 기준, 캐시 계층을 무엇으로 둘지 고르는 판단, Amazon Redshift와 목적별 데이터베이스를 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch11"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch11">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">11장 · NoSQL · 캐시 · 분석 DB</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 11장</p>
+      <h1>NoSQL · 캐시 · 분석 DB</h1>
+      <p class="page__lead">
+        <a href="ch10.html">10장</a>이 관계형 데이터베이스를 다뤘다면, 이 장은
+        <strong>관계형이 답이 아닐 때 무엇을 고르는가</strong>를 다룹니다.
+        Amazon DynamoDB의 설계 판단, 캐시 계층을 어디에 둘지,
+        분석 질의를 어디로 보낼지가 축입니다.
+        시험은 서비스 이름을 묻지 않고 <strong>요구사항에서 서비스로 가는 경로</strong>를 묻습니다.
+      </p>
+      <p class="page__meta">
+        주 도메인은 <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>이며,
+        용량 모드와 캐시 도입 판단은 비용 최적화 아키텍처 설계에도 걸칩니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>DynamoDB의 파티션 키가 데이터 분포를 결정한다는 원리로 핫 파티션의 원인과 해법을 설명할 수 있습니다.</li>
+        <li>로컬 보조 인덱스와 글로벌 보조 인덱스를 생성 시점 · 키 범위 · 일관성 · 용량 네 가지 축으로 구분할 수 있습니다.</li>
+        <li>온디맨드 용량 모드와 프로비저닝된 용량 모드를 워크로드의 예측 가능성으로 가를 수 있습니다.</li>
+        <li>DynamoDB 스트림 · DAX · 글로벌 테이블 · TTL이 각각 어떤 요구사항에 대응하는지 설명할 수 있습니다.</li>
+        <li>ElastiCache의 Redis와 Memcached를 기능 요구로 구분하고, 캐시 계층을 어디에 둘지 고를 수 있습니다.</li>
+        <li>Amazon Redshift와 목적별 데이터베이스(DocumentDB · Neptune · Keyspaces · Timestream)의 용도를 한 문장으로 구분할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="dynamodb">
+      <h2 id="dynamodb">Amazon DynamoDB — 키로 접근하는 관리형 NoSQL</h2>
+
+      <p>
+        DynamoDB는 <strong>키-값과 문서 모델</strong>을 지원하는 완전 관리형 NoSQL 데이터베이스입니다.
+        서버를 프로비저닝하지 않고, 스토리지는 데이터가 늘어나면 알아서 커집니다.
+        관계형 데이터베이스와의 결정적 차이는 <strong>조인이 없다</strong>는 점이고,
+        그래서 <strong>접근 패턴을 먼저 정하고 그에 맞춰 키를 설계</strong>합니다.
+      </p>
+
+      <h3 id="dynamodb-basics">테이블 · 항목 · 기본 키</h3>
+      <p>
+        기본 키는 두 형태 중 하나입니다.
+        <strong>단순 키</strong>는 파티션 키 하나이고,
+        <strong>복합 키</strong>는 파티션 키와 정렬 키의 조합입니다.
+        DynamoDB API 문서는 각 키의 역할을 이렇게 정의합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>DynamoDB 기본 키를 구성하는 두 가지 키</caption>
+          <thead>
+            <tr>
+              <th scope="col">키</th>
+              <th scope="col">API 값</th>
+              <th scope="col">역할</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">파티션 키</th>
+              <td><code>HASH</code></td>
+              <td>내부 해시 함수의 입력이 되어 <strong>항목을 파티션에 고르게 분배</strong>합니다. 해시 속성이라고도 부릅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">정렬 키</th>
+              <td><code>RANGE</code></td>
+              <td>같은 파티션 키를 가진 항목들을 <strong>정렬 키 순서로 물리적으로 가까이</strong> 저장합니다. 범위 조회의 근거가 됩니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        이 정의 안에 이미 설계 규칙이 들어 있습니다.
+        <strong>파티션 키는 분배를 담당하고 정렬 키는 범위 조회를 담당합니다.</strong>
+        "특정 사용자의 최근 주문 20건"처럼 <strong>하나의 파티션 안에서 시간순으로 잘라 오는</strong> 질의는
+        복합 키로 자연스럽게 풀립니다.
+      </p>
+
+      <h3 id="dynamodb-partition-key">파티션 키 설계와 핫 파티션 <span class="badge badge--saa">SAA 빈출</span></h3>
+
+      <figure class="diagram" data-diagram="D-100">
+        <figcaption>
+          파티션 키 값이 해시되어 파티션에 분배되는 과정과, 값의 가짓수가 적은 키를 골랐을 때 한 파티션으로 요청이
+          몰려 스로틀링이 발생하는 상황 — 해법은 파티션 키의 카디널리티를 높이거나 접미사로 쓰기를 흩뿌리는 것입니다
+        </figcaption>
+      </figure>
+
+      <p>
+        DynamoDB 개발자 안내서는 원칙을 한 문장으로 정리합니다 —
+        <strong>"테이블과 보조 인덱스의 모든 논리 파티션 키에 걸쳐 활동이 고르게 일어나도록 설계하라."</strong>
+        같은 문서는 고르지 못한 분배가 만드는 결과를 이렇게 설명합니다.
+        <strong>"I/O 요청을 고르게 분배하지 못하는 파티션 키 설계는 '핫' 파티션을 만들어
+        스로틀링을 유발하고 프로비저닝된 용량을 비효율적으로 쓰게 한다."</strong>
+      </p>
+      <p>
+        무엇이 좋은 키이고 무엇이 나쁜 키인지도 같은 문서가 표로 제시합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>파티션 키 값의 분포 균일성 — DynamoDB 개발자 안내서의 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">파티션 키 값</th>
+              <th scope="col">균일성</th>
+              <th scope="col">왜 그런가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">사용자 ID (사용자가 많은 애플리케이션)</th>
+              <td><span class="mark-ok">좋음</span></td>
+              <td>값의 가짓수가 많고 요청이 여러 값으로 흩어집니다</td>
+            </tr>
+            <tr>
+              <th scope="row">상태 코드 (가능한 값이 몇 개뿐)</th>
+              <td><span class="mark-no">나쁨</span></td>
+              <td>가짓수가 적어 소수의 파티션에 몰립니다</td>
+            </tr>
+            <tr>
+              <th scope="row">생성 일시를 일 · 시간 단위로 반올림한 값</th>
+              <td><span class="mark-no">나쁨</span></td>
+              <td>같은 날에 들어온 <strong>모든</strong> 신규 항목이 하나의 파티션 키 값으로 몰립니다</td>
+            </tr>
+            <tr>
+              <th scope="row">디바이스 ID (디바이스들이 비슷한 간격으로 접근)</th>
+              <td><span class="mark-ok">좋음</span></td>
+              <td>가짓수가 많고 트래픽이 고릅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">디바이스 ID (한 대가 압도적으로 인기)</th>
+              <td><span class="mark-no">나쁨</span></td>
+              <td>가짓수가 많아도 <strong>실제 트래픽이 한 값에 쏠리면</strong> 소용없습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        마지막 두 줄이 시험이 좋아하는 지점입니다.
+        <strong>키의 가짓수가 많다는 것만으로는 충분하지 않습니다.</strong>
+        실제 접근이 몇 개 값에 쏠리면 그 값이 핫 파티션이 됩니다.
+      </p>
+
+      <h3 id="write-sharding">쓰기 샤딩 — 접미사로 흩뿌린다</h3>
+      <p>
+        날짜를 파티션 키로 쓸 수밖에 없는 구조라면
+        <strong>쓰기 샤딩(write sharding)</strong>을 씁니다.
+        파티션 키 값에 <strong>계산된 접미사</strong>를 붙여 하나의 논리 키를 여러 개로 쪼개는 방법입니다.
+        읽을 때는 접미사 범위를 돌며 질의를 합치면 됩니다.
+      </p>
+      <div class="diff">
+        <div class="diff__before">
+          <p>
+            생성 일자를 그대로 파티션 키로 씁니다.
+            그날의 모든 쓰기가 하나의 파티션 키 값으로 들어가
+            테이블 전체 용량을 다 쓰기 전에 스로틀링이 시작됩니다.
+          </p>
+          <figure class="code">
+            <figcaption>안티패턴 — 카디널리티가 낮은 파티션 키</figcaption>
+            <pre><code class="lang-json">{
+  "OrderDate": "2026-07-29",
+  "OrderId": "a1b2c3d4",
+  "Amount": 12900
+}</code></pre>
+          </figure>
+        </div>
+        <div class="diff__after">
+          <p>
+            같은 날짜에 접미사를 붙여 쓰기를 여러 파티션 키 값으로 흩뜨립니다.
+            읽을 때는 접미사 <code>0</code>부터 <code>N</code>까지 질의해 결과를 합칩니다.
+          </p>
+          <figure class="code">
+            <figcaption>권장 — 접미사로 쓰기를 분산</figcaption>
+            <pre><code class="lang-json">{
+  "OrderDateShard": "2026-07-29#07",
+  "OrderId": "a1b2c3d4",
+  "Amount": 12900
+}</code></pre>
+          </figure>
+        </div>
+      </div>
+      <p>
+        DynamoDB에는 <strong>적응 용량(adaptive capacity)</strong>도 있습니다.
+        개발자 안내서는 이 기능이 <strong>모든 테이블에서 추가 비용 없이 자동으로 켜져 있으며</strong>
+        불균형한 워크로드를 감당해 스로틀링을 줄인다고 설명합니다.
+        다만 <strong>적응 용량이 나쁜 키 설계를 대신 고쳐 주지는 않습니다.</strong>
+        설계가 먼저이고 적응 용량은 완충 장치입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          <strong>"DynamoDB 테이블에서 스로틀링이 발생한다"</strong>는 시나리오는
+          거의 언제나 파티션 키 설계 문항입니다.
+          정답 후보는 <strong>카디널리티가 높은 파티션 키로 바꾼다</strong>,
+          <strong>접미사로 쓰기를 분산한다</strong>, <strong>읽기가 몰리는 소수 항목이면 DAX를 앞에 둔다</strong>입니다.
+        </p>
+        <p>
+          오답으로 자주 나오는 것이 <strong>프로비저닝된 용량을 크게 올린다</strong>입니다.
+          한 파티션에 트래픽이 몰린 상황에서는 테이블 전체 용량을 올려도
+          그 파티션이 감당할 수 있는 몫은 그만큼 늘지 않아 문제가 남습니다.
+        </p>
+      </aside>
+
+      <h3 id="lsi-vs-gsi">LSI와 GSI <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        기본 키가 아닌 속성으로 조회해야 하면 <strong>보조 인덱스</strong>를 만듭니다.
+        종류는 둘이고, 이름의 "로컬"과 "글로벌"이 곧 차이의 요약입니다.
+      </p>
+      <ul>
+        <li><strong>로컬 보조 인덱스(Local Secondary Index, LSI)</strong> —
+          <strong>파티션 키가 기본 테이블과 같고</strong> 정렬 키만 다릅니다.
+          인덱스의 각 파티션이 같은 파티션 키 값을 갖는 기본 테이블 파티션에 묶여 있어서 "로컬"입니다.</li>
+        <li><strong>글로벌 보조 인덱스(Global Secondary Index, GSI)</strong> —
+          파티션 키와 정렬 키를 <strong>기본 테이블과 다르게</strong> 잡을 수 있습니다.
+          인덱스에 대한 질의가 기본 테이블의 <strong>모든 파티션에 걸친 데이터</strong>를 대상으로 하므로 "글로벌"입니다.</li>
+      </ul>
+
+      <figure class="diagram" data-diagram="D-101">
+        <figcaption>
+          LSI와 GSI의 구조 차이 — LSI는 기본 테이블의 파티션 키를 그대로 쓰고 같은 파티션 안에 자리 잡아 테이블 용량을
+          함께 쓰는 반면, GSI는 자기 파티션 공간과 자기 용량 설정을 갖고 테이블과 독립적으로 확장합니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>로컬 보조 인덱스와 글로벌 보조 인덱스 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">LSI (로컬 보조 인덱스)</th>
+              <th scope="col">GSI (글로벌 보조 인덱스)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">생성 시점</th>
+              <td><span class="mark-no">테이블을 만들 때만. 나중에 추가도 삭제도 불가</span></td>
+              <td><span class="mark-ok">테이블 생성 시 또는 <strong>나중에 언제든</strong> 추가·삭제</span></td>
+            </tr>
+            <tr>
+              <th scope="row">파티션 키</th>
+              <td>기본 테이블과 <strong>같아야</strong> 합니다</td>
+              <td>기본 테이블과 <strong>달라도</strong> 됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">키 구성</th>
+              <td>반드시 <strong>복합 키</strong> (파티션 키 + 정렬 키)</td>
+              <td>단순 키 또는 복합 키 모두 가능</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 일관성</th>
+              <td><span class="mark-ok">최종 일관성과 <strong>강력한 일관성</strong> 중 선택</span></td>
+              <td><span class="mark-no">최종 일관성만. 강력한 일관성 요청 시 오류</span></td>
+            </tr>
+            <tr>
+              <th scope="row">용량</th>
+              <td>기본 테이블의 용량을 <strong>함께 씁니다</strong></td>
+              <td><strong>자체 용량 설정</strong>을 갖습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">개수 상한</th>
+              <td>테이블당 <strong>5개</strong></td>
+              <td>테이블당 <strong>20개</strong> (기본 할당량)</td>
+            </tr>
+            <tr>
+              <th scope="row">크기 제약</th>
+              <td><strong>파티션 키 값당 인덱싱된 항목 총합 10 GB 이하</strong></td>
+              <td>크기 제약 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">질의 범위</th>
+              <td>질의에 지정한 <strong>파티션 하나</strong></td>
+              <td>모든 파티션에 걸친 <strong>테이블 전체</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">프로젝션되지 않은 속성</th>
+              <td>요청하면 DynamoDB가 <strong>테이블에서 가져다 줍니다</strong></td>
+              <td><span class="mark-no">프로젝션된 속성만 받을 수 있습니다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="chart" data-chart="C-071">
+        <figcaption>
+          테이블당 만들 수 있는 보조 인덱스 개수 — 로컬 보조 인덱스는 5개, 글로벌 보조 인덱스는 20개가 기본 할당량입니다.
+          개수보다 중요한 제약은 로컬 보조 인덱스가 <strong>테이블 생성 시에만</strong> 만들어진다는 점과
+          파티션 키 값당 10 GB 크기 제한이 붙는다는 점입니다
+        </figcaption>
+      </figure>
+
+      <p>
+        표에서 가장 자주 출제되는 두 줄은 <strong>생성 시점</strong>과 <strong>읽기 일관성</strong>입니다.
+        DynamoDB API 문서를 보면 근거가 구조에 남아 있습니다 —
+        기존 테이블을 바꾸는 <code>UpdateTable</code> 작업에는
+        <strong>글로벌 보조 인덱스를 추가·수정·삭제하는 파라미터만 있고
+        로컬 보조 인덱스를 다루는 파라미터가 없습니다.</strong>
+        같은 API 문서는 글로벌 보조 인덱스에 강력한 일관성 읽기를 요청하면
+        <strong><code>ValidationException</code>을 받는다</strong>고 명시합니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          판단 순서는 이렇습니다.
+        </p>
+        <ul>
+          <li><strong>이미 운영 중인 테이블에 새 조회 패턴이 필요</strong> → <strong>GSI</strong>.
+            LSI는 이제 만들 수 없습니다.</li>
+          <li><strong>파티션 키는 그대로 두고 다른 정렬 순서만 필요 + 강력한 일관성 필요</strong> → <strong>LSI</strong>.
+            단 테이블을 만들 때 함께 만들어 두었어야 합니다.</li>
+          <li><strong>완전히 다른 속성으로 검색</strong> → <strong>GSI</strong>. LSI는 파티션 키를 바꿀 수 없습니다.</li>
+          <li><strong>인덱스가 테이블 용량을 잠식하면 안 됨</strong> → <strong>GSI</strong>. 자체 용량을 갖습니다.</li>
+        </ul>
+        <p>
+          "강력한 일관성이 필요한데 GSI를 쓴다"는 선택지는 항상 오답입니다.
+        </p>
+      </aside>
+
+      <h3 id="dynamodb-capacity-mode">용량 모드 — 온디맨드와 프로비저닝</h3>
+      <p>
+        DynamoDB의 처리량 과금 방식은 두 가지이고,
+        API 파라미터 이름과 표시 이름이 다르므로 함께 외웁니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>DynamoDB 용량 모드의 API 값과 성격</caption>
+          <thead>
+            <tr>
+              <th scope="col">모드</th>
+              <th scope="col">API 값</th>
+              <th scope="col">AWS의 권장 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">온디맨드 용량 모드</th>
+              <td><code>PAY_PER_REQUEST</code></td>
+              <td>API 문서가 <strong>"대부분의 DynamoDB 워크로드에 권장"</strong>한다고 명시합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">프로비저닝된 용량 모드</th>
+              <td><code>PROVISIONED</code></td>
+              <td><strong>"용량 요구를 신뢰성 있게 예측할 수 있는, 예측 가능한 성장세의 안정적인 워크로드"</strong>에 권장합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        결정적인 사실이 하나 더 있습니다 —
+        <strong>이 설정은 나중에 바꿀 수 있습니다.</strong>
+        API 문서가 <code>BillingMode</code>에 대해 "이 설정은 나중에 변경할 수 있다"고 적어 두었습니다.
+        따라서 "처음에는 패턴을 모르니 온디맨드로 시작하고,
+        패턴이 안정되면 프로비저닝으로 옮긴다"는 전략이 성립합니다.
+      </p>
+      <p>
+        프로비저닝된 모드에서는 <strong>Auto Scaling</strong>을 붙여
+        목표 사용률을 유지하도록 용량을 자동으로 조절할 수 있습니다.
+        다만 오토스케일링은 <strong>지표를 보고 반응</strong>하므로
+        수 초 만에 몇십 배로 뛰는 급증에는 늦을 수 있습니다.
+        그런 워크로드는 온디맨드가 맞습니다.
+      </p>
+
+      <figure class="chart" data-chart="C-070">
+        <figcaption>
+          두 용량 모드의 상대적인 비용 곡선 — 사용량이 낮고 불규칙한 구간에서는 온디맨드가, 사용량이 높고 안정적인
+          구간에서는 프로비저닝이 유리해집니다. 의미가 있는 것은 <strong>교차점이 존재한다</strong>는 사실뿐이며
+          축의 값은 상대 등급으로, 실제 금액은 리전과 시점에 따라 다릅니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>용량 모드 선택의 판단 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">요구사항의 신호</th>
+              <th scope="col">선택</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">트래픽 패턴을 모른다 · 새 애플리케이션이다</th>
+              <td>온디맨드</td>
+            </tr>
+            <tr>
+              <th scope="row">급증이 갑작스럽고 예측할 수 없다</th>
+              <td>온디맨드 — 오토스케일링의 반응 지연을 피합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">사용량이 드물고 대부분 유휴다</th>
+              <td>온디맨드 — 쓰지 않는 용량에 돈을 내지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">부하가 안정적이고 예측 가능하다</th>
+              <td>프로비저닝 + 오토스케일링</td>
+            </tr>
+            <tr>
+              <th scope="row">비용을 상한선 안에서 통제해야 한다</th>
+              <td>프로비저닝 — 용량 상한이 곧 비용 상한이 됩니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          <code>MOST cost-effective</code>가 붙었다고 반사적으로 한쪽을 고르지 않습니다.
+          <strong>"예측할 수 없는" · "산발적인" · "새로운"</strong>이면 온디맨드,
+          <strong>"일정한" · "예측 가능한" · "상시"</strong>면 프로비저닝입니다.
+          이것은 <a href="ch05.html#ec2-purchase-options">5장 EC2 구매 옵션</a>의 판단 축과 정확히 같은 구조입니다.
+        </p>
+      </aside>
+
+      <h3 id="read-consistency">읽기 일관성 옵션</h3>
+      <p>
+        DynamoDB의 읽기는 기본이 <strong>최종 일관성(eventually consistent)</strong>이고,
+        요청마다 <code>ConsistentRead</code>를 <code>true</code>로 주면
+        <strong>강력한 일관성(strongly consistent)</strong> 읽기가 됩니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>DynamoDB 읽기 일관성 선택</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">최종 일관성 읽기 (기본)</th>
+              <th scope="col">강력한 일관성 읽기</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">방금 쓴 값</th>
+              <td>이전 값이 보일 수 있습니다</td>
+              <td><span class="mark-ok">최신 값이 보장됩니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">소비 용량</th>
+              <td>더 적습니다</td>
+              <td>더 많습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">GSI에서</th>
+              <td><span class="mark-ok">사용 가능</span></td>
+              <td><span class="mark-no">사용 불가 — 요청하면 오류가 반환됩니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">DAX를 거칠 때</th>
+              <td>캐시에서 응답합니다</td>
+              <td><span class="mark-no">캐시를 쓰지 못하고 DynamoDB로 전달됩니다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        시험에서는 <strong>"읽은 값이 최신임이 보장되어야 한다"</strong>는 문장이 신호입니다.
+        이 조건이 붙으면 GSI로 조회하는 선택지와 DAX로 가속하는 선택지가 함께 소거됩니다.
+        <strong>강력한 일관성 요구는 캐시와 GSI를 동시에 무력화한다</strong>는 것이 요점입니다.
+      </p>
+
+      <h3 id="dynamodb-streams">DynamoDB 스트림 — 변경을 이벤트로 바꾼다</h3>
+
+      <figure class="diagram" data-diagram="D-102">
+        <figcaption>
+          테이블 항목의 변경이 스트림 레코드가 되고 AWS Lambda가 이를 폴링해 처리하는 경로 — 뷰 타입에 따라 스트림에
+          담기는 내용이 달라지며, 글로벌 테이블의 리전 간 복제도 같은 스트림 위에서 동작합니다
+        </figcaption>
+      </figure>
+
+      <p>
+        스트림을 켜면 항목이 추가 · 수정 · 삭제될 때마다
+        <strong>변경 레코드가 시간 순서대로</strong> 쌓입니다.
+        AWS Lambda를 붙이면 변경에 반응하는 처리를 이벤트 기반으로 만들 수 있습니다 —
+        집계 테이블 갱신, 알림 발송, 검색 색인 갱신이 전형적인 용도입니다.
+      </p>
+      <p>
+        스트림에 무엇을 담을지는 <strong>뷰 타입</strong>으로 정합니다. 네 가지입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>DynamoDB 스트림의 뷰 타입</caption>
+          <thead>
+            <tr>
+              <th scope="col">뷰 타입</th>
+              <th scope="col">스트림에 담기는 것</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>KEYS_ONLY</code></th>
+              <td>변경된 항목의 키 속성만</td>
+              <td>무엇이 바뀌었는지만 알면 되고, 본문은 다시 읽어도 될 때</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>NEW_IMAGE</code></th>
+              <td>변경 <strong>후</strong>의 항목 전체</td>
+              <td>바뀐 결과만 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>OLD_IMAGE</code></th>
+              <td>변경 <strong>전</strong>의 항목 전체</td>
+              <td>삭제된 항목을 보존하거나 이전 값을 감사할 때</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>NEW_AND_OLD_IMAGES</code></th>
+              <td>변경 전과 후 <strong>모두</strong></td>
+              <td>차이를 계산해야 할 때. 재고 증감 같은 집계가 대표적입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="dax">DAX — DynamoDB 전용 인메모리 캐시</h3>
+      <p>
+        Amazon DynamoDB Accelerator(DAX)는
+        <strong>DynamoDB API와 호환되는 캐싱 서비스</strong>입니다.
+        DynamoDB 개발자 안내서가 정리한 성격은 세 가지입니다.
+      </p>
+      <ul>
+        <li>최종 일관성 읽기의 응답 시간을 <strong>한 자릿수 밀리초에서 마이크로초 수준으로</strong> 낮춥니다.</li>
+        <li><strong>DynamoDB와 API 호환</strong>이므로 기존 애플리케이션에 <strong>최소한의 기능 변경</strong>만으로 붙습니다.</li>
+        <li>읽기가 많거나 폭발적인 워크로드에서 <strong>읽기 용량을 과잉 프로비저닝할 필요를 줄입니다.</strong></li>
+      </ul>
+      <p>
+        내부에는 두 개의 캐시가 있습니다.
+        <strong>항목 캐시</strong>는 <code>GetItem</code>·<code>BatchGetItem</code>의 결과를 기본 키로 저장하고,
+        <strong>질의 캐시</strong>는 <code>Query</code>·<code>Scan</code>의 결과 집합을 파라미터 값으로 저장합니다.
+        둘 다 TTL과 LRU 축출이 함께 동작하며, TTL은 클러스터를 만들 때 지정합니다.
+      </p>
+      <p>
+        같은 문서는 <strong>DAX가 적합하지 않은 경우</strong>도 명시합니다.
+        이 목록이 사실상 오답 소거 기준입니다.
+      </p>
+      <ul>
+        <li><strong>강력한 일관성 읽기가 필요한 애플리케이션.</strong> DAX가 제공하는 것은 최종 일관성 데이터입니다.</li>
+        <li>마이크로초 수준의 응답이 필요 없거나, 반복 읽기를 덜어낼 필요가 없는 경우.</li>
+        <li><strong>쓰기 위주</strong>이거나 읽기가 거의 없는 워크로드.</li>
+        <li>이미 다른 캐싱 솔루션을 클라이언트 로직으로 쓰고 있는 경우.</li>
+      </ul>
+      <p>
+        고가용성을 위해서는 <strong>여러 노드로 클러스터를 구성</strong>합니다.
+        DAX API 문서는 노드 수가 1이면 복제본 없는 단일 노드 클러스터가 되고,
+        내결함성이 필요하면 <strong>프라이머리 1대와 읽기 복제본을 둔 다중 노드</strong>로 만들라고 안내합니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          <strong>"DynamoDB 읽기 지연을 마이크로초 수준으로 줄여라"</strong> +
+          <strong>"애플리케이션 코드 변경을 최소화하라"</strong> → <strong>DAX</strong>입니다.
+        </p>
+        <p>
+          같은 문항에서 <strong>Amazon ElastiCache</strong>가 오답으로 나오는 이유는
+          캐시 채우기와 무효화 로직을 <strong>애플리케이션이 직접 짜야 하기 때문</strong>입니다.
+          반대로 문제문에 <strong>"강력한 일관성"</strong>이 들어 있으면 DAX 자체가 소거 대상이 됩니다.
+        </p>
+      </aside>
+
+      <h3 id="global-tables">글로벌 테이블 — 다중 리전 다중 활성</h3>
+      <p>
+        글로벌 테이블은 <strong>여러 리전에 같은 이름의 테이블을 두고 서로 복제</strong>하는 구성입니다.
+        각 리전의 복제본이 <strong>읽기와 쓰기를 모두 받는다</strong>는 점에서
+        주 리전에서만 쓰기를 받는 <a href="ch10.html#aurora-global-database">Aurora 글로벌 데이터베이스</a>와 다릅니다.
+      </p>
+      <p>
+        복제본으로 추가하려면 조건이 있습니다.
+        API 문서 기준으로 <strong>같은 테이블 이름 · 같은 기본 키 · 스트림 활성화</strong>가 필요합니다.
+        복제가 스트림 위에서 동작하기 때문입니다.
+      </p>
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          글로벌 테이블에는 <strong>버전이 두 가지</strong>이며, API 문서는
+          현재 버전인 <strong>2019.11.21</strong>을 쓰라고 권장하고
+          레거시인 2017.11.29는 <strong>신규 구성에서 피하라</strong>고 명시합니다.
+          현재 버전이 유연성과 효율이 낫고 쓰기 용량도 덜 씁니다.
+          옛 자료에서 "글로벌 테이블은 리전마다 별도 테이블을 만들어 묶는다"고 설명한다면 레거시 버전 기준입니다.
+        </p>
+      </aside>
+
+      <h3 id="dynamodb-ttl">TTL — 만료된 항목을 지운다</h3>
+      <p>
+        TTL(Time to Live)은 항목에 담긴 <strong>만료 시각 속성</strong>을 기준으로
+        지난 항목을 자동으로 삭제하는 기능입니다.
+        속성 값은 <strong>에포크 시간(초)</strong>이어야 하며,
+        현재 시각보다 작으면 만료로 표시됩니다.
+      </p>
+      <p>
+        중요한 성질이 두 가지입니다.
+        첫째, 삭제는 <strong>최선 노력(best-effort)</strong>입니다.
+        API 문서는 <strong>다른 데이터 작업의 처리량을 보장하기 위해 최선 노력으로 삭제</strong>하며
+        <strong>대체로 만료 후 이틀 안에</strong> 지운다고 명시합니다.
+        <strong>정확한 시각에 사라지지 않습니다.</strong>
+        둘째, TTL 삭제는 <strong>쓰기 용량을 소비하지 않습니다.</strong>
+      </p>
+      <p>
+        세션 데이터, 임시 토큰, 로그처럼 <strong>수명이 정해진 데이터를 비용 없이 정리</strong>하는 것이 용도입니다.
+        "오래된 항목을 지우는 배치 작업을 매일 돌린다"는 선택지가 있으면 TTL이 더 나은 답입니다.
+      </p>
+
+      <h3 id="dynamodb-backup">백업 — 온디맨드 백업과 특정 시점 복구</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>DynamoDB의 두 가지 백업 방식</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">온디맨드 백업</th>
+              <th scope="col">특정 시점 복구(PITR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">무엇인가</th>
+              <td>요청한 시점의 <strong>테이블 전체</strong> 백업</td>
+              <td>지속적 백업을 기반으로 <strong>임의 시점</strong>으로 복원</td>
+            </tr>
+            <tr>
+              <th scope="row">개수 제한</th>
+              <td><span class="mark-ok">제한 없음</span></td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">복원 가능 범위</th>
+              <td>백업을 만든 시점</td>
+              <td><strong>최근 35일</strong> 안의 임의 시점. 보존 일수는 <strong>1~35일</strong>로 설정</td>
+            </tr>
+            <tr>
+              <th scope="row">최신 복원 지점</th>
+              <td>해당 없음</td>
+              <td>대체로 <strong>현재 시각 5분 전</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">처리량 소비</th>
+              <td><span class="mark-ok">테이블의 프로비저닝된 처리량을 쓰지 않습니다</span></td>
+              <td><span class="mark-ok">쓰지 않습니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">용도</th>
+              <td>장기 보관, 규정 준수, 릴리스 직전 스냅샷</td>
+              <td>실수로 인한 삭제·덮어쓰기 복구</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <a href="ch10.html#backup-and-restore">10장의 RDS 백업</a>과 구조가 같습니다 —
+        <strong>임의 시점으로 되돌리는 것은 PITR, 오래 보관하는 것은 명시적 백업</strong>입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="elasticache">
+      <h2 id="elasticache">Amazon ElastiCache — Redis와 Memcached</h2>
+
+      <p>
+        ElastiCache는 인메모리 캐시를 관리형으로 제공합니다.
+        <strong>DAX가 DynamoDB 앞에만 붙는 전용 캐시</strong>인 것과 달리,
+        ElastiCache는 <strong>어떤 데이터 소스 앞에도 놓을 수 있는 범용 캐시</strong>입니다.
+        대신 <strong>무엇을 캐시하고 언제 무효화할지는 애플리케이션이 책임집니다.</strong>
+      </p>
+
+      <h3 id="redis-vs-memcached">선택 기준 — 기능이 필요한가, 단순함이 필요한가</h3>
+      <p>
+        두 엔진의 차이는 API 구조에 그대로 드러납니다.
+        Redis 쪽에는 복제 그룹 · 자동 장애 조치 · 스냅샷 · 샤드 재구성 API가 있고,
+        Memcached 쪽에는 그런 API가 없습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>ElastiCache 엔진 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">요구</th>
+              <th scope="col">Redis</th>
+              <th scope="col">Memcached</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">데이터 구조</th>
+              <td>목록 · 집합 · 정렬된 집합 · 해시 등 <strong>풍부한 자료구조</strong></td>
+              <td><span class="mark-no">단순 키-값 문자열</span></td>
+            </tr>
+            <tr>
+              <th scope="row">복제와 읽기 확장</th>
+              <td><span class="mark-ok">복제 그룹 — 프라이머리 1대와 읽기 전용 복제본들. 쓰기는 비동기로 전파</span></td>
+              <td><span class="mark-no">복제 없음. 노드끼리 데이터를 공유하지 않습니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">자동 장애 조치</th>
+              <td><span class="mark-ok">지원 — 복제본이 프라이머리로 승격됩니다</span></td>
+              <td><span class="mark-no">없음. 노드가 죽으면 그 노드의 데이터가 사라집니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">백업(스냅샷)</th>
+              <td><span class="mark-ok">지원</span></td>
+              <td><span class="mark-no">불가 — 스냅샷 API가 Redis 계열에서만 유효합니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">저장 시 암호화 · 전송 중 암호화</th>
+              <td><span class="mark-ok">지원</span></td>
+              <td><span class="mark-no">해당 파라미터가 Redis 계열 전용입니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">수평 확장 방식</th>
+              <td>클러스터 모드에서 <strong>샤드</strong>로 나눕니다</td>
+              <td>노드를 늘려 <strong>메모리 풀을 키웁니다</strong> (여러 가용 영역에 배치 가능)</td>
+            </tr>
+            <tr>
+              <th scope="row">멀티스레드</th>
+              <td>단일 스레드 중심</td>
+              <td><span class="mark-ok">멀티스레드 — 단순 캐시 작업에서 코어를 더 씁니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">전형적인 용도</th>
+              <td>세션 저장소, 리더보드, 순위 계산, 지속성이 필요한 캐시, 발행·구독</td>
+              <td>단순 객체 캐시, 잃어버려도 되는 데이터, 수평으로 크게 키우는 캐시 풀</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        정리하면 <strong>기본값은 Redis</strong>이고,
+        <strong>Memcached는 "가장 단순한 캐시 풀이면 충분하다"가 명시될 때</strong> 고릅니다.
+        시험 문항에서 <strong>지속성 · 복제 · 장애 조치 · 스냅샷 · 자료구조</strong> 중 하나라도 요구되면
+        Memcached는 그 자리에서 소거됩니다.
+      </p>
+      <aside class="note" data-label="참고">
+        <p>
+          ElastiCache API의 <code>Engine</code> 파라미터는 오랫동안
+          <code>memcached</code>와 <code>redis</code> 두 값을 받아 왔고,
+          최근 문서는 Redis 계열을 <strong>Valkey 또는 Redis OSS</strong>로 표기합니다.
+          시험이 묻는 판단은 여전히 <strong>Redis 계열이냐 Memcached냐</strong>이므로,
+          이 장에서도 그 축으로만 다룹니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="caching-choice">
+      <h2 id="caching-choice">캐시 계층 선택 — 무엇을 언제 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        "읽기가 느리다"는 같은 증상에 네 가지 처방이 붙습니다.
+        <strong>ElastiCache · DAX · 읽기 전용 복제본 · Amazon CloudFront.</strong>
+        이 넷을 가르는 기준은 성능 수치가 아니라
+        <strong>데이터가 어디에 있고, 누가 캐시 로직을 책임지며, 무엇을 캐시하는가</strong>입니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-103">
+        <figcaption>
+          캐시 계층이 놓이는 자리 — DAX는 DynamoDB 바로 앞에만 붙고 애플리케이션이 캐시 로직을 거의 짜지 않는 반면,
+          ElastiCache는 임의의 데이터 소스 앞에 놓이며 지연 로딩이나 라이트 스루 같은 채우기 전략을
+          애플리케이션이 직접 구현해야 합니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>읽기 지연을 줄이는 네 가지 수단의 적용 조건</caption>
+          <thead>
+            <tr>
+              <th scope="col">수단</th>
+              <th scope="col">무엇을 가속하는가</th>
+              <th scope="col">고르는 신호</th>
+              <th scope="col">한계</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon CloudFront</th>
+              <td>사용자와 오리진 사이의 <strong>HTTP 응답</strong></td>
+              <td>전 세계 사용자, 정적 콘텐츠, 반복되는 동일 요청</td>
+              <td>데이터베이스 질의 자체를 줄이지는 않습니다. HTTP 계층에서만 동작합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon ElastiCache</th>
+              <td><strong>임의의 데이터 소스</strong>의 조회 결과</td>
+              <td>계산 비용이 큰 질의, 세션 저장소, 관계형 데이터베이스 앞의 캐시</td>
+              <td>캐시 채우기와 무효화를 <strong>애플리케이션이 구현</strong>해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">DAX</th>
+              <td><strong>DynamoDB</strong>의 읽기</td>
+              <td>DynamoDB를 쓰고 있고 코드 변경을 최소화하고 싶을 때</td>
+              <td>DynamoDB 전용이며 <strong>최종 일관성 데이터만</strong> 제공합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 전용 복제본</th>
+              <td><strong>관계형 데이터베이스</strong>의 읽기 처리량</td>
+              <td>읽기 질의가 다양해 캐시 적중률이 낮을 때, 분석 질의를 분리할 때</td>
+              <td>복제 지연이 있고, 읽기를 복제본으로 보내도록 <strong>애플리케이션 수정</strong>이 필요합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        캐시를 도입하기로 했다면 <strong>채우기 전략</strong>도 함께 정해야 합니다.
+        전략은 크게 둘이고, 각각의 대가가 분명합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>캐시 채우기 전략의 교환 조건</caption>
+          <thead>
+            <tr>
+              <th scope="col">전략</th>
+              <th scope="col">동작</th>
+              <th scope="col">대가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">지연 로딩(lazy loading)</th>
+              <td>캐시에 없을 때만 원본에서 읽어 와 채웁니다</td>
+              <td>요청되지 않은 데이터는 캐시에 들어가지 않아 메모리가 절약되지만, <strong>첫 요청은 항상 느리고</strong> 오래된 값이 남을 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">라이트 스루(write-through)</th>
+              <td>쓰기가 일어날 때 캐시도 함께 갱신합니다</td>
+              <td>캐시가 항상 최신에 가깝지만, <strong>읽히지 않을 데이터까지 캐시를 차지</strong>하고 쓰기 경로가 무거워집니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        둘을 <strong>TTL과 함께 섞어 쓰는 것</strong>이 실무의 기본형입니다.
+        지연 로딩으로 채우되 TTL을 걸어 오래된 값이 무한히 남지 않게 하는 방식입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          캐시 문항은 <strong>데이터 소스</strong>로 먼저 가르면 절반이 정리됩니다.
+        </p>
+        <ul>
+          <li>소스가 <strong>DynamoDB</strong>이고 코드 변경 최소화 → <strong>DAX</strong></li>
+          <li>소스가 <strong>RDS나 Aurora</strong>이고 같은 질의가 반복 → <strong>ElastiCache</strong></li>
+          <li>소스가 <strong>RDS나 Aurora</strong>인데 질의가 제각각 → <strong>읽기 전용 복제본</strong></li>
+          <li>소스가 <strong>S3나 웹 오리진</strong>이고 사용자가 전 세계 → <strong>CloudFront</strong></li>
+          <li><strong>강력한 일관성이 요구된다</strong> → 캐시 계열은 전부 소거</li>
+        </ul>
+        <p>
+          엣지 캐싱의 동작은 <a href="ch14.html">14장 엣지와 DNS</a>에서,
+          읽기 전용 복제본의 성질은 <a href="ch10.html#multi-az-vs-read-replica">10장</a>에서 다룹니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="redshift">
+      <h2 id="redshift">Amazon Redshift — 데이터 웨어하우스</h2>
+
+      <p>
+        Redshift는 <strong>열 지향 저장과 대규모 병렬 처리</strong>를 쓰는 데이터 웨어하우스입니다.
+        운영 데이터베이스가 <strong>한 건을 빠르게 읽고 쓰는 일(OLTP)</strong>에 최적화되어 있다면,
+        Redshift는 <strong>수억 건을 스캔해 집계하는 일(OLAP)</strong>에 최적화되어 있습니다.
+        같은 데이터를 다루더라도 목적이 다릅니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>운영 데이터베이스와 Amazon Redshift의 성격 차이</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Amazon RDS · Aurora (OLTP)</th>
+              <th scope="col">Amazon Redshift (OLAP)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">전형적인 질의</th>
+              <td>키로 몇 건을 읽고 쓰는 트랜잭션</td>
+              <td>넓은 범위를 스캔해 집계하는 분석 질의</td>
+            </tr>
+            <tr>
+              <th scope="row">저장 방식</th>
+              <td>행 지향</td>
+              <td><strong>열 지향</strong> — 필요한 열만 읽어 스캔량을 줄입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">확장 구조</th>
+              <td>인스턴스 크기와 복제본</td>
+              <td><strong>리더 노드와 여러 컴퓨트 노드</strong>로 질의를 병렬 처리합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">클러스터 구성</th>
+              <td>해당 없음</td>
+              <td>API의 <code>ClusterType</code>이 <code>single-node</code> 또는 <code>multi-node</code>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">저장 시 암호화</th>
+              <td>생성 시점에 결정</td>
+              <td>API의 <code>Encrypted</code> 기본값이 <strong>참</strong>이며 거짓으로 두려는 요청은 실패합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        시험에서 Redshift와 자주 붙는 오답이 <strong>Amazon Athena</strong>입니다.
+        경계는 이렇습니다 — <strong>S3에 있는 데이터를 그때그때 SQL로 조회</strong>하면 Athena,
+        <strong>여러 소스를 정기적으로 적재해 두고 반복적으로 분석</strong>하면 Redshift입니다.
+        분석 파이프라인 전체는 <a href="ch15.html">15장 데이터 분석 파이프라인</a>에서 다룹니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="purpose-built-databases">
+      <h2 id="purpose-built-databases">목적별 데이터베이스 — 한 줄 정의</h2>
+
+      <p>
+        아래 네 가지는 <strong>깊이 파고들 대상이 아닙니다.</strong>
+        시험에서는 <strong>데이터 모델을 묘사한 문장에서 서비스 이름을 떠올릴 수 있는지</strong>만 물어봅니다.
+        정의 한 줄과 신호 단어를 짝지어 외우면 충분합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>목적별 데이터베이스의 용도와 문제문의 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">문제문의 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon DocumentDB</th>
+              <td>MongoDB 호환 문서 데이터베이스</td>
+              <td>"MongoDB로 만든 애플리케이션을 관리형으로 옮기고 싶다"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Neptune</th>
+              <td>그래프 데이터베이스</td>
+              <td>"소셜 네트워크", "추천", "사기 탐지", "관계를 여러 단계로 따라가는 질의"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Keyspaces</th>
+              <td>Apache Cassandra 호환 와이드 컬럼 데이터베이스</td>
+              <td>"Cassandra 워크로드를 서버 관리 없이 운영하고 싶다", "CQL"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Timestream</th>
+              <td>시계열 데이터베이스</td>
+              <td>"IoT 센서 측정값", "시간 순서로 쌓이는 지표를 기간별로 집계"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          이 네 서비스가 정답인 문항은 <strong>데이터 모델을 그대로 말해 줍니다.</strong>
+          "관계를 탐색한다"고 쓰여 있으면 그래프,
+          "센서가 시간마다 값을 보낸다"면 시계열입니다.
+          반대로 <strong>모델이 명시되지 않은 채 "확장 가능한 NoSQL"만 나오면 DynamoDB</strong>가 기본값입니다.
+          호환성 요구(<strong>MongoDB · Cassandra</strong>)가 명시될 때만 DocumentDB와 Keyspaces가 답이 됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"LSI와 GSI는 이름만 다르고 나중에 아무거나 추가하면 된다"</strong> —
+          <strong>로컬 보조 인덱스는 테이블을 만들 때만 생성할 수 있고,
+          이후에는 추가도 삭제도 할 수 없습니다.</strong>
+          이미 운영 중인 테이블에 새 조회 패턴이 필요하다면 선택지는 GSI뿐입니다.
+          거꾸로 <strong>강력한 일관성 읽기는 LSI에서만 가능</strong>하므로,
+          그 요구가 나중에 생기면 테이블을 다시 만드는 것 외에 방법이 없습니다.
+          인덱스 설계는 테이블을 만들기 전에 끝내야 합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"프로비저닝된 용량을 올리면 스로틀링이 사라진다"</strong> —
+          트래픽이 <strong>한 파티션 키 값에 몰려 있으면</strong> 테이블 전체 용량을 올려도
+          그 파티션이 받는 몫은 비례해서 늘지 않습니다.
+          적응 용량이 어느 정도 완충해 주지만 나쁜 키 설계를 대신 고쳐 주지는 않습니다.
+          해법은 <strong>카디널리티가 높은 파티션 키</strong>,
+          <strong>접미사를 이용한 쓰기 분산</strong>, 그리고 읽기가 몰릴 때의 <strong>DAX</strong>입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"캐시를 붙이면 언제나 빨라진다"</strong> —
+          캐시는 <strong>같은 데이터를 반복해서 읽을 때만</strong> 효과가 있습니다.
+          질의가 매번 달라 적중률이 낮으면 캐시는 지연 한 겹을 더할 뿐입니다.
+          그리고 <strong>강력한 일관성이 요구되면 캐시는 답이 될 수 없습니다</strong> —
+          DAX는 최종 일관성 데이터만 제공하고,
+          강력한 일관성 읽기는 캐시를 지나쳐 DynamoDB로 전달됩니다.
+          질의가 다양한 읽기 부하는 캐시가 아니라
+          <a href="ch10.html#read-replica">읽기 전용 복제본</a>이 맞는 처방입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <p>
+        이 장의 주제는 대부분 <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>에 속하며,
+        용량 모드와 캐시 도입 판단은 비용 최적화 아키텍처 설계에도 걸칩니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>11장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">파티션 키의 역할</th>
+                <td>내부 해시로 <strong>항목을 파티션에 분배</strong>한다</td>
+                <td>정렬 키가 분배를 담당한다고 착각</td>
+              </tr>
+              <tr>
+                <th scope="row">좋은 파티션 키</th>
+                <td><strong>값의 가짓수가 많고 실제 트래픽이 고르게 흩어지는</strong> 키</td>
+                <td>상태 코드나 날짜처럼 가짓수가 적은 값을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">핫 파티션의 해법</th>
+                <td>카디널리티가 높은 키, <strong>접미사 기반 쓰기 분산</strong>, 읽기 쏠림에는 DAX</td>
+                <td>테이블 전체 프로비저닝 용량만 올림</td>
+              </tr>
+              <tr>
+                <th scope="row">적응 용량</th>
+                <td>모든 테이블에 <strong>자동으로 켜져 있고 추가 비용이 없다</strong></td>
+                <td>따로 켜야 한다고 답하거나, 나쁜 키 설계를 해결해 준다고 봄</td>
+              </tr>
+              <tr>
+                <th scope="row">LSI 생성 시점</th>
+                <td><strong>테이블 생성 시에만.</strong> 이후 추가·삭제 불가</td>
+                <td>운영 중인 테이블에 LSI를 추가하는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">GSI 생성 시점</th>
+                <td><strong>언제든 추가·삭제 가능</strong></td>
+                <td>GSI도 생성 시점에 고정된다고 봄</td>
+              </tr>
+              <tr>
+                <th scope="row">LSI의 파티션 키</th>
+                <td><strong>기본 테이블과 같아야</strong> 한다. 정렬 키만 다르다</td>
+                <td>LSI로 다른 속성 검색을 해결하려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">GSI의 읽기 일관성</th>
+                <td><strong>최종 일관성만.</strong> 강력한 일관성 요청은 오류</td>
+                <td>"강력한 일관성이 필요하다"는 문항에서 GSI를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">LSI의 읽기 일관성</th>
+                <td>최종 일관성과 <strong>강력한 일관성 모두</strong> 가능</td>
+                <td>모든 보조 인덱스가 최종 일관성만 지원한다고 일반화</td>
+              </tr>
+              <tr>
+                <th scope="row">인덱스 개수 상한</th>
+                <td>LSI <strong>5개</strong>, GSI <strong>20개</strong></td>
+                <td>둘을 바꿔 외움</td>
+              </tr>
+              <tr>
+                <th scope="row">LSI의 크기 제약</th>
+                <td><strong>파티션 키 값당 10 GB</strong></td>
+                <td>GSI에도 같은 제약이 있다고 봄</td>
+              </tr>
+              <tr>
+                <th scope="row">인덱스의 용량</th>
+                <td>LSI는 테이블 용량 <strong>공유</strong>, GSI는 <strong>자체 용량</strong></td>
+                <td>GSI 트래픽이 테이블 용량을 잡아먹는다고 판단</td>
+              </tr>
+              <tr>
+                <th scope="row">용량 모드</th>
+                <td><code>PAY_PER_REQUEST</code>(온디맨드) / <code>PROVISIONED</code>. <strong>나중에 변경 가능</strong></td>
+                <td>한 번 정하면 못 바꾼다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">용량 모드 선택</th>
+                <td>예측 불가·산발적이면 온디맨드, 안정적이면 프로비저닝 + 오토스케일링</td>
+                <td>비용 한정어만 보고 반사적으로 한쪽을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">읽기 일관성 기본값</th>
+                <td><strong>최종 일관성.</strong> <code>ConsistentRead</code>로 강력한 일관성 선택</td>
+                <td>기본이 강력한 일관성이라고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">스트림 뷰 타입</th>
+                <td><code>KEYS_ONLY</code> · <code>NEW_IMAGE</code> · <code>OLD_IMAGE</code> · <code>NEW_AND_OLD_IMAGES</code></td>
+                <td>변경 전 값이 필요한데 <code>NEW_IMAGE</code>를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">DAX의 성격</th>
+                <td><strong>DynamoDB 전용 · API 호환 · 마이크로초 · 최종 일관성</strong></td>
+                <td>강력한 일관성 요구 문항에서 DAX를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">DAX와 ElastiCache</th>
+                <td>DAX는 코드 변경 최소, ElastiCache는 <strong>캐시 로직을 직접 구현</strong></td>
+                <td>DynamoDB 앞의 캐시로 ElastiCache를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">글로벌 테이블</th>
+                <td>여러 리전이 <strong>모두 읽고 쓴다.</strong> 복제본에 <strong>스트림 활성화 필요</strong></td>
+                <td>Aurora 글로벌 데이터베이스처럼 한 리전만 쓰기가 된다고 봄</td>
+              </tr>
+              <tr>
+                <th scope="row">TTL</th>
+                <td>에포크 초 속성 기준 · <strong>최선 노력</strong> · 대체로 만료 후 이틀 안 삭제 · 쓰기 용량 미소비</td>
+                <td>지정한 시각에 정확히 사라진다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">DynamoDB 백업</th>
+                <td>온디맨드 백업은 <strong>개수 제한 없음</strong>, PITR은 <strong>최근 35일</strong></td>
+                <td>PITR이 무기한 보관을 대신한다고 봄</td>
+              </tr>
+              <tr>
+                <th scope="row">Redis와 Memcached</th>
+                <td>복제 · 자동 장애 조치 · 스냅샷 · 자료구조가 필요하면 <strong>Redis</strong></td>
+                <td>세션 저장이나 지속성 요구에 Memcached를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Memcached의 성격</th>
+                <td>복제 없음 · 스냅샷 불가 · <strong>멀티스레드</strong> · 노드를 늘려 메모리 풀 확장</td>
+                <td>Memcached도 복제본으로 읽기를 확장할 수 있다고 봄</td>
+              </tr>
+              <tr>
+                <th scope="row">캐시 계층 선택</th>
+                <td>DynamoDB → DAX, 관계형 반복 질의 → ElastiCache, 다양한 읽기 → 읽기 전용 복제본, HTTP → CloudFront</td>
+                <td>모든 지연 문제에 CloudFront나 ElastiCache를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Redshift와 Athena</th>
+                <td>정기 적재 후 반복 분석은 <strong>Redshift</strong>, S3 위 임시 SQL은 <strong>Athena</strong></td>
+                <td>서버리스라는 이유만으로 모든 분석에 Athena를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">목적별 데이터베이스</th>
+                <td>문서=DocumentDB, 그래프=Neptune, 와이드 컬럼=Keyspaces, 시계열=Timestream</td>
+                <td>모델이 명시되었는데도 DynamoDB를 고름</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <p>
+        <span class="badge badge--study">학습용 유형</span>
+        연결형과 순서 배열 문항이 섞여 있을 수 있습니다.
+        두 유형은 암기 확인에 효율이 좋아서 기본개념 확인 문제에만 넣었으며,
+        실제 SAA-C03 시험에는 출제되지 않습니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch11" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch10.html#multi-az-vs-read-replica">
+          <span class="card__title">10장 · Multi-AZ와 읽기 전용 복제본</span>
+          <span class="card__desc">캐시 계층 선택에서 나온 "읽기 전용 복제본"이 실제로 어떤 성질을 갖는지, 가용성과 어떻게 다른지 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 바로 앞 장</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-performance.html#lsi-vs-gsi">
+          <span class="card__title">고성능 아키텍처 설계 (24%)</span>
+          <span class="card__desc">이 장의 판단들이 과제 진술 3.1부터 3.5까지에서 어디에 놓이는지, 도메인 전체 지도 위에서 확인합니다.</span>
+          <span class="card__meta">시험 대비 · 주 도메인</span>
+        </a></li>
+        <li><a class="card" href="../saa/traps.html#database-and-cache">
+          <span class="card__title">함정 사전 · 데이터베이스와 캐시</span>
+          <span class="card__desc">LSI와 GSI, DAX와 ElastiCache처럼 이 장에서 다룬 쌍들을 표 하나로 모아 두었습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../saa/keywords.html#qualifier-dictionary">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">"예측할 수 없는", "코드 변경 없이", "강력한 일관성" 같은 한정어가 어떤 답으로 수렴하는지 정리했습니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch12.html">
+          <span class="card__title">12장 · 서버리스와 애플리케이션 통합</span>
+          <span class="card__desc">DynamoDB 스트림을 받아 처리하는 AWS Lambda의 호출 모델과 재시도, 그리고 느슨한 결합을 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch15.html">
+          <span class="card__title">15장 · 데이터 분석 파이프라인</span>
+          <span class="card__desc">Redshift와 Athena, Kinesis와 Glue의 경계를 파이프라인 전체 구조 위에서 정리합니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 개념 서술과 API 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html">Amazon DynamoDB API 레퍼런스 — CreateTable</a>
+          — 파티션 키(<code>HASH</code>)와 정렬 키(<code>RANGE</code>)의 정의, 용량 모드 값과 권장 기준, 나중에 변경할 수 있다는 서술, LSI 5개·GSI 20개 상한, LSI의 파티션 키 값당 10 GB 제약, 스트림 뷰 타입 네 가지</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html">Amazon DynamoDB API 레퍼런스 — UpdateTable</a>
+          — 기존 테이블에 대해 글로벌 보조 인덱스만 추가·수정·삭제할 수 있고 한 번에 하나씩만 가능하다는 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html">Amazon DynamoDB API 레퍼런스 — Query</a>
+          — 글로벌 보조 인덱스에 강력한 일관성 읽기를 요청하면 <code>ValidationException</code>이 반환된다는 명시</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SecondaryIndexes.html">Amazon DynamoDB 개발자 안내서 — 보조 인덱스로 데이터 액세스 개선</a>
+          — LSI와 GSI의 특성 비교표(키 스키마, 크기 제약, 온라인 인덱스 작업, 질의 범위, 읽기 일관성, 처리량 소비, 프로젝션 속성)</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html">Amazon DynamoDB 개발자 안내서 — 파티션 키 설계 모범 사례</a>
+          — 논리 파티션 키 전반에 활동을 고르게 분산하라는 원칙, 버스트 용량, 적응 용량이 모든 테이블에 자동으로 켜져 있고 추가 비용이 없다는 설명</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-uniform-load.html">Amazon DynamoDB 개발자 안내서 — 워크로드를 고르게 분산하는 파티션 키 설계</a>
+          — 파티션 키 값별 균일성 비교표와 핫 파티션이 스로틀링을 유발한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-sharding.html">Amazon DynamoDB 개발자 안내서 — 쓰기 샤딩으로 워크로드 분산</a>
+          — 파티션 키 값에 접미사를 붙여 쓰기를 분산하는 방법</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTimeToLive.html">Amazon DynamoDB API 레퍼런스 — UpdateTimeToLive</a>
+          — 에포크 시간 기준 만료, 최선 노력 삭제, 대체로 만료 후 이틀 안에 삭제된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateContinuousBackups.html">Amazon DynamoDB API 레퍼런스 — UpdateContinuousBackups</a>
+          — 최근 35일 안의 임의 시점 복원, 보존 일수 1~35일, 최신 복원 지점이 대체로 현재 시각 5분 전이라는 설명</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateBackup.html">Amazon DynamoDB API 레퍼런스 — CreateBackup</a>
+          — 온디맨드 백업 개수에 제한이 없고 테이블의 프로비저닝된 처리량을 소비하지 않는다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateGlobalTable.html">Amazon DynamoDB API 레퍼런스 — CreateGlobalTable</a>
+          — 복제본 조건(같은 이름·같은 기본 키·스트림 활성화)과 현재 버전 2019.11.21 권장</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DAX.html">Amazon DynamoDB 개발자 안내서 — DAX를 사용한 인메모리 가속</a>
+          — 마이크로초 응답, API 호환으로 최소한의 변경만 필요하다는 점, DAX가 적합하지 않은 경우 목록</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DAX.concepts.html">Amazon DynamoDB 개발자 안내서 — DAX 작동 방식</a>
+          — 항목 캐시와 질의 캐시의 구분, TTL과 LRU 축출</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_dax_CreateCluster.html">Amazon DAX API 레퍼런스 — CreateCluster</a>
+          — 단일 노드와 다중 노드 클러스터 구성, 프라이머리와 읽기 복제본</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_CreateCacheCluster.html">Amazon ElastiCache API 레퍼런스 — CreateCacheCluster</a>
+          — 엔진 값, Memcached의 노드 수 범위와 가용 영역 배치 옵션, 스냅샷 보존이 Redis 계열에만 유효하다는 제약</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_CreateReplicationGroup.html">Amazon ElastiCache API 레퍼런스 — CreateReplicationGroup</a>
+          — 프라이머리와 읽기 전용 복제본 구조, 쓰기가 비동기로 전파된다는 설명, 자동 장애 조치와 저장 시·전송 중 암호화 설정</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_CreateSnapshot.html">Amazon ElastiCache API 레퍼런스 — CreateSnapshot</a>
+          — 스냅샷 작업이 Redis 계열에서만 유효하다는 명시</li>
+        <li><a href="https://docs.aws.amazon.com/redshift/latest/APIReference/API_CreateCluster.html">Amazon Redshift API 레퍼런스 — CreateCluster</a>
+          — <code>ClusterType</code>의 단일 노드와 다중 노드 구분, 저장 시 암호화 기본값</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>
