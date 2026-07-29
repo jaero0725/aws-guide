@@ -1,0 +1,97 @@
+<svg viewBox="0 0 720 480" role="img" aria-labelledby="d002-title d002-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d002-title">책임 공유 모델의 경계선 이동</title>
+  <desc id="d002-desc">같은 일곱 개 계층을 EC2, Amazon RDS, AWS Lambda 세 서비스에 대해 나란히 놓고
+    AWS 책임과 고객 책임의 경계선이 어디에 그어지는지 비교합니다.
+    EC2 에서는 물리 시설과 가상화까지만 AWS 책임이고 게스트 OS 패치부터 위쪽은 모두 고객 책임입니다.
+    Amazon RDS 에서는 게스트 OS 와 데이터베이스 엔진 패치까지 AWS 가 맡고, 확장과 가용성 구성부터 고객이 맡습니다.
+    AWS Lambda 에서는 확장과 가용성까지 AWS 가 맡고 고객에게는 코드와 데이터, 접근 제어만 남습니다.
+    관리형으로 갈수록 경계선이 위로 올라가며, 어느 계층에서든 데이터 분류와 암호화, 접근 제어는 항상 고객 책임입니다.
+    "이 상황에서 패치는 누구 책임인가"라는 문항의 답이 서비스마다 다른 이유가 바로 이 경계선의 위치입니다.</desc>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="34">계층</text>
+  <text class="dg-fs-md dg-bold" x="295" y="34" text-anchor="middle">Amazon EC2</text>
+  <text class="dg-fs-md dg-bold" x="465" y="34" text-anchor="middle">Amazon RDS</text>
+  <text class="dg-fs-md dg-bold" x="630" y="34" text-anchor="middle">AWS Lambda</text>
+  <text class="dg-fs-sm dg-muted" x="295" y="54" text-anchor="middle">IaaS</text>
+  <text class="dg-fs-sm dg-muted" x="465" y="54" text-anchor="middle">관리형</text>
+  <text class="dg-fs-sm dg-muted" x="630" y="54" text-anchor="middle">서버리스</text>
+
+  <!-- L7 데이터 -->
+  <text class="dg-fs-sm" x="20" y="90">데이터 · 암호화 · IAM</text>
+  <rect class="dg-node" x="220" y="68" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="91" text-anchor="middle">고객</text>
+  <rect class="dg-node" x="390" y="68" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="465" y="91" text-anchor="middle">고객</text>
+  <rect class="dg-node" x="560" y="68" width="140" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="91" text-anchor="middle">고객</text>
+
+  <!-- L6 앱 -->
+  <text class="dg-fs-sm" x="20" y="134">애플리케이션 · 스키마</text>
+  <rect class="dg-node" x="220" y="112" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="135" text-anchor="middle">고객</text>
+  <rect class="dg-node" x="390" y="112" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="465" y="135" text-anchor="middle">고객</text>
+  <rect class="dg-node" x="560" y="112" width="140" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="135" text-anchor="middle">고객</text>
+
+  <!-- L5 확장 -->
+  <text class="dg-fs-sm" x="20" y="178">확장 · 가용성 구성</text>
+  <rect class="dg-node" x="220" y="156" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="179" text-anchor="middle">고객</text>
+  <rect class="dg-node" x="390" y="156" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="465" y="179" text-anchor="middle">고객</text>
+  <rect class="dg-node dg-node--muted" x="560" y="156" width="140" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="179" text-anchor="middle">AWS</text>
+
+  <!-- L4 런타임 -->
+  <text class="dg-fs-sm" x="20" y="222">런타임 · 엔진 패치</text>
+  <rect class="dg-node" x="220" y="200" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="223" text-anchor="middle">고객</text>
+  <rect class="dg-node dg-node--muted" x="390" y="200" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="465" y="223" text-anchor="middle">AWS</text>
+  <rect class="dg-node dg-node--muted" x="560" y="200" width="140" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="223" text-anchor="middle">AWS</text>
+
+  <!-- L3 게스트 OS -->
+  <text class="dg-fs-sm" x="20" y="266">게스트 OS · OS 패치</text>
+  <rect class="dg-node" x="220" y="244" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="267" text-anchor="middle">고객</text>
+  <rect class="dg-node dg-node--muted" x="390" y="244" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="465" y="267" text-anchor="middle">AWS</text>
+  <rect class="dg-node dg-node--muted" x="560" y="244" width="140" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="267" text-anchor="middle">AWS</text>
+
+  <!-- L2 가상화 -->
+  <text class="dg-fs-sm" x="20" y="310">가상화 계층</text>
+  <rect class="dg-node dg-node--muted" x="220" y="288" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="311" text-anchor="middle">AWS</text>
+  <rect class="dg-node dg-node--muted" x="390" y="288" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="465" y="311" text-anchor="middle">AWS</text>
+  <rect class="dg-node dg-node--muted" x="560" y="288" width="140" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="311" text-anchor="middle">AWS</text>
+
+  <!-- L1 물리 -->
+  <text class="dg-fs-sm" x="20" y="354">물리 시설 · 하드웨어</text>
+  <rect class="dg-node dg-node--muted" x="220" y="332" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="355" text-anchor="middle">AWS</text>
+  <rect class="dg-node dg-node--muted" x="390" y="332" width="150" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="465" y="355" text-anchor="middle">AWS</text>
+  <rect class="dg-node dg-node--muted" x="560" y="332" width="140" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="355" text-anchor="middle">AWS</text>
+
+  <!-- 경계선 -->
+  <path class="dg-edge dg-edge--accent" d="M212 284 L378 284"/>
+  <path class="dg-edge dg-edge--accent" d="M382 196 L548 196"/>
+  <path class="dg-edge dg-edge--accent" d="M552 152 L708 152"/>
+  <path class="dg-edge dg-edge--accent dg-edge--dashed" d="M378 284 L382 196"/>
+  <path class="dg-edge dg-edge--accent dg-edge--dashed" d="M548 196 L552 152"/>
+
+  <text class="dg-fs-sm dg-bold" x="212" y="278" text-anchor="end">경계선</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="392">회색 파선 칸이 AWS 책임, 실선 칸이 고객 책임입니다</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="406" width="680" height="62" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="430" text-anchor="middle">관리형으로 갈수록 경계선이 위로 올라갑니다</text>
+  <text class="dg-fs-sm" x="360" y="452" text-anchor="middle">단 맨 위의 데이터 · 암호화 · 접근 제어는 어떤 서비스에서도 고객 책임으로 남습니다</text>
+</svg>
