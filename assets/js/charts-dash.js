@@ -267,7 +267,8 @@
             backgroundColor: c.fill,
             borderColor: c.border,
             borderWidth: 1.5,
-            borderSkipped: false
+            borderSkipped: false,
+            maxBarThickness: 64
           };
         })
       },
@@ -919,7 +920,8 @@
             backgroundColor: ctx.alpha(c, 0.62),
             borderColor: c,
             borderWidth: 1.5,
-            borderSkipped: false
+            borderSkipped: false,
+            maxBarThickness: 64
           };
         })
       },

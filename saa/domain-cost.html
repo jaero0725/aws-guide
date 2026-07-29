@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>비용 최적화 아키텍처 설계 (20%) — AWS SAA Guide</title>
+  <meta name="description" content="SAA-C03 도메인 4 Design Cost-Optimized Architectures의 과제 진술 4.1부터 4.4까지를 해설합니다. 금액을 외우지 않고 과금 구조와 상대 비교로 판단하는 방법, 스토리지 클래스와 구매 옵션, 데이터 전송 방향성을 판단 지점 15개로 정리했습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="saa" data-page="domain-cost"></div>
+
+  <main id="main" class="page" data-page-id="saa/domain-cost">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="index.html">시험 대비</a></li>
+        <li><span aria-current="page">비용 최적화 아키텍처 설계 (20%)</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">시험 대비 · 도메인 4</p>
+      <h1>비용 최적화 아키텍처 설계 (20%)</h1>
+      <p class="page__lead">
+        Design Cost-Optimized Architectures는 가중치가 가장 작지만
+        <strong>가장 적은 노력으로 가장 확실하게 점수가 오르는 도메인</strong>입니다.
+        판단 규칙이 단순하고 반복되기 때문입니다.
+        그리고 이 도메인은 <strong>금액을 외우는 시험이 아닙니다</strong> —
+        무엇이 시간당 과금되고 무엇이 그렇지 않은지, 어느 방향의 전송이 과금되는지 같은
+        <strong>구조</strong>를 묻습니다.
+      </p>
+      <p class="page__meta">
+        판단에 필요한 지식은 <a href="../basics/ch05.html">5장 EC2</a>,
+        <a href="../basics/ch08.html">8장 S3</a>,
+        <a href="../basics/ch18.html">18장 비용 최적화·마이그레이션·재해 복구</a>가 담당합니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>과제 진술 4.1부터 4.4까지가 각각 무엇을 묻는지 구분하고 담당 챕터를 지목할 수 있습니다.</li>
+        <li>금액을 모르는 상태에서도 과금 구조를 근거로 더 저렴한 구성을 고를 수 있습니다.</li>
+        <li>접근 빈도와 검색 시간 요구로 S3 스토리지 클래스를 선택할 수 있습니다.</li>
+        <li>워크로드의 중단 허용 여부와 사용 기간으로 EC2 구매 옵션을 선택할 수 있습니다.</li>
+        <li>데이터 전송의 방향에 따라 과금 여부가 달라진다는 것을 설계 판단에 반영할 수 있습니다.</li>
+        <li>이 도메인의 판단 지점 15개를 점검표로 삼아 자기 취약 지점을 찾을 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="domain-overview">
+      <h2 id="domain-overview">이 도메인의 성격</h2>
+
+      <figure class="chart" data-chart="C-001">
+        <figcaption>
+          SAA-C03 도메인별 출제 비중에서 <strong>비용 최적화 아키텍처 설계는 20%</strong>로 가장 작습니다.
+          그러나 과제 진술이 4개이고 판단 규칙이 단순해 학습 효율은 가장 높습니다.
+          가중치가 작다고 후순위로 미룰 도메인이 아닙니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 4의 과제 진술 네 개와 중심 질문</caption>
+          <thead>
+            <tr>
+              <th scope="col">과제 진술</th>
+              <th scope="col">중심 질문</th>
+              <th scope="col">주 담당 챕터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">4.1 비용 최적화 스토리지</th>
+              <td><strong>얼마나 자주 읽는가.</strong> 접근 빈도와 검색 시간 요구가 티어를 결정합니다</td>
+              <td><a href="../basics/ch08.html">8장 S3</a> · <a href="../basics/ch09.html">9장 파일 스토리지</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4.2 비용 최적화 컴퓨팅</th>
+              <td><strong>얼마나 오래, 얼마나 확실하게 쓰는가.</strong> 중단 허용 여부와 약정 가능성</td>
+              <td><a href="../basics/ch05.html">5장 EC2</a> · <a href="../basics/ch18.html">18장 비용</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4.3 비용 최적화 데이터베이스</th>
+              <td><strong>부하가 항상 있는가.</strong> 유휴 시간이 길면 다른 답이 나옵니다</td>
+              <td><a href="../basics/ch10.html">10장 RDS</a> · <a href="../basics/ch11.html">11장 NoSQL</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4.4 비용 최적화 네트워크</th>
+              <td><strong>트래픽이 어느 경계를 넘는가.</strong> 방향과 경유 지점이 과금을 만듭니다</td>
+              <td><a href="../basics/ch04.html">4장 VPC 연결</a> · <a href="../basics/ch18.html">18장 비용</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="cost-without-prices">금액 없이 비용을 판단하는 법</h3>
+      <p>
+        시험은 요금표를 외웠는지 묻지 않습니다.
+        요금은 리전과 시점에 따라 달라지므로 문항의 근거가 될 수 없습니다.
+        대신 <strong>과금이 발생하는 구조</strong>를 묻습니다. 판단에 쓰는 축은 세 가지입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>금액을 모르는 상태에서 비용을 비교하는 세 가지 축</caption>
+          <thead>
+            <tr>
+              <th scope="col">축</th>
+              <th scope="col">묻는 것</th>
+              <th scope="col">적용 예</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">상시 가동 자원이 있는가</th>
+              <td>쓰지 않는 동안에도 시간이 흐르면 과금되는 자원이 존재하는가</td>
+              <td>NAT 게이트웨이는 시간당 자원이 상시 가동되지만, 게이트웨이 VPC 엔드포인트는 라우팅 테이블의 경로라 그런 자원이 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">경계를 몇 번 넘는가</th>
+              <td>데이터가 가용 영역·리전·인터넷 경계를 넘는 횟수</td>
+              <td>단일 NAT 게이트웨이에 여러 가용 영역이 붙으면 가용 영역 경계를 한 번 더 넘습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">관리 주체가 누구인가</th>
+              <td>같은 결과를 얻는 데 사람의 운영 시간이 얼마나 드는가</td>
+              <td>직접 운영하는 인스턴스는 요금 외에 운영 비용이 계속 듭니다. 관리형이 총비용에서 유리한 근거입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="이 사이트의 표기 원칙">
+        <p>
+          이 사이트는 <strong>구체적 요금 금액을 적지 않습니다.</strong>
+          AWS 요금은 리전·시점·약정에 따라 달라지고, 학습 자료에 하드코딩하면
+          곧 틀린 값이 되기 때문입니다.
+          대신 <strong>어느 쪽이 더 저렴한가</strong>와 <strong>왜 그런가</strong>를 구조로 설명합니다.
+          시험도 같은 방식으로 묻습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-4-1">
+      <h2 id="task-4-1">과제 진술 4.1 · 비용 최적화 스토리지 솔루션 설계</h2>
+
+      <p>
+        스토리지 비용 문항의 판단 축은 <strong>접근 빈도</strong>와 <strong>허용 가능한 검색 시간</strong>입니다.
+        둘 다 문제문에 거의 언제나 명시되어 있습니다.
+        "분기에 한 번 감사용으로 조회한다"거나 "몇 시간 안에만 꺼내면 된다" 같은 문장이 그것입니다.
+      </p>
+
+      <h3 id="s3-storage-class">S3 스토리지 클래스 선택 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>주요 S3 스토리지 클래스의 확인된 제약과 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">클래스</th>
+              <th scope="col">가용 영역 수 · 최소 저장 기간 · 최소 청구 크기</th>
+              <th scope="col">고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 Standard</th>
+              <td>3개 이상 · 최소 기간 없음 · 최소 크기 없음</td>
+              <td>자주 읽습니다. 기본값입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Standard-IA</th>
+              <td>3개 이상 · 30일 · 128 KB</td>
+              <td>드물게 읽지만 <strong>읽을 때는 즉시</strong> 필요하고, 가용 영역 장애를 견뎌야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 One Zone-IA</th>
+              <td><span class="mark-no">1개</span> · 30일 · 128 KB</td>
+              <td>드물게 읽고 <strong>잃어도 다시 만들 수 있는</strong> 사본입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Instant Retrieval</th>
+              <td>3개 이상 · 90일 · 128 KB</td>
+              <td>거의 읽지 않지만 <strong>읽을 때는 즉시</strong> 필요합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Flexible Retrieval</th>
+              <td>3개 이상 · 90일 · 40 KB</td>
+              <td>보관이 목적이고 <strong>분에서 시간 단위</strong>의 복원 대기를 허용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Deep Archive</th>
+              <td>3개 이상 · 180일 · 40 KB</td>
+              <td>규정상 장기 보관이고 <strong>기본 검색 시간 12시간</strong>을 허용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Intelligent-Tiering</th>
+              <td>3개 이상 · 최소 기간 없음 · 최소 크기 없음</td>
+              <td><strong>접근 패턴을 모르거나 변합니다.</strong> 모니터링과 자동 계층화 요금이 별도로 붙습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        표에서 비용 판단에 직접 쓰이는 값은 <strong>최소 저장 기간</strong>입니다.
+        30일 미만으로 지웠다 다시 쓰는 데이터를 Standard-IA에 두면
+        저장 기간을 채우지 않아도 그 기간만큼 요금이 부과되므로 오히려 손해입니다.
+        "매주 갱신되는 데이터"에 IA 계열을 고르는 선택지는 대개 함정입니다.
+      </p>
+      <p>
+        <strong>S3 Intelligent-Tiering</strong>은 접근 패턴을 모를 때의 답입니다.
+        수명 주기 규칙은 "며칠 뒤에 어디로"를 미리 정해야 하지만,
+        Intelligent-Tiering은 실제 접근 여부에 따라 계층을 옮깁니다.
+        반대로 접근 패턴이 명확하다면 수명 주기 규칙이 더 단순하고 저렴합니다.
+      </p>
+
+      <h3 id="s3-lifecycle">수명 주기 규칙과 정리</h3>
+      <p>
+        수명 주기 규칙은 <strong>전환(transition)</strong>과 <strong>만료(expiration)</strong> 두 가지 일을 합니다.
+        비용 문항에서 자주 함께 나오는 세 가지 정리 대상이 있습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>수명 주기 규칙으로 정리하는 대상</caption>
+          <thead>
+            <tr>
+              <th scope="col">대상</th>
+              <th scope="col">방치했을 때</th>
+              <th scope="col">규칙</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">오래된 객체</th>
+              <td>자주 읽지 않는데 Standard 요금을 계속 냅니다</td>
+              <td>일정 기간 후 IA·Glacier 계열로 전환</td>
+            </tr>
+            <tr>
+              <th scope="row">이전 버전</th>
+              <td>버전 관리를 켜면 덮어쓴 이전 버전이 계속 쌓입니다</td>
+              <td>비현재 버전의 전환·만료 규칙</td>
+            </tr>
+            <tr>
+              <th scope="row">불완전한 멀티파트 업로드</th>
+              <td>실패한 업로드의 조각이 <strong>목록에 보이지 않은 채</strong> 저장 요금을 발생시킵니다</td>
+              <td>일정 기간 후 자동 중단 규칙</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          "S3 비용이 계속 늘어나는데 원인을 모르겠다"는 시나리오의 정답은
+          대체로 <strong>불완전한 멀티파트 업로드 정리</strong>이거나 <strong>이전 버전 정리</strong>입니다.
+          둘 다 콘솔의 객체 목록에 그대로 보이지 않아서 놓치기 쉽다는 점이 문항의 설계 의도입니다.
+        </p>
+      </aside>
+
+      <p>
+        128 KB 미만 객체는 IA 계열이나 Glacier Instant Retrieval로 <strong>전환되지 않습니다.</strong>
+        작은 파일이 아주 많은 워크로드에서 "수명 주기로 옮기면 싸진다"는 판단이 성립하지 않는 이유입니다.
+        전환 요청 자체에도 요청 요금이 붙으므로, 객체 수가 많을수록 전환의 이득이 줄어듭니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-4-2">
+      <h2 id="task-4-2">과제 진술 4.2 · 비용 최적화 컴퓨팅 솔루션 설계</h2>
+
+      <p>
+        컴퓨팅 비용 문항은 <strong>두 질문</strong>으로 갈립니다.
+        <strong>중단되어도 되는가</strong>와 <strong>얼마나 오래 쓸 것을 약속할 수 있는가</strong>입니다.
+        이 두 질문의 답만 정하면 구매 옵션은 자동으로 결정됩니다.
+      </p>
+
+      <h3 id="ec2-purchase-options">EC2 구매 옵션 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>EC2 구매 옵션과 고르는 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">옵션</th>
+              <th scope="col">성격</th>
+              <th scope="col">고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">온디맨드</th>
+              <td>약정 없이 쓴 만큼 지불합니다</td>
+              <td>기간을 예측할 수 없는 단기·불규칙 워크로드, 신규 서비스의 초기</td>
+            </tr>
+            <tr>
+              <th scope="row">스팟 인스턴스</th>
+              <td>여유 용량을 쓰며 <span class="mark-no">회수되면 중단</span>됩니다</td>
+              <td><strong>중단되어도 되는</strong> 배치·렌더링·CI 작업, 상태 비저장 워커</td>
+            </tr>
+            <tr>
+              <th scope="row">Savings Plans</th>
+              <td>일정 기간의 <strong>시간당 지출 금액</strong>을 약정하고, 조건에 맞는 사용량에 자동 적용됩니다</td>
+              <td>상시 가동되는 기저 부하가 있고, 인스턴스 패밀리나 리전이 바뀔 여지가 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">예약 인스턴스</th>
+              <td><strong>인스턴스 속성</strong>에 대한 약정입니다. 존 단위 예약은 용량까지 확보합니다</td>
+              <td>구성이 고정되어 있고 <strong>용량 예약</strong>이 필요합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">전용 호스트 · 전용 인스턴스</th>
+              <td>물리 서버를 전용으로 사용합니다</td>
+              <td>서버 바인딩 라이선스나 <strong>규정상 물리적 격리</strong>가 요구될 때만</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        실제 설계에서는 이 옵션들을 섞습니다.
+        <strong>상시 기저 부하는 Savings Plans나 예약 인스턴스로, 변동분은 온디맨드로,
+        중단 가능한 작업은 스팟으로</strong> 나누는 구성이 비용 문항의 표준 정답 형태입니다.
+        선택지에 "전부 스팟으로 바꾼다"가 있으면 대개 요구를 위반합니다.
+      </p>
+
+      <h3 id="serverless-cost">서버리스가 유리한 경우와 불리한 경우</h3>
+      <p>
+        AWS Lambda와 AWS Fargate는 <strong>유휴 시간에 과금되지 않는다</strong>는 점에서 비용을 줄입니다.
+        요청이 드문드문 들어오는 워크로드, 하루 몇 분만 도는 작업이 대표적입니다.
+      </p>
+      <p>
+        반대로 <strong>부하가 일정하게 높고 계속 도는 워크로드</strong>에서는 서버리스가 오히려 비쌀 수 있습니다.
+        상시 가동되는 자원을 약정 옵션으로 할인받을 수 있기 때문입니다.
+        "비용 최적화"라는 한정어만 보고 무조건 서버리스를 고르면 이 지점에서 틀립니다.
+      </p>
+
+      <h3 id="rightsizing">라이트사이징과 자동 종료</h3>
+      <p>
+        가장 확실한 절감은 <strong>쓰지 않는 자원을 끄는 것</strong>입니다.
+        개발·테스트 환경을 업무 시간 외에 중지하는 구성,
+        연결되지 않은 Elastic IP와 사용하지 않는 EBS 볼륨·스냅샷 정리가 여기 속합니다.
+      </p>
+      <p>
+        도구는 역할이 나뉩니다.
+        <strong>AWS Compute Optimizer</strong>는 지표를 근거로 인스턴스 크기를 제안하고,
+        <strong>AWS Trusted Advisor</strong>는 비용·성능·보안·내결함성·서비스 한도를 점검합니다.
+        "어떤 인스턴스를 줄여야 하는지 알고 싶다"면 Compute Optimizer입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-4-3">
+      <h2 id="task-4-3">과제 진술 4.3 · 비용 최적화 데이터베이스 솔루션 설계</h2>
+
+      <p>
+        데이터베이스 비용 문항의 첫 질문은 <strong>유휴 시간이 있는가</strong>입니다.
+        24시간 일정한 부하와, 하루 두 시간만 쓰이고 나머지는 비어 있는 부하는
+        전혀 다른 답으로 이어집니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>부하 패턴에 따른 데이터베이스 선택</caption>
+          <thead>
+            <tr>
+              <th scope="col">부하 패턴</th>
+              <th scope="col">선택</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">예측 가능한 상시 부하</th>
+              <td>Amazon RDS 또는 Amazon Aurora의 프로비저닝된 인스턴스 + 약정 옵션</td>
+              <td>상시 가동 자원을 약정으로 할인받는 구조가 가장 단순합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">간헐적이거나 예측 불가한 부하</th>
+              <td>Amazon Aurora Serverless v2</td>
+              <td>용량이 부하에 따라 조정되므로 유휴 구간에 과잉 프로비저닝을 유지하지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">키-값 접근이고 트래픽이 들쭉날쭉</th>
+              <td>Amazon DynamoDB 온디맨드 모드</td>
+              <td>요청 단위 과금이라 유휴 구간의 부담이 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">키-값 접근이고 트래픽이 안정적</th>
+              <td>Amazon DynamoDB 프로비저닝된 모드 + 오토 스케일링</td>
+              <td>예측 가능한 용량을 미리 잡는 편이 유리합니다. 모드는 나중에 변경할 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 부하가 반복 조회 위주</th>
+              <td>캐시 계층 추가</td>
+              <td>인스턴스 크기를 키우는 것보다 저렴하게 읽기를 흡수합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          Aurora Serverless <strong>v1</strong>은 지원이 종료되었습니다.
+          현재 선택지는 <strong>Aurora Serverless v2</strong>입니다.
+          옛 자료에 남아 있는 "Aurora Serverless는 사용하지 않을 때 완전히 멈춘다"는 서술을
+          v2에 그대로 적용하지 마십시오. 두 세대의 동작이 같지 않습니다.
+        </p>
+      </aside>
+
+      <p>
+        저장 비용도 함께 봅니다.
+        <strong>백업 보존 기간</strong>과 <strong>수동 스냅샷</strong>은 지우기 전까지 남습니다.
+        자동 백업은 보존 기간이 지나면 사라지지만 수동 스냅샷은 그렇지 않으므로,
+        "스냅샷이 계속 쌓여 비용이 는다"는 시나리오의 답은 스냅샷 수명 정책입니다.
+      </p>
+      <p>
+        마이그레이션 문항이 비용과 함께 나오는 경우도 있습니다.
+        6R 전략 가운데 <strong>리호스트(Rehost)</strong>는 빠르지만 클라우드 이점을 덜 얻고,
+        <strong>리플랫폼(Replatform)</strong>은 관리형 서비스로 옮겨 운영 비용을 줄이며,
+        <strong>리팩터(Refactor)</strong>는 가장 큰 절감을 낼 수 있지만 노력이 가장 큽니다.
+        "최소한의 변경으로 빠르게"면 리호스트, "운영 부담을 줄이려면"이면 리플랫폼입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-4-4">
+      <h2 id="task-4-4">과제 진술 4.4 · 비용 최적화 네트워크 아키텍처 설계</h2>
+
+      <p>
+        네트워크 비용은 <strong>방향과 경계</strong>가 전부입니다.
+        같은 양의 데이터라도 어디에서 어디로 가는지에 따라 과금 여부가 달라집니다.
+        이 규칙 하나만 알아도 이 진술의 문항 대부분이 풀립니다.
+      </p>
+
+      <h3 id="data-transfer-direction">데이터 전송의 방향성</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>데이터 전송 방향별 과금 성격</caption>
+          <thead>
+            <tr>
+              <th scope="col">방향</th>
+              <th scope="col">과금 성격</th>
+              <th scope="col">설계에 주는 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">인터넷에서 AWS로 들어오는 트래픽(인바운드)</th>
+              <td><span class="mark-ok">대체로 과금되지 않습니다</span></td>
+              <td>업로드가 많은 워크로드는 전송 비용 관점에서 유리합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS에서 인터넷으로 나가는 트래픽(아웃바운드)</th>
+              <td><span class="mark-no">과금됩니다</span></td>
+              <td>비용 절감의 주 대상입니다. 캐싱과 압축이 직접 효과를 냅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">같은 가용 영역 안의 프라이빗 통신</th>
+              <td>경계를 넘지 않습니다</td>
+              <td>서로 통신이 잦은 구성 요소를 같은 가용 영역에 두면 전송이 줄어듭니다</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 사이</th>
+              <td><span class="mark-no">과금됩니다</span></td>
+              <td>가용성을 위해 감수하는 비용입니다. 불필요한 왕복을 만들지 않는 것이 요령입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">리전 사이</th>
+              <td><span class="mark-no">과금됩니다</span></td>
+              <td>교차 리전 복제와 다중 리전 DR의 비용 근거입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 게이트웨이를 경유</th>
+              <td><span class="mark-no">상시 가동 자원 요금과 처리 데이터 요금이 함께 붙습니다</span></td>
+              <td>프라이빗 서브넷에서 AWS 서비스로 나가는 트래픽을 VPC 엔드포인트로 돌리는 근거입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="nat-cost-optimization">NAT 게이트웨이 비용을 줄이는 판단</h3>
+      <p>
+        프라이빗 서브넷의 인스턴스가 Amazon S3나 Amazon DynamoDB에 접근할 때
+        NAT 게이트웨이를 경유하면 <strong>상시 가동 자원과 처리 데이터 양쪽에서 비용이 발생합니다.</strong>
+        <strong>게이트웨이 VPC 엔드포인트</strong>는 라우팅 테이블에 경로를 추가하는 방식이라
+        그런 상시 가동 자원이 없습니다. 보안 요구와 비용 요구가 같은 답을 가리키는 대표 사례입니다.
+      </p>
+      <p>
+        그 밖의 AWS 서비스는 <strong>인터페이스 VPC 엔드포인트</strong>로 접근합니다.
+        인터페이스 엔드포인트는 서브넷에 네트워크 인터페이스를 만들므로
+        게이트웨이 엔드포인트와 달리 자체 비용이 발생합니다.
+        따라서 "NAT를 거치는 트래픽 양"과 "엔드포인트 개수"를 견주는 판단이 필요합니다.
+      </p>
+      <p>
+        가용 영역 배치도 비용에 직접 영향을 줍니다.
+        NAT 게이트웨이를 한 가용 영역에만 두고 여러 가용 영역의 프라이빗 서브넷을 붙이면,
+        <strong>가용 영역 장애에 취약해지는 동시에 가용 영역 간 전송 요금이 추가로 발생합니다.</strong>
+        가용 영역마다 하나씩 두고 라우팅 테이블을 분리하는 구성이 가용성과 비용 양쪽에서 낫습니다.
+      </p>
+
+      <h3 id="cloudfront-cost">CloudFront로 오리진 송신을 줄이는 판단</h3>
+      <p>
+        Amazon CloudFront는 엣지에 콘텐츠를 캐싱하므로
+        <strong>오리진에서 인터넷으로 나가는 반복 전송을 줄입니다.</strong>
+        같은 파일을 여러 사용자가 반복해서 받는 워크로드에서 효과가 큽니다.
+        성능 요구와 비용 요구가 함께 나오면 CloudFront가 두 요구를 동시에 만족시킵니다.
+      </p>
+      <p>
+        반대로 캐시 적중률이 낮은 완전 개인화 응답이라면
+        캐싱으로 줄일 수 있는 오리진 전송이 거의 없습니다.
+        "동적 콘텐츠라 캐싱이 되지 않는다"는 조건이 명시되면 다른 축에서 답을 찾아야 합니다.
+      </p>
+
+      <h3 id="hybrid-transfer">하이브리드 연결과 대량 전송</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>대량 데이터를 옮길 때의 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">상황</th>
+              <th scope="col">선택</th>
+              <th scope="col">판단 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">회선 대역폭으로는 기한 안에 못 옮긴다</th>
+              <td>AWS Snow Family</td>
+              <td>물리 장비를 배송해 오프라인으로 옮깁니다. <strong>대역폭과 기한</strong>이 결정 근거입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">회선이 충분하고 주기적으로 동기화해야 한다</th>
+              <td>AWS DataSync</td>
+              <td>에이전트가 네트워크로 전송하고 일정에 따라 반복합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스에서 상시로 클라우드 스토리지를 쓴다</th>
+              <td>AWS Storage Gateway</td>
+              <td>기존 애플리케이션이 로컬 프로토콜을 그대로 쓰면서 뒤쪽을 S3로 둡니다</td>
+            </tr>
+            <tr>
+              <th scope="row">지속적으로 많은 양이 오간다</th>
+              <td>AWS Direct Connect</td>
+              <td>전용 회선이며 인터넷 아웃바운드보다 전송 단가가 낮은 구조입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          Snow Family와 DataSync를 가르는 문장은 언제나 문제문에 있습니다.
+          <strong>"회선 대역폭"과 "기한"이 함께 제시되면 Snow Family</strong>,
+          <strong>"주기적으로", "지속적으로 동기화"가 제시되면 DataSync</strong>입니다.
+          둘 중 하나만 언급된 문항은 거의 없습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost-visibility">
+      <h2 id="cost-visibility">비용 가시성 도구</h2>
+
+      <p>
+        네 진술 어디에도 속하지 않지만 반복해서 출제되는 갈래입니다.
+        세 도구의 역할이 겹치지 않으므로 <strong>동사</strong>만 보면 갈립니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>비용 가시성 도구 세 가지의 역할</caption>
+          <thead>
+            <tr>
+              <th scope="col">도구</th>
+              <th scope="col">답하는 질문</th>
+              <th scope="col">고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS Cost Explorer</th>
+              <td>어디에 얼마를 썼는가, 추세는 어떤가</td>
+              <td>"분석한다", "시각화한다", "어느 서비스가 늘었는지 확인한다"</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Budgets</th>
+              <td>한도를 넘었는가</td>
+              <td>"임계값을 넘으면 <strong>알림</strong>을 받는다"</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Cost and Usage Report</th>
+              <td>청구 항목 단위의 원본 데이터는 무엇인가</td>
+              <td>"가장 상세한 데이터", "자체 분석 도구로 가져간다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        비용을 부서·프로젝트 단위로 나눠 보려면 <strong>비용 할당 태그</strong>가 전제됩니다.
+        "팀별로 비용을 파악하고 싶다"는 요구에는 태그 지정과 활성화가 먼저 나오고,
+        그 위에서 Cost Explorer로 분석하는 순서가 정답 형태입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision-points">
+      <h2 id="decision-points">판단 지점 점검표 15개</h2>
+
+      <p>
+        아래는 이 도메인에서 <strong>반드시 판단할 수 있어야 하는 지점</strong>입니다.
+        각 행을 읽고 <strong>기준을 한 문장으로 말할 수 없다면</strong> 담당 챕터로 돌아갑니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 4 비용 최적화 아키텍처 설계의 판단 지점과 담당 챕터</caption>
+          <thead>
+            <tr>
+              <th scope="col">번호</th>
+              <th scope="col">판단 지점</th>
+              <th scope="col">기준</th>
+              <th scope="col">담당 챕터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1</th>
+              <td>EC2 구매 옵션 선택</td>
+              <td>중단 허용 여부와 약정 가능성. 대개 여러 옵션을 섞는 것이 답입니다</td>
+              <td><a href="../basics/ch05.html">5장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">2</th>
+              <td>스팟과 Savings Plans의 역할 분담</td>
+              <td>중단 가능한 작업은 스팟, 상시 기저 부하는 Savings Plans</td>
+              <td><a href="../basics/ch05.html">5장</a> · <a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3</th>
+              <td>S3 스토리지 클래스 선택</td>
+              <td>접근 빈도와 허용 검색 시간. 최소 저장 기간 30·90·180일에 주의</td>
+              <td><a href="../basics/ch08.html">8장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4</th>
+              <td>S3 Intelligent-Tiering을 쓰는 때</td>
+              <td>접근 패턴을 모르거나 변할 때. 패턴이 명확하면 수명 주기 규칙이 낫습니다</td>
+              <td><a href="../basics/ch08.html">8장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">5</th>
+              <td>수명 주기 규칙으로 정리할 대상</td>
+              <td>오래된 객체, 이전 버전, 불완전한 멀티파트 업로드</td>
+              <td><a href="../basics/ch08.html">8장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">6</th>
+              <td>One Zone-IA의 교환 조건</td>
+              <td>가용 영역이 하나라 그 가용 영역 장애에 취약합니다. 재생성 가능한 사본에만</td>
+              <td><a href="../basics/ch08.html">8장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">7</th>
+              <td>데이터 전송의 방향성</td>
+              <td>인바운드는 대체로 무과금, 아웃바운드·가용 영역 간·리전 간은 과금</td>
+              <td><a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">8</th>
+              <td>NAT 게이트웨이 비용을 엔드포인트로 줄이기</td>
+              <td>S3·DynamoDB는 게이트웨이 엔드포인트. 상시 가동 자원이 없다는 점이 근거</td>
+              <td><a href="../basics/ch04.html">4장</a> · <a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">9</th>
+              <td>CloudFront로 오리진 송신 줄이기</td>
+              <td>반복 전송이 많을수록 효과가 큽니다. 개인화 응답은 효과가 작습니다</td>
+              <td><a href="../basics/ch14.html">14장</a> · <a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">10</th>
+              <td>비용 가시성 도구 구분</td>
+              <td>분석은 Cost Explorer, 알림은 Budgets, 원본 데이터는 Cost and Usage Report</td>
+              <td><a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">11</th>
+              <td>라이트사이징</td>
+              <td>크기 제안은 Compute Optimizer, 폭넓은 점검은 Trusted Advisor</td>
+              <td><a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">12</th>
+              <td>서버리스가 비용을 줄이는 경우와 늘리는 경우</td>
+              <td>유휴가 길면 유리, 일정한 고부하면 약정 옵션이 유리할 수 있습니다</td>
+              <td><a href="../basics/ch12.html">12장</a> · <a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">13</th>
+              <td>Aurora Serverless v2를 쓰는 때</td>
+              <td>간헐적·예측 불가한 부하. v1은 지원이 종료되었습니다</td>
+              <td><a href="../basics/ch10.html">10장</a> · <a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">14</th>
+              <td>마이그레이션 6R 전략의 비용과 노력</td>
+              <td>빠른 이전은 리호스트, 운영 비용 절감은 리플랫폼, 최대 절감은 리팩터</td>
+              <td><a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">15</th>
+              <td>대용량 전송 수단 선택</td>
+              <td>대역폭과 기한이면 Snow Family, 주기적 동기화면 DataSync, 상시 접근이면 Storage Gateway</td>
+              <td><a href="../basics/ch09.html">9장</a> · <a href="../basics/ch18.html">18장</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="common-traps">
+      <h2 id="common-traps">이 도메인의 함정</h2>
+
+      <aside class="note note--danger" data-label="함정 1">
+        <p>
+          <strong>"가장 저렴하니까 One Zone-IA"</strong> —
+          One Zone-IA는 가용 영역 하나에만 저장합니다.
+          문제문에 "가용 영역 장애에도 데이터가 유지되어야 한다"거나
+          "원본이며 재생성할 수 없다"가 있으면 요구를 위반합니다.
+          비용 한정어가 붙어도 <strong>제약을 위반하는 선택지는 먼저 소거</strong>합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정 2">
+        <p>
+          <strong>최소 저장 기간을 무시하는 것</strong> —
+          Standard-IA와 One Zone-IA는 30일, Glacier Instant Retrieval과
+          Flexible Retrieval은 90일, Deep Archive는 180일의 최소 저장 기간이 있습니다.
+          그보다 짧은 주기로 갱신·삭제되는 데이터를 옮기면 오히려 비용이 늘어납니다.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정 3">
+        <p>
+          <strong>"비용 최적화"만 보고 무조건 서버리스를 고르는 것</strong> —
+          유휴 시간이 길면 서버리스가 유리하지만,
+          <strong>일정하게 높은 부하</strong>는 약정 옵션을 적용한 상시 가동 구성이 더 저렴할 수 있습니다.
+          문제문이 트래픽 패턴을 어떻게 서술했는지 먼저 확인하십시오.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정 4">
+        <p>
+          <strong>중단되면 안 되는 워크로드에 스팟을 고르는 것</strong> —
+          스팟 인스턴스는 여유 용량이 회수되면 중단됩니다.
+          데이터베이스, 상태를 가진 계층, 중단이 곧 장애인 서비스에는 쓰지 않습니다.
+          "비용을 최소화하라"는 한정어가 <strong>제약을 무효화하지는 않습니다.</strong>
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="함정 5">
+        <p>
+          <strong>"Savings Plans가 용량을 예약해 준다"</strong> —
+          Savings Plans는 <strong>시간당 지출 금액에 대한 약정</strong>이지 용량 확보 수단이 아닙니다.
+          특정 가용 영역에 용량을 확보해야 한다는 요구가 있으면
+          존 단위 예약 인스턴스나 온디맨드 용량 예약 쪽을 봅니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">도메인 미니 퀴즈</h2>
+      <p>
+        이 도메인의 판단 지점을 확인하는 10문항입니다.
+        키보드만으로 완주할 수 있습니다 — 숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고
+        <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <div class="quiz-embed" data-set="saa-cost" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch18.html">
+          <span class="card__title">18장 · 비용 최적화·마이그레이션·재해 복구</span>
+          <span class="card__desc">이 도메인의 본체입니다. 데이터 전송 요금 구조, 구매 옵션 전략, 6R 마이그레이션을 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch08.html">
+          <span class="card__title">8장 · S3와 오브젝트 스토리지</span>
+          <span class="card__desc">과제 진술 4.1의 본체입니다. 스토리지 클래스 전체와 수명 주기 규칙을 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">이 도메인에서 자주 뒤집히는 쌍 — Standard-IA와 One Zone-IA, 예약 인스턴스와 Savings Plans를 모았습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">MOST cost-effective가 무엇을 가리키고, 제약을 위반하는 저렴한 선택지를 왜 먼저 버려야 하는지 다룹니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="../cases/case03.html">
+          <span class="card__title">케이스 3 · S3 비용이 매달 늘어난다</span>
+          <span class="card__desc">스토리지 클래스와 수명 주기, 불완전 멀티파트 업로드를 실제 사례로 따라갑니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/cost.html">
+          <span class="card__title">비용 빠른참조</span>
+          <span class="card__desc">요금 모델 요약과 데이터 전송 방향 지도, 절감 레버를 표로 모았습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">SAA-C03 시험 가이드</a>
+          — 도메인 4의 가중치 20%와 과제 진술 네 개</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 클래스별 가용 영역 수, 최소 저장 기간, 최소 청구 크기</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html">Amazon S3 사용 설명서 — 수명 주기 전환 시 일반 고려 사항</a>
+          — 30일 전환 제약과 128 KB 미만 객체가 전환되지 않는다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html">Amazon S3 사용 설명서 — 멀티파트 업로드</a>
+          — 완료되지 않은 업로드가 남아 저장 요금을 발생시킨다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-purchasing-options.html">Amazon EC2 사용 설명서 — 인스턴스 구매 옵션</a>
+          — 온디맨드·스팟·예약 인스턴스·전용 호스트의 성격</li>
+        <li><a href="https://docs.aws.amazon.com/savingsplans/latest/userguide/what-is-savings-plans.html">AWS Savings Plans 사용 설명서</a>
+          — 시간당 지출 약정 모델과 적용 방식</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html">Amazon DynamoDB API 레퍼런스 — CreateTable</a>
+          — 온디맨드와 프로비저닝된 용량 모드의 권고 기준, 모드 변경 가능성</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints.html">Amazon VPC 사용 설명서 — VPC 엔드포인트</a>
+          — 게이트웨이 엔드포인트와 인터페이스 엔드포인트의 구조 차이</li>
+        <li><a href="https://docs.aws.amazon.com/cost-management/latest/userguide/what-is-costmanagement.html">AWS Billing and Cost Management 사용 설명서</a>
+          — Cost Explorer, Budgets, Cost and Usage Report의 역할</li>
+        <li><a href="https://docs.aws.amazon.com/whitepapers/latest/aws-overview/introduction.html">AWS 백서 — AWS 개요</a>
+          — 데이터 전송 방향에 따른 과금 성격의 개괄</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

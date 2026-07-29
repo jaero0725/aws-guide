@@ -662,6 +662,25 @@ enum: ["HTTP", "HTTPS", "TCP", "TLS", "UDP", "TCP_UDP", "GENEVE", "QUIC", "TCP_Q
 
 ---
 
+### 4.16 ELB 교차 영역 로드 밸런싱 기본값 ✅확인됨
+
+**출처**: botocore `elbv2/2015-12-01/service-2.json.gz` → `LoadBalancerAttribute.Key` 의 documentation
+(2026-07-29 확인). 시각화 에이전트가 D-064 에 서술한 내용의 1차 소스 확인 요청에 대한 답이다.
+
+> "`load_balancing.cross_zone.enabled` - Indicates whether cross-zone load balancing is enabled.
+> The possible values are true and false. **The default for Network Load Balancers and Gateway
+> Load Balancers is false. The default for Application Load Balancers is true, and can't be changed.**"
+
+| 로드 밸런서 | 교차 영역 기본값 | 변경 가능 여부 |
+|---|:--:|---|
+| Application Load Balancer | **켜짐 (true)** | **변경 불가** — 항상 켜져 있다 |
+| Network Load Balancer | **꺼짐 (false)** | 변경 가능 |
+| Gateway Load Balancer | **꺼짐 (false)** | 변경 가능 |
+
+**시험 관점**: "ALB는 기본값이 켜짐"보다 **"ALB는 끌 수 없다"** 가 더 중요한 사실이다.
+NLB를 다중 AZ에 두고 AZ마다 대상 수가 다를 때 트래픽이 고르지 않게 분배되는 현상이
+바로 이 기본값 차이에서 온다. ch07·D-064 서술은 이 인용문과 일치해야 한다.
+
 ### 4.15 검증 요약
 
 | 항목 | 상태 |

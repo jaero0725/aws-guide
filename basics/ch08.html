@@ -1,0 +1,1614 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>8장 · S3와 오브젝트 스토리지 — AWS SAA Guide</title>
+  <meta name="description" content="Amazon S3의 강력한 읽기 후 쓰기 일관성, 신규 버킷의 현행 보안 기본값, 스토리지 클래스 전체와 최소 저장 기간, 수명 주기 규칙, 버저닝과 Object Lock, 복제(CRR·SRR), 서버 측 암호화 네 가지, 버킷 정책과 프리사인 URL, 접두사 분산과 멀티파트 업로드를 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch08"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch08">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">8장 · S3와 오브젝트 스토리지</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 8장</p>
+      <h1>S3와 오브젝트 스토리지</h1>
+      <p class="page__lead">
+        Amazon S3 문항은 <strong>어디에 두는가</strong>, <strong>누가 열 수 있는가</strong>,
+        <strong>얼마나 오래 두는가</strong> 세 갈래로 갈립니다.
+        첫째는 스토리지 클래스와 수명 주기가, 둘째는 버킷 정책과 암호화가,
+        셋째는 버저닝과 Object Lock이 답을 정합니다.
+        그리고 이 장에는 <strong>시중 자료가 가장 많이 틀리는 항목이 몰려 있습니다</strong> —
+        일관성 모델과 신규 버킷 기본값이 그것입니다.
+      </p>
+      <p class="page__meta">
+        이 장은 <strong>고성능 아키텍처 설계(24%)</strong>와
+        <strong>비용 최적화 아키텍처 설계(20%)</strong>의 중심이고,
+        <strong>보안 아키텍처 설계(30%)</strong>의 데이터 보안 제어에도 걸칩니다.
+        18장 중 출제 밀도가 가장 높은 장에 속합니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>Amazon S3의 일관성 모델을 현행 기준으로 설명하고, 언제 무엇이 바뀌었는지 말할 수 있습니다.</li>
+        <li>신규 버킷의 현행 보안 기본값 세 가지와 여전히 꺼져 있는 설정을 구분할 수 있습니다.</li>
+        <li>스토리지 클래스를 접근 빈도·검색 시간·가용 영역 수로 나누고, 최소 저장 기간을 근거로 선택할 수 있습니다.</li>
+        <li>수명 주기 규칙으로 전환·만료·불완전 멀티파트 업로드 정리를 설계할 수 있습니다.</li>
+        <li>서버 측 암호화 네 가지를 키 관리 주체와 감사 요구를 기준으로 고를 수 있습니다.</li>
+        <li>버킷 정책·프리사인 URL·퍼블릭 액세스 차단이 요청을 어떤 순서로 거르는지 설명할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="object-model">
+      <h2 id="object-model">객체 모델 — 버킷과 키, 그리고 폴더가 없다는 사실</h2>
+
+      <p>
+        Amazon S3는 파일 시스템이 아니라 <strong>객체 스토리지(object storage)</strong>입니다.
+        데이터는 <strong>버킷(bucket)</strong> 안에 <strong>객체(object)</strong>로 저장되고,
+        객체는 <strong>키(key)</strong>라는 문자열로 식별됩니다.
+        블록 단위로 일부만 고쳐 쓰는 동작이 없고, 객체는 통째로 올리거나 통째로 대체합니다.
+      </p>
+      <p>
+        <code>logs/2026/07/app.log</code>처럼 슬래시가 들어간 키를 콘솔이 폴더처럼 보여 주지만,
+        <strong>S3에 디렉터리 구조는 존재하지 않습니다.</strong>
+        슬래시는 키 문자열의 일부일 뿐이고, 앞부분은 <strong>접두사(prefix)</strong>로 불립니다.
+        이 사실은 뒤의 <a href="#performance">성능</a> 절에서 요청 분산의 근거가 됩니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-070">
+        <figcaption>
+          버킷 · 키 · 버전 ID · 메타데이터로 이루어진 S3 객체 모델과 REST 엔드포인트 형태 —
+          키 안의 슬래시는 디렉터리가 아니라 접두사이며, S3에 폴더라는 실체는 존재하지 않습니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon S3의 이름 공간과 크기 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">의미</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">버킷 이름의 범위</th>
+              <td><strong>파티션 안의 전역 이름 공간</strong></td>
+              <td>한 파티션의 모든 리전·모든 계정을 통틀어 유일해야 한다. 이미 쓰이는 이름은 만들 수 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">버킷의 리전</th>
+              <td>생성 시 지정한 리전에 고정</td>
+              <td>데이터는 명시적으로 옮기지 않는 한 그 리전을 떠나지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">계정당 범용 버킷 수</th>
+              <td>기본 할당량 <strong>10,000개</strong></td>
+              <td>승인을 받아 늘릴 수 있으며, 할당량이 10,000을 넘으면 버킷 목록 조회는 페이지네이션이 필요하다</td>
+            </tr>
+            <tr>
+              <th scope="row">단일 객체 최대 크기</th>
+              <td><strong>50 TB</strong></td>
+              <td>2025년 12월에 5 TB에서 상향되었다. 아래 변경 이력 참조</td>
+            </tr>
+            <tr>
+              <th scope="row">단일 호출 복사 상한</th>
+              <td><strong>5 GB</strong></td>
+              <td>이보다 큰 객체를 복사하려면 멀티파트 업로드의 <code>UploadPartCopy</code>를 써야 한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          <strong>2025년 12월, 단일 객체의 최대 크기가 5 TB에서 50 TB로 상향되었습니다.</strong>
+          AWS GovCloud (US) 리전을 제외한 모든 리전에서 적용되며, 모든 스토리지 클래스에서 쓸 수 있습니다.
+          시중 자료 대부분이 아직 <strong>"S3 객체는 최대 5 TB"</strong>로 적고 있습니다.
+          고해상도 영상, 지진 탐사 데이터, 학습 데이터셋처럼 단일 파일이 큰 워크로드에서
+          "파일을 쪼개야 한다"는 결론이 더 이상 자동으로 따라오지 않습니다.
+        </p>
+      </aside>
+
+      <p>
+        객체에는 데이터 외에 <strong>메타데이터</strong>가 붙습니다.
+        <code>Content-Type</code> 같은 시스템 메타데이터, 사용자가 붙이는 사용자 정의 메타데이터,
+        그리고 접근 제어와 수명 주기 규칙의 필터로 쓰이는 <strong>객체 태그</strong>가 있습니다.
+        메타데이터만 따로 고칠 수는 없고, <strong>메타데이터를 바꾸려면 객체 전체를 다시 올려야</strong> 합니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="consistency">
+      <h2 id="consistency">일관성 모델 — 강력한 읽기 후 쓰기 일관성 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        Amazon S3는 <strong>모든 AWS 리전에서 강력한 읽기 후 쓰기 일관성(strong read-after-write consistency)</strong>을
+        제공합니다. 신규 객체를 올린 직후에도, 기존 객체를 덮어쓴 직후에도, 삭제한 직후에도
+        <strong>다음 읽기는 항상 최신 상태를 반환</strong>합니다.
+      </p>
+      <ul>
+        <li>신규 객체 <code>PUT</code> · 기존 객체를 덮어쓰는 <code>PUT</code> · <code>DELETE</code> 모두 강력한 일관성</li>
+        <li><strong>객체 목록 조회(LIST)도 강력한 일관성</strong> — 새 객체를 쓴 직후 목록을 조회하면 그 객체가 보인다</li>
+        <li>ACL · 객체 태그 · 객체 메타데이터 읽기도 강력한 일관성</li>
+        <li>단일 키에 대한 갱신은 <strong>원자적(atomic)</strong>이다 — 동시에 읽으면 이전 데이터나 새 데이터를 받고,
+          <strong>부분적으로 섞인 데이터는 절대 반환되지 않는다</strong></li>
+      </ul>
+      <p>
+        추가 요금도, 성능 저하도, 별도 설정도 없습니다.
+        "쓰고 나서 잠깐 기다렸다 읽어야 한다", "재시도 루프를 넣어야 한다" 같은 설계는
+        이제 필요하지 않습니다.
+      </p>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          <strong>2020년 12월까지는 달랐습니다.</strong>
+          그전에는 <strong>신규 객체를 올리는 경우에만</strong> 읽기 후 쓰기 일관성이 보장되었고,
+          <strong>덮어쓰기와 삭제는 최종적 일관성(eventual consistency)</strong>이었습니다.
+          그래서 당시에는 "쓴 직후 읽으면 옛 데이터가 나올 수 있다"가 맞는 서술이었고,
+          그 제약을 우회하려고 DynamoDB에 인덱스를 따로 두는 패턴까지 쓰였습니다.
+        </p>
+        <p>
+          <strong>바뀐 사실 자체를 기억하는 것이 중요합니다.</strong>
+          한국어 SAA 자료 상당수가 2020년 이전 기준으로 쓰여 있어서
+          "S3는 최종적 일관성"이라고 가르치고, 그에 맞춘 문항까지 실려 있습니다.
+          그 서술은 <strong>현행 기준으로 명백한 오류</strong>입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          <strong>"S3에 쓴 데이터를 즉시 읽어야 한다"</strong>는 요구가 나오면
+          그것만으로는 아무 추가 설계도 필요하지 않습니다.
+          <strong>일관성을 확보하려고 다른 서비스를 덧붙이는 선택지는 과잉 설계</strong>이며,
+          비용 한정어가 붙어 있으면 더 확실히 오답입니다.
+        </p>
+        <p>
+          반대로 "여러 클라이언트가 같은 키에 동시에 쓴다"는 상황에서
+          <strong>S3가 쓰기 순서를 정해 주지는 않습니다.</strong>
+          마지막에 쓰인 것이 남을 뿐이고, 순서 제어가 필요하면
+          <a href="ch12.html">12장</a>의 큐나 조건부 요청 같은 별도 장치가 필요합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="secure-defaults">
+      <h2 id="secure-defaults">신규 버킷의 현행 기본값 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        지금 새로 만드는 버킷은 <strong>기본적으로 닫혀 있고 기본적으로 암호화됩니다.</strong>
+        이 사실을 모르면 시나리오 문항에서 불필요한 조치를 정답으로 고르게 됩니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-071">
+        <figcaption>
+          신규 버킷의 보안 기본값 세 가지 — 퍼블릭 액세스 차단이 켜져 있고, ACL이 비활성이며,
+          신규 객체가 SSE-S3로 자동 암호화됩니다. 반면 버전 관리는 여전히 꺼진 상태로 시작합니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>신규 버킷 생성 직후의 기본 상태</caption>
+          <thead>
+            <tr>
+              <th scope="col">설정</th>
+              <th scope="col">기본값</th>
+              <th scope="col">적용 시점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">퍼블릭 액세스 차단</th>
+              <td><span class="mark-ok">켜짐</span> — 퍼블릭 ACL이 붙은 버킷 생성 요청은 실패한다</td>
+              <td>2023년 4월</td>
+            </tr>
+            <tr>
+              <th scope="row">객체 소유권 · ACL</th>
+              <td><code>BucketOwnerEnforced</code> — <span class="mark-no">ACL 비활성</span>, 모든 객체를 버킷 소유자가 소유</td>
+              <td>2023년 4월</td>
+            </tr>
+            <tr>
+              <th scope="row">기본 암호화</th>
+              <td><span class="mark-ok">SSE-S3(AES-256) 자동 적용</span> — 추가 요금과 성능 영향 없음</td>
+              <td>2023년 1월</td>
+            </tr>
+            <tr>
+              <th scope="row">버전 관리</th>
+              <td><span class="mark-no">꺼짐</span> — 필요하면 직접 켜야 한다</td>
+              <td>변경된 적 없음</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>"기본값이 전부 안전해졌다"고 뭉뚱그리면 틀립니다.</strong>
+          <strong>버전 관리(Versioning)는 지금도 기본 비활성</strong>이고, 이 기본값은 바뀐 적이 없습니다.
+          실수로 덮어쓰거나 지운 객체를 되돌려야 한다는 요구가 나오면
+          <strong>버전 관리를 켜는 것이 답</strong>이며, "이미 켜져 있다"고 전제하면 안 됩니다.
+        </p>
+      </aside>
+
+      <p>
+        객체 소유권이 <code>BucketOwnerEnforced</code>라는 것은
+        <strong>ACL이 아예 동작하지 않는다</strong>는 뜻입니다.
+        다른 계정이 이 버킷에 객체를 올려도 소유자는 버킷 소유자가 되고,
+        접근 제어는 전적으로 <strong>버킷 정책과 IAM 정책</strong>으로 합니다.
+        AWS는 특별한 사유가 없는 한 이 상태를 유지할 것을 권장합니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          시나리오에 <strong>"다른 계정이 올린 객체를 우리 계정이 읽지 못한다"</strong>는 문제가 나오면,
+          과거에는 객체 ACL로 <code>bucket-owner-full-control</code>을 주는 것이 정답이었습니다.
+          <strong>현행 기본값에서는 그 문제 자체가 발생하지 않습니다</strong> —
+          버킷 소유자가 자동으로 모든 객체를 소유합니다.
+          <strong>"객체 ACL을 조정한다"는 선택지는 이제 기본 구성에서는 동작하지 않습니다.</strong>
+        </p>
+        <p>
+          반대로 <strong>"버킷을 공개해야 한다"</strong>는 요구에는
+          퍼블릭 액세스 차단을 꺼야 한다는 점을 인지해야 합니다.
+          다만 <strong>대부분의 문항에서 정답은 버킷을 공개하는 것이 아니라
+          CloudFront와 오리진 액세스 제어(OAC)로 비공개를 유지하는 것</strong>입니다
+          (<a href="ch14.html">14장 엣지와 DNS</a>).
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="storage-classes">
+      <h2 id="storage-classes">스토리지 클래스 — 접근 빈도와 검색 시간이 기준</h2>
+
+      <p>
+        스토리지 클래스는 <strong>객체 단위</strong> 속성입니다.
+        같은 버킷 안에서 객체마다 다른 클래스를 쓸 수 있고,
+        올릴 때 지정하거나 나중에 수명 주기 규칙으로 바꿉니다.
+        <strong>지정하지 않으면 S3 Standard</strong>입니다.
+      </p>
+      <p>
+        선택 기준은 두 가지뿐입니다. <strong>얼마나 자주 읽는가</strong>와
+        <strong>읽어야 할 때 얼마나 빨리 필요한가</strong>입니다.
+        여기에 <strong>최소 저장 기간</strong>이라는 제약이 붙어서, 자주 지우는 데이터를 차가운 클래스에 두면
+        오히려 손해가 나는 구간이 생깁니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>SAA 출제 범위 스토리지 클래스 비교 — 가용 영역 수, 최소 저장 기간, 최소 청구 객체 크기</caption>
+          <thead>
+            <tr>
+              <th scope="col">클래스</th>
+              <th scope="col">가용 영역 수</th>
+              <th scope="col">접근 시간</th>
+              <th scope="col">최소 저장 기간</th>
+              <th scope="col">최소 청구 크기</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 Standard</th>
+              <td>3개 이상</td>
+              <td>밀리초</td>
+              <td>없음</td>
+              <td>없음</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Intelligent-Tiering</th>
+              <td>3개 이상</td>
+              <td>밀리초 (아카이브 티어 제외)</td>
+              <td>없음</td>
+              <td>없음</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Standard-IA</th>
+              <td>3개 이상</td>
+              <td>밀리초</td>
+              <td><strong>30일</strong></td>
+              <td><strong>128 KB</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S3 One Zone-IA</th>
+              <td><strong>1개</strong></td>
+              <td>밀리초</td>
+              <td><strong>30일</strong></td>
+              <td><strong>128 KB</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Instant Retrieval</th>
+              <td>3개 이상</td>
+              <td>밀리초</td>
+              <td><strong>90일</strong></td>
+              <td><strong>128 KB</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Flexible Retrieval</th>
+              <td>3개 이상</td>
+              <td>복원 필요 (분 ~ 시간)</td>
+              <td><strong>90일</strong></td>
+              <td><strong>40 KB</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Deep Archive</th>
+              <td>3개 이상</td>
+              <td>복원 필요 (시간)</td>
+              <td><strong>180일</strong></td>
+              <td><strong>40 KB</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="이 표에 빠진 열에 대하여">
+        <p>
+          위 표에 <strong>클래스별 설계 가용성 수치(99.99% 등)를 넣지 않았습니다.</strong>
+          내구성은 모든 클래스가 같은 값으로 설계되어 있지만, 가용성 수치는
+          이 사이트가 접근할 수 있는 1차 소스에서 <strong>현행 값으로 교차 확인하지 못했기</strong> 때문입니다.
+          <strong>가용 영역 수는 확인된 값</strong>이고, 실제 판단에 필요한 정보는 그쪽입니다 —
+          One Zone-IA가 단일 가용 영역이라는 사실이 소수점 아래 숫자보다 훨씬 중요합니다.
+        </p>
+      </aside>
+
+      <figure class="chart" data-chart="C-010">
+        <figcaption>
+          스토리지 클래스별 상대 저장 비용 등급. <strong>차가운 클래스일수록 저장 비용은 내려가고
+          검색 비용과 제약이 올라간다</strong>는 교환 관계가 이 그림의 결론입니다.
+          값은 순위이며 실제 금액은 리전과 시점에 따라 다릅니다
+        </figcaption>
+      </figure>
+
+      <figure class="chart" data-chart="C-011">
+        <figcaption>
+          최소 저장 기간과 최소 청구 객체 크기. <strong>30일 · 90일 · 180일의 계단이
+          수명 주기 규칙에서 전환 시점을 정하는 하한선</strong>이 되고,
+          128 KB · 40 KB의 하한 때문에 작은 객체를 대량으로 옮기면 오히려 손해가 납니다
+        </figcaption>
+      </figure>
+
+      <h3 id="one-zone-ia">One Zone-IA — 무엇을 내주고 싼가</h3>
+      <p>
+        S3 One Zone-IA는 데이터를 <strong>단 하나의 가용 영역에만</strong> 저장합니다.
+        그래서 Standard-IA보다 저렴하지만, 그 대가가 명확합니다 —
+        <strong>해당 가용 영역이 물리적으로 손실되면 데이터도 손실됩니다.</strong>
+        다른 클래스는 세 개 이상의 지리적으로 분리된 가용 영역에 저장되므로
+        가용 영역 하나가 사라져도 데이터가 남습니다.
+      </p>
+      <p>
+        따라서 One Zone-IA가 맞는 데이터는 <strong>다시 만들 수 있거나 다른 곳에 원본이 있는 데이터</strong>입니다.
+        원본에서 다시 생성할 수 있는 썸네일, 다른 리전에 복제본이 있는 보조 사본,
+        온프레미스에 원본이 남아 있는 백업의 2차 사본 같은 것들입니다.
+      </p>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>"비용을 최소화하라"는 한정어만 보고 One Zone-IA를 고르는 것이 전형적인 오답입니다.</strong>
+          같은 문장 안에 <strong>"가용 영역 장애에도 견뎌야 한다", "복구할 수 없는 원본이다",
+          "규정상 다중 가용 영역 저장이 필요하다"</strong> 같은 조건이 하나라도 있으면
+          One Zone-IA는 그 자리에서 소거됩니다.
+        </p>
+        <p>
+          거꾸로 <strong>"재생성 가능한 데이터", "이미 다른 곳에 사본이 있다"</strong>가 명시되어 있는데
+          Standard-IA를 고르면 비용 한정어를 놓친 것입니다. 두 방향 모두 출제됩니다.
+        </p>
+      </aside>
+
+      <h3 id="intelligent-tiering">Intelligent-Tiering — 접근 패턴을 모를 때</h3>
+      <p>
+        S3 Intelligent-Tiering은 <strong>접근 패턴을 모니터링해서 객체를 자동으로 옮기는</strong> 클래스입니다.
+        선택 기준은 단 하나입니다 — <strong>접근 패턴을 모르거나 계속 변할 때</strong> 씁니다.
+        패턴을 이미 안다면 해당 클래스를 직접 지정하는 편이 낫습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>S3 Intelligent-Tiering의 접근 티어와 자동 이동 조건</caption>
+          <thead>
+            <tr>
+              <th scope="col">티어</th>
+              <th scope="col">이동 조건</th>
+              <th scope="col">활성화</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Frequent Access</th>
+              <td>업로드·전환 직후의 기본 티어</td>
+              <td>기본</td>
+            </tr>
+            <tr>
+              <th scope="row">Infrequent Access</th>
+              <td><strong>연속 30일</strong> 미접근</td>
+              <td>기본</td>
+            </tr>
+            <tr>
+              <th scope="row">Archive Instant Access</th>
+              <td><strong>연속 90일</strong> 미접근</td>
+              <td>기본</td>
+            </tr>
+            <tr>
+              <th scope="row">Archive Access</th>
+              <td><strong>연속 90일</strong> 이상 미접근</td>
+              <td>선택 — 직접 켜야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">Deep Archive Access</th>
+              <td><strong>연속 180일</strong> 이상 미접근</td>
+              <td>선택 — 직접 켜야 한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        중요한 성질이 셋 있습니다.
+        <strong>(1) 검색 요금이 없습니다</strong> — 티어가 어디든 읽는 데 추가 검색 요금이 붙지 않습니다.
+        <strong>(2) 최소 저장 기간이 없습니다.</strong>
+        <strong>(3) 대신 객체당 모니터링·자동화 요금이 붙습니다</strong> —
+        그래서 아주 작은 객체가 아주 많으면 오히려 불리할 수 있습니다.
+      </p>
+      <p>
+        기본 세 티어는 모두 밀리초 접근이지만, <strong>선택 티어인 Archive Access와
+        Deep Archive Access는 비동기 접근</strong>입니다.
+        이 두 티어에 있는 객체는 <code>RestoreObject</code>로 먼저 복원해야 읽을 수 있으므로,
+        애플리케이션이 즉시 읽어야 한다면 켜지 않습니다.
+      </p>
+      <p>
+        <strong>128 KB 미만 객체는 모니터링 대상이 아니며 자동 계층화되지 않고</strong>
+        Frequent Access 티어에 남습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          문항에서 <strong>"접근 패턴을 예측할 수 없다", "접근 패턴이 시간이 지나며 바뀐다",
+          "운영 부담 없이 비용을 최적화하라"</strong>가 함께 나오면 답은 S3 Intelligent-Tiering입니다.
+          수명 주기 규칙을 직접 설계하는 선택지는 <strong>패턴을 아는 경우</strong>의 답입니다.
+        </p>
+        <p>
+          반대로 <strong>"90일 뒤에는 거의 읽지 않는다", "7년간 보관하되 조회는 연 1회"</strong>처럼
+          패턴이 명시되어 있으면 Intelligent-Tiering은 모니터링 요금만 더 내는 선택입니다.
+          그때는 <strong>수명 주기 규칙 + 명시적 클래스 전환</strong>이 답입니다.
+        </p>
+      </aside>
+
+      <h3 id="glacier-retrieval">Glacier 계열 — 검색 시간이 클래스를 가른다</h3>
+      <p>
+        Glacier 계열 세 클래스의 차이는 저장 비용이 아니라 <strong>읽어야 할 때 얼마나 걸리는가</strong>입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Glacier 계열 클래스의 접근 방식과 확인된 검색 시간</caption>
+          <thead>
+            <tr>
+              <th scope="col">클래스</th>
+              <th scope="col">접근 방식</th>
+              <th scope="col">검색 시간</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 Glacier Instant Retrieval</th>
+              <td>복원 없이 <strong>즉시 읽는다</strong></td>
+              <td>밀리초</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Flexible Retrieval</th>
+              <td><code>RestoreObject</code>로 복원 후 읽는다</td>
+              <td>신속(Expedited) <strong>1–5분</strong> · 대량(Bulk) <strong>5–12시간</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Deep Archive</th>
+              <td><code>RestoreObject</code>로 복원 후 읽는다</td>
+              <td>기본 검색 시간 <strong>12시간</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        복원 요청의 티어는 <code>Expedited</code> · <code>Standard</code> · <code>Bulk</code> 세 가지입니다.
+        Flexible Retrieval에서 <strong>대량(Bulk) 검색은 무료</strong>이고, 신속 검색은 가장 빠른 대신 비쌉니다.
+        두 클래스 모두 복원 요청은 <strong>계정당 초당 최대 1,000 트랜잭션</strong>까지 처리됩니다.
+      </p>
+
+      <figure class="chart" data-chart="C-012">
+        <figcaption>
+          Glacier 검색 옵션별 소요 시간. <strong>신속 검색의 분 단위와 Deep Archive의 시간 단위 사이에
+          두 자릿수 이상의 차이</strong>가 있고, 이 간격이 "몇 시간 안에 복구해야 하는가"라는
+          요구사항에서 클래스를 가릅니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          클래스 선택 문항의 판단 순서입니다.
+        </p>
+        <ul>
+          <li><strong>밀리초 접근이 필요한가</strong> — 필요하면 Glacier Flexible Retrieval과
+            Deep Archive는 즉시 소거됩니다. 드물게 읽지만 읽을 때는 즉시여야 하면
+            <strong>Glacier Instant Retrieval</strong>입니다.</li>
+          <li><strong>얼마나 오래 두는가</strong> — 30일 이내에 지울 데이터를 Standard-IA에 두면
+            최소 저장 기간 때문에 손해입니다.</li>
+          <li><strong>가용 영역 하나를 잃어도 되는가</strong> — 아니면 One Zone-IA는 소거됩니다.</li>
+          <li><strong>패턴을 아는가</strong> — 모르면 Intelligent-Tiering, 알면 명시적 전환입니다.</li>
+        </ul>
+        <p>
+          <strong>"규정상 7년 보관하되 사실상 읽지 않는다"</strong>는 전형적인
+          Glacier Deep Archive 시나리오이고, <strong>"복구 시간 목표가 몇 시간"</strong>이면
+          Deep Archive의 12시간이 그 목표를 넘는지 반드시 확인해야 합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="시험 범위 아님">
+        <p>
+          API의 스토리지 클래스 열거값에는 <code>EXPRESS_ONEZONE</code>(S3 Express One Zone),
+          <code>FSX_OPENZFS</code>, <code>FSX_ONTAP</code>, <code>OUTPOSTS</code>,
+          <code>REDUCED_REDUNDANCY</code>도 있습니다.
+          이 중 <strong>S3 Express One Zone은 디렉터리 버킷이라는 별개의 버킷 유형</strong>을 쓰며
+          SAA-C03 학습 대상으로 다루지 않습니다.
+          Reduced Redundancy는 AWS가 사용을 권장하지 않는 구세대 클래스입니다.
+          이 장의 선택 판단은 <strong>위 표의 일곱 클래스</strong>로 충분합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="lifecycle">
+      <h2 id="lifecycle">수명 주기 규칙 — 전환, 만료, 그리고 비용 누수 차단</h2>
+
+      <p>
+        수명 주기 구성(lifecycle configuration)은 버킷에 붙이는 규칙 집합입니다.
+        규칙 하나는 <strong>필터</strong>(어떤 객체에), <strong>상태</strong>(켜짐/꺼짐),
+        <strong>동작</strong>(무엇을)으로 이루어집니다.
+        필터는 <strong>키 접두사 · 객체 태그 · 객체 크기</strong> 또는 이들의 조합으로 지정할 수 있고,
+        한 버킷의 수명 주기 구성은 <strong>최대 1,000개 규칙</strong>까지 가질 수 있습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-072">
+        <figcaption>
+          객체 하나가 경과 일수에 따라 S3 Standard에서 Standard-IA(30일), Glacier 계열(90일),
+          Deep Archive(180일)로 전환되는 타임라인 — 최소 저장 기간을 어기는 전환과
+          128 KB 미만 객체의 전환 제외 조건을 함께 표시합니다
+        </figcaption>
+      </figure>
+
+      <h3 id="lifecycle-transition">전환 규칙의 제약</h3>
+      <p>
+        수명 주기 전환에는 시험에서 반복되는 제약이 셋 있습니다.
+      </p>
+      <ul>
+        <li><strong>Standard-IA 또는 One Zone-IA로 전환하려면 객체가 최소 30일 저장되어 있어야</strong> 합니다.
+          "업로드 즉시 IA로 보내 비용을 아낀다"는 규칙은 만들 수 없습니다.</li>
+        <li>버전 관리 버킷의 <strong>비현재 버전도 최소 30일 비현재 상태</strong>여야 전환됩니다.</li>
+        <li><strong>128 KB 미만 객체는 전환되지 않습니다.</strong> 최소 청구 크기 때문에
+          작은 객체를 옮겨도 절감 효과가 없거나 오히려 손해이기 때문입니다.</li>
+      </ul>
+
+      <h3 id="lifecycle-expiration">만료와 비현재 버전 정리</h3>
+      <p>
+        만료(expiration) 동작은 객체를 지웁니다.
+        버전 관리가 켜진 버킷에서는 <strong>현재 버전의 만료가 삭제 마커를 남기는 것</strong>이고,
+        실제로 저장 용량을 줄이려면 <strong>비현재 버전 만료</strong>를 함께 설정해야 합니다.
+        만료된 삭제 마커를 정리하는 동작도 따로 있습니다.
+      </p>
+
+      <h3 id="incomplete-multipart">불완전 멀티파트 업로드 정리 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        멀티파트 업로드를 시작하고 완료도 중단도 하지 않으면,
+        <strong>이미 올라간 파트가 계속 저장되고 계속 과금됩니다.</strong>
+        이 파트들은 <strong>객체 목록에 보이지 않습니다.</strong>
+        그래서 "버킷에 든 게 별로 없는데 요금이 계속 늘어난다"는 상황이 만들어집니다.
+        전형적인 비용 누수이고, 원인을 모르면 영원히 찾지 못합니다.
+      </p>
+      <p>
+        해결은 수명 주기 규칙의 <code>AbortIncompleteMultipartUpload</code> 동작입니다.
+        시작 후 지정한 일수가 지난 불완전 업로드의 파트를 S3가 자동으로 지웁니다.
+        <strong>신규 버킷을 만들 때 기본으로 넣어 두는 규칙</strong>이라고 생각하는 편이 좋습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">lifecycle.json</span> — 전환 · 비현재 버전 만료 · 불완전 멀티파트 업로드 정리를 한 구성에 담은 예시</figcaption>
+        <pre><code class="lang-json">{
+  "Rules": [
+    {
+      "ID": "logs-tiering",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "logs/" },
+      "Transitions": [
+        { "Days": 30,  "StorageClass": "STANDARD_IA" },
+        { "Days": 90,  "StorageClass": "GLACIER" },
+        { "Days": 180, "StorageClass": "DEEP_ARCHIVE" }
+      ],
+      "Expiration": { "Days": 2555 }
+    },
+    {
+      "ID": "expire-noncurrent-versions",
+      "Status": "Enabled",
+      "Filter": {},
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 90 },
+      "ExpiredObjectDeleteMarker": true
+    },
+    {
+      "ID": "abort-incomplete-multipart-uploads",
+      "Status": "Enabled",
+      "Filter": {},
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 7 }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">apply-lifecycle.sh</span> — 수명 주기 구성 적용과 미완료 업로드 확인 (버킷 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws s3api put-bucket-lifecycle-configuration \
+  --bucket example-app-logs \
+  --lifecycle-configuration file://lifecycle.json
+
+# 목록에 보이지 않는 미완료 멀티파트 업로드를 직접 확인합니다.
+aws s3api list-multipart-uploads \
+  --bucket example-app-logs \
+  --query 'Uploads[].[Key,Initiated,UploadId]' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          <strong>"S3 요금이 매달 늘어나는데 원인을 모르겠다"</strong>는 시나리오의 정답 후보는 셋입니다.
+        </p>
+        <ul>
+          <li><strong>불완전 멀티파트 업로드</strong> — 목록에 보이지 않으므로 가장 자주 놓칩니다.
+            <code>AbortIncompleteMultipartUpload</code> 규칙으로 해결합니다.</li>
+          <li><strong>버전 관리 버킷의 비현재 버전</strong> — 지운 줄 알았던 객체가 이전 버전으로 남아 있습니다.
+            비현재 버전 만료 규칙으로 해결합니다.</li>
+          <li><strong>클래스 전환이 없는 방치</strong> — 접근하지 않는 데이터가 Standard에 그대로 있습니다.</li>
+        </ul>
+        <p>
+          <strong>"수명 주기 규칙으로 즉시 IA로 보낸다"는 선택지는 30일 제약 때문에 성립하지 않습니다.</strong>
+          업로드 시점부터 차갑게 두려면 <strong>올릴 때 클래스를 직접 지정</strong>해야 합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="versioning">
+      <h2 id="versioning">버저닝, 삭제 마커, MFA Delete, Object Lock</h2>
+
+      <p>
+        버전 관리를 켜면 같은 키에 쓸 때마다 새 <strong>버전 ID</strong>가 붙은 버전이 쌓입니다.
+        상태는 <strong>비활성 · <code>Enabled</code> · <code>Suspended</code></strong> 세 가지이고,
+        <strong>한 번 켠 뒤에는 완전한 비활성 상태로 되돌릴 수 없습니다.</strong>
+        중지(<code>Suspended</code>)하면 새 버전이 더 생기지 않을 뿐, 이미 쌓인 버전은 그대로 남습니다.
+      </p>
+
+      <h3 id="delete-marker">삭제 마커 — 지운 게 아니라 가린 것</h3>
+      <p>
+        버전 관리 버킷에서 <strong>버전 ID 없이 <code>DELETE</code>를 호출하면
+        객체가 지워지는 것이 아니라 삭제 마커(delete marker)가 최신 버전으로 올라갑니다.</strong>
+        이후 일반 <code>GET</code>은 404를 반환하지만, 데이터는 이전 버전으로 그대로 남아 있고 계속 과금됩니다.
+      </p>
+      <ul>
+        <li><strong>복구</strong> — 삭제 마커를 지우면 직전 버전이 다시 최신 버전이 됩니다.</li>
+        <li><strong>영구 삭제</strong> — <strong>버전 ID를 명시해서</strong> <code>DELETE</code>를 호출해야 합니다.</li>
+        <li><strong>비용</strong> — 정리 규칙이 없으면 버전이 무한정 쌓입니다.
+          <a href="#lifecycle-expiration">비현재 버전 만료</a>와 짝지어 쓰는 이유입니다.</li>
+      </ul>
+
+      <h3 id="mfa-delete">MFA Delete</h3>
+      <p>
+        MFA Delete를 켜면 다음 두 작업에 <strong>MFA 장치의 인증 코드가 추가로 필요</strong>합니다.
+      </p>
+      <ul>
+        <li>객체 버전의 영구 삭제</li>
+        <li>버킷의 버전 관리 상태 변경</li>
+      </ul>
+      <p>
+        제약이 까다롭습니다. <strong>버킷을 소유한 계정의 루트 사용자만 활성화할 수 있고</strong>,
+        <strong>콘솔로는 켤 수 없어 AWS CLI나 API를 써야</strong> 하며,
+        <strong>수명 주기 구성과 함께 쓸 수 없습니다.</strong>
+        요청은 HTTPS여야 합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">enable-versioning.sh</span> — 버전 관리와 MFA Delete 활성화 (버킷 이름과 시리얼 번호는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws s3api put-bucket-versioning \
+  --bucket example-app-data \
+  --versioning-configuration Status=Enabled
+
+# MFA Delete 는 루트 사용자만, CLI 또는 API 로만 켤 수 있습니다.
+aws s3api put-bucket-versioning \
+  --bucket example-app-data \
+  --versioning-configuration Status=Enabled,MFADelete=Enabled \
+  --mfa "arn:aws:iam::123456789012:mfa/root-account-mfa-device 123456"</code></pre>
+      </figure>
+
+      <h3 id="object-lock">Object Lock — WORM 보존</h3>
+      <p>
+        S3 Object Lock은 <strong>한 번 쓰면 여러 번 읽을 수 있는(write-once-read-many, WORM)</strong> 모델로
+        객체 버전을 보호합니다. 규정 준수 요구를 만족시키는 장치입니다.
+        <strong>버전 관리가 켜져 있어야 하고, 보호는 객체 버전 단위</strong>로 적용됩니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Object Lock의 보존 모드와 법적 보존</caption>
+          <thead>
+            <tr>
+              <th scope="col">방식</th>
+              <th scope="col">동작</th>
+              <th scope="col">해제</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">거버넌스 모드(Governance)</th>
+              <td>대부분의 사용자가 삭제·덮어쓰기를 할 수 없다</td>
+              <td><code>s3:BypassGovernanceRetention</code> 권한이 있으면 우회할 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">규정 준수 모드(Compliance)</th>
+              <td><strong>계정의 루트 사용자를 포함해 누구도</strong> 삭제·덮어쓰기를 할 수 없다</td>
+              <td><span class="mark-no">불가</span> — 보존 모드 변경도, 보존 기간 단축도 안 된다</td>
+            </tr>
+            <tr>
+              <th scope="row">법적 보존(Legal hold)</th>
+              <td>기간 없이 무기한 보호한다</td>
+              <td>권한을 가진 사용자가 명시적으로 해제한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        보존 기간은 객체마다 직접 지정하거나 <strong>버킷 기본 설정</strong>으로 줄 수 있습니다.
+        기본 설정을 쓰면 객체가 들어올 때마다 생성 시각에 기간을 더해 보존 만료 시각이 계산됩니다.
+        같은 키에 새로 <code>PUT</code>하면 <strong>새 버전이 만들어지고 이전 버전은 원래 보존 기간을 유지</strong>합니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>"감사 기간 동안 어떤 방법으로도 데이터를 지울 수 없어야 한다"</strong>는 요구는
+          <strong>Object Lock 규정 준수 모드</strong>를 지목합니다.
+          루트 사용자조차 지울 수 없다는 점이 다른 어떤 통제와도 구별되는 성질입니다.
+        </p>
+        <p>
+          <strong>"실수로 지우는 것을 막되 필요하면 관리자가 해제할 수 있어야 한다"</strong>면
+          거버넌스 모드입니다. 여기에 <strong>"자격 증명이 유출되어도 지워지면 안 된다"</strong>가 더해지면
+          MFA Delete가 후보에 들어옵니다. <strong>세 장치가 노리는 위협이 서로 다릅니다.</strong>
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="replication">
+      <h2 id="replication">복제 — CRR과 SRR은 목적이 다르다</h2>
+
+      <p>
+        복제(replication)는 버킷 사이에 객체를 <strong>자동으로, 비동기적으로</strong> 복사합니다.
+        원본과 대상 버킷은 같은 계정일 수도 다른 계정일 수도 있습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-075">
+        <figcaption>
+          복제 규칙의 전제와 제약 — 원본과 대상 양쪽에 버전 관리가 필요하고,
+          규칙을 만들기 전에 있던 객체는 자동으로 복제되지 않으며,
+          삭제 마커 전파는 기본이 아니라 선택 사항입니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>교차 리전 복제(CRR)와 동일 리전 복제(SRR)의 용도</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">교차 리전 복제 (CRR)</th>
+              <th scope="col">동일 리전 복제 (SRR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">대상 위치</th>
+              <td>다른 AWS 리전</td>
+              <td>같은 AWS 리전</td>
+            </tr>
+            <tr>
+              <th scope="row">대표 용도</th>
+              <td>지리적으로 떨어진 곳에 보관해야 하는 규정 준수, 사용자와 가까운 리전에 사본을 두어 지연 시간 단축, 리전 장애 대비</td>
+              <td>여러 버킷·여러 계정의 로그를 한 버킷으로 모으기, 운영 계정과 테스트 계정 사이 데이터 동기화, 데이터 주권 요구를 지키면서 사본 유지</td>
+            </tr>
+            <tr>
+              <th scope="row">판단 키워드</th>
+              <td>"다른 리전", "리전 장애", "지리적 거리", "다른 대륙 사용자"</td>
+              <td>"같은 리전 안에서", "데이터가 리전을 벗어나면 안 된다", "로그 집계"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="replication-requirements">복제의 전제 조건과 기본 동작</h3>
+      <ul>
+        <li><strong>원본과 대상 버킷 양쪽에 버전 관리가 켜져 있어야</strong> 합니다.</li>
+        <li>S3가 대신 복사할 수 있도록 <strong>IAM 역할</strong>을 지정해야 합니다.</li>
+        <li>기본적으로 <strong>복제 규칙을 추가한 뒤에 생성된 객체만</strong> 복제됩니다.
+          이미 있던 객체를 옮기려면 <strong>S3 배치 복제(Batch Replication)</strong>를 별도로 실행합니다.</li>
+        <li>원본 버킷에 Object Lock이 켜져 있으면 <strong>대상 버킷에도 켜져 있어야</strong> 합니다.</li>
+        <li>대상 버킷은 <strong>Requester Pays 버킷일 수 없습니다</strong>(교차 계정 구성에서).</li>
+      </ul>
+      <p>
+        삭제 동작이 특히 자주 출제됩니다.
+        <strong>버전 ID를 명시한 삭제는 대상 버킷에 전파되지 않습니다</strong> —
+        악의적·실수 삭제로부터 사본을 지키기 위한 설계입니다.
+        버전 ID 없이 삭제해 생긴 <strong>삭제 마커는 최신 규칙 형식에서 기본적으로 복제되지 않고</strong>,
+        필요하면 삭제 마커 복제를 따로 켜야 합니다.
+      </p>
+      <p>
+        복제로 함께 넘어가는 것과 넘어가지 않는 것도 구분해 둡니다.
+        객체 메타데이터·태그·ACL 갱신·Object Lock 보존 정보는 함께 복제되고,
+        <strong>다른 규칙이 만들어 낸 복제본은 다시 복제되지 않습니다</strong>(연쇄 복제 없음).
+        복제 시 <strong>대상의 스토리지 클래스를 바꾸거나 복제본 소유자를 대상 계정으로 바꿀 수</strong> 있습니다.
+      </p>
+      <p>
+        복제 시간이 예측 가능해야 한다면 <strong>S3 복제 시간 제어(S3 RTC)</strong>를 켭니다.
+        신규 객체의 99.99%를 <strong>15분 안에</strong> 복제하며 서비스 수준 계약이 뒷받침합니다.
+        배치 복제에는 적용되지 않습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">replication.json</span> — 다른 리전 버킷으로 복제하며 대상 클래스를 바꾸는 규칙 (계정 ID와 버킷 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Role": "arn:aws:iam::123456789012:role/s3-replication-role",
+  "Rules": [
+    {
+      "ID": "crr-to-dr-region",
+      "Priority": 1,
+      "Status": "Enabled",
+      "Filter": { "Prefix": "critical/" },
+      "DeleteMarkerReplication": { "Status": "Enabled" },
+      "Destination": {
+        "Bucket": "arn:aws:s3:::example-dr-bucket",
+        "StorageClass": "STANDARD_IA"
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 보안 아키텍처 설계">
+        <p>
+          <strong>"복제를 켰는데 기존 데이터가 대상 버킷에 없다"</strong>는 시나리오의 원인은
+          거의 언제나 <strong>규칙 생성 이전 객체는 복제되지 않는다</strong>는 기본 동작입니다.
+          정답은 <strong>배치 복제</strong>이고, "복제 규칙을 다시 만든다"는 선택지는 효과가 없습니다.
+        </p>
+        <p>
+          <strong>"원본에서 실수로 지운 객체가 사본에서도 사라지면 안 된다"</strong>는 요구에는
+          삭제 마커 복제를 켜지 않는 것이 답입니다. 반대로 <strong>"두 버킷을 완전히 동일하게 유지"</strong>가
+          요구되면 삭제 마커 복제를 켭니다. <strong>기본값이 "켜지지 않음"이라는 점</strong>이 핵심입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="encryption">
+      <h2 id="encryption">암호화 — 키를 누가 쥐는가 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        서버 측 암호화에는 <strong>서로 배타적인 네 가지 옵션</strong>이 있습니다.
+        기능 차이가 아니라 <strong>키를 누가 만들고, 누가 보관하고, 사용 기록이 어디에 남는가</strong>가 다릅니다.
+        선택 기준도 거기서 나옵니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-073">
+        <figcaption>
+          암호화 네 가지의 키 관리 주체 비교 — 키를 누가 만들고 어디에 두는지,
+          키 사용 호출이 AWS CloudTrail에 기록되는지가 갈리며,
+          "키 사용을 감사해야 한다"는 요구가 SSE-KMS를 지목하는 이유가 여기 있습니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>서버 측 암호화 네 가지의 키 관리 주체와 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">방식</th>
+              <th scope="col">API 값</th>
+              <th scope="col">키 관리</th>
+              <th scope="col">이럴 때 고른다</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">SSE-S3</th>
+              <td><code>AES256</code></td>
+              <td>S3가 키를 만들고 관리한다</td>
+              <td>암호화 요구는 있지만 <strong>키를 직접 통제할 필요는 없다</strong>. 신규 객체의 기본값이다</td>
+            </tr>
+            <tr>
+              <th scope="row">SSE-KMS</th>
+              <td><code>aws:kms</code></td>
+              <td>AWS KMS 키를 쓴다. 고객 관리형 키를 지정할 수 있다</td>
+              <td><strong>키 정책으로 접근을 통제</strong>하고, <strong>키 사용 호출을 CloudTrail로 감사</strong>하며, 교체 주기를 통제해야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">DSSE-KMS</th>
+              <td><code>aws:kms:dsse</code></td>
+              <td>KMS 키로 <strong>이중 계층 암호화</strong>를 적용한다</td>
+              <td>규정이 <strong>다중 계층 암호화</strong>를 명시적으로 요구한다</td>
+            </tr>
+            <tr>
+              <th scope="row">SSE-C</th>
+              <td>요청 헤더로 키 전달</td>
+              <td><strong>고객이 키를 제공하고 S3는 저장하지 않는다</strong></td>
+              <td>키를 <strong>AWS 밖에서 관리</strong>해야 한다. 키를 잃으면 데이터를 영원히 못 읽는다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        SSE-KMS에서 키를 지정하지 않으면 <strong>AWS 관리형 키(<code>aws/s3</code>)</strong>가 쓰이고,
+        고객 관리형 키를 지정하면 <strong>키 정책·권한 부여·교체를 직접 통제</strong>할 수 있습니다.
+        키 사용은 KMS API 호출이므로 CloudTrail에 남고, 이것이 감사 요구가 있을 때 SSE-KMS가 답이 되는 이유입니다.
+      </p>
+      <p>
+        대신 객체마다 KMS 호출이 발생하므로 요청량이 많으면 KMS 요청 한도에 걸릴 수 있습니다.
+        <strong>S3 버킷 키(S3 Bucket Key)</strong>를 켜면 KMS 호출 횟수를 줄일 수 있습니다.
+      </p>
+      <p>
+        SSE-C는 <strong>키를 요청마다 함께 보내고 S3는 그 키를 저장하지 않습니다.</strong>
+        암호화에 쓴 뒤 폐기하므로, <strong>키를 분실하면 객체를 복호화할 방법이 없습니다.</strong>
+        키가 요청에 실려 가므로 HTTPS가 필수입니다.
+      </p>
+      <p>
+        네 가지 모두 서버 측 암호화입니다.
+        <strong>클라이언트 측 암호화(client-side encryption)</strong>는 별개로,
+        데이터를 S3에 보내기 전에 애플리케이션이 직접 암호화하는 방식입니다.
+        "AWS가 평문을 절대 볼 수 없어야 한다"는 요구에만 씁니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">bucket-encryption.json</span> — 고객 관리형 KMS 키를 버킷 기본 암호화로 지정하고 버킷 키를 켜는 구성 (키 ARN은 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Rules": [
+    {
+      "ApplyServerSideEncryptionByDefault": {
+        "SSEAlgorithm": "aws:kms",
+        "KMSMasterKeyID": "arn:aws:kms:ap-northeast-2:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+      },
+      "BucketKeyEnabled": true
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          암호화 문항은 <strong>요구 문장 하나로 답이 정해집니다.</strong>
+        </p>
+        <ul>
+          <li><strong>"암호화되어야 한다"만 있다</strong> — SSE-S3로 충분합니다.
+            신규 객체는 이미 그렇게 암호화되므로 <strong>추가 조치가 필요 없을 수도</strong> 있습니다.</li>
+          <li><strong>"키 사용을 감사해야 한다", "키 접근을 정책으로 통제", "교체 주기 관리"</strong> — SSE-KMS,
+            그중에서도 고객 관리형 키입니다.</li>
+          <li><strong>"키를 온프레미스에서 관리해야 한다", "AWS에 키를 두면 안 된다"</strong> — SSE-C 또는
+            클라이언트 측 암호화입니다.</li>
+          <li><strong>"이중 계층 암호화가 규정 요구"</strong> — DSSE-KMS입니다.</li>
+        </ul>
+        <p>
+          <strong>"암호화되지 않은 업로드를 거부하라"</strong>는 요구는 암호화 방식 선택이 아니라
+          <strong>버킷 정책의 조건</strong>으로 푸는 문제입니다.
+          <code>s3:x-amz-server-side-encryption</code> 조건 키로 <code>Deny</code>를 겁니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="access-control">
+      <h2 id="access-control">접근 제어 — 요청은 어디서 막히는가</h2>
+
+      <figure class="diagram" data-diagram="D-074">
+        <figcaption>
+          S3 요청이 퍼블릭 액세스 차단, 버킷 정책, IAM 정책, ACL(기본 비활성)을 차례로 통과하는 경로 —
+          프리사인 URL은 서명한 주체의 권한을 빌린다는 사실을 별도 분기로 표시합니다
+        </figcaption>
+      </figure>
+
+      <h3 id="bucket-policy-vs-acl">버킷 정책과 ACL</h3>
+      <p>
+        접근 제어 수단은 세 가지입니다.
+        <strong>IAM 정책</strong>(주체에 붙임), <strong>버킷 정책</strong>(리소스에 붙임),
+        그리고 <strong>ACL</strong>(현행 기본값에서는 비활성)입니다.
+      </p>
+      <ul>
+        <li><strong>버킷 정책</strong>은 리소스 기반 정책이므로 <strong>다른 계정에 권한을 줄 수 있습니다.</strong>
+          교차 계정 접근의 기본 수단입니다.</li>
+        <li><strong>IAM 정책</strong>은 같은 계정 안의 주체에게 권한을 줍니다.
+          자격 증명 기반 정책과 리소스 기반 정책은 <strong>같은 계정에서 합집합</strong>으로 동작합니다
+          (<a href="ch02.html">2장 IAM과 자격 증명</a>).</li>
+        <li><strong>ACL</strong>은 <code>BucketOwnerEnforced</code>에서 완전히 비활성입니다.
+          <strong>ACL로 접근을 제어하는 설계는 더 이상 기본 구성이 아닙니다.</strong></li>
+      </ul>
+      <p>
+        <strong>퍼블릭 액세스 차단은 이 모든 것보다 앞에서 동작합니다.</strong>
+        버킷 정책이 퍼블릭 접근을 허용하더라도 차단이 켜져 있으면 요청은 거부됩니다.
+        계정 수준과 버킷 수준 양쪽에서 설정할 수 있고, 어느 한쪽이라도 차단하면 차단됩니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">bucket-policy.json</span> — HTTPS가 아닌 요청과 암호화되지 않은 업로드를 거부하는 버킷 정책 (버킷 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInsecureTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::example-app-data",
+        "arn:aws:s3:::example-app-data/*"
+      ],
+      "Condition": { "Bool": { "aws:SecureTransport": "false" } }
+    },
+    {
+      "Sid": "DenyUnencryptedUploads",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::example-app-data/*",
+      "Condition": {
+        "StringNotEquals": { "s3:x-amz-server-side-encryption": "aws:kms" }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <h3 id="presigned-url">프리사인 URL — 서명자의 권한을 빌린다</h3>
+      <p>
+        프리사인 URL(presigned URL)은 <strong>버킷 정책을 고치지 않고 한시적으로</strong>
+        객체를 내려받거나 올릴 수 있게 하는 장치입니다.
+        핵심 성질은 하나입니다 — <strong>URL은 그것을 만든 주체의 자격 증명과 권한으로 동작합니다.</strong>
+        받는 쪽은 AWS 자격 증명이 없어도 되고, 만든 쪽이 권한이 없으면 URL도 동작하지 않습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>프리사인 URL의 유효 기간 — 서명에 쓴 자격 증명이 상한을 정한다</caption>
+          <thead>
+            <tr>
+              <th scope="col">서명에 쓴 자격 증명</th>
+              <th scope="col">최대 유효 기간</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">IAM 인스턴스 프로파일</th>
+              <td>최대 <strong>6시간</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">AWS STS 임시 자격 증명</th>
+              <td>영구 자격 증명으로 서명한 경우 최대 <strong>36시간</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">IAM 사용자 (서명 버전 4)</th>
+              <td>최대 <strong>7일</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        콘솔에서 만들면 <strong>1분에서 12시간</strong> 사이로 지정할 수 있고,
+        AWS CLI나 SDK로 만들면 <strong>최대 7일</strong>까지 지정할 수 있습니다.
+        임시 자격 증명으로 만들었다면 <strong>URL에 적힌 만료 시각과 무관하게
+        자격 증명이 만료되는 순간 URL도 만료</strong>됩니다.
+        만료 전까지는 <strong>여러 번 재사용할 수 있습니다.</strong>
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">presign.sh</span> — 1시간 동안 유효한 다운로드 URL 생성 (버킷과 키는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws s3 presign s3://example-app-data/reports/2026-07.pdf \
+  --expires-in 3600</code></pre>
+      </figure>
+
+      <h3 id="static-website">정적 웹사이트 호스팅</h3>
+      <p>
+        버킷을 정적 웹사이트로 게시할 수 있습니다.
+        인덱스 문서와 오류 문서를 지정하고 리다이렉션 규칙을 줄 수 있습니다.
+        시험에서 주의할 점은 두 가지입니다.
+      </p>
+      <ul>
+        <li><strong>S3 웹사이트 엔드포인트는 HTTPS를 제공하지 않습니다.</strong>
+          HTTPS가 필요하면 앞에 Amazon CloudFront를 둡니다.</li>
+        <li>웹사이트 엔드포인트로 서비스하려면 <strong>객체가 공개되어야</strong> 합니다.
+          <strong>버킷을 비공개로 유지하면서 배포하는 방법이 CloudFront + 오리진 액세스 제어(OAC)</strong>이고,
+          이쪽이 대부분 문항의 정답입니다.</li>
+      </ul>
+
+      <h3 id="requester-pays">Requester Pays</h3>
+      <p>
+        기본적으로 버킷 소유자가 저장 요금과 데이터 전송 요금을 모두 냅니다.
+        <strong>Requester Pays</strong>를 켜면 <strong>요청자가 요청 요금과 다운로드 요금을 내고,
+        소유자는 저장 요금만</strong> 냅니다.
+        공개 데이터셋을 배포하되 전송 비용을 떠안고 싶지 않을 때 씁니다.
+      </p>
+      <ul>
+        <li><strong>익명 요청을 허용하지 않습니다.</strong> 모든 요청이 인증되어야 요금을 청구할 대상을 특정할 수 있습니다.</li>
+        <li>요청자는 <code>x-amz-request-payer</code> 헤더를 붙여 과금에 동의했음을 밝혀야 합니다.
+          빠뜨리면 403이 반환되고 <strong>그 요청 요금은 버킷 소유자가 냅니다.</strong></li>
+        <li>요청자가 IAM 역할을 맡아 호출하면 <strong>역할이 속한 계정</strong>이 청구 대상입니다.</li>
+      </ul>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          <strong>"특정 사용자에게 한시적으로 파일 하나를 주고 싶다"</strong>는 요구의 답은
+          <strong>프리사인 URL</strong>입니다. 버킷을 공개하거나 IAM 사용자를 새로 만드는 선택지는
+          모두 과잉이며 보안 한정어가 붙으면 확실한 오답입니다.
+        </p>
+        <p>
+          <strong>"대용량 공개 데이터셋을 배포하는데 전송 요금 부담이 크다"</strong>면
+          <strong>Requester Pays</strong>입니다. 다만 익명 접근이 불가능해지므로
+          "누구나 로그인 없이 받을 수 있어야 한다"는 조건과는 양립하지 않습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="performance">
+      <h2 id="performance">성능 — 접두사, 멀티파트, 전송 가속화</h2>
+
+      <h3 id="prefix-scaling">접두사별 요청 성능</h3>
+      <p>
+        S3는 요청률에 맞춰 자동으로 확장합니다.
+        확인된 기준은 <strong>파티션된 접두사 하나당
+        초당 최소 3,500건의 <code>PUT</code>·<code>COPY</code>·<code>POST</code>·<code>DELETE</code>와
+        초당 최소 5,500건의 <code>GET</code>·<code>HEAD</code></strong>입니다.
+        <strong>버킷 안의 접두사 개수에는 제한이 없습니다.</strong>
+      </p>
+      <p>
+        그래서 읽기 성능을 늘리는 방법은 단순합니다 — <strong>접두사를 나눠 병렬화</strong>합니다.
+        접두사 10개로 나누면 초당 55,000건의 읽기까지 확장할 수 있습니다.
+        다만 <strong>확장은 점진적이며 즉시 일어나지 않습니다.</strong>
+        확장이 진행되는 동안 <strong><code>503 Slow Down</code> 오류</strong>가 보일 수 있고,
+        확장이 끝나면 사라집니다.
+      </p>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>"키 앞에 임의의 해시를 붙여 성능을 올린다"는 조언은 옛 기준입니다.</strong>
+          예전에는 키 접두사의 사전 순 분포가 파티션 분할에 영향을 주어 무작위 접두사를 권장했지만,
+          현재 기준은 <strong>접두사를 논리적으로 나누어 병렬 요청을 분산</strong>하는 것입니다.
+          날짜나 테넌트 기준의 읽기 쉬운 접두사 설계로 충분합니다.
+        </p>
+      </aside>
+
+      <h3 id="multipart-upload">멀티파트 업로드</h3>
+      <p>
+        큰 객체는 <strong>멀티파트 업로드</strong>로 나누어 병렬 전송합니다.
+        처리량이 올라가고, 실패한 파트만 다시 올리면 되며, 업로드를 중간에 멈췄다 재개할 수 있습니다.
+      </p>
+      <ul>
+        <li>파트 번호는 <strong>1부터 10,000까지</strong>입니다.</li>
+        <li>각 파트는 <strong>최소 5 MB</strong>여야 합니다. <strong>마지막 파트에는 최소 크기 제한이 없습니다.</strong></li>
+        <li>같은 파트 번호로 다시 올리면 <strong>이전 파트를 덮어씁니다.</strong></li>
+        <li>완료(<code>CompleteMultipartUpload</code>)하거나 중단(<code>AbortMultipartUpload</code>)하기 전까지
+          <strong>올라간 파트에 저장 요금이 계속 부과됩니다</strong>
+          (<a href="#incomplete-multipart">불완전 멀티파트 업로드 정리</a>).</li>
+      </ul>
+      <p>
+        내려받을 때는 <strong>바이트 범위 요청(byte-range fetch)</strong>으로 한 객체를 여러 구간으로 나누어
+        병렬로 받을 수 있습니다. 앞부분만 필요할 때 앞부분만 받는 용도로도 씁니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">multipart-upload.sh</span> — 상위 수준 명령이 멀티파트를 자동 처리하는 임계값 설정 (버킷 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 상위 수준 명령은 임계값을 넘는 파일을 자동으로 멀티파트 업로드합니다.
+aws configure set default.s3.multipart_threshold 64MB
+aws configure set default.s3.multipart_chunksize 16MB
+
+aws s3 cp ./large-dataset.tar s3://example-app-data/datasets/
+
+# 전송 가속화 엔드포인트를 사용하려면 설정을 켭니다.
+aws configure set default.s3.use_accelerate_endpoint true</code></pre>
+      </figure>
+
+      <h3 id="transfer-acceleration">Transfer Acceleration</h3>
+      <p>
+        S3 Transfer Acceleration은 <strong>버킷 단위 기능</strong>으로,
+        Amazon CloudFront의 엣지 로케이션에 먼저 데이터를 받은 뒤
+        AWS 내부의 최적화된 경로로 버킷까지 전달합니다.
+        <strong>멀리 떨어진 클라이언트가 한 버킷으로 대용량을 올릴 때</strong> 효과가 있습니다.
+      </p>
+      <ul>
+        <li>버킷 이름이 <strong>DNS 규칙에 맞아야 하고 마침표를 포함하면 안 됩니다.</strong></li>
+        <li>가상 호스팅 방식 요청만 지원하며 <code>s3-accelerate</code> 엔드포인트를 씁니다.</li>
+        <li>켠 뒤 전송 속도가 올라가기까지 <strong>최대 20분</strong>이 걸릴 수 있습니다.</li>
+        <li>모든 리전에서 지원하지는 않으며, 추가 데이터 전송 요금이 발생할 수 있습니다.</li>
+      </ul>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          업로드 성능 문항의 구분입니다.
+        </p>
+        <ul>
+          <li><strong>"파일 하나가 아주 크다"</strong> — 멀티파트 업로드입니다.</li>
+          <li><strong>"전 세계 사용자가 먼 리전의 버킷으로 올린다"</strong> — Transfer Acceleration입니다.</li>
+          <li><strong>"요청 수가 많아 <code>503 Slow Down</code>이 난다"</strong> — 접두사를 나누어 분산합니다.</li>
+          <li><strong>"전 세계 사용자에게 내려주는 속도"</strong> — S3가 아니라
+            <strong>CloudFront</strong>의 문제입니다(<a href="ch14.html">14장</a>).</li>
+        </ul>
+        <p>
+          Transfer Acceleration과 CloudFront를 바꿔 고르는 것이 흔한 실수입니다.
+          <strong>올리는 쪽이면 Transfer Acceleration, 내려주는 쪽이면 CloudFront</strong>로 기억합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"S3는 최종적 일관성이라 쓴 직후 읽으면 옛 데이터가 나올 수 있다"</strong> —
+          <strong>2020년 12월부터 모든 리전에서 강력한 읽기 후 쓰기 일관성을 제공합니다.</strong>
+          신규 객체 업로드뿐 아니라 <strong>덮어쓰기와 삭제, 그리고 목록 조회까지</strong> 최신 상태를 반환합니다.
+          이 서술이 참이었던 시기가 있었기 때문에 지금도 자료에 그대로 남아 있는 것인데,
+          그 자료로 공부하면 <strong>일관성을 확보하려고 불필요한 구성 요소를 덧붙이는 오답</strong>을 고르게 됩니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"S3 버킷은 기본적으로 열려 있으니 퍼블릭 액세스 차단을 켜고 ACL을 정리해야 한다"</strong> —
+          <strong>2023년 이후 신규 버킷은 퍼블릭 액세스 차단이 켜진 채로, ACL이 비활성인 채로,
+          신규 객체가 SSE-S3로 자동 암호화된 채로 만들어집니다.</strong>
+          "차단을 켠다", "기본 암호화를 활성화한다", "객체 ACL을 조정한다"는 조치는
+          이미 되어 있거나 동작하지 않는 것들입니다.
+          <strong>다만 버전 관리는 여전히 꺼져 있습니다</strong> — 여기까지 묶어서 "다 켜져 있다"고 외우면 반대로 틀립니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"수명 주기 규칙을 걸었으니 오래된 데이터는 알아서 정리되고 비용도 준다"</strong> —
+          전환 규칙에는 <strong>Standard-IA·One Zone-IA로 가려면 최소 30일</strong>이라는 하한이 있고,
+          <strong>128 KB 미만 객체는 아예 전환되지 않습니다.</strong>
+          또 버전 관리 버킷에서 현재 버전을 만료시키면 <strong>삭제 마커가 생길 뿐 데이터는 남아</strong>
+          비현재 버전 만료를 따로 걸어야 용량이 줄고,
+          <strong>불완전 멀티파트 업로드는 객체 목록에 보이지 않으면서 계속 과금</strong>됩니다.
+          세 가지를 함께 걸지 않으면 요금은 계속 늘어납니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>8장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">일관성 모델</th>
+                <td><strong>모든 리전에서 강력한 읽기 후 쓰기 일관성</strong>. 목록 조회 포함 (2020-12)</td>
+                <td>최종적 일관성을 전제로 재시도·캐시 무효화 설계를 덧붙임</td>
+              </tr>
+              <tr>
+                <th scope="row">신규 버킷 기본값</th>
+                <td>퍼블릭 액세스 차단 켜짐 · ACL 비활성 · SSE-S3 자동 암호화</td>
+                <td>"차단을 켠다"·"기본 암호화를 활성화한다"를 정답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">버전 관리 기본값</th>
+                <td><strong>여전히 꺼짐.</strong> 한 번 켜면 완전한 비활성으로 되돌릴 수 없다</td>
+                <td>기본값이 다 안전해졌다고 뭉뚱그려 버전 관리도 켜져 있다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">단일 객체 최대 크기</th>
+                <td><strong>50 TB</strong> (2025-12 상향)</td>
+                <td>옛 값 5 TB를 기준으로 파일 분할이 필요하다고 판단</td>
+              </tr>
+              <tr>
+                <th scope="row">최소 저장 기간</th>
+                <td>Standard-IA · One Zone-IA <strong>30일</strong>, Glacier IR · Flexible <strong>90일</strong>, Deep Archive <strong>180일</strong></td>
+                <td>짧게 보관할 데이터를 차가운 클래스에 두어 오히려 비용이 늘어남</td>
+              </tr>
+              <tr>
+                <th scope="row">최소 청구 크기</th>
+                <td>IA 계열과 Glacier IR은 <strong>128 KB</strong>, Glacier Flexible과 Deep Archive는 <strong>40 KB</strong></td>
+                <td>작은 객체를 대량으로 전환해 절감 효과가 사라짐</td>
+              </tr>
+              <tr>
+                <th scope="row">One Zone-IA</th>
+                <td><strong>가용 영역 1개.</strong> 그 가용 영역이 손실되면 데이터도 손실</td>
+                <td>비용 한정어만 보고 복구 불가능한 원본을 One Zone-IA에 둠</td>
+              </tr>
+              <tr>
+                <th scope="row">Intelligent-Tiering</th>
+                <td><strong>접근 패턴을 모를 때.</strong> 검색 요금 없음, 최소 저장 기간 없음, 모니터링 요금 있음</td>
+                <td>패턴이 명시된 문항에서 고름 (그때는 수명 주기 규칙)</td>
+              </tr>
+              <tr>
+                <th scope="row">Intelligent-Tiering 티어 이동</th>
+                <td>30일 → Infrequent Access, 90일 → Archive Instant Access. 선택 티어는 90일·180일</td>
+                <td>선택 아카이브 티어를 켜 두고 즉시 읽으려 함 (복원이 필요하다)</td>
+              </tr>
+              <tr>
+                <th scope="row">Glacier 검색 시간</th>
+                <td>Flexible: 신속 <strong>1–5분</strong> · 대량 <strong>5–12시간</strong>(무료). Deep Archive: 기본 <strong>12시간</strong></td>
+                <td>복구 시간 목표가 몇 시간인데 Deep Archive를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Glacier Instant Retrieval</th>
+                <td>복원 없이 <strong>밀리초</strong>로 읽는다. 최소 90일</td>
+                <td>"Glacier면 무조건 복원이 필요하다"고 일반화</td>
+              </tr>
+              <tr>
+                <th scope="row">수명 주기 전환 하한</th>
+                <td>IA 계열 전환은 <strong>최소 30일</strong> 이후. <strong>128 KB 미만은 전환되지 않음</strong></td>
+                <td>업로드 즉시 IA로 보내는 규칙을 정답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">불완전 멀티파트 업로드</th>
+                <td>객체 목록에 <strong>보이지 않으면서 계속 과금</strong>. <code>AbortIncompleteMultipartUpload</code>로 정리</td>
+                <td>원인 불명의 요금 증가에서 이 항목을 후보로 떠올리지 못함</td>
+              </tr>
+              <tr>
+                <th scope="row">삭제 마커</th>
+                <td>버전 ID 없는 삭제는 <strong>삭제 마커를 추가</strong>할 뿐. 데이터는 남고 과금된다</td>
+                <td>지웠으니 용량이 줄었다고 판단</td>
+              </tr>
+              <tr>
+                <th scope="row">MFA Delete</th>
+                <td><strong>루트 사용자만</strong> 켤 수 있고 <strong>콘솔로는 불가</strong>. 수명 주기 구성과 함께 쓸 수 없다</td>
+                <td>일반 관리자 권한으로 콘솔에서 켜는 절차를 정답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Object Lock 규정 준수 모드</th>
+                <td><strong>루트 사용자 포함 누구도</strong> 삭제·기간 단축 불가. 버전 관리 필수</td>
+                <td>거버넌스 모드와 구분하지 못함 (거버넌스는 권한으로 우회 가능)</td>
+              </tr>
+              <tr>
+                <th scope="row">복제의 전제</th>
+                <td><strong>원본과 대상 양쪽 버전 관리 필수</strong> + IAM 역할</td>
+                <td>버전 관리 없이 복제를 켜려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">복제 대상 범위</th>
+                <td><strong>규칙 생성 이후 객체만.</strong> 기존 객체는 배치 복제로 옮긴다</td>
+                <td>"복제를 켰는데 기존 데이터가 없다"에서 규칙 재생성을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">복제와 삭제</th>
+                <td>버전 ID를 지정한 삭제는 <strong>전파되지 않는다</strong>. 삭제 마커 복제는 <strong>선택</strong></td>
+                <td>기본으로 삭제까지 동기화된다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">CRR과 SRR</th>
+                <td>CRR은 리전 간(규정·지연·재해 복구), SRR은 리전 내(로그 집계·계정 간 동기화)</td>
+                <td>"데이터가 리전을 벗어나면 안 된다"에 CRR을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">암호화 선택</th>
+                <td>감사·키 정책·교체가 요구되면 <strong>SSE-KMS 고객 관리형 키</strong></td>
+                <td>모든 암호화 요구에 SSE-KMS를 고르거나, 감사 요구에 SSE-S3를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">SSE-C</th>
+                <td>고객이 키를 제공하고 <strong>S3는 키를 저장하지 않는다.</strong> 잃으면 복호화 불가</td>
+                <td>S3가 키를 보관해 준다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">ACL</th>
+                <td>기본 비활성(<code>BucketOwnerEnforced</code>). 접근 제어는 버킷 정책과 IAM 정책으로</td>
+                <td>객체 ACL 조정을 교차 계정 접근의 정답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">프리사인 URL</th>
+                <td><strong>서명한 주체의 권한</strong>으로 동작. 만료 전까지 재사용 가능</td>
+                <td>URL을 받은 사람의 권한으로 동작한다고 생각하거나, 버킷 공개를 정답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">정적 웹사이트 엔드포인트</th>
+                <td><strong>HTTPS를 제공하지 않는다.</strong> 비공개 유지 배포는 CloudFront + OAC</td>
+                <td>HTTPS 요구가 있는데 S3 웹사이트 호스팅만으로 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">접두사 성능</th>
+                <td>파티션된 접두사당 <strong>초당 3,500 쓰기 / 5,500 읽기 이상</strong>. 접두사 수 제한 없음</td>
+                <td>버킷 하나의 전체 한도라고 오해하거나, 키에 무작위 해시를 붙이는 옛 조언을 씀</td>
+              </tr>
+              <tr>
+                <th scope="row">멀티파트 파트</th>
+                <td>파트 번호 <strong>1–10,000</strong>, 각 파트 <strong>최소 5 MB</strong>(마지막 파트 제외)</td>
+                <td>작은 파트로 잘게 쪼개 업로드가 실패함</td>
+              </tr>
+              <tr>
+                <th scope="row">Transfer Acceleration</th>
+                <td><strong>올리는 방향</strong>의 장거리 전송 가속. 버킷 이름에 마침표 불가</td>
+                <td>내려받기 성능 요구에 골라 CloudFront와 혼동</td>
+              </tr>
+              <tr>
+                <th scope="row">Requester Pays</th>
+                <td>요청자가 요청·전송 요금, 소유자가 저장 요금. <strong>익명 요청 불가</strong></td>
+                <td>누구나 로그인 없이 받아야 하는 요구에 Requester Pays를 고름</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          이 장의 비용 판단은 네 가지입니다.
+          <strong>(1) 접근 빈도에 맞는 클래스로 옮깁니다</strong> — 단, 최소 저장 기간을 먼저 확인합니다.
+          <strong>(2) 수명 주기 규칙에 세 가지를 함께 넣습니다</strong> —
+          전환, 비현재 버전 만료, 불완전 멀티파트 업로드 정리입니다.
+          <strong>(3) 패턴을 모르면 Intelligent-Tiering에 맡깁니다</strong> —
+          규칙을 잘못 설계하는 것보다 낫습니다.
+          <strong>(4) 복제와 전송의 방향을 따집니다</strong> — 리전 간 복제는 전송 요금을 만들고,
+          내려주는 트래픽이 많으면 CloudFront가 더 유리합니다
+          (<a href="ch18.html">18장 비용 최적화·마이그레이션·재해 복구</a>).
+          이 사이트는 금액을 싣지 않으므로 판단은 언제나 <strong>상대 비교</strong>로 합니다.
+        </p>
+        <p>
+          이 주제들은 <a href="../saa/domain-cost.html">비용 최적화 아키텍처 설계(20%)</a>와
+          <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>에 걸쳐 출제됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch08" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch09.html">
+          <span class="card__title">9장 · 파일 스토리지와 데이터 전송</span>
+          <span class="card__desc">객체가 아니라 파일 시스템이 필요할 때, 그리고 대용량 데이터를 S3로 옮기는 수단을 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch06.html">
+          <span class="card__title">6장 · EBS와 블록 스토리지</span>
+          <span class="card__desc">같은 스토리지라도 블록과 객체는 쓰임새가 다릅니다. 두 모델의 경계를 확인합니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch16.html">
+          <span class="card__title">16장 · 보안·암호화·거버넌스</span>
+          <span class="card__desc">SSE-KMS가 기대는 AWS KMS의 키 종류와 키 정책, 봉투 암호화를 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch14.html">
+          <span class="card__title">14장 · 엣지와 DNS</span>
+          <span class="card__desc">버킷을 비공개로 둔 채 배포하는 CloudFront와 오리진 액세스 제어를 이어서 봅니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../cases/case03.html">
+          <span class="card__title">케이스 3 · S3 비용이 매달 늘어난다</span>
+          <span class="card__desc">스토리지 클래스, 수명 주기, 불완전 멀티파트 업로드가 실제 청구서에서 어떻게 얽히는지 추적합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab03.html">
+          <span class="card__title">실습 3 · S3 정적 사이트 + CloudFront + OAC</span>
+          <span class="card__desc">버킷을 비공개로 유지하면서 정적 사이트를 배포하는 구성을 직접 만들어 봅니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/limits.html">
+          <span class="card__title">한도와 기본값 빠른참조</span>
+          <span class="card__desc">최소 저장 기간과 최소 청구 크기처럼 반드시 외워야 하는 숫자를 확인된 값만 모아 두었습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-cost.html">
+          <span class="card__title">비용 최적화 아키텍처 설계 (20%)</span>
+          <span class="card__desc">스토리지 비용 최적화는 이 도메인의 첫 번째 과제 진술에 해당합니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 수치 · 기본값 · 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html">Amazon S3 사용 설명서 — Amazon S3란 무엇인가</a>
+          — 모든 리전에서 제공되는 강력한 읽기 후 쓰기 일관성, 목록 조회 포함, 단일 키 갱신의 원자성</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">Amazon S3 API 레퍼런스 — CreateBucket</a>
+          — 파티션 단위 전역 이름 공간, 퍼블릭 액세스 차단이 켜진 상태로 생성된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html">Amazon S3 API 레퍼런스 — ListBuckets</a>
+          — 계정당 범용 버킷 기본 할당량 10,000개와 페이지네이션 요건</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketOwnershipControls.html">Amazon S3 API 레퍼런스 — PutBucketOwnershipControls</a>
+          — <code>ObjectOwnership</code> 기본값이 <code>BucketOwnerEnforced</code>이며 ACL이 비활성이라는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html">Amazon S3 사용 설명서 — 기본 암호화 FAQ</a>
+          — 모든 신규 객체가 SSE-S3로 자동 암호화되며 추가 요금이 없다는 서술</li>
+        <li><a href="https://aws.amazon.com/about-aws/whats-new/2025/12/amazon-s3-maximum-object-size-50-tb/">AWS What's New — Amazon S3가 최대 객체 크기를 50 TB로 상향</a>
+          — 2025년 12월 상향, GovCloud (US)를 제외한 모든 리전, 모든 스토리지 클래스 적용</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 클래스별 가용 영역 수, 최소 저장 기간 30·90·180일, 최소 청구 크기 128 KB·40 KB,
+          Intelligent-Tiering의 티어 이동 조건(30·90·180일)과 128 KB 미만 객체 제외,
+          One Zone-IA가 단일 가용 영역이라는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html">Amazon S3 사용 설명서 — 수명 주기 전환 일반 고려 사항</a>
+          — IA 계열 전환의 30일 하한, 비현재 버전의 30일 조건, 128 KB 미만 객체 전환 제외</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketLifecycleConfiguration.html">Amazon S3 API 레퍼런스 — PutBucketLifecycleConfiguration</a>
+          — 규칙 최대 1,000개, 접두사·태그·객체 크기 필터, <code>AbortIncompleteMultipartUpload</code> 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html">Amazon S3 사용 설명서 — MFA Delete 구성</a>
+          — 루트 사용자만 활성화 가능, 콘솔 불가, 수명 주기 구성과 병용 불가</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-overview.html">Amazon S3 사용 설명서 — Object Lock 동작 방식</a>
+          — 거버넌스 모드와 규정 준수 모드의 차이, 법적 보존, 버킷 기본 보존 기간</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html">Amazon S3 사용 설명서 — 객체 복제</a>
+          — 양쪽 버전 관리 필수, IAM 역할, CRR과 SRR의 용도, S3 RTC의 15분 · 99.99% 서비스 수준 계약</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-what-is-isnot-replicated.html">Amazon S3 사용 설명서 — 무엇이 복제되는가</a>
+          — 규칙 생성 이후 객체만 복제, 삭제 마커 기본 미복제, 버전 ID 지정 삭제 미전파, 연쇄 복제 없음</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html">Amazon S3 API 레퍼런스 — PutObject</a>
+          — 서버 측 암호화 네 가지가 상호 배타적이라는 서술, SSE-C 키를 S3가 저장하지 않는다는 점,
+          <code>BucketKeyEnabled</code>의 역할, ACL 비활성 시 버킷 소유자가 모든 객체를 소유한다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html">Amazon S3 API 레퍼런스 — CopyObject</a>
+          — 단일 호출 복사 상한 5 GB와 그 이상은 <code>UploadPartCopy</code>를 써야 한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html">Amazon S3 API 레퍼런스 — UploadPart</a>
+          — 파트 번호 1–10,000, 각 파트 최소 5 MB(마지막 파트 제외), 같은 번호 재업로드 시 덮어쓰기</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateMultipartUpload.html">Amazon S3 API 레퍼런스 — CreateMultipartUpload</a>
+          — 완료하거나 중단하기 전까지 파트 저장 요금이 계속 부과된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html">Amazon S3 사용 설명서 — 성능 최적화 모범 사례</a>
+          — 파티션된 접두사당 초당 3,500 쓰기 / 5,500 읽기, 접두사 수 무제한, 확장 중 503 Slow Down</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/transfer-acceleration.html">Amazon S3 사용 설명서 — Transfer Acceleration</a>
+          — CloudFront 엣지 경유, 마침표 없는 DNS 규칙 준수 버킷 이름, 활성화 후 최대 20분</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html">Amazon S3 사용 설명서 — 프리사인 URL 사용</a>
+          — 서명한 주체의 자격 증명으로 동작, 인스턴스 프로파일 6시간 · STS 36시간 · IAM 사용자 7일,
+          콘솔 1분–12시간, 만료 전 재사용 가능</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/RequesterPaysBuckets.html">Amazon S3 사용 설명서 — Requester Pays 버킷</a>
+          — 요청자가 요청·다운로드 요금, 소유자가 저장 요금, 익명 요청 불가,
+          <code>x-amz-request-payer</code> 헤더 누락 시 소유자에게 청구</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html">Amazon S3 사용 설명서 — 정적 웹사이트 호스팅</a>
+          — 인덱스·오류 문서 지정과 웹사이트 엔드포인트의 성격</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>
