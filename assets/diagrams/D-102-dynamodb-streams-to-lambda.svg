@@ -46,7 +46,7 @@
   <text class="dg-fs-sm dg-bold" x="635" y="74" text-anchor="middle">후속 처리</text>
   <text class="dg-fs-sm dg-muted" x="635" y="96" text-anchor="middle">집계 · 알림 · 색인</text>
 
-  <text class="dg-fs-sm dg-muted" x="20" y="136">Lambda 가 가지러 오므로 재시도 규칙도 스트림의 규칙을 따릅니다</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="136">재시도 규칙도 스트림의 규칙을 따릅니다</text>
 
   <!-- 글로벌 테이블 -->
   <path class="dg-edge dg-edge--dashed" d="M275 116 L275 152" marker-end="url(#d102-ar)"/>

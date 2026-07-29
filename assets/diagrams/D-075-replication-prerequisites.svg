@@ -45,7 +45,7 @@
 
   <path class="dg-edge dg-edge--dashed dg-edge--muted" d="M280 107 L340 107"/>
   <path class="dg-x" d="M348 100 L362 114 M362 100 L348 114"/>
-  <text class="dg-fs-sm dg-bold" x="372" y="112">자동 복제 안 됨</text>
+  <text class="dg-fs-sm dg-bold" x="372" y="112">복제 안 됨</text>
 
   <path class="dg-edge dg-edge--ok" d="M280 157 L426 157" marker-end="url(#d075-ar-ok)"/>
   <text class="dg-fs-sm dg-bold" x="353" y="150" text-anchor="middle">비동기 복제</text>

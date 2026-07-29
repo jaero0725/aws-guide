@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다 — AWS SAA Guide</title>
+  <meta name="description" content="지표 수집·알람 평가·인스턴스 시작·초기화로 이어지는 지연 구간을 분해하고, 대상 추적과 단계 조정 정책, 예약 스케일링, 워밍업, 예열 풀, SQS 완충 중 무엇으로 어느 구간을 줄이는지 판단합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cases" data-page="case07"></div>
+
+  <main id="main" class="page" data-page-id="cases/case07">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">아키텍처 케이스</a></li>
+        <li><span aria-current="page">케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">아키텍처 케이스 · 7</p>
+      <h1>트래픽 급증에 스케일아웃이 못 따라갔다</h1>
+      <p class="page__lead">
+        Auto Scaling은 설정되어 있었고 정책도 있었습니다.
+        그런데도 10분 동안 오류를 냈습니다.
+        원인은 정책의 유무가 아니라 <strong>반응이 완료되기까지의 지연 구간</strong>입니다.
+        지표를 모으고, 알람을 평가하고, 인스턴스를 시작하고, 초기화가 끝나기까지의
+        시간이 급증 속도보다 느리면 부족 구간이 생깁니다.
+      </p>
+      <p class="page__meta">
+        주 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a> ·
+        과제 진술 2.1 확장 가능하고 느슨하게 결합된 아키텍처 설계
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>스케일아웃 반응이 완료되기까지의 지연 구간을 단계별로 분해할 수 있습니다.</li>
+        <li>대상 추적 · 단계 조정 · 단순 · 예측 스케일링 정책의 성격을 구분해 고를 수 있습니다.</li>
+        <li>워밍업과 쿨다운이 어떤 오작동을 막는지 설명할 수 있습니다.</li>
+        <li>예측 가능한 급증에 예약 스케일링을 적용하는 판단을 할 수 있습니다.</li>
+        <li>큐로 요청을 완충해 처리 속도와 유입 속도를 분리하는 설계를 설명할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="situation">
+      <h2 id="situation">상황</h2>
+
+      <p>
+        티켓 예매 서비스가 Application Load Balancer 뒤에서
+        Auto Scaling 그룹으로 운영됩니다.
+        평상시 인스턴스는 4대이고, 다음과 같이 설정되어 있습니다.
+      </p>
+
+      <ul>
+        <li>스케일링 정책은 <strong>평균 CPU 사용률 70%</strong> 기준의 단순 조정 정책 하나입니다.
+          한 번에 <strong>1대</strong>를 추가합니다.</li>
+        <li>인스턴스는 부팅 후 애플리케이션 초기화와 캐시 예열에
+          <strong>수 분</strong>이 걸립니다.</li>
+        <li>워밍업과 쿨다운 값은 기본 상태로 두었습니다.</li>
+        <li>공연 티켓 오픈 시각은 <strong>매주 화요일 오후 2시로 정해져 있습니다.</strong></li>
+      </ul>
+
+      <p>
+        오픈 시각에 다음이 일어났습니다.
+      </p>
+
+      <ol>
+        <li>요청이 수십 배로 뛰었고 4대의 CPU가 곧바로 포화됐습니다.</li>
+        <li>지표가 집계되고 알람이 임계값 위반을 확정하기까지 시간이 걸렸습니다.</li>
+        <li>정책이 발동했지만 한 번에 1대만 추가했습니다.</li>
+        <li>새 인스턴스가 준비되기 전에 상태 확인이 실패해
+          일부가 <strong>비정상으로 판정되어 교체</strong>됐습니다.</li>
+        <li>쿨다운이 끝날 때까지 다음 추가가 지연됐습니다.</li>
+        <li>결국 필요한 대수에 도달했을 때는 <strong>피크가 지나간 뒤</strong>였습니다.</li>
+      </ol>
+
+      <figure class="diagram" data-diagram="D-184">
+        <figcaption>
+          트래픽 급증 곡선 위에 지표 집계 지연, 알람 평가, 인스턴스 시작, 초기화 구간을 겹쳐
+          용량이 부족한 구간을 드러낸 타임라인 —
+          예약 스케일링과 큐 완충이 그 구간을 각각 어떻게 줄이는지 함께 표시합니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          "Auto Scaling을 켜 두었다"는 것은 <strong>대비가 되었다는 뜻이 아닙니다.</strong>
+          스케일아웃은 반드시 <strong>사후 반응</strong>이고, 반응에는 시간이 듭니다.
+          급증 속도가 반응 속도보다 빠르면 부족 구간은 반드시 생깁니다.
+          설계에서 정할 것은 "부족 구간을 없앨 수 있는가"가 아니라
+          <strong>"부족 구간을 얼마나 줄이고, 남는 구간을 무엇으로 견딜 것인가"</strong>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="latency-breakdown">
+      <h2 id="latency-breakdown">지연 구간을 나눈다</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>스케일아웃이 완료되기까지의 구간과 각각을 줄이는 수단</caption>
+          <thead>
+            <tr>
+              <th scope="col">구간</th>
+              <th scope="col">무슨 일이 일어나는가</th>
+              <th scope="col">줄이는 수단</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1. 지표 집계</th>
+              <td>부하 변화가 지표에 반영되기까지 시간이 걸린다</td>
+              <td>세부 모니터링 사용, 반응이 빠른 지표 선택</td>
+            </tr>
+            <tr>
+              <th scope="row">2. 알람 평가</th>
+              <td>임계값 위반이 확정되어야 정책이 발동한다</td>
+              <td>평가 기간 조정, 대상 추적 정책 사용</td>
+            </tr>
+            <tr>
+              <th scope="row">3. 용량 계산</th>
+              <td>몇 대를 늘릴지 결정한다</td>
+              <td>단계 조정으로 위반 크기에 비례해 늘린다</td>
+            </tr>
+            <tr>
+              <th scope="row">4. 인스턴스 시작</th>
+              <td>인스턴스가 시작되고 부팅한다</td>
+              <td>가벼운 AMI, 예열 풀(warm pool)</td>
+            </tr>
+            <tr>
+              <th scope="row">5. 애플리케이션 초기화</th>
+              <td>런타임 기동, 의존성 연결, 캐시 예열</td>
+              <td>이미지에 미리 굽기, 워밍업 값 정확히 설정</td>
+            </tr>
+            <tr>
+              <th scope="row">6. 트래픽 수용</th>
+              <td>상태 확인 통과 후 대상 그룹에 들어간다</td>
+              <td>상태 확인 간격과 임계 횟수 조정</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        이 케이스에서 가장 큰 구간은 <strong>3(한 번에 1대)</strong>과
+        <strong>5(초기화 시간을 워밍업에 반영하지 않음)</strong>입니다.
+        그리고 급증 시각이 정해져 있다는 사실이,
+        반응을 빠르게 하는 것보다 더 좋은 답을 가능하게 합니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="requirements">
+      <h2 id="requirements">요구사항과 제약</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구사항과 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">내용</th>
+              <th scope="col">설계에 주는 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">요구 1</th>
+              <td>오픈 시각의 <strong>오류율을 0에 가깝게</strong> 만든다</td>
+              <td>사후 반응만으로는 부족하다. 사전 확보가 필요하다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 2</th>
+              <td>예측하지 못한 급증에도 <strong>과부하로 무너지지 않아야</strong> 한다</td>
+              <td>초과 요청을 흡수하거나 버리는 정책이 필요하다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 3</th>
+              <td>평상시에는 <strong>여유 자원을 놀리지 않는다</strong></td>
+              <td>상시 대용량 확보는 답이 아니다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 1</th>
+              <td>결제 요청은 <strong>유실되면 안 된다</strong></td>
+              <td>버리는 대신 큐에 넣어 나중에 처리한다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 2</th>
+              <td>좌석 조회 응답은 <strong>즉시</strong>여야 한다</td>
+              <td>이 경로는 비동기로 바꿀 수 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 3</th>
+              <td>애플리케이션 초기화 시간을 <strong>당장 줄이기는 어렵다</strong></td>
+              <td>초기화 시간을 설정에 정확히 반영해야 한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        배경 개념은 <a href="../basics/ch07.html">7장 로드 밸런싱과 오토스케일링</a>과
+        <a href="../basics/ch12.html">12장 서버리스와 애플리케이션 통합</a>에 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="options">
+      <h2 id="options">후보 설계안 비교</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>후보 설계안 4종 비교 — 어느 지연 구간을 줄이는가</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">A · 최소 용량을 피크에 맞춰 상시 유지</th>
+              <th scope="col">B · 대상 추적 정책으로 교체</th>
+              <th scope="col">C · B + 예약 스케일링</th>
+              <th scope="col">D · C + 큐로 쓰기 경로 완충</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">줄이는 구간</th>
+              <td>전부(반응 자체가 불필요)</td>
+              <td>2·3</td>
+              <td><span class="mark-ok">2·3 + 예측된 급증은 4·5까지</span></td>
+              <td><span class="mark-ok">남는 부족 구간을 견딘다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">예측 가능한 급증</th>
+              <td>대응됨</td>
+              <td>여전히 늦다</td>
+              <td><span class="mark-ok">사전에 용량이 서 있다</span></td>
+              <td><span class="mark-ok">동일</span></td>
+            </tr>
+            <tr>
+              <th scope="row">예측 못 한 급증</th>
+              <td>대응됨</td>
+              <td>부분적</td>
+              <td>부분적</td>
+              <td><span class="mark-ok">유입과 처리를 분리해 견딘다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">평상시 자원</th>
+              <td><span class="mark-no">계속 놀린다 — 요구 3 위반</span></td>
+              <td><span class="mark-ok">부하에 맞춰 조절</span></td>
+              <td><span class="mark-ok">조절 + 시간대 조정</span></td>
+              <td><span class="mark-ok">동일</span></td>
+            </tr>
+            <tr>
+              <th scope="row">요청 유실</th>
+              <td>없음</td>
+              <td>피크에 발생</td>
+              <td>줄어들지만 남는다</td>
+              <td><span class="mark-ok">큐에 적재되어 유실되지 않는다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">애플리케이션 변경</th>
+              <td>없음</td>
+              <td>없음</td>
+              <td>없음</td>
+              <td>쓰기 경로를 비동기로 바꾼다</td>
+            </tr>
+            <tr>
+              <th scope="row">판정</th>
+              <td><span class="mark-no">오답 — 비용 한정어와 충돌</span></td>
+              <td>필요하지만 불충분</td>
+              <td><span class="mark-ok">채택</span></td>
+              <td><span class="mark-ok">채택 — 제약 1을 만족</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision">
+      <h2 id="decision">선택과 근거</h2>
+
+      <p>
+        <strong>D안</strong>을 고릅니다.
+        예측 가능한 급증은 <strong>예약 스케일링</strong>으로 미리 세우고,
+        예측하지 못한 급증은 <strong>대상 추적 정책</strong>으로 따라가며,
+        그래도 남는 부족 구간은 <strong>큐</strong>로 견딥니다.
+        세 수단이 서로 다른 문제를 담당합니다.
+      </p>
+
+      <h3 id="policy-types">스케일링 정책 4종</h3>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Auto Scaling 정책 유형과 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">정책 유형</th>
+              <th scope="col">동작</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>TargetTrackingScaling</code></th>
+              <td>지표를 목표값에 유지하도록 용량을 조절한다</td>
+              <td><strong>기본 선택.</strong> 임계값을 하나만 정하면 되고 축소도 함께 처리된다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>StepScaling</code></th>
+              <td>위반 크기에 따라 단계별로 다른 양을 조정한다</td>
+              <td>급증 폭이 클 때 <strong>한 번에 여러 대</strong>를 늘려야 하는 경우</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>SimpleScaling</code> (기본값)</th>
+              <td>한 번 조정하고 쿨다운이 끝날 때까지 기다린다</td>
+              <td>새로 설계할 때 고를 이유가 거의 없다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>PredictiveScaling</code></th>
+              <td>과거 패턴을 학습해 미리 용량을 확보한다</td>
+              <td>주기적인 패턴이 있고 이력이 쌓였을 때. 대상 추적과 함께 쓴다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        이 케이스의 원래 설정이 <code>SimpleScaling</code>이었다는 점이 문제의 절반입니다.
+        한 번 조정한 뒤 쿨다운을 기다리므로 급증을 따라갈 수 없습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">target-tracking.sh</span> — 대상당 요청 수를 목표로 하는 대상 추적 정책 (이름과 목표값은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws autoscaling put-scaling-policy \
+  --auto-scaling-group-name ticket-web \
+  --policy-name track-requests-per-target \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-configuration '{
+      "TargetValue": 800.0,
+      "PredefinedMetricSpecification": {
+        "PredefinedMetricType": "ALBRequestCountPerTarget",
+        "ResourceLabel": "app/ticket-alb/0123456789abcdef/targetgroup/ticket-tg/0123456789abcdef"
+      }
+    }'</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          대상 추적 정책이 쓸 수 있는 사전 정의 지표는
+          <code>ASGAverageCPUUtilization</code>, <code>ASGAverageNetworkIn</code>,
+          <code>ASGAverageNetworkOut</code>, <code>ALBRequestCountPerTarget</code>입니다.
+          웹 티어에서는 CPU보다 <strong>대상당 요청 수</strong>가 부하를 더 직접적으로 반영하는 경우가 많습니다.
+          CPU는 요청이 몰린 뒤에야 올라가므로 한 박자 늦습니다.
+        </p>
+      </aside>
+
+      <h3 id="warmup-cooldown">워밍업과 쿨다운</h3>
+      <p>
+        새 인스턴스가 <strong>아직 준비되지 않았는데 지표에 포함되면</strong>
+        평균이 왜곡되어 필요 이상으로 인스턴스를 늘리거나,
+        준비 중인 인스턴스가 비정상으로 판정되어 교체됩니다.
+        이 케이스에서 4번 증상이 정확히 그것입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>워밍업과 쿨다운의 역할 구분</caption>
+          <thead>
+            <tr>
+              <th scope="col">설정</th>
+              <th scope="col">무엇을 막는가</th>
+              <th scope="col">값을 정하는 근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">기본 인스턴스 워밍업</th>
+              <td>준비 중인 인스턴스가 지표에 포함되어 과잉 확장이 일어나는 것</td>
+              <td><strong>실제 초기화 완료까지의 시간</strong>을 측정해 넣는다</td>
+            </tr>
+            <tr>
+              <th scope="row">상태 확인 유예 기간</th>
+              <td>준비 중인 인스턴스가 비정상으로 판정되어 교체되는 것</td>
+              <td>워밍업보다 넉넉하게</td>
+            </tr>
+            <tr>
+              <th scope="row">쿨다운</th>
+              <td>연속된 조정이 겹쳐 널뛰는 것</td>
+              <td>단순 조정 정책에서만 중요하다. 대상 추적에서는 워밍업이 그 역할을 한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">set-warmup.sh</span> — 그룹 기본 워밍업과 상태 확인 유예 기간 설정 (초 단위 값은 측정 결과에 맞춰 정합니다)</figcaption>
+        <pre><code class="lang-bash">aws autoscaling update-auto-scaling-group \
+  --auto-scaling-group-name ticket-web \
+  --default-instance-warmup 300 \
+  --health-check-type ELB \
+  --health-check-grace-period 420</code></pre>
+      </figure>
+
+      <h3 id="scheduled">예약 스케일링 — 정해진 시각에는 미리 세운다</h3>
+      <p>
+        오픈 시각이 정해져 있다면 반응을 빠르게 만들 이유가 없습니다.
+        <strong>미리 세워 두면 반응이 필요 없습니다.</strong>
+        예약 스케일링은 최소·최대·희망 용량을 시각에 맞춰 바꿉니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">scheduled-scaling.sh</span> — 오픈 30분 전 확장, 2시간 뒤 축소 (요일·시각·용량은 이 케이스의 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 화요일 오전 4시 30분(UTC)에 미리 용량을 올립니다.
+aws autoscaling put-scheduled-update-group-action \
+  --auto-scaling-group-name ticket-web \
+  --scheduled-action-name pre-open-scale-out \
+  --recurrence "30 4 * * 2" \
+  --min-size 20 \
+  --desired-capacity 20
+
+# 피크가 지난 뒤 원래 수준으로 되돌립니다.
+aws autoscaling put-scheduled-update-group-action \
+  --auto-scaling-group-name ticket-web \
+  --scheduled-action-name post-open-scale-in \
+  --recurrence "0 7 * * 2" \
+  --min-size 4 \
+  --desired-capacity 4</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <code>--recurrence</code>는 <strong>UTC 기준</strong>으로 해석되는 것이 기본입니다.
+          현지 시각으로 지정하려면 시간대를 명시해야 하고,
+          그러지 않으면 <strong>서머타임이나 시차 때문에 엉뚱한 시각</strong>에 확장됩니다.
+          위 예시의 04:30 UTC는 한국 표준시 13:30에 해당합니다.
+        </p>
+        <p>
+          또한 예약 스케일링으로 최소 용량을 올린 뒤
+          <strong>되돌리는 작업을 반드시 짝으로 만들어야</strong> 합니다.
+          되돌리지 않으면 대상 추적 정책이 축소하려 해도 최소 용량에 막혀
+          비용이 계속 발생합니다.
+        </p>
+      </aside>
+
+      <h3 id="warm-pool">예열 풀 — 시작과 초기화 구간을 미리 끝내 둔다</h3>
+      <p>
+        초기화 시간을 당장 줄일 수 없다면(제약 3),
+        인스턴스를 미리 시작해 초기화까지 끝낸 뒤 <strong>중지 상태로 대기</strong>시킬 수 있습니다.
+        확장이 필요할 때 이 인스턴스를 깨우면 부팅과 초기화 구간이 사라집니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">warm-pool.sh</span> — 예열 풀 구성 (크기는 피크 증분에 맞춰 정합니다)</figcaption>
+        <pre><code class="lang-bash">aws autoscaling put-warm-pool \
+  --auto-scaling-group-name ticket-web \
+  --min-size 10 \
+  --pool-state Stopped</code></pre>
+      </figure>
+
+      <p>
+        중지 상태로 두면 인스턴스 사용 요금은 발생하지 않지만
+        <strong>볼륨 요금은 계속됩니다.</strong>
+        예열 풀의 크기를 정할 때는 이 점을 고려합니다.
+      </p>
+
+      <h3 id="queue-buffer">큐로 유입과 처리를 분리한다</h3>
+      <p>
+        제약 1(결제 요청 유실 불가)과 요구 2(예측 못 한 급증)를 함께 만족시키는 것은
+        <strong>완충 계층</strong>입니다.
+        웹 계층은 요청을 검증하고 큐에 넣은 뒤 즉시 응답하고,
+        처리 계층이 자기 속도로 큐를 소비합니다.
+      </p>
+
+      <div class="diff">
+        <div class="diff__before">
+          <p>
+            웹 인스턴스가 결제 처리를 동기로 수행합니다.
+            처리 속도가 유입 속도보다 느리면 요청이 대기하다가 타임아웃으로 실패하고,
+            사용자는 결제가 됐는지 알 수 없습니다.
+            부하가 그대로 데이터베이스까지 전달됩니다.
+          </p>
+        </div>
+        <div class="diff__after">
+          <p>
+            웹 인스턴스는 요청을 큐에 넣고 접수 번호를 즉시 돌려줍니다.
+            처리 계층은 큐 적체량을 기준으로 확장하며,
+            확장이 늦어도 요청은 큐에 남아 있으므로 유실되지 않습니다.
+            데이터베이스는 처리 계층의 속도만큼만 부하를 받습니다.
+          </p>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>큐 완충을 도입할 때 정해야 하는 것</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">결정</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">큐 유형</th>
+              <td>순서와 중복 제거가 필요하면 FIFO, 아니면 표준</td>
+              <td>표준 큐는 처리량이 훨씬 크고, FIFO는 메시지 그룹 안에서 순서를 보장한다</td>
+            </tr>
+            <tr>
+              <th scope="row">확장 지표</th>
+              <td>큐의 대기 메시지 수를 인스턴스 수로 나눈 값</td>
+              <td>CPU보다 적체를 직접 반영한다</td>
+            </tr>
+            <tr>
+              <th scope="row">가시성 제한 시간</th>
+              <td>한 건 처리에 걸리는 최대 시간보다 길게</td>
+              <td>짧으면 처리 중인 메시지가 다시 전달되어 중복 처리된다</td>
+            </tr>
+            <tr>
+              <th scope="row">배달 못한 편지 큐(DLQ)</th>
+              <td>최대 수신 횟수를 정하고 별도 큐로 보낸다</td>
+              <td>독이 든 메시지가 큐를 막는 것을 방지한다</td>
+            </tr>
+            <tr>
+              <th scope="row">사용자 경험</th>
+              <td>접수 확인과 완료 알림을 나눈다</td>
+              <td>비동기 처리는 화면 흐름 변경을 동반한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        큐 유형과 속성의 세부 사항은
+        <a href="../basics/ch12.html">12장 서버리스와 애플리케이션 통합</a>에서 다루고,
+        직접 만들어 보려면 <a href="../labs/lab07.html">실습 7 · SQS + Lambda 비동기 처리</a>를 따라 합니다.
+      </p>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          좌석 조회처럼 즉시 응답해야 하는 경로(제약 2)는 큐로 바꾸지 않습니다.
+          대신 <strong>읽기 경로는 캐시로</strong>, <strong>쓰기 경로는 큐로</strong> 나누는 것이
+          이 유형의 표준 처방입니다.
+          읽기 부하 처리는 <a href="case02.html">케이스 2 · 읽기 부하로 데이터베이스가 죽었다</a>에서 다룹니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost-and-ops">
+      <h2 id="cost-and-ops">비용과 운영에 미치는 영향</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>처방별 비용·운영 항목의 변화</caption>
+          <thead>
+            <tr>
+              <th scope="col">처방</th>
+              <th scope="col">비용 항목</th>
+              <th scope="col">운영 항목</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">대상 추적 정책</th>
+              <td>변화 없음 — 오히려 축소가 정확해져 절감된다</td>
+              <td>목표값을 부하 특성에 맞게 다시 정해야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">예약 스케일링</th>
+              <td>확장 구간만큼만 늘어난다</td>
+              <td><strong>축소 액션을 짝으로 유지</strong>해야 한다. 일정 변경 시 함께 수정</td>
+            </tr>
+            <tr>
+              <th scope="row">예열 풀</th>
+              <td>중지 상태 인스턴스의 <strong>볼륨 요금</strong>이 계속된다</td>
+              <td>풀 크기와 AMI 갱신을 함께 관리</td>
+            </tr>
+            <tr>
+              <th scope="row">큐 완충</th>
+              <td>큐 요청 항목이 추가된다</td>
+              <td>DLQ 감시, 중복 처리에 대비한 멱등성 설계</td>
+            </tr>
+            <tr>
+              <th scope="row">피크 상시 확보(A안)</th>
+              <td><span class="mark-no">가장 크다</span></td>
+              <td>가장 단순하다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          <code>MOST cost-effective</code>와 급증 대응이 같이 나오면
+          <strong>상시 대용량 확보는 오답</strong>이고,
+          예측 가능한 패턴에는 <strong>예약 스케일링</strong>,
+          변동이 큰 워크로드에는 <strong>큐 완충과 서버리스</strong>가 정답 방향입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="checklist">
+      <h2 id="checklist">설계 체크리스트</h2>
+
+      <h3 id="checklist-policy">스케일링 정책</h3>
+      <ul>
+        <li><label><input type="checkbox"> 정책 유형이 <strong>대상 추적</strong>이다 (단순 조정을 쓰고 있지 않다)</label></li>
+        <li><label><input type="checkbox"> 목표 지표가 부하를 직접 반영한다 (웹 티어라면 대상당 요청 수를 검토했다)</label></li>
+        <li><label><input type="checkbox"> 급증 폭이 클 때 <strong>한 번에 여러 대</strong>가 추가된다</label></li>
+        <li><label><input type="checkbox"> 최대 용량이 실제 피크를 수용할 만큼 크다</label></li>
+        <li><label><input type="checkbox"> 축소 정책이 있어 피크 이후 자원이 회수된다</label></li>
+      </ul>
+
+      <h3 id="checklist-timing">시간 설정</h3>
+      <ul>
+        <li><label><input type="checkbox"> 인스턴스 초기화 완료까지의 시간을 <strong>측정</strong>했다</label></li>
+        <li><label><input type="checkbox"> 기본 인스턴스 워밍업이 그 측정값을 반영한다</label></li>
+        <li><label><input type="checkbox"> 상태 확인 유예 기간이 워밍업보다 넉넉하다</label></li>
+        <li><label><input type="checkbox"> 예약 스케일링의 시간대 해석을 확인했다 (UTC와 현지 시각의 차이)</label></li>
+        <li><label><input type="checkbox"> 예약 확장과 축소가 <strong>짝</strong>으로 존재한다</label></li>
+      </ul>
+
+      <h3 id="checklist-buffer">완충과 보호</h3>
+      <ul>
+        <li><label><input type="checkbox"> 유실되면 안 되는 쓰기 경로가 큐로 완충된다</label></li>
+        <li><label><input type="checkbox"> 큐 소비자가 <strong>적체량 기준</strong>으로 확장된다</label></li>
+        <li><label><input type="checkbox"> 가시성 제한 시간이 처리 시간보다 길다</label></li>
+        <li><label><input type="checkbox"> DLQ가 설정되어 있고 감시되고 있다</label></li>
+        <li><label><input type="checkbox"> 처리가 <strong>멱등</strong>하다 (같은 메시지를 두 번 처리해도 결과가 같다)</label></li>
+        <li><label><input type="checkbox"> 데이터베이스가 새 최대 용량의 연결 수를 감당한다</label></li>
+        <li><label><input type="checkbox"> 부하 시험으로 실제 급증 곡선을 재현해 봤다</label></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">관련 시험 포인트</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>문제문의 신호와 정답 방향</caption>
+          <thead>
+            <tr>
+              <th scope="col">문제문의 신호</th>
+              <th scope="col">고르는 것</th>
+              <th scope="col">소거하는 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">급증 시각이 정해져 있다 / 매주 같은 시간</th>
+              <td>예약 스케일링</td>
+              <td>임계값만 낮추는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">예측 불가능한 급증</th>
+              <td>대상 추적 + 큐 완충 또는 서버리스</td>
+              <td>피크 용량 상시 확보</td>
+            </tr>
+            <tr>
+              <th scope="row">요청이 유실되면 안 된다</th>
+              <td>SQS로 완충</td>
+              <td>재시도만 늘리는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">새 인스턴스가 계속 교체된다</th>
+              <td>상태 확인 유예 기간과 워밍업 확대</td>
+              <td>상태 확인을 끄는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 기동이 너무 느리다</th>
+              <td>필요 요소를 AMI에 미리 굽거나 예열 풀 사용</td>
+              <td>더 큰 인스턴스로 바꾸는 안(기동 시간과 무관하다)</td>
+            </tr>
+            <tr>
+              <th scope="row">주기적 패턴이 뚜렷하고 이력이 충분하다</th>
+              <td>예측 스케일링을 대상 추적과 병행</td>
+              <td>단순 조정 정책</td>
+            </tr>
+            <tr>
+              <th scope="row">처리량이 0에서 급증까지 오간다</th>
+              <td>AWS Lambda 등 서버리스</td>
+              <td>최소 용량을 크게 잡는 안</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          <code>MOST scalable</code> · <code>decoupled</code> 한정어가 보이면
+          <strong>구성 요소 사이에 큐나 이벤트 버스를 넣는 선택지</strong>를 먼저 봅니다.
+          느슨한 결합은 확장성뿐 아니라 장애 격리에도 기여하므로,
+          이 한정어가 붙은 문항의 정답은 거의 항상 동기 호출을 비동기로 바꾸는 쪽입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch07.html">
+          <span class="card__title">7장 · 로드 밸런싱과 오토스케일링</span>
+          <span class="card__desc">스케일링 정책 유형, 수명주기 훅, 워밍업과 쿨다운을 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch12.html">
+          <span class="card__title">12장 · 서버리스와 애플리케이션 통합</span>
+          <span class="card__desc">SQS 표준과 FIFO, 가시성 제한 시간, DLQ, 이벤트 기반 결합을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab02.html">
+          <span class="card__title">실습 2 · ALB + ASG 웹 티어</span>
+          <span class="card__desc">스케일링 정책을 붙이고 부하를 걸어 반응 시간을 직접 재 봅니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab07.html">
+          <span class="card__title">실습 7 · SQS + Lambda 비동기 처리</span>
+          <span class="card__desc">큐 완충과 DLQ, 가시성 제한 시간을 직접 구성하고 실패를 재현합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="case05.html">
+          <span class="card__title">케이스 5 · 단일 AZ 설계가 장애로 전면 중단됐다</span>
+          <span class="card__desc">같은 Auto Scaling 구성이 가용 영역 장애에서는 어떻게 실패하는지 비교합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">확장 가능하고 느슨하게 결합된 아키텍처의 출제 포인트를 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PutScalingPolicy.html">Amazon EC2 Auto Scaling API 레퍼런스 — PutScalingPolicy</a>
+          — 정책 유형 4종(<code>TargetTrackingScaling</code> · <code>StepScaling</code> ·
+          <code>SimpleScaling</code>(기본값) · <code>PredictiveScaling</code>)과 워밍업 파라미터</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PredefinedMetricSpecification.html">Amazon EC2 Auto Scaling API 레퍼런스 — PredefinedMetricSpecification</a>
+          — 대상 추적이 쓸 수 있는 사전 정의 지표 4종</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_UpdateAutoScalingGroup.html">Amazon EC2 Auto Scaling API 레퍼런스 — UpdateAutoScalingGroup</a>
+          — 기본 인스턴스 워밍업과 상태 확인 유예 기간의 의미</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PutScheduledUpdateGroupAction.html">Amazon EC2 Auto Scaling API 레퍼런스 — PutScheduledUpdateGroupAction</a>
+          — 반복 일정과 시간대 지정, 최소·최대·희망 용량 변경</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PutWarmPool.html">Amazon EC2 Auto Scaling API 레퍼런스 — PutWarmPool</a>
+          — 예열 풀의 상태와 크기 설정</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html">Amazon SQS API 레퍼런스 — CreateQueue</a>
+          — 표준 큐가 기본이며 큐 유형을 나중에 바꿀 수 없다는 서술, 가시성 제한 시간 기본값</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_StopInstances.html">Amazon EC2 API 레퍼런스 — StopInstances</a>
+          — 중지된 인스턴스에는 사용 요금이 부과되지 않지만 볼륨 요금은 계속된다는 서술</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

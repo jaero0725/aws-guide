@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>네트워크 연결 매트릭스 — AWS SAA Guide</title>
+  <meta name="description" content="VPC 연결 옵션을 연결 대상과 요구의 행렬로 정리했습니다. 피어링, Transit Gateway, VPC 엔드포인트, PrivateLink, Site-to-Site VPN, Direct Connect의 비교와 라우팅 규칙, DNS 동작, 포트와 프로토콜 요약을 담았습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cheatsheet" data-page="network"></div>
+
+  <main id="main" class="page page--wide" data-page-id="cheatsheet/network">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">빠른참조</a></li>
+        <li><span aria-current="page">네트워크 연결 매트릭스</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">빠른참조 · 6</p>
+      <h1>네트워크 연결 매트릭스</h1>
+      <p class="page__lead">
+        네트워크 문항의 첫 질문은 언제나 <strong>무엇과 무엇을 잇는가</strong>입니다.
+        연결 대상이 정해지면 후보가 서너 개로 줄고,
+        거기에 요구(전이 라우팅 · 인터넷 비경유 · 대역폭)를 얹으면 하나가 남습니다.
+      </p>
+      <p class="page__meta">
+        연결 옵션의 속성별 상세 대조는 <a href="compare.html#network-pairs">헷갈리는 쌍 비교</a>에 있습니다.
+        이 페이지는 <strong>어떤 상황에 어떤 옵션인가</strong>를 행렬로 고정합니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">이 페이지 쓰는 법</h2>
+      <ul>
+        <li><a href="#connection-matrix">연결 매트릭스</a>에서 행(연결 대상)을 먼저 고르고 열(요구)로 좁힙니다.</li>
+        <li>트래픽이 안 통할 때는 <a href="#troubleshooting">막히는 지점 점검 순서</a>를 위에서부터 따라갑니다.</li>
+        <li>포트를 묻는 문항은 <a href="#ports">포트와 프로토콜</a>에서 확인합니다.</li>
+        <li>DNS가 안 풀리는 시나리오는 <a href="#dns">DNS 동작</a> 절의 두 속성부터 봅니다.</li>
+        <li>배경 개념은 <a href="../basics/ch03.html">3장</a>과 <a href="../basics/ch04.html">4장</a>에 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="connection-matrix">
+      <h2 id="connection-matrix">연결 매트릭스</h2>
+
+      <figure class="diagram" data-diagram="D-192">
+        <figcaption>
+          네트워크 연결 옵션 매트릭스 — 연결 대상(VPC와 VPC · VPC와 온프레미스 · VPC와 AWS 서비스)을 한 축에,
+          요구(전이 라우팅 · 대역폭 · 인터넷 비경유)를 다른 축에 놓고 각 칸의 답이 되는 서비스를 고정합니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>연결 대상과 요구의 조합에 대응하는 서비스</caption>
+          <thead>
+            <tr>
+              <th scope="col">연결 대상</th>
+              <th scope="col">단순 연결</th>
+              <th scope="col">전이 라우팅 · 다수 연결</th>
+              <th scope="col">인터넷을 거치지 않기</th>
+              <th scope="col">일부만 노출</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">VPC와 VPC (같은 계정 · 다른 계정)</th>
+              <td>VPC 피어링</td>
+              <td><strong>AWS Transit Gateway</strong></td>
+              <td>둘 다 AWS 네트워크 안입니다</td>
+              <td><strong>AWS PrivateLink</strong> — 서비스 하나만 노출합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC와 온프레미스</th>
+              <td>AWS Site-to-Site VPN</td>
+              <td>Transit Gateway에 VPN이나 Direct Connect를 붙입니다</td>
+              <td><strong>AWS Direct Connect</strong></td>
+              <td>Direct Connect 위의 프라이빗 가상 인터페이스</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC와 AWS 서비스</th>
+              <td>인터넷 게이트웨이 또는 NAT 게이트웨이 경유</td>
+              <td>해당 없음</td>
+              <td><strong>VPC 엔드포인트</strong> — S3·DynamoDB는 게이트웨이, 나머지는 인터페이스</td>
+              <td>엔드포인트 정책으로 통과 범위를 좁힙니다</td>
+            </tr>
+            <tr>
+              <th scope="row">개별 사용자 단말과 VPC</th>
+              <td><strong>AWS Client VPN</strong></td>
+              <td>해당 없음</td>
+              <td>Client VPN 자체가 암호화 터널입니다</td>
+              <td>인증 그룹별 접근 규칙</td>
+            </tr>
+            <tr>
+              <th scope="row">프라이빗 서브넷과 인터넷 (나가기만)</th>
+              <td><strong>NAT 게이트웨이</strong></td>
+              <td>해당 없음</td>
+              <td>목적지가 AWS 서비스면 VPC 엔드포인트로 바꿉니다</td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">여러 계정이 같은 서브넷 사용</th>
+              <td><strong>AWS Resource Access Manager</strong>로 서브넷 공유</td>
+              <td>해당 없음</td>
+              <td>해당 없음</td>
+              <td>공유할 서브넷만 선택합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>VPC 피어링은 전이 라우팅을 하지 않습니다.</strong>
+          A와 B가 피어링되고 B와 C가 피어링되어 있어도 A는 C에 도달하지 못합니다.
+          연결 대상이 세 개를 넘어가면 조합이 급격히 늘어나므로 Transit Gateway가 답이 됩니다.
+          또한 <strong>CIDR이 겹치면 피어링 자체가 성립하지 않습니다.</strong>
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="vpc-to-vpc">
+      <h2 id="vpc-to-vpc">VPC와 VPC를 잇는 세 가지</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>VPC 피어링 · AWS Transit Gateway · AWS PrivateLink의 성격 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">VPC 피어링</th>
+              <th scope="col">AWS Transit Gateway</th>
+              <th scope="col">AWS PrivateLink</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">연결 모델</th>
+              <td>일대일</td>
+              <td>허브와 스포크</td>
+              <td>서비스 제공자와 소비자</td>
+            </tr>
+            <tr>
+              <th scope="row">노출 범위</th>
+              <td>양쪽 네트워크 전체</td>
+              <td>연결된 네트워크 전체</td>
+              <td><strong>서비스 엔드포인트 하나</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">전이 라우팅</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span></td>
+              <td>해당 없음 — 라우팅이 아니라 서비스 접근입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">CIDR 중복</th>
+              <td>허용되지 않습니다</td>
+              <td>허용되지 않습니다</td>
+              <td><strong>겹쳐도 됩니다</strong> — 사설 IP 하나로 접근하기 때문입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">연결 수가 늘어날 때</th>
+              <td>조합이 급격히 늘어납니다</td>
+              <td>허브에 붙이기만 하면 됩니다</td>
+              <td>소비자마다 엔드포인트를 만듭니다</td>
+            </tr>
+            <tr>
+              <th scope="row">리전</th>
+              <td>리전 간 피어링이 가능합니다</td>
+              <td>게이트웨이끼리 피어링해 리전을 넘습니다</td>
+              <td>리전 안에서 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"두 VPC만 잇는다", "간단하게"</td>
+              <td>"수십 개 VPC", "온프레미스까지 한곳에서"</td>
+              <td>"우리 서비스만 다른 계정에 제공", "CIDR이 겹친다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="vpc-to-onprem">
+      <h2 id="vpc-to-onprem">VPC와 온프레미스를 잇는 세 가지</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Site-to-Site VPN · Direct Connect · Client VPN의 성격 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">AWS Site-to-Site VPN</th>
+              <th scope="col">AWS Direct Connect</th>
+              <th scope="col">AWS Client VPN</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">연결 주체</th>
+              <td>사이트(데이터센터·사무실)</td>
+              <td>사이트</td>
+              <td><strong>개별 사용자 단말</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">전송 매체</th>
+              <td>인터넷 위의 IPsec 터널</td>
+              <td><strong>전용 물리 회선</strong></td>
+              <td>인터넷 위의 터널</td>
+            </tr>
+            <tr>
+              <th scope="row">지연의 일관성</th>
+              <td>인터넷 상태에 따라 변합니다</td>
+              <td>일관됩니다</td>
+              <td>인터넷 상태에 따라 변합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">구축 시간</th>
+              <td>짧습니다</td>
+              <td><strong>깁니다</strong> — 회선 신청과 설치가 필요합니다</td>
+              <td>짧습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">암호화</th>
+              <td>기본으로 암호화됩니다</td>
+              <td>기본은 암호화되지 않습니다 — 필요하면 위에 VPN을 얹습니다</td>
+              <td>기본으로 암호화됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">대표 조합</th>
+              <td>Direct Connect의 <strong>백업 경로</strong></td>
+              <td>Transit Gateway에 붙여 여러 VPC와 잇습니다</td>
+              <td>재택 근무자의 프라이빗 리소스 접근</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"빨리 연결", "비용을 낮게", "백업 회선"</td>
+              <td>"일관된 지연", "대역폭 보장", "인터넷을 거치면 안 된다"</td>
+              <td>"원격 근무자", "개인 노트북에서"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="자주 나오는 조합">
+        <p>
+          "전용 회선을 쓰되 끊기면 안 된다"는 요구의 답은 하나를 고르는 것이 아니라
+          <strong>AWS Direct Connect에 AWS Site-to-Site VPN을 백업으로 붙이는 것</strong>입니다.
+          비용 요구가 함께 있으면 회선을 이중화하는 대신 VPN 백업을 쓰는 선택지가 정답이 됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="vpc-to-service">
+      <h2 id="vpc-to-service">VPC와 AWS 서비스 — 엔드포인트 선택</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>AWS 서비스로 향하는 경로 네 가지의 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">경로</th>
+              <th scope="col">인터넷 경유</th>
+              <th scope="col">필요한 구성</th>
+              <th scope="col">과금 축</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">퍼블릭 서브넷 + 인터넷 게이트웨이</th>
+              <td><span class="mark-no">경유합니다</span></td>
+              <td>퍼블릭 IP와 인터넷 게이트웨이 경로</td>
+              <td>인터넷 송신 데이터 전송</td>
+            </tr>
+            <tr>
+              <th scope="row">프라이빗 서브넷 + NAT 게이트웨이</th>
+              <td><span class="mark-no">경유합니다</span></td>
+              <td>가용 영역마다 NAT 게이트웨이</td>
+              <td>가동 시간 + <strong>처리 데이터</strong> + 송신</td>
+            </tr>
+            <tr>
+              <th scope="row">게이트웨이 엔드포인트</th>
+              <td><span class="mark-ok">경유하지 않습니다</span></td>
+              <td>라우팅 테이블에 엔드포인트 경로</td>
+              <td>추가 요금 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">인터페이스 엔드포인트</th>
+              <td><span class="mark-ok">경유하지 않습니다</span></td>
+              <td>서브넷의 ENI와 보안 그룹</td>
+              <td>가동 시간 + 처리 데이터</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        두 엔드포인트 유형의 속성별 상세 대조는
+        <a href="compare.html#gateway-vs-interface-endpoint">헷갈리는 쌍 비교</a>에 있습니다.
+        여기서 기억할 한 줄은 <strong>"S3와 DynamoDB만 게이트웨이, 나머지는 인터페이스,
+        온프레미스에서 접근해야 하면 무조건 인터페이스"</strong>입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="routing">
+      <h2 id="routing">라우팅</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>라우팅 테이블 동작의 규칙</caption>
+          <thead>
+            <tr>
+              <th scope="col">규칙</th>
+              <th scope="col">내용</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">로컬 경로</th>
+              <td>VPC의 CIDR로 향하는 <code>local</code> 경로가 모든 라우팅 테이블에 기본으로 있으며 삭제할 수 없습니다. 그래서 같은 VPC 안의 서브넷끼리는 언제나 라우팅됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">가장 구체적인 경로 우선</th>
+              <td>목적지에 일치하는 경로가 여럿이면 <strong>접두사 길이가 가장 긴 경로</strong>가 이깁니다. <code>0.0.0.0/0</code>보다 <code>10.0.1.0/24</code>가 먼저 적용됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">퍼블릭 서브넷의 정의</th>
+              <td>라우팅 테이블에 <strong>인터넷 게이트웨이로 향하는 경로</strong>가 있으면 퍼블릭 서브넷입니다. 이름이나 설정 항목이 아니라 경로가 정의입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">서브넷과 라우팅 테이블</th>
+              <td>서브넷 하나는 라우팅 테이블 하나에만 연결됩니다. 명시하지 않으면 VPC의 기본 라우팅 테이블이 적용됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 게이트웨이의 이중화</th>
+              <td>NAT 게이트웨이는 지정한 서브넷의 가용 영역 안에서만 동작합니다. <strong>가용 영역마다 하나씩 만들고 각 가용 영역의 프라이빗 라우팅 테이블이 자기 가용 영역의 NAT를 가리키게</strong> 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">게이트웨이 엔드포인트의 경로</th>
+              <td>접두사 목록(prefix list)을 목적지로 하는 경로가 라우팅 테이블에 추가됩니다. 그래서 게이트웨이 엔드포인트는 라우팅 테이블 단위로 적용됩니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>라우팅 경로의 대상(target)과 그 의미</caption>
+          <thead>
+            <tr>
+              <th scope="col">대상</th>
+              <th scope="col">어떤 트래픽을 보내는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>local</code></th>
+              <td>VPC 내부 — 삭제할 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">인터넷 게이트웨이</th>
+              <td>퍼블릭 IP를 가진 리소스의 인터넷 양방향 통신</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 게이트웨이</th>
+              <td>프라이빗 서브넷의 아웃바운드 인터넷 통신</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC 피어링 연결</th>
+              <td>피어링 상대 VPC의 CIDR</td>
+            </tr>
+            <tr>
+              <th scope="row">Transit Gateway 연결</th>
+              <td>허브에 붙은 다른 VPC와 온프레미스 네트워크</td>
+            </tr>
+            <tr>
+              <th scope="row">가상 프라이빗 게이트웨이</th>
+              <td>Site-to-Site VPN 또는 Direct Connect 너머의 온프레미스</td>
+            </tr>
+            <tr>
+              <th scope="row">게이트웨이 엔드포인트 (접두사 목록)</th>
+              <td>Amazon S3와 Amazon DynamoDB</td>
+            </tr>
+            <tr>
+              <th scope="row">Gateway Load Balancer 엔드포인트</th>
+              <td>검사 어플라이언스로 우회시키는 트래픽</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="dns">
+      <h2 id="dns">DNS</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>VPC의 DNS 관련 동작</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">내용</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">VPC 리졸버 주소</th>
+              <td>VPC 네트워크 범위의 기준 주소에 <strong>2를 더한 주소</strong>입니다. <code>10.0.0.0/16</code>이면 <code>10.0.0.2</code>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>enableDnsSupport</code></th>
+              <td>VPC 안에서 DNS 해석 자체를 켜고 끕니다. 꺼져 있으면 리졸버 주소로 질의해도 응답하지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>enableDnsHostnames</code></th>
+              <td>퍼블릭 IP를 가진 인스턴스에 퍼블릭 DNS 호스트 이름을 부여할지 정합니다. 인터페이스 엔드포인트의 프라이빗 DNS를 쓰려면 두 속성이 모두 켜져 있어야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Route 53 프라이빗 호스팅 영역</th>
+              <td>VPC 안에서만 해석되는 도메인을 만듭니다. 여러 VPC에 연결할 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Route 53 Resolver 인바운드 엔드포인트</th>
+              <td>온프레미스에서 AWS 쪽 이름을 질의할 수 있게 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Route 53 Resolver 아웃바운드 엔드포인트</th>
+              <td>VPC에서 온프레미스 DNS로 질의를 전달합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="routing-policies">Route 53 라우팅 정책 여덟 가지</h3>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-r53">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-r53" data-target="#t-r53" type="search" placeholder="정책 또는 용도">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-r53">
+          <caption>Amazon Route 53 라우팅 정책과 식별 멤버</caption>
+          <thead>
+            <tr>
+              <th scope="col">정책</th>
+              <th scope="col">무엇을 기준으로 응답하는가</th>
+              <th scope="col">식별 멤버</th>
+              <th scope="col">고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">단순(Simple)</th>
+              <td>레코드 하나를 그대로 응답합니다</td>
+              <td>없음</td>
+              <td>분기 조건이 전혀 없을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">가중치 기반(Weighted)</th>
+              <td>지정한 비율로 나눠 응답합니다</td>
+              <td><code>Weight</code></td>
+              <td>"신규 버전에 10퍼센트만", 카나리 배포, A/B 테스트</td>
+            </tr>
+            <tr>
+              <th scope="row">지연 시간 기반(Latency)</th>
+              <td>질의자에게 지연이 가장 낮은 리전으로 보냅니다</td>
+              <td><code>Region</code></td>
+              <td>"가장 빠른 리전으로", 다중 리전 배포의 성능</td>
+            </tr>
+            <tr>
+              <th scope="row">장애 조치(Failover)</th>
+              <td>주 대상이 비정상이면 보조로 보냅니다</td>
+              <td><code>Failover</code> + 상태 확인</td>
+              <td>"리전 장애 시 전환", 액티브-패시브 재해 복구</td>
+            </tr>
+            <tr>
+              <th scope="row">지리 위치(Geolocation)</th>
+              <td><strong>질의가 발생한 지역</strong>으로 판단합니다</td>
+              <td><code>GeoLocation</code></td>
+              <td>"국가별로 다른 콘텐츠", 규정에 따른 지역 분리</td>
+            </tr>
+            <tr>
+              <th scope="row">지리 근접(Geoproximity)</th>
+              <td>질의 위치와 <strong>리소스의 위치</strong>를 함께 봅니다. 바이어스로 영역을 넓히거나 좁힙니다</td>
+              <td><code>GeoProximityLocation</code></td>
+              <td>"특정 리소스로 트래픽을 더 끌어오고 싶다"</td>
+            </tr>
+            <tr>
+              <th scope="row">다중값 응답(Multivalue answer)</th>
+              <td>여러 레코드를 무작위에 가깝게 응답하며 상태 확인을 연동합니다</td>
+              <td><code>MultiValueAnswer</code></td>
+              <td>"로드 밸런서 없이 여러 대상에 분산"</td>
+            </tr>
+            <tr>
+              <th scope="row">IP 기반(IP-based)</th>
+              <td>질의자의 IP가 속한 CIDR 컬렉션으로 판단합니다</td>
+              <td><code>CidrRoutingConfig</code></td>
+              <td>"특정 인터넷 서비스 제공자 사용자를 지정 경로로"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          <strong>단순 라우팅을 제외한 모든 정책은 <code>SetIdentifier</code>가 필수</strong>입니다.
+          그리고 자주 나오는 혼동은 지연 시간 기반과 지리 위치입니다 —
+          "가장 빠른" 이면 지연 시간 기반이고, "국가별로" 나 "규정상 특정 지역" 이면 지리 위치입니다.
+          한국어 자료 상당수가 지리 근접과 IP 기반을 빠뜨려 정책을 여섯 또는 일곱 가지로 서술합니다.
+          <strong>여덟 가지가 맞습니다.</strong>
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="traffic-controls">
+      <h2 id="traffic-controls">트래픽 통제 계층</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>어느 계층에서 무엇을 막는가</caption>
+          <thead>
+            <tr>
+              <th scope="col">통제 수단</th>
+              <th scope="col">적용 지점</th>
+              <th scope="col">허용·거부</th>
+              <th scope="col">이 수단이 답이 되는 요구</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">보안 그룹</th>
+              <td>인스턴스(ENI)</td>
+              <td>허용만 · 상태 저장</td>
+              <td>"웹 계층에서만 앱 계층에 접근"</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 ACL</th>
+              <td>서브넷</td>
+              <td>허용과 거부 · 상태 비저장</td>
+              <td>"특정 IP를 <strong>차단</strong>", 서브넷 공통 규칙</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Network Firewall</th>
+              <td>VPC 경계</td>
+              <td>상태 저장 규칙</td>
+              <td>도메인 필터링, 침입 방지 규칙을 VPC 전체에</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS WAF</th>
+              <td>CloudFront · Application Load Balancer · API Gateway</td>
+              <td>HTTP 요청 규칙</td>
+              <td>SQL 주입, 크로스 사이트 스크립팅, 속도 기반 차단</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Shield</th>
+              <td>엣지</td>
+              <td>디도스 완화</td>
+              <td>"대규모 트래픽 공격"</td>
+            </tr>
+            <tr>
+              <th scope="row">Gateway Load Balancer</th>
+              <td>트래픽 경로 중간</td>
+              <td>어플라이언스 삽입</td>
+              <td>서드파티 방화벽·침입 탐지 장비를 통과시켜야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트 정책</th>
+              <td>VPC 엔드포인트</td>
+              <td>통과 범위 제한</td>
+              <td>"이 엔드포인트로는 특정 버킷만"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="ports">
+      <h2 id="ports">포트와 프로토콜</h2>
+
+      <aside class="note" data-label="이 표의 성격">
+        <p>
+          아래 값 중 관계형 데이터베이스의 기본 포트는 Amazon RDS API 문서에서 확인한 값이고,
+          GENEVE 6081은 Elastic Load Balancing API 문서에서 확인한 값입니다.
+          나머지는 <strong>프로토콜 표준 포트</strong>이며 AWS 고유의 설정이 아닙니다.
+          모두 구성에서 바꿀 수 있으므로, 문항이 명시적으로 다른 포트를 주면 그 값을 따릅니다.
+          여기 없는 서비스의 기본 포트는 1차 소스에서 확인하지 못해 싣지 않았습니다.
+        </p>
+      </aside>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-ports">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-ports" data-target="#t-ports" type="search" placeholder="포트 번호 또는 프로토콜">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table" id="t-ports">
+          <caption>보안 그룹 규칙에서 자주 쓰는 포트</caption>
+          <thead>
+            <tr>
+              <th scope="col">프로토콜 · 서비스</th>
+              <th scope="col">포트</th>
+              <th scope="col">비고</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">HTTP</th>
+              <td>80 (TCP)</td>
+              <td>프로토콜 표준 포트</td>
+            </tr>
+            <tr>
+              <th scope="row">HTTPS</th>
+              <td>443 (TCP)</td>
+              <td>프로토콜 표준 포트</td>
+            </tr>
+            <tr>
+              <th scope="row">SSH · SFTP</th>
+              <td>22 (TCP)</td>
+              <td>프로토콜 표준 포트. 리눅스 인스턴스 접속</td>
+            </tr>
+            <tr>
+              <th scope="row">RDP</th>
+              <td>3389 (TCP)</td>
+              <td>프로토콜 표준 포트. Windows 인스턴스 접속</td>
+            </tr>
+            <tr>
+              <th scope="row">DNS</th>
+              <td>53 (TCP · UDP)</td>
+              <td>프로토콜 표준 포트</td>
+            </tr>
+            <tr>
+              <th scope="row">NFS</th>
+              <td>2049 (TCP)</td>
+              <td>프로토콜 표준 포트. Amazon EFS 마운트</td>
+            </tr>
+            <tr>
+              <th scope="row">SMB</th>
+              <td>445 (TCP)</td>
+              <td>프로토콜 표준 포트. FSx for Windows File Server</td>
+            </tr>
+            <tr>
+              <th scope="row">RDS for MySQL · MariaDB</th>
+              <td>3306</td>
+              <td>Amazon RDS 기본값</td>
+            </tr>
+            <tr>
+              <th scope="row">RDS for PostgreSQL</th>
+              <td>5432</td>
+              <td>Amazon RDS 기본값</td>
+            </tr>
+            <tr>
+              <th scope="row">RDS for Oracle</th>
+              <td>1521</td>
+              <td>Amazon RDS 기본값</td>
+            </tr>
+            <tr>
+              <th scope="row">RDS for Microsoft SQL Server</th>
+              <td>1433</td>
+              <td>Amazon RDS 기본값</td>
+            </tr>
+            <tr>
+              <th scope="row">RDS for Db2</th>
+              <td>50000</td>
+              <td>Amazon RDS 기본값</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon RDS 포트 유효 범위</th>
+              <td>1150 ~ 65535</td>
+              <td>Amazon RDS API 문서의 명시 범위</td>
+            </tr>
+            <tr>
+              <th scope="row">GENEVE</th>
+              <td>6081</td>
+              <td>Gateway Load Balancer가 쓰는 프로토콜과 포트</td>
+            </tr>
+            <tr>
+              <th scope="row">임시 포트 범위</th>
+              <td><code>32768-65535</code></td>
+              <td>VPC 사용 설명서의 예제 네트워크 ACL이 쓰는 범위. 실제 범위는 클라이언트 운영체제가 정합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 ACL 규칙 번호</th>
+              <td>1 ~ 32766</td>
+              <td>낮은 번호부터 평가합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="troubleshooting">
+      <h2 id="troubleshooting">막히는 지점 점검 순서</h2>
+
+      <p>
+        "연결이 안 된다" 유형의 시나리오는 아래 순서로 좁히면 거의 언제나 답이 나옵니다.
+        위에서부터 하나씩 확인하고, 처음으로 어긋나는 지점이 원인입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>연결 실패 시나리오의 점검 순서</caption>
+          <thead>
+            <tr>
+              <th scope="col">순서</th>
+              <th scope="col">확인할 것</th>
+              <th scope="col">전형적인 증상</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1</th>
+              <td>라우팅 테이블에 목적지로 향하는 경로가 있는가</td>
+              <td>프라이빗 서브넷에 NAT 경로가 없어 아웃바운드가 전부 실패</td>
+            </tr>
+            <tr>
+              <th scope="row">2</th>
+              <td>보안 그룹 인바운드가 허용하는가</td>
+              <td>포트나 출발지가 빠져 있어 특정 계층만 실패</td>
+            </tr>
+            <tr>
+              <th scope="row">3</th>
+              <td>네트워크 ACL의 <strong>양방향</strong>이 허용하는가</td>
+              <td>아웃바운드에 임시 포트 범위가 없어 <strong>요청은 가는데 응답이 안 옴</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">4</th>
+              <td>이름이 해석되는가</td>
+              <td><code>enableDnsSupport</code>나 <code>enableDnsHostnames</code>가 꺼져 인터페이스 엔드포인트의 프라이빗 DNS가 동작하지 않음</td>
+            </tr>
+            <tr>
+              <th scope="row">5</th>
+              <td>CIDR이 겹치지 않는가</td>
+              <td>피어링이나 온프레미스 연결이 애초에 성립하지 않음</td>
+            </tr>
+            <tr>
+              <th scope="row">6</th>
+              <td>전이 라우팅을 기대하고 있지 않은가</td>
+              <td>피어링 두 개를 거쳐 도달하려다 실패</td>
+            </tr>
+            <tr>
+              <th scope="row">7</th>
+              <td>가용 영역 단위 구성 요소가 자기 가용 영역을 가리키는가</td>
+              <td>한 가용 영역의 NAT 게이트웨이가 죽자 다른 가용 영역까지 중단</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          3번이 이 목록에서 가장 많이 출제되는 지점입니다.
+          네트워크 ACL은 <strong>상태 비저장</strong>이므로 반환 트래픽을 규칙으로 명시해야 합니다.
+          보안 그룹만 보고 "규칙이 맞는데 왜 안 되지" 라고 판단하게 만드는 것이 문항의 설계입니다.
+          <a href="../basics/ch03.html#stateful-vs-stateless">3장</a>에 동작 원리가 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch03.html">
+          <span class="card__title">3장 · VPC 네트워킹 기초</span>
+          <span class="card__desc">CIDR 설계, 서브넷과 라우팅, 보안 그룹과 네트워크 ACL의 동작 원리를 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch04.html">
+          <span class="card__title">4장 · VPC 연결과 하이브리드</span>
+          <span class="card__desc">피어링, Transit Gateway, 엔드포인트, VPN과 Direct Connect를 설명과 다이어그램으로 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="compare.html#network-pairs">
+          <span class="card__title">헷갈리는 쌍 비교 — 네트워크</span>
+          <span class="card__desc">보안 그룹과 네트워크 ACL, 엔드포인트 두 유형, 로드 밸런서 세 종류의 속성 대조표입니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="decision-tree.html#network-tree">
+          <span class="card__title">서비스 선택 결정 트리 — 네트워크 연결</span>
+          <span class="card__desc">요구사항에서 출발해 질문과 분기로 연결 옵션을 좁힙니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="security.html">
+          <span class="card__title">보안과 암호화</span>
+          <span class="card__desc">트래픽 통제 위에 얹히는 자격 증명과 암호화 계층을 다룹니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="cost.html#path-changes">
+          <span class="card__title">요금 구조와 절감 — 경로 바꾸기</span>
+          <span class="card__desc">네트워크 경로 변경이 어느 과금 축을 줄이는지 확인합니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html">Amazon VPC 사용 설명서 — 라우팅 테이블</a>
+          — 로컬 경로, 가장 구체적인 경로 우선, 대상의 종류</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html">Amazon VPC 사용 설명서 — 보안</a>
+          — 보안 그룹과 네트워크 ACL의 공식 비교표, 임시 포트 범위 예제, 규칙 번호</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html">Amazon VPC 사용 설명서 — NAT 게이트웨이</a>
+          — 가용 영역 단위 동작과 과금 축</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-dns.html">Amazon VPC 사용 설명서 — VPC의 DNS 속성</a>
+          — 리졸버 주소, <code>enableDnsSupport</code>와 <code>enableDnsHostnames</code></li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html">Amazon VPC 피어링 안내서 — 기본 사항</a>
+          — 전이 라우팅 불가와 CIDR 중복 제약</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/tgw/what-is-transit-gateway.html">AWS Transit Gateway 안내서</a>
+          — 허브 구조, 연결 유형, 라우팅 테이블</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html">AWS PrivateLink 개념</a>
+          — 엔드포인트 유형과 적용 범위, 엔드포인트 정책</li>
+        <li><a href="https://docs.aws.amazon.com/vpn/latest/s2svpn/VPC_VPN.html">AWS Site-to-Site VPN 사용 설명서</a>
+          — IPsec 터널 구성과 가상 프라이빗 게이트웨이</li>
+        <li><a href="https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html">AWS Direct Connect 사용 설명서</a>
+          — 전용 회선의 성격과 가상 인터페이스</li>
+        <li><a href="https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html">AWS Client VPN 관리자 안내서</a>
+          — 개별 단말 연결과 인증 방식</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html">Amazon Route 53 API 레퍼런스 — ResourceRecordSet</a>
+          — 라우팅 정책 여덟 가지의 식별 멤버와 <code>SetIdentifier</code> 요구 조건</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver.html">Amazon Route 53 개발자 안내서 — Resolver</a>
+          — 인바운드와 아웃바운드 엔드포인트</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html">Amazon RDS API 레퍼런스 — CreateDBInstance</a>
+          — 엔진별 기본 포트와 유효 범위 1150–65535</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_TargetGroup.html">Elastic Load Balancing API 레퍼런스 — TargetGroup</a>
+          — GENEVE 프로토콜이 포트 6081을 쓴다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/ram/latest/userguide/what-is.html">AWS Resource Access Manager 사용 설명서</a>
+          — 서브넷 공유</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

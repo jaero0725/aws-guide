@@ -53,7 +53,7 @@
   <!-- 관문 1 -->
   <rect class="dg-node" x="200" y="118" width="320" height="46" rx="4"/>
   <text class="dg-fs-sm dg-bold" x="216" y="139">1. 퍼블릭 액세스 차단</text>
-  <text class="dg-fs-sm dg-muted" x="216" y="157">익명·퍼블릭 부여만 대상 · 계정과 버킷 양쪽에서 평가</text>
+  <text class="dg-fs-sm dg-muted" x="216" y="157">익명·퍼블릭 부여만 대상 · 계정과 버킷 양쪽</text>
   <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M520 141 L562 141" marker-end="url(#d074-ar-danger)"/>
   <text class="dg-fs-sm dg-bold" x="570" y="136">차단 — 버킷 정책이</text>
   <text class="dg-fs-sm dg-bold" x="570" y="152">열려 있어도 무시됩니다</text>
@@ -83,7 +83,7 @@
   <!-- 관문 4 -->
   <rect class="dg-node dg-node--muted" x="200" y="316" width="320" height="46" rx="4"/>
   <text class="dg-fs-sm dg-bold" x="216" y="337">4. 객체 ACL</text>
-  <text class="dg-fs-sm dg-muted" x="216" y="355">BucketOwnerEnforced 가 기본 — 평가되지 않습니다</text>
+  <text class="dg-fs-sm dg-muted" x="216" y="355">BucketOwnerEnforced 가 기본 — 평가 안 됨</text>
   <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M520 339 L562 339" marker-end="url(#d074-ar-muted)"/>
   <text class="dg-fs-sm dg-muted" x="570" y="334">비활성이라 사실상</text>
   <text class="dg-fs-sm dg-muted" x="570" y="350">없는 관문입니다</text>

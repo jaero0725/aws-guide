@@ -57,12 +57,12 @@
         d="M298 128 L316 128 L316 99 L330 99" marker-end="url(#d091-ar-muted)"/>
   <path data-dg="maz-dns-new" class="dg-edge dg-edge--accent"
         d="M298 146 L316 146 L316 173 L330 173" marker-end="url(#d091-ar-accent)"/>
-  <text class="dg-fs-sm dg-bold" x="316" y="196" text-anchor="middle">DNS 전환</text>
+  <text class="dg-fs-sm dg-bold" x="272" y="196" text-anchor="middle">DNS 전환</text>
 
   <rect data-dg="maz-primary" class="dg-node dg-node--danger" x="336" y="72" width="156" height="54" rx="4"/>
   <text class="dg-fs-sm dg-bold" x="414" y="94" text-anchor="middle">프라이머리 (AZ-a)</text>
   <text class="dg-fs-sm dg-bold" x="414" y="114" text-anchor="middle">장애</text>
-  <path data-dg="maz-x" class="dg-x" d="M462 85 L478 101 M478 85 L462 101"/>
+  <path data-dg="maz-x" class="dg-x" d="M462 102 L478 118 M478 102 L462 118"/>
 
   <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M414 126 L414 144"/>
   <text class="dg-fs-sm dg-muted" x="500" y="140">동기 복제로 이미 최신</text>
@@ -101,7 +101,7 @@
   <path data-dg="rr-x" class="dg-x" d="M462 281 L478 297 M478 281 L462 297"/>
 
   <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M414 322 L414 364"/>
-  <text class="dg-fs-sm dg-muted" x="424" y="348">비동기 복제 중단</text>
+  <text class="dg-fs-sm dg-muted" x="428" y="348">복제 중단</text>
 
   <rect data-dg="rr-replica" class="dg-node dg-node--ok" x="336" y="366" width="156" height="54" rx="4"/>
   <text class="dg-fs-sm dg-bold" x="414" y="388" text-anchor="middle">읽기 전용 복제본</text>

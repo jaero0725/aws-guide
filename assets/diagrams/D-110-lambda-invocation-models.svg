@@ -76,7 +76,7 @@
 
   <rect class="dg-node dg-node--accent" x="448" y="210" width="252" height="60" rx="4"/>
   <text class="dg-fs-sm dg-bold" x="462" y="234">온-실패 대상 또는 DLQ</text>
-  <text class="dg-fs-sm" x="462" y="256">SQS · SNS · EventBridge · Lambda 중 선택</text>
+  <text class="dg-fs-sm" x="462" y="256">SQS · SNS · EventBridge · Lambda</text>
 
   <text class="dg-fs-sm dg-bold" x="156" y="290">재시도 주체 — Lambda 서비스 · 대상을 설정하지 않으면 이벤트는 그냥 사라집니다</text>
 
@@ -91,7 +91,7 @@
   <text class="dg-fs-sm dg-bold" x="221" y="370" text-anchor="middle">DynamoDB 스트림</text>
 
   <path class="dg-edge" d="M298 358 L290 358" marker-end="url(#d110-ar)"/>
-  <text class="dg-fs-sm dg-muted" x="294" y="398" text-anchor="middle">폴링</text>
+  <text class="dg-fs-sm dg-muted" x="294" y="324" text-anchor="middle">폴링</text>
 
   <rect class="dg-node" x="302" y="328" width="130" height="60" rx="4"/>
   <text class="dg-fs-sm dg-bold" x="367" y="352" text-anchor="middle">Lambda</text>

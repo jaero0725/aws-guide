@@ -2,7 +2,7 @@
   "generatedAt": "2026-07-29",
   "examCode": "SAA-C03",
   "total": 62,
-  "built": 19,
+  "built": 47,
   "sections": [
     {
       "id": "home",
@@ -82,89 +82,89 @@
           "id": "ch08",
           "path": "basics/ch08.html",
           "title": "S3와 오브젝트 스토리지",
-          "pageTitle": null,
+          "pageTitle": "S3와 오브젝트 스토리지",
           "num": "8",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch09",
           "path": "basics/ch09.html",
           "title": "파일 스토리지와 데이터 전송",
-          "pageTitle": null,
+          "pageTitle": "파일 스토리지와 데이터 전송",
           "num": "9",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch10",
           "path": "basics/ch10.html",
           "title": "RDS와 관계형 데이터베이스",
-          "pageTitle": null,
+          "pageTitle": "RDS와 관계형 데이터베이스",
           "num": "10",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch11",
           "path": "basics/ch11.html",
           "title": "NoSQL · 캐시 · 분석 DB",
-          "pageTitle": null,
+          "pageTitle": "NoSQL · 캐시 · 분석 DB",
           "num": "11",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch12",
           "path": "basics/ch12.html",
           "title": "서버리스와 애플리케이션 통합",
-          "pageTitle": null,
+          "pageTitle": "서버리스와 애플리케이션 통합",
           "num": "12",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch13",
           "path": "basics/ch13.html",
           "title": "컨테이너",
-          "pageTitle": null,
+          "pageTitle": "컨테이너",
           "num": "13",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch14",
           "path": "basics/ch14.html",
           "title": "엣지와 DNS",
-          "pageTitle": null,
+          "pageTitle": "엣지와 DNS",
           "num": "14",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch15",
           "path": "basics/ch15.html",
           "title": "데이터 분석 파이프라인",
-          "pageTitle": null,
+          "pageTitle": "데이터 분석 파이프라인",
           "num": "15",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch16",
           "path": "basics/ch16.html",
           "title": "보안 · 암호화 · 거버넌스",
-          "pageTitle": null,
+          "pageTitle": "보안·암호화·거버넌스",
           "num": "16",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch17",
           "path": "basics/ch17.html",
           "title": "모니터링 · 운영 · 계정 관리",
-          "pageTitle": null,
+          "pageTitle": "모니터링·운영·계정 관리",
           "num": "17",
-          "exists": false
+          "exists": true
         },
         {
           "id": "ch18",
           "path": "basics/ch18.html",
           "title": "비용 최적화 · 마이그레이션 · DR",
-          "pageTitle": null,
+          "pageTitle": "비용 최적화·마이그레이션·재해 복구",
           "num": "18",
-          "exists": false
+          "exists": true
         }
       ]
     },
@@ -246,9 +246,9 @@
           "id": "domain-cost",
           "path": "saa/domain-cost.html",
           "title": "비용 최적화 아키텍처 설계 (20%)",
-          "pageTitle": null,
+          "pageTitle": "비용 최적화 아키텍처 설계 (20%)",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "keywords",
@@ -270,17 +270,17 @@
           "id": "flashcards",
           "path": "saa/flashcards.html",
           "title": "플래시카드",
-          "pageTitle": null,
+          "pageTitle": "플래시카드",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "cram",
           "path": "saa/cram.html",
           "title": "벼락치기 요약",
-          "pageTitle": null,
+          "pageTitle": "벼락치기 요약",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "exam-tips",
@@ -402,65 +402,65 @@
           "id": "case01",
           "path": "cases/case01.html",
           "title": "EC2에 액세스 키를 심어 배포했다",
-          "pageTitle": null,
+          "pageTitle": "케이스 1 · EC2에 액세스 키를 심어 배포했다",
           "num": "1",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case02",
           "path": "cases/case02.html",
           "title": "읽기 부하로 데이터베이스가 죽었다",
-          "pageTitle": null,
+          "pageTitle": "케이스 2 · 읽기 부하로 데이터베이스가 죽었다",
           "num": "2",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case03",
           "path": "cases/case03.html",
           "title": "S3 비용이 매달 늘어난다",
-          "pageTitle": null,
+          "pageTitle": "케이스 3 · S3 비용이 매달 늘어난다",
           "num": "3",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case04",
           "path": "cases/case04.html",
           "title": "퍼블릭 서브넷에 데이터베이스를 뒀다",
-          "pageTitle": null,
+          "pageTitle": "케이스 4 · 퍼블릭 서브넷에 데이터베이스를 뒀다",
           "num": "4",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case05",
           "path": "cases/case05.html",
           "title": "단일 AZ 설계가 장애로 전면 중단됐다",
-          "pageTitle": null,
+          "pageTitle": "케이스 5 · 단일 AZ 설계가 장애로 전면 중단됐다",
           "num": "5",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case06",
           "path": "cases/case06.html",
           "title": "데이터 전송 요금이 예산을 넘겼다",
-          "pageTitle": null,
+          "pageTitle": "케이스 6 · 데이터 전송 요금이 예산을 넘겼다",
           "num": "6",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case07",
           "path": "cases/case07.html",
           "title": "트래픽 급증에 스케일아웃이 못 따라갔다",
-          "pageTitle": null,
+          "pageTitle": "케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다",
           "num": "7",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case08",
           "path": "cases/case08.html",
           "title": "리전 장애에 대비한 DR을 설계하라",
-          "pageTitle": null,
+          "pageTitle": "케이스 8 · 리전 장애에 대비한 DR을 설계하라",
           "num": "8",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case09",
@@ -488,33 +488,33 @@
           "id": "services",
           "path": "cheatsheet/services.html",
           "title": "서비스 한 줄 정의",
-          "pageTitle": null,
+          "pageTitle": "서비스 한 줄 정의",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "compare",
           "path": "cheatsheet/compare.html",
           "title": "헷갈리는 쌍 비교",
-          "pageTitle": null,
+          "pageTitle": "헷갈리는 쌍 비교",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "limits",
           "path": "cheatsheet/limits.html",
           "title": "한도 · 기본값",
-          "pageTitle": null,
+          "pageTitle": "한도와 기본값",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "decision-tree",
           "path": "cheatsheet/decision-tree.html",
           "title": "서비스 선택 결정 트리",
-          "pageTitle": null,
+          "pageTitle": "서비스 선택 결정 트리",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "security",
@@ -528,17 +528,17 @@
           "id": "network",
           "path": "cheatsheet/network.html",
           "title": "네트워크 연결",
-          "pageTitle": null,
+          "pageTitle": "네트워크 연결 매트릭스",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "cost",
           "path": "cheatsheet/cost.html",
           "title": "요금 · 비용 절감",
-          "pageTitle": null,
+          "pageTitle": "요금 구조와 절감",
           "num": null,
-          "exists": false
+          "exists": true
         }
       ]
     }
