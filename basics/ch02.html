@@ -594,8 +594,8 @@ aws sts get-caller-identity \
         <p>
           "사용자에게 <code>AdministratorAccess</code>가 붙어 있는데 특정 작업이 실패한다"는 시나리오는
           거의 언제나 <strong>상한 쪽</strong>을 묻습니다. 확인 순서는
-          <strong>(1) 어딘가에 명시적 <code>Deny</code>가 있는가 → (2) SCP가 막고 있는가 →
-          (3) 권한 경계가 좁은가 → (4) 세션 정책이 좁은가</strong>입니다.
+          <strong>(1) 어딘가에 명시적 <code>Deny</code>가 있는가, (2) SCP가 막고 있는가,
+          (3) 권한 경계가 좁은가, (4) 세션 정책이 좁은가</strong>입니다.
         </p>
         <p>
           반대로 "권한을 넓혀야 한다"는 시나리오에서
@@ -1335,7 +1335,7 @@ aws sts get-caller-identity \
       <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 비용 최적화 아키텍처 설계">
         <p>
           한정어 <strong><code>MOST secure</code></strong>가 붙으면 판단 순서는
-          <strong>(1) 장기 자격 증명을 없애는 선택지 → (2) 권한 범위를 좁히는 선택지 →
+          <strong>(1) 장기 자격 증명을 없애는 선택지, (2) 권한 범위를 좁히는 선택지,
           (3) 네트워크 경로를 비공개로 만드는 선택지</strong>입니다.
           IAM 역할, 최소 권한 정책, VPC 엔드포인트가 각 단계의 대표 답입니다.
         </p>

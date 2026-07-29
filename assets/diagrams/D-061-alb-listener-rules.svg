@@ -29,7 +29,7 @@
   <path class="dg-edge" d="M130 140 L156 140" marker-end="url(#d061-ar)"/>
   <path class="dg-edge" d="M300 140 L326 140" marker-end="url(#d061-ar)"/>
 
-  <rect class="dg-panel" x="330" y="40" width="210" height="250" rx="4"/>
+  <rect class="dg-panel" x="330" y="40" width="226" height="250" rx="4"/>
   <text class="dg-fs-sm dg-bold" x="340" y="60">규칙 — 우선순위 순 평가</text>
 
   <path class="dg-edge dg-edge--accent" d="M346 78 L346 268" marker-end="url(#d061-ar-accent)"/>
@@ -43,19 +43,19 @@
   <circle cx="346" cy="253" r="10" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
   <text class="dg-fs-sm dg-bold" x="346" y="258" text-anchor="middle">4</text>
 
-  <rect class="dg-node" x="364" y="68" width="166" height="46" rx="4"/>
+  <rect class="dg-node" x="364" y="68" width="184" height="46" rx="4"/>
   <text class="dg-fs-sm dg-muted" x="372" y="86">우선순위 10</text>
   <text class="dg-fs-sm dg-mono" x="372" y="105">Host: api.example.com</text>
 
-  <rect class="dg-node" x="364" y="122" width="166" height="46" rx="4"/>
+  <rect class="dg-node" x="364" y="122" width="184" height="46" rx="4"/>
   <text class="dg-fs-sm dg-muted" x="372" y="140">우선순위 20</text>
   <text class="dg-fs-sm dg-mono" x="372" y="159">Path: /images/*</text>
 
-  <rect class="dg-node" x="364" y="176" width="166" height="46" rx="4"/>
+  <rect class="dg-node" x="364" y="176" width="184" height="46" rx="4"/>
   <text class="dg-fs-sm dg-muted" x="372" y="194">우선순위 30</text>
   <text class="dg-fs-sm dg-mono" x="372" y="213">Header: X-Beta=true</text>
 
-  <rect class="dg-node dg-node--alt" x="364" y="230" width="166" height="46" rx="4"/>
+  <rect class="dg-node dg-node--alt" x="364" y="230" width="184" height="46" rx="4"/>
   <text class="dg-fs-sm dg-muted" x="372" y="248">기본 규칙 — 항상 마지막</text>
   <text class="dg-fs-sm dg-mono" x="372" y="267">default</text>
 
@@ -68,10 +68,10 @@
   <rect class="dg-node" x="580" y="230" width="120" height="46" rx="4"/>
   <text class="dg-fs-sm dg-mono dg-bold" x="640" y="258" text-anchor="middle">tg-web</text>
 
-  <path class="dg-edge" d="M530 91 L576 91" marker-end="url(#d061-ar)"/>
-  <path class="dg-edge" d="M530 145 L576 145" marker-end="url(#d061-ar)"/>
-  <path class="dg-edge" d="M530 199 L576 199" marker-end="url(#d061-ar)"/>
-  <path class="dg-edge" d="M530 253 L576 253" marker-end="url(#d061-ar)"/>
+  <path class="dg-edge" d="M552 91 L576 91" marker-end="url(#d061-ar)"/>
+  <path class="dg-edge" d="M552 145 L576 145" marker-end="url(#d061-ar)"/>
+  <path class="dg-edge" d="M552 199 L576 199" marker-end="url(#d061-ar)"/>
+  <path class="dg-edge" d="M552 253 L576 253" marker-end="url(#d061-ar)"/>
 
   <text class="dg-fs-sm dg-muted" x="640" y="298" text-anchor="middle">타깃 그룹</text>
 

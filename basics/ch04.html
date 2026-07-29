@@ -99,7 +99,7 @@
       </p>
       <p>
         결과적으로 VPC가 <em>N</em>개일 때 모두를 잇는 데 필요한 연결은
-        <strong><em>N</em>(<em>N</em>−1)/2개</strong>가 됩니다.
+        <strong><em>N</em>(<em>N</em>-1)/2개</strong>가 됩니다.
         4개면 6개, 10개면 45개입니다.
         <strong>연결마다 양쪽 라우팅 테이블에 경로를 넣어야 하므로</strong>
         관리 대상은 그보다 더 빠르게 늘어납니다.
@@ -184,7 +184,7 @@
         각 네트워크는 Transit Gateway에 <strong>연결(attachment)</strong>을 하나씩 만들고,
         Transit Gateway가 그 사이의 라우팅을 담당합니다.
         연결이 <em>N</em>개면 관리 대상도 <em>N</em>개입니다 —
-        피어링의 <em>N</em>(<em>N</em>−1)/2와 대비되는 지점이 여기입니다.
+        피어링의 <em>N</em>(<em>N</em>-1)/2와 대비되는 지점이 여기입니다.
       </p>
 
       <h3 id="tgw-attachments">연결 유형</h3>
@@ -257,7 +257,7 @@
             </tr>
             <tr>
               <th scope="row">연결 개수(<em>N</em>개 VPC 완전 연결)</th>
-              <td><em>N</em>(<em>N</em>−1)/2</td>
+              <td><em>N</em>(<em>N</em>-1)/2</td>
               <td><em>N</em></td>
             </tr>
             <tr>
@@ -507,17 +507,17 @@
           <tbody>
             <tr>
               <th scope="row">NAT 게이트웨이 + 인터넷 게이트웨이</th>
-              <td>프라이빗 서브넷 → NAT 게이트웨이 → 인터넷 게이트웨이 → S3 퍼블릭 엔드포인트</td>
+              <td>프라이빗 서브넷에서 NAT 게이트웨이와 인터넷 게이트웨이를 거쳐 S3 퍼블릭 엔드포인트로</td>
               <td><span class="mark-no">거친다</span> — 퍼블릭 엔드포인트로 나간다</td>
             </tr>
             <tr>
               <th scope="row">게이트웨이 엔드포인트</th>
-              <td>프라이빗 서브넷 → 라우팅 테이블의 접두사 목록 경로 → S3</td>
+              <td>프라이빗 서브넷에서 라우팅 테이블의 접두사 목록 경로를 거쳐 S3로</td>
               <td><span class="mark-ok">거치지 않는다</span></td>
             </tr>
             <tr>
               <th scope="row">인터페이스 엔드포인트</th>
-              <td>프라이빗 서브넷 → 엔드포인트 네트워크 인터페이스(프라이빗 IP) → S3</td>
+              <td>프라이빗 서브넷에서 엔드포인트 네트워크 인터페이스(프라이빗 IP)를 거쳐 S3로</td>
               <td><span class="mark-ok">거치지 않는다</span></td>
             </tr>
           </tbody>

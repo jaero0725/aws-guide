@@ -284,7 +284,7 @@
   --query 'RouteTables[].Routes[].[DestinationCidrBlock,GatewayId,NatGatewayId]' \
   --output table
 
-# 결과에 0.0.0.0/0 → igw-... 가 있으면 퍼블릭 서브넷입니다.</code></pre>
+# 결과에서 0.0.0.0/0 의 대상이 igw- 로 시작하면 퍼블릭 서브넷입니다.</code></pre>
       </figure>
 
       <aside class="note note--danger" data-label="함정">
