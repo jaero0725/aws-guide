@@ -55,9 +55,9 @@
   <text class="dg-fs-sm dg-muted" x="95" y="302" text-anchor="middle">URL 을 주입</text>
 
   <rect class="dg-node dg-node--warn" x="210" y="252" width="190" height="70" rx="4"/>
-  <text class="dg-fs-sm dg-bold" x="305" y="278" text-anchor="middle">취약한 애플리케이션</text>
-  <text class="dg-fs-sm" x="305" y="298" text-anchor="middle">GET 만 대신 보낼 수 있음</text>
-  <text class="dg-fs-sm dg-muted" x="305" y="316" text-anchor="middle">임의 헤더 주입은 어려움</text>
+  <text class="dg-fs-sm dg-bold" x="305" y="274" text-anchor="middle">취약한 애플리케이션</text>
+  <text class="dg-fs-sm" x="305" y="294" text-anchor="middle">GET 만 대신 보낼 수 있음</text>
+  <text class="dg-fs-sm dg-muted" x="305" y="313" text-anchor="middle">임의 헤더 주입은 어려움</text>
 
   <path class="dg-edge" d="M170 287 L206 287" marker-end="url(#d043-ar)"/>
 

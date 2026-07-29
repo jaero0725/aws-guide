@@ -1,4 +1,4 @@
-<svg viewBox="0 0 720 510" role="img" aria-labelledby="d040-title d040-desc"
+<svg viewBox="0 0 720 536" role="img" aria-labelledby="d040-title d040-desc"
      class="ag-diagram" preserveAspectRatio="xMidYMid meet">
   <title id="d040-title">EC2 구매 옵션 5종 결정 트리</title>
   <desc id="d040-desc">워크로드의 성격을 네 번 물어 다섯 가지 구매 옵션 중 하나로 수렴시키는 결정 트리입니다.
@@ -80,5 +80,5 @@
   <path class="dg-edge" d="M130 392 L130 458 L466 458" marker-end="url(#d040-ar)"/>
   <text class="dg-fs-sm" x="138" y="424">아니오</text>
 
-  <text class="dg-fs-sm dg-muted" x="20" y="486">금액은 쓰지 않습니다 — 약정 기간이 길고 중단을 더 허용할수록 단가가 낮아진다는 상대 관계만 기억합니다</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="522">금액은 쓰지 않습니다 — 약정 기간이 길고 중단을 더 허용할수록 단가가 낮아진다는 상대 관계만 기억합니다</text>
 </svg>
