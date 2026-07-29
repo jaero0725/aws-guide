@@ -172,6 +172,7 @@ SAA는 서비스를 하나씩 아는 시험이 아니라 **여러 개의 맞는 
 | 84 | IMDSv2 기본값 정책 (2024) | `imdsv2-default` | ❌ 수동 |
 | 85 | **S3 단일 객체 최대 크기는 50 TB** (2025-12 상향, 구 5 TB) | `s3-object-size-50tb` | ❌ 수동 |
 | 86 | **ALB 교차 영역 로드 밸런싱은 끌 수 없다.** NLB·GWLB만 기본 꺼짐 | `cross-zone-defaults` | ❌ 수동 |
+| 87 | **Snow Family 라인업 축소** — Snowmobile 종료, Snowcone 중단, Snowball Edge는 기존 고객 한정. 장비 모델이 아니라 대역폭·기간 판단을 묻는다 | `snow-family-retired` | ❌ 수동 |
 
 ---
 

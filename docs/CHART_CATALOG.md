@@ -377,7 +377,7 @@ CloudFront 엣지 로케이션 개수, Aurora 복제본 최대 개수, EFS/FSx �
 | C-010 | S3 스토리지 클래스 **상대** 저장 비용 등급 | bar | `basics/ch08.html`, `cheatsheet/cost.html` | **상대 등급 — 수치 없음** | 눈금 라벨 `저렴 → 비쌈`. 통화 기호 금지. 등급 정의를 `a11yTable`에 |
 | C-011 | 최소 저장 기간 · 최소 청구 크기 | 그룹 bar (축 2개) | `basics/ch08.html` | `FACT_SOURCES.md §4.3` | 30·90·180일 / 128·40 KB. **§2-6 완성 예시** |
 | C-012 | Glacier 검색 옵션별 소요 시간 | 수평 부동 bar (로그) | `basics/ch08.html` | `FACT_SOURCES.md §4.3` | 신속 1–5분 · 대량 5–12시간 · Deep Archive 12시간. 범위이므로 `[min,max]` |
-| C-013 | 클래스별 설계 가용성과 AZ 수 | 그룹 bar | `basics/ch08.html` | `FACT_SOURCES.md §4.3` (⚠️ 2023 아카이브 출처) | 99.99 / 99.9 / 99.5. **"설계 목표치"임을 캡션에 명시.** One Zone-IA의 AZ 1개가 결론 |
+| ~~C-013~~ | ~~클래스별 설계 가용성과 AZ 수~~ | — | — | **철회됨** | 축에 올릴 가용성 SLA(99.99/99.9/99.5)가 `FACT_SOURCES §5` 미확인 항목이다. 2023년 아카이브 출처뿐이라 근거가 부족해 **만들지 않는다.** ch08은 대신 AZ 수(확인됨)로 One Zone-IA의 교환 조건을 보인다. 수치를 1차 소스로 확인하면 되살린다 |
 | C-020 | EBS 볼륨 타입 최대 IOPS | bar (로그) | `basics/ch06.html` | `FACT_SOURCES.md §4.4` | gp3 80,000 · io1 64,000 · io2 256,000. **gp2는 §5 미확인이라 제외** |
 | C-021 | **gp3 상한 — 구 자료 대 현행** | 그룹 bar | `basics/ch06.html` | `FACT_SOURCES.md §4.4` · `§7 #5` | 16,000→80,000 IOPS / 1,000→2,000 MiB/s / 16→64 TiB (2025-09). 이 사이트의 대표 교정 차트 |
 | C-022 | 볼륨 타입별 크기 범위 | 수평 부동 bar (로그) | `basics/ch06.html` | `FACT_SOURCES.md §4.4` | gp2 1–16,384 / gp3 1–65,536 / io1 4–16,384 / io2 4–65,536 / st1·sc1 125–16,384 GiB |
