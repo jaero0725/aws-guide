@@ -64,7 +64,7 @@ data/questions/
 | `domain` | string | **필수** | 단일 도메인 세트는 §2-3 의 공식 문자열 4개 중 하나. 혼합 세트는 `"Mixed"` |
 | `examCode` | string | **필수** | 값은 `"SAA-C03"`. (검증기는 존재만 확인하고 값은 보지 않지만, 시험 코드는 사이트 전체에서 `SAA-C03` 하나뿐이다. **`SAA-C04` 는 존재하지 않는다** — `PLAN.md` §0) |
 | `mock` | boolean | 선택 | 모의고사 세트에 `true`. **혼합 세트 판정에 쓰인다** |
-| `diagnostic` | boolean | 선택 | 진단 세트에 `true`. 동상 |
+| `diagnostic` | boolean | 선택 | 진단 세트에 `true`. 마찬가지로 혼합 세트 판정에 쓰인다 |
 | `questions` | array | **필수** | 비어 있으면 `questions 배열이 비어 있습니다` 후 그 파일은 검사 중단 |
 
 > 다섯 필수 필드는 **truthy 검사**다. 빈 문자열·`null` 도 누락으로 잡힌다 (`세트 필수 필드 누락: {키}`).
@@ -102,6 +102,33 @@ const mixedSet = set.mock === true || set.diagnostic === true ||
 
 혼합 세트의 문항별 도메인 검사는 `q.exam === "SAA"` 일 때만 동작한다
 (검증기의 `EXAM_DOMAINS` 에 `BASICS` 키가 없다). BASICS 는 혼합 세트를 만들지 않는다.
+
+### 1-3. `manifest.json` — B6 소유, 그러나 정합성은 검증된다
+
+`manifest.json` 자체는 **세트 스키마 검사를 받지 않는다**(스캔 대상에서 제외).
+대신 세트 파일들과의 정합성을 검사한다.
+
+```json
+{ "sets": [ { "setId": "saa-secure", "file": "saa-secure.json", "count": 102,
+              "exam": "SAA", "domain": "Design Secure Architectures",
+              "title": "…", "mock": false, "diagnostic": false } ] }
+```
+
+| 규칙 | 메시지 | 레벨 |
+|---|---|---|
+| JSON 파싱 실패 | `JSON 파싱 실패: …` | ERROR |
+| `sets[i].setId` 누락 | `sets[i].setId 누락` | ERROR |
+| 가리키는 파일 없음 (`file` 없으면 `{setId}.json`) | `sets[i] 파일이 없습니다: …` | ERROR |
+| **`count` 가 실제 문항 수와 다름** | `sets[i] count(65) 가 실제 문항 수(64) 와 다릅니다` | ERROR |
+| 존재하는 세트가 매니페스트에 없음 | `{setId} 가 manifest 에 없습니다 (B6 이 생성)` | WARN → `--strict` 에서 **ERROR** |
+| `manifest.json` 자체가 없음 | `manifest.json 이 없습니다 — 퀴즈 허브가 세트 목록을 찾지 못합니다 (Wave 2 B6)` | WARN → `--strict` 에서 **ERROR** |
+
+- **B1~B5 는 `manifest.json` 을 건드리지 않는다.** B6 단독 소유다 (`PLAN.md` §5 파일 소유권 표).
+- 세트에서 문항을 추가·삭제했다면 B6 가 `count` 를 다시 계산해야 한다.
+- `mock` / `diagnostic` / `domain` 은 퀴즈 허브가 도메인 연습 목록을 만들 때 쓴다.
+  혼합 세트가 도메인 선택 목록에 새면 필터가 비어 전체 세트로 폴백한다.
+- 매니페스트가 없어도 엔진은 `FALLBACK_SET_CANDIDATES` 목록으로 실제 존재하는 파일을 탐색해
+  동작한다. 다만 404 요청이 다수 발생하므로 **배포 전에는 반드시 매니페스트가 있어야 한다.**
 
 ---
 

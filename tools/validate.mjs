@@ -854,8 +854,18 @@ function checkQuestions() {
           }
         }
       }
-      if (s.type.matching === 0) warn(s.file, 1, 'matching 유형 문항이 없습니다 — 실제 시험에 출제됩니다');
-      if (s.type.ordering === 0) warn(s.file, 1, 'ordering(list order) 유형 문항이 없습니다 — 실제 시험에 출제됩니다');
+      /* SAA-C03 은 객관식·복수 응답 두 유형뿐이므로 SAA 세트에 이 경고를 내면 안 된다.
+         (같은 파일이 exam:"SAA" 세트의 matching/ordering 을 ERROR 로 막고 있어서,
+          경고를 없앨 방법이 없는 모순이 된다.)
+         두 유형은 기본개념 확인문제에서 **학습용**으로만 쓰므로 BASICS 세트에만 권장한다. */
+      if (s.exam === 'BASICS') {
+        if (s.type.matching === 0) {
+          warn(s.file, 1, 'matching 유형 문항이 없습니다 — 서비스↔용도 짝짓기 암기에 효과적입니다 (학습용 유형, 실제 시험에는 출제되지 않음)');
+        }
+        if (s.type.ordering === 0) {
+          warn(s.file, 1, 'ordering 유형 문항이 없습니다 — 절차·순서 암기에 효과적입니다 (학습용 유형, 실제 시험에는 출제되지 않음)');
+        }
+      }
     }
   }
 
@@ -948,7 +958,12 @@ function checkCharts(htmlFiles) {
         warn(f, line, `${raw} 차트에 <figcaption> 이 없습니다 — 캔버스는 스크린 리더에 읽히지 않으므로 캡션이 정보의 정본입니다`);
       }
       if (!registered.has(raw)) {
-        err(f, line, `${raw} 가 assets/js/charts*.js 에 등록되지 않았습니다 — 페이지에 "등록되지 않았습니다" 상자가 그대로 노출됩니다`);
+        /* 다이어그램의 미존재 SVG 와 같은 유예를 준다.
+           Wave 1 에서 콘텐츠 에이전트가 차트 에이전트보다 먼저 플레이스홀더를 넣는 것이
+           정상 순서이므로, 이 시점에 즉시 ERROR 를 내면 병렬 실행이 성립하지 않는다.
+           배포 빌드(--strict)에서는 ERROR 로 승격되어 빈 상자 배포를 막는다. */
+        planned(f, line,
+          `${raw} 가 assets/js/charts*.js 에 등록되지 않았습니다 — 이대로 배포하면 "등록되지 않았습니다" 상자가 노출됩니다`);
       }
       /* 캔버스를 직접 쓰면 charts.js 의 생성 경로와 충돌한다 */
       if (/<canvas\b/i.test(body)) {

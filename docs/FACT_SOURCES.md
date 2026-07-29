@@ -755,14 +755,24 @@ enum: ["HTTP", "HTTPS", "TCP", "TLS", "UDP", "TCP_UDP", "GENEVE", "QUIC", "TCP_Q
 
 문제·해설의 `refs` 필드에는 **`https://docs.aws.amazon.com/...` 정규 URL만** 쓴다.
 
+`refs`의 각 항목은 **문자열이 아니라 `{ title, url }` 객체**다.
+`tools/validate.mjs`가 `refs[i].url` 누락을 오류로, `refs[i].title` 누락을 경고로 잡는다.
+정식 스키마는 `docs/QUESTION_SCHEMA.md`가 정본이며, 여기 예시는 그것과 일치해야 한다.
+
 ```json
 {
   "refs": [
-    "https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html",
-    "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html"
+    { "title": "Amazon S3 — 스토리지 클래스 사용",
+      "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html" },
+    { "title": "Amazon EBS — 볼륨 유형",
+      "url": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html" }
   ]
 }
 ```
+
+`title`은 독자가 링크를 열기 전에 무엇인지 알 수 있어야 하므로 문서 제목을 그대로 쓴다.
+`refs`는 최소 1개가 필요하며, 허용 호스트는 `docs.aws.amazon.com` · `aws.amazon.com` ·
+`awscli.amazonaws.com` 이다 (`validate.mjs`의 `REF_HOSTS`).
 
 ### ❌ 하지 말 것
 
