@@ -432,7 +432,16 @@ WebSearch(query="...", blocked_domains=["examtopics.com","validexamdumps.com",
 - `NonKeyAttributes`의 총합은 **모든 보조 인덱스 통틀어 100개를 초과할 수 없다** (`INCLUDE`인 경우에만 적용)
 - 같은 속성을 두 인덱스에 프로젝션하면 **2개로 계산**된다
 
-**⚠️미확인:** "LSI는 테이블 생성 시에만 만들 수 있고 이후 추가/삭제 불가", "GSI는 언제든 추가/삭제 가능"은 널리 알려진 사실이나 위 API 모델 문서에서 **직접 인용할 문장을 찾지 못했다.** 사용하려면 별도 확인 필요.
+**✅확인됨 (2026-07-29 해소):** "LSI는 테이블 생성 시에만 만들 수 있고 이후 추가·삭제 불가",
+"GSI는 언제든 추가·삭제 가능"을 두 경로로 확인했다.
+
+1. **API 구조가 증거다.** botocore `dynamodb` 의 `UpdateTableInput` 에는
+   `GlobalSecondaryIndexUpdates` 파라미터만 있고 **LSI 를 갱신하는 파라미터가 아예 없다.**
+   즉 테이블 생성 후 LSI 를 건드릴 API 자체가 존재하지 않는다.
+2. DynamoDB 개발자 안내서 `SecondaryIndexes` 비교표의 "Online Index Operations" 행.
+
+시험에서 이 차이는 "이미 운영 중인 테이블에 인덱스를 추가해야 한다" 시나리오로 나온다 —
+답은 항상 GSI 다.
 
 ### 4.7 Lambda 한도
 
@@ -843,6 +852,7 @@ awsdocs/amazon-s3-userguide/main/doc_source/storage-class-intro.md
 | `amazon-s3-userguide` | `https://docs.aws.amazon.com/AmazonS3/latest/userguide` |
 | `amazon-ec2-user-guide` | `https://docs.aws.amazon.com/AWSEC2/latest/UserGuide` |
 | `amazon-dynamodb-developer-guide` | `https://docs.aws.amazon.com/amazondynamodb/latest/developerguide` |
+| `amazon-aurora-user-guide` | `https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide` |
 | `amazon-vpc-user-guide` | `https://docs.aws.amazon.com/vpc/latest/userguide` |
 | `amazon-rds-user-guide` | `https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide` |
 | `iam-user-guide` | `https://docs.aws.amazon.com/IAM/latest/UserGuide` |
