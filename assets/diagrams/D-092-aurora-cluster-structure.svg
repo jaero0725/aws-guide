@@ -1,0 +1,92 @@
+<svg viewBox="0 0 720 424" role="img" aria-labelledby="d092-title d092-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d092-title">Aurora 클러스터 — 컴퓨트와 분리된 공유 스토리지 볼륨</title>
+  <desc id="d092-desc">Amazon Aurora 클러스터는 컴퓨트 계층과 스토리지 계층이 분리되어 있습니다.
+    위쪽 컴퓨트 계층에는 쓰기를 담당하는 라이터 인스턴스 하나와 읽기를 담당하는 리더 인스턴스들이 있고,
+    클러스터 엔드포인트는 항상 현재 라이터를 가리키며 리더 엔드포인트는 리더들에게 연결을 분산합니다.
+    아래쪽 스토리지 계층은 세 개의 가용 영역에 걸쳐 여섯 벌의 복사본을 유지하는 하나의 클러스터 볼륨이고
+    모든 인스턴스가 이 볼륨을 공유합니다.
+    그래서 리더를 라이터로 승격할 때 데이터를 옮길 필요가 없고, 리더를 추가해도 데이터가 복사되지 않으며,
+    스토리지는 사용량에 따라 자동으로 늘어납니다.
+    이것이 인스턴스마다 자기 EBS 볼륨을 갖고 복제로 데이터를 따라 보내는 표준 RDS 모델과 근본적으로 다른 점입니다.</desc>
+
+  <defs>
+    <marker id="d092-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d092-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node" x="300" y="24" width="120" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="46" text-anchor="middle">애플리케이션</text>
+
+  <path class="dg-edge dg-edge--accent" d="M330 58 L240 80" marker-end="url(#d092-ar-accent)"/>
+  <path class="dg-edge" d="M390 58 L480 80" marker-end="url(#d092-ar)"/>
+
+  <rect class="dg-node dg-node--accent" x="120" y="84" width="180" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="210" y="106" text-anchor="middle">클러스터 엔드포인트</text>
+  <text class="dg-fs-sm dg-muted" x="210" y="134" text-anchor="middle">항상 현재 라이터</text>
+
+  <rect class="dg-node" x="420" y="84" width="180" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="510" y="106" text-anchor="middle">리더 엔드포인트</text>
+  <text class="dg-fs-sm dg-muted" x="510" y="134" text-anchor="middle">리더들에게 연결 분산</text>
+
+  <path class="dg-edge dg-edge--accent" d="M195 118 L185 142" marker-end="url(#d092-ar-accent)"/>
+  <path class="dg-edge" d="M490 118 L390 142" marker-end="url(#d092-ar)"/>
+  <path class="dg-edge" d="M530 118 L540 142" marker-end="url(#d092-ar)"/>
+
+  <!-- 컴퓨트 계층 -->
+  <rect class="dg-node dg-node--accent" x="120" y="146" width="130" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="185" y="168" text-anchor="middle">라이터</text>
+  <text class="dg-fs-sm dg-muted" x="185" y="188" text-anchor="middle">읽기 · 쓰기</text>
+
+  <rect class="dg-node" x="325" y="146" width="130" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="390" y="168" text-anchor="middle">리더 1</text>
+  <text class="dg-fs-sm dg-muted" x="390" y="188" text-anchor="middle">읽기 전용</text>
+
+  <rect class="dg-node" x="475" y="146" width="130" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="540" y="168" text-anchor="middle">리더 2</text>
+  <text class="dg-fs-sm dg-muted" x="540" y="188" text-anchor="middle">읽기 전용</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="140">컴퓨트 계층</text>
+  <text class="dg-fs-sm dg-bold" x="20" y="216">리더는 승격되면 그대로 라이터가 됩니다 — 볼륨이 이미 같으므로 데이터 복사가 없습니다</text>
+
+  <!-- 스토리지로 내려가는 경로 -->
+  <path class="dg-edge dg-edge--accent" d="M185 198 L185 244" marker-end="url(#d092-ar-accent)"/>
+  <path class="dg-edge dg-edge--dotted" d="M390 198 L390 244" marker-end="url(#d092-ar)"/>
+  <path class="dg-edge dg-edge--dotted" d="M540 198 L540 244" marker-end="url(#d092-ar)"/>
+
+  <!-- 스토리지 계층 -->
+  <rect class="dg-node dg-node--alt" x="20" y="228" width="680" height="122" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="250">하나의 클러스터 볼륨 — 세 가용 영역에 여섯 벌</text>
+
+  <rect class="dg-panel" x="34" y="258" width="212" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="140" y="276" text-anchor="middle">AZ-a</text>
+  <rect class="dg-node" x="46" y="282" width="88" height="48" rx="4"/>
+  <text class="dg-fs-sm" x="90" y="311" text-anchor="middle">복사본</text>
+  <rect class="dg-node" x="146" y="282" width="88" height="48" rx="4"/>
+  <text class="dg-fs-sm" x="190" y="311" text-anchor="middle">복사본</text>
+
+  <rect class="dg-panel" x="254" y="258" width="212" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="276" text-anchor="middle">AZ-b</text>
+  <rect class="dg-node" x="266" y="282" width="88" height="48" rx="4"/>
+  <text class="dg-fs-sm" x="310" y="311" text-anchor="middle">복사본</text>
+  <rect class="dg-node" x="366" y="282" width="88" height="48" rx="4"/>
+  <text class="dg-fs-sm" x="410" y="311" text-anchor="middle">복사본</text>
+
+  <rect class="dg-panel" x="474" y="258" width="212" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="580" y="276" text-anchor="middle">AZ-c</text>
+  <rect class="dg-node" x="486" y="282" width="88" height="48" rx="4"/>
+  <text class="dg-fs-sm" x="530" y="311" text-anchor="middle">복사본</text>
+  <rect class="dg-node" x="586" y="282" width="88" height="48" rx="4"/>
+  <text class="dg-fs-sm" x="630" y="311" text-anchor="middle">복사본</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="360" width="680" height="56" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="384" text-anchor="middle">RDS 는 인스턴스마다 자기 스토리지 — Aurora 는 전원이 같은 볼륨을 봅니다</text>
+  <text class="dg-fs-sm" x="360" y="406" text-anchor="middle">그래서 리더 추가도 승격도 데이터 복제를 기다리지 않고, 스토리지는 사용량만큼 자동으로 늘어납니다</text>
+</svg>

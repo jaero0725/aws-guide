@@ -621,6 +621,13 @@ AWS CLI 예제 작성 규칙:
   페이지에 "등록되지 않았습니다" 상자가 그대로 노출된다.
   `docs/CHART_CATALOG.md`에 등록된 ID만 쓰고, 차트 에이전트와 순서가 어긋나면 리포트에 올린다.
 - `.chart__missing`은 등록 실패 시 `charts.js`가 그리는 안내 상자다. 직접 쓰지 않는다.
+- **★ 차트를 쓰는 페이지는 스크립트 4개를 모두 로드해야 한다** — `assets/vendor/chart.umd.min.js`,
+  `assets/js/charts.js`, `assets/js/charts-content.js`, `assets/js/charts-dash.js`.
+  순서도 이대로여야 한다(`charts.js`가 전역 `Chart`를 읽고, 등록부는 그 뒤에 온다).
+  하나라도 빠지면 등록부와 참조가 양쪽 다 멀쩡해도 페이지에는 "등록되지 않았습니다" 상자만 뜬다.
+  다른 검사가 전부 통과하므로 브라우저로 열기 전에는 드러나지 않는다 —
+  **`basics/ch14.html`·`ch15.html`이 실제로 이 상태로 통과했다.**
+  이후 `validate.mjs --charts`가 기계적으로 잡는다. `basics/ch01.html`의 스크립트 목록을 그대로 복사하라.
 
 #### 버튼·폼 (허브 페이지 전용)
 

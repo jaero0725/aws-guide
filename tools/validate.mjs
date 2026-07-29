@@ -970,6 +970,31 @@ function checkCharts(htmlFiles) {
         err(f, line, `${raw} 플레이스홀더에 <canvas> 를 직접 쓰지 마세요 — charts.js 가 생성합니다`);
       }
     }
+
+    /* 스크립트 로딩 누락 검사
+       ------------------------------------------------------------------
+       차트 플레이스홀더가 있는데 필요한 스크립트를 안 불러오면 페이지에
+       "등록되지 않았습니다" 상자만 뜬다. 등록부와 참조가 양쪽 다 멀쩡해서
+       다른 검사는 전부 통과하기 때문에, 브라우저로 열어 보기 전에는
+       드러나지 않는다. 실제로 ch14·ch15 가 이 상태로 통과했다.
+       새 페이지를 만들 때마다 반복되는 실수라 기계로 잡는다. */
+    const figures = [...text.matchAll(figRe)];
+    if (figures.length) {
+      const at = lineAt(text, figures[0].index);
+      const need = [
+        { file: 'vendor/chart.umd.min.js', why: 'Chart.js 본체' },
+        { file: 'js/charts.js', why: '차트 엔진' },
+        { file: 'js/charts-content.js', why: '본문 차트 등록부 (C-010~099)' },
+        { file: 'js/charts-dash.js', why: '대시보드 차트 등록부 (C-001~005, C-100~119)' }
+      ];
+      for (const { file, why } of need) {
+        const re = new RegExp('<script[^>]+src\\s*=\\s*["\'][^"\']*' +
+          file.replace(/[.]/g, '\\.') + '["\']', 'i');
+        if (!re.test(text)) {
+          err(f, at, `차트를 쓰면서 ${file} 를 로드하지 않습니다 (${why}) — 페이지에 "등록되지 않았습니다" 상자만 뜹니다`);
+        }
+      }
+    }
   }
 
   /* (c) 고아 등록 — 아무 페이지도 참조하지 않는 차트 */

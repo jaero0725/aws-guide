@@ -1,0 +1,91 @@
+<svg viewBox="0 0 720 456" role="img" aria-labelledby="d100-title d100-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d100-title">DynamoDB 파티션 키 설계와 핫 파티션</title>
+  <desc id="d100-desc">DynamoDB 는 항목의 파티션 키 값을 해시해 그 결과로 저장할 파티션을 고릅니다.
+    왼쪽은 사용자 ID 처럼 값의 가짓수가 아주 많은 키를 쓴 경우입니다.
+    해시 결과가 골고루 퍼지므로 파티션마다 비슷한 양의 읽기와 쓰기가 걸리고 테이블 전체 용량이 그대로 활용됩니다.
+    오른쪽은 주문 상태처럼 값이 몇 가지뿐인 키를 쓴 경우입니다.
+    대부분의 항목이 같은 키 값을 갖기 때문에 같은 파티션으로 몰리고, 그 파티션 하나가 감당할 수 있는 처리량을 넘는 순간
+    테이블 전체 용량이 남아 있어도 요청이 스로틀됩니다. 이것이 핫 파티션입니다.
+    아래 두 카드가 해법입니다. 하나는 가짓수가 많은 속성을 파티션 키로 올리고 원래 쓰려던 속성은 정렬 키로 내리는 복합 키 설계이고,
+    다른 하나는 키 값 뒤에 계산된 접미사를 붙여 같은 논리적 키를 여러 파티션으로 흩뿌리는 방법입니다.</desc>
+
+  <defs>
+    <marker id="d100-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d100-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">파티션 키 값이 해시되어 파티션이 정해집니다</text>
+
+  <!-- 좋은 키 -->
+  <rect class="dg-panel" x="20" y="40" width="330" height="276" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="64">값의 가짓수가 많은 키</text>
+
+  <rect class="dg-node dg-node--ok" x="34" y="74" width="302" height="32" rx="4"/>
+  <text class="dg-fs-sm dg-mono dg-bold" x="185" y="95" text-anchor="middle">PK = userId</text>
+
+  <path class="dg-edge" d="M185 108 L185 132" marker-end="url(#d100-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="196" y="126">해시</text>
+
+  <rect class="dg-node dg-node--ok" x="44" y="230" width="50" height="58" rx="3"/>
+  <rect class="dg-node dg-node--ok" x="124" y="226" width="50" height="62" rx="3"/>
+  <rect class="dg-node dg-node--ok" x="204" y="233" width="50" height="55" rx="3"/>
+  <rect class="dg-node dg-node--ok" x="284" y="228" width="50" height="60" rx="3"/>
+  <path class="dg-grid" d="M34 288 L340 288"/>
+  <text class="dg-fs-sm dg-muted" x="69" y="304" text-anchor="middle">P1</text>
+  <text class="dg-fs-sm dg-muted" x="149" y="304" text-anchor="middle">P2</text>
+  <text class="dg-fs-sm dg-muted" x="229" y="304" text-anchor="middle">P3</text>
+  <text class="dg-fs-sm dg-muted" x="309" y="304" text-anchor="middle">P4</text>
+
+  <text class="dg-fs-sm dg-bold" x="34" y="160">고르게 분배됩니다</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="180">테이블 용량이 그대로 쓰입니다</text>
+
+  <!-- 나쁜 키 -->
+  <rect class="dg-panel" x="370" y="40" width="330" height="276" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="64">값의 가짓수가 적은 키</text>
+
+  <rect class="dg-node dg-node--danger" x="384" y="74" width="302" height="32" rx="4"/>
+  <text class="dg-fs-sm dg-mono dg-bold" x="535" y="95" text-anchor="middle">PK = status</text>
+
+  <path class="dg-edge dg-edge--danger" d="M535 108 L535 132" marker-end="url(#d100-ar-danger)"/>
+  <text class="dg-fs-sm dg-muted" x="546" y="126">해시</text>
+
+  <rect class="dg-node dg-node--danger" x="394" y="158" width="50" height="130" rx="3"/>
+  <rect class="dg-node dg-node--muted" x="474" y="274" width="50" height="14" rx="3"/>
+  <rect class="dg-node dg-node--muted" x="554" y="272" width="50" height="16" rx="3"/>
+  <rect class="dg-node dg-node--muted" x="634" y="276" width="50" height="12" rx="3"/>
+  <path class="dg-grid" d="M384 288 L690 288"/>
+  <text class="dg-fs-sm dg-bold" x="419" y="304" text-anchor="middle">P1</text>
+  <text class="dg-fs-sm dg-muted" x="499" y="304" text-anchor="middle">P2</text>
+  <text class="dg-fs-sm dg-muted" x="579" y="304" text-anchor="middle">P3</text>
+  <text class="dg-fs-sm dg-muted" x="659" y="304" text-anchor="middle">P4</text>
+
+  <path class="dg-x" d="M456 168 L470 182 M470 168 L456 182"/>
+  <text class="dg-fs-sm dg-bold" x="480" y="170">한 파티션에 몰립니다</text>
+  <text class="dg-fs-sm dg-bold" x="480" y="190">스로틀링 발생</text>
+  <text class="dg-fs-sm dg-muted" x="480" y="214">테이블 전체 용량이</text>
+  <text class="dg-fs-sm dg-muted" x="480" y="232">남아 있어도 막힙니다</text>
+
+  <!-- 해법 -->
+  <text class="dg-fs-md dg-bold" x="20" y="340">해법은 키를 흩뿌리는 것입니다</text>
+
+  <rect class="dg-node" x="20" y="350" width="330" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="372">복합 키로 바꿉니다</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="392">PK = customerId · SK = status#날짜</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="412">가짓수가 많은 속성을 파티션 키로 올립니다</text>
+
+  <rect class="dg-node" x="370" y="350" width="330" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="372">접미사로 분산합니다</text>
+  <text class="dg-fs-sm dg-mono" x="384" y="392">PK = PENDING#07</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="412">같은 논리 키를 여러 파티션으로 나눕니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="432" width="680" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="454" text-anchor="middle">용량을 올려도 핫 파티션은 풀리지 않습니다 — 고쳐야 하는 것은 키 설계입니다</text>
+</svg>

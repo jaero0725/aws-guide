@@ -1,0 +1,100 @@
+<svg viewBox="0 0 720 460" role="img" aria-labelledby="d094-title d094-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d094-title">RDS Proxy가 연결 폭주를 흡수하는 방식</title>
+  <desc id="d094-desc">위쪽은 프록시 없이 AWS Lambda 함수가 데이터베이스에 직접 붙는 경우입니다.
+    Lambda 는 요청량에 따라 동시 실행 환경을 수백 개까지 늘리고 실행 환경마다 자기 연결을 엽니다.
+    연결 수가 DB 인스턴스의 max_connections 를 넘는 순간 새 연결이 거부되고,
+    한 번 거부되기 시작하면 재시도가 다시 연결을 요구하면서 상황이 더 나빠집니다.
+    아래쪽은 같은 Lambda 앞에 RDS Proxy 를 둔 경우입니다.
+    함수들은 프록시에 붙고 프록시는 미리 만들어 둔 소수의 데이터베이스 연결을 풀에 유지하며 재사용합니다.
+    애플리케이션 쪽 연결 수가 아무리 급증해도 데이터베이스가 실제로 보는 연결 수는 통제된 범위에 머무릅니다.
+    부수 효과로 장애 조치가 일어날 때 프록시가 새 인스턴스로 연결을 다시 맺어 주므로
+    애플리케이션이 DNS 갱신을 기다리는 시간이 줄어 전환이 빨라집니다.</desc>
+
+  <defs>
+    <marker id="d094-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d094-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d094-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">같은 트래픽, 프록시가 있고 없고의 차이</text>
+
+  <!-- 레인 A: 프록시 없음 -->
+  <rect class="dg-panel" x="14" y="40" width="692" height="150" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="24" y="60">프록시 없음 — 실행 환경마다 자기 연결을 엽니다</text>
+
+  <rect class="dg-node" x="24" y="70" width="120" height="18" rx="3"/>
+  <text class="dg-fs-sm" x="84" y="84" text-anchor="middle">Lambda 실행 환경</text>
+  <rect class="dg-node" x="24" y="92" width="120" height="18" rx="3"/>
+  <text class="dg-fs-sm" x="84" y="106" text-anchor="middle">Lambda 실행 환경</text>
+  <rect class="dg-node" x="24" y="114" width="120" height="18" rx="3"/>
+  <text class="dg-fs-sm" x="84" y="128" text-anchor="middle">Lambda 실행 환경</text>
+  <rect class="dg-node" x="24" y="136" width="120" height="18" rx="3"/>
+  <text class="dg-fs-sm" x="84" y="150" text-anchor="middle">Lambda 실행 환경</text>
+  <text class="dg-fs-sm dg-bold" x="84" y="172" text-anchor="middle">동시 실행 수백 개</text>
+
+  <path class="dg-edge dg-edge--danger" d="M144 79 L434 112" marker-end="url(#d094-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M144 101 L434 120" marker-end="url(#d094-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M144 123 L434 128" marker-end="url(#d094-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M144 145 L434 136" marker-end="url(#d094-ar-danger)"/>
+  <text class="dg-fs-sm dg-bold" x="290" y="88" text-anchor="middle">연결도 수백 개</text>
+
+  <rect class="dg-node dg-node--danger" x="440" y="92" width="160" height="64" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="520" y="118" text-anchor="middle">DB 인스턴스</text>
+  <text class="dg-fs-sm dg-mono" x="520" y="140" text-anchor="middle">max_connections</text>
+
+  <path class="dg-x" d="M612 108 L628 124 M628 108 L612 124"/>
+  <text class="dg-fs-sm dg-bold" x="612" y="146">새 연결이</text>
+  <text class="dg-fs-sm dg-bold" x="612" y="164">거부됩니다</text>
+
+  <!-- 레인 B: 프록시 -->
+  <rect class="dg-panel" x="14" y="202" width="692" height="168" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="24" y="222">RDS Proxy — 소수의 연결을 풀에 두고 돌려 씁니다</text>
+
+  <rect class="dg-node" x="24" y="232" width="120" height="18" rx="3"/>
+  <text class="dg-fs-sm" x="84" y="246" text-anchor="middle">Lambda 실행 환경</text>
+  <rect class="dg-node" x="24" y="254" width="120" height="18" rx="3"/>
+  <text class="dg-fs-sm" x="84" y="268" text-anchor="middle">Lambda 실행 환경</text>
+  <rect class="dg-node" x="24" y="276" width="120" height="18" rx="3"/>
+  <text class="dg-fs-sm" x="84" y="290" text-anchor="middle">Lambda 실행 환경</text>
+  <rect class="dg-node" x="24" y="298" width="120" height="18" rx="3"/>
+  <text class="dg-fs-sm" x="84" y="312" text-anchor="middle">Lambda 실행 환경</text>
+  <text class="dg-fs-sm dg-bold" x="84" y="334" text-anchor="middle">동시 실행 수백 개</text>
+
+  <path class="dg-edge dg-edge--accent" d="M144 241 L244 264" marker-end="url(#d094-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M144 263 L244 274" marker-end="url(#d094-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M144 285 L244 284" marker-end="url(#d094-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M144 307 L244 294" marker-end="url(#d094-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="250" y="240" width="140" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="320" y="266" text-anchor="middle">RDS Proxy</text>
+  <text class="dg-fs-sm" x="320" y="288" text-anchor="middle">연결 풀 유지</text>
+  <text class="dg-fs-sm" x="320" y="306" text-anchor="middle">연결 재사용</text>
+
+  <path class="dg-edge dg-edge--ok" d="M390 268 L434 274" marker-end="url(#d094-ar-ok)"/>
+  <path class="dg-edge dg-edge--ok" d="M390 292 L434 288" marker-end="url(#d094-ar-ok)"/>
+  <text class="dg-fs-sm dg-bold" x="412" y="322" text-anchor="middle">연결 소수</text>
+
+  <rect class="dg-node dg-node--ok" x="440" y="250" width="160" height="64" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="520" y="276" text-anchor="middle">DB 인스턴스</text>
+  <text class="dg-fs-sm" x="520" y="298" text-anchor="middle">연결 수가 통제됩니다</text>
+
+  <text class="dg-fs-sm dg-bold" x="612" y="264">부수 효과</text>
+  <text class="dg-fs-sm" x="612" y="284">장애 조치 시</text>
+  <text class="dg-fs-sm" x="612" y="302">연결 전환이</text>
+  <text class="dg-fs-sm" x="612" y="320">빨라집니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="382" width="680" height="62" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="406" text-anchor="middle">"서버리스인데 DB 연결이 터진다"의 해법은 인스턴스 확대가 아닙니다</text>
+  <text class="dg-fs-sm" x="360" y="428" text-anchor="middle">연결 수를 줄이는 계층을 사이에 넣는 것이 답이며 그것이 RDS Proxy 입니다</text>
+</svg>

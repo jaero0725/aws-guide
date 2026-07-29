@@ -1,0 +1,66 @@
+{
+  "_comment": "C-091 — Amazon SQS 큐 속성의 유효 범위와 기본값. 색은 넣지 않습니다(런타임에 ctx 가 결정). 수치는 docs/FACT_SOURCES.md §4.8 과 botocore sqs CreateQueueRequest.Attributes documentation 에서 확인한 값입니다.",
+  "source": "docs/FACT_SOURCES.md §4.8 · botocore sqs CreateQueueRequest.Attributes",
+  "rows": [
+    {
+      "attr": "DelaySeconds",
+      "label": "지연 (초)",
+      "unit": "초",
+      "min": 0,
+      "max": 900,
+      "default": 0,
+      "minText": "0초",
+      "maxText": "900초 (15분)",
+      "defaultText": "0초 (지연 없음)",
+      "note": "큐 전체의 배달을 늦춥니다. 개별 메시지 지연은 SendMessage 의 DelaySeconds 로 줍니다"
+    },
+    {
+      "attr": "ReceiveMessageWaitTimeSeconds",
+      "label": "롱 폴링 대기 (초)",
+      "unit": "초",
+      "min": 0,
+      "max": 20,
+      "default": 0,
+      "minText": "0초 (숏 폴링)",
+      "maxText": "20초",
+      "defaultText": "0초 — 기본은 롱 폴링이 꺼져 있습니다",
+      "note": "기본값 0 은 숏 폴링입니다. 빈 응답과 그에 딸린 요청 수를 줄이려면 올려야 합니다"
+    },
+    {
+      "attr": "VisibilityTimeout",
+      "label": "가시성 제한 시간 (초)",
+      "unit": "초",
+      "min": 0,
+      "max": 43200,
+      "default": 30,
+      "minText": "0초",
+      "maxText": "43,200초 (12시간)",
+      "defaultText": "30초",
+      "note": "처리 시간이 30초를 넘으면 다른 소비자에게 같은 메시지가 다시 보여 중복 처리가 납니다"
+    },
+    {
+      "attr": "MessageRetentionPeriod",
+      "label": "보존 기간 (초)",
+      "unit": "초",
+      "min": 60,
+      "max": 1209600,
+      "default": 345600,
+      "minText": "60초 (1분)",
+      "maxText": "1,209,600초 (14일)",
+      "defaultText": "345,600초 (4일)",
+      "note": "소비자가 멈춰 있어도 버틸 수 있는 시간입니다. 이 값을 넘기면 메시지가 사라집니다"
+    },
+    {
+      "attr": "MaximumMessageSize",
+      "label": "최대 메시지 크기 (바이트)",
+      "unit": "바이트",
+      "min": 1024,
+      "max": 1048576,
+      "default": 1048576,
+      "minText": "1,024 B (1 KiB)",
+      "maxText": "1,048,576 B (1 MiB)",
+      "defaultText": "1,048,576 B (1 MiB) — 기본이 곧 상한",
+      "note": "1 MiB 를 넘는 페이로드는 Amazon S3 에 두고 참조만 메시지에 담습니다"
+    }
+  ]
+}

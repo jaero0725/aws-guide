@@ -1,0 +1,88 @@
+<svg viewBox="0 0 720 412" role="img" aria-labelledby="d093-title d093-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d093-title">자동 백업 보존 기간 · 트랜잭션 로그 · 수동 스냅샷의 관계</title>
+  <desc id="d093-desc">가로축은 30일 전부터 지금까지의 시간입니다.
+    강조된 구간은 자동 백업 보존 기간이며 이 예에서는 7일입니다.
+    이 구간 안에서는 하루 한 번 뜨는 자동 백업 스냅샷과 5분 단위로 쌓이는 트랜잭션 로그가 결합되어
+    구간 안의 임의의 시점으로 복구할 수 있습니다. 이것이 특정 시점 복구, 즉 PITR 입니다.
+    보존 기간을 벗어난 자동 백업은 자동으로 삭제되므로 왼쪽 구간에서는 PITR 이 불가능합니다.
+    반면 사람이 직접 만든 수동 스냅샷은 보존 기간과 무관하게 삭제하기 전까지 남아 있으므로,
+    30일 전이든 1년 전이든 그 스냅샷 시점으로는 복원할 수 있습니다. 다만 그 사이 임의 시점으로는 갈 수 없습니다.
+    아래쪽에 적힌 대로 복원은 기존 인스턴스를 되돌리는 작업이 아니라 새 DB 인스턴스를 만드는 작업이며,
+    새 인스턴스는 새 엔드포인트를 갖기 때문에 애플리케이션 연결 정보를 바꿔야 합니다.</desc>
+
+  <defs>
+    <marker id="d093-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- PITR 구간 -->
+  <rect x="558" y="52" width="136" height="152" rx="4"
+        fill="var(--dg-accent-soft)" stroke="var(--dg-accent)"
+        stroke-width="var(--dg-sw-2)" stroke-dasharray="var(--dg-dash-1)"/>
+  <text class="dg-fs-sm dg-bold" x="626" y="44" text-anchor="middle">PITR 가능 구간</text>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">보존 기간 안에서만 임의 시점으로 갈 수 있습니다</text>
+
+  <!-- 행 1: 수동 스냅샷 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="72">수동</text>
+  <text class="dg-fs-sm dg-bold" x="20" y="90">스냅샷</text>
+  <rect class="dg-node dg-node--ok" x="223" y="64" width="20" height="20" rx="3"/>
+  <rect class="dg-node dg-node--ok" x="443" y="64" width="20" height="20" rx="3"/>
+  <text class="dg-fs-sm" x="233" y="100" text-anchor="middle">스냅샷 A</text>
+  <text class="dg-fs-sm" x="453" y="100" text-anchor="middle">스냅샷 B</text>
+  <text class="dg-fs-sm dg-muted" x="140" y="118">삭제하기 전까지 남습니다 — 보존 기간과 무관합니다</text>
+
+  <!-- 행 2: 자동 백업 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="140">자동</text>
+  <text class="dg-fs-sm dg-bold" x="20" y="158">백업</text>
+  <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M140 149 L552 149"/>
+  <text class="dg-fs-sm dg-muted" x="150" y="142">보존 기간이 지난 자동 백업은 삭제됩니다</text>
+  <circle cx="562" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <circle cx="583" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <circle cx="604" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <circle cx="626" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <circle cx="647" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <circle cx="668" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <circle cx="689" cy="149" r="6" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+
+  <!-- 행 3: 트랜잭션 로그 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="186">트랜잭션</text>
+  <text class="dg-fs-sm dg-bold" x="20" y="204">로그</text>
+  <rect x="558" y="176" width="136" height="16" rx="3"
+        fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <path class="dg-grid" d="M578 176 L578 192 M598 176 L598 192 M618 176 L618 192
+                            M638 176 L638 192 M658 176 L658 192 M678 176 L678 192"/>
+  <text class="dg-fs-sm dg-muted" x="552" y="188" text-anchor="end">5분 단위로 쌓입니다</text>
+
+  <!-- 축 -->
+  <path class="dg-grid" d="M140 216 L700 216 M140 210 L140 222 M323 210 L323 222
+                            M507 210 L507 222 M562 204 L562 228 M690 210 L690 222"/>
+  <text class="dg-fs-sm dg-muted dg-num" x="140" y="240" text-anchor="middle">30일 전</text>
+  <text class="dg-fs-sm dg-muted dg-num" x="323" y="240" text-anchor="middle">20일 전</text>
+  <text class="dg-fs-sm dg-muted dg-num" x="490" y="240" text-anchor="middle">10일 전</text>
+  <text class="dg-fs-sm dg-bold dg-num" x="690" y="240" text-anchor="middle">지금</text>
+  <text class="dg-fs-sm dg-bold" x="562" y="260" text-anchor="middle">보존 기간 시작 (여기서는 7일)</text>
+
+  <!-- 복원 -->
+  <rect class="dg-node" x="20" y="272" width="216" height="62" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="294">복구 지점을 고릅니다</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="316">구간 안의 시점 또는 스냅샷 하나</text>
+
+  <path class="dg-edge dg-edge--accent" d="M236 303 L272 303" marker-end="url(#d093-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="278" y="272" width="216" height="62" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="292" y="294">새 DB 인스턴스가 생깁니다</text>
+  <text class="dg-fs-sm dg-muted" x="292" y="316">엔드포인트도 새로 만들어집니다</text>
+
+  <rect class="dg-node dg-node--warn" x="504" y="272" width="196" height="62" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="518" y="294">기존 인스턴스는</text>
+  <text class="dg-fs-sm dg-bold" x="518" y="316">그대로 남아 있습니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="346" width="680" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="370" text-anchor="middle">자동 백업은 구간 안 임의 시점 · 수동 스냅샷은 그 시점 하나</text>
+  <text class="dg-fs-sm" x="360" y="392" text-anchor="middle">복원은 되돌리기가 아니라 새 인스턴스 만들기이며 애플리케이션 연결 정보를 바꿔야 합니다</text>
+</svg>

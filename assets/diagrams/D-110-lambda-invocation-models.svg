@@ -1,0 +1,112 @@
+<svg viewBox="0 0 720 500" role="img" aria-labelledby="d110-title d110-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d110-title">Lambda 호출 모델 세 가지 — 재시도 주체와 실패 도착지</title>
+  <desc id="d110-desc">AWS Lambda 함수를 부르는 방법은 세 가지이고 실패했을 때 벌어지는 일이 셋 다 다릅니다.
+    첫째 동기 호출은 API Gateway 같은 호출자가 응답을 기다리는 방식입니다. 함수가 실패하면 오류가 호출자에게 그대로 돌아가고
+    Lambda 는 아무것도 다시 시도하지 않으며 메시지를 받아 줄 배달 못 한 편지 큐도 없습니다. 재시도는 호출자의 책임입니다.
+    둘째 비동기 호출은 EventBridge 나 SNS 가 이벤트를 던지고 즉시 떠나는 방식입니다.
+    Lambda 가 내부 큐에 이벤트를 넣고 스스로 기본 두 번까지 재시도하며, 그래도 실패하면 온-실패 대상이나 배달 못 한 편지 큐로 보냅니다.
+    이 대상을 설정하지 않으면 이벤트는 그냥 사라집니다.
+    셋째 이벤트 소스 매핑은 Lambda 가 SQS 큐나 Kinesis 및 DynamoDB 스트림을 직접 폴링하는 방식입니다.
+    재시도 규칙은 Lambda 가 아니라 소스가 정합니다. SQS 라면 가시성 제한 시간이 지나 메시지가 다시 보이고
+    수신 횟수가 maxReceiveCount 를 넘으면 그 큐에 붙은 배달 못 한 편지 큐로 옮겨집니다.
+    메시지가 사라졌다는 신고를 받으면 먼저 어느 호출 모델인지부터 확인해야 하는 이유가 이것입니다.</desc>
+
+  <defs>
+    <marker id="d110-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d110-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d110-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">같은 함수라도 어떻게 불렀느냐에 따라 실패의 결말이 다릅니다</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="62">호출 모델</text>
+  <text class="dg-fs-sm dg-muted" x="156" y="62">호출 주체</text>
+  <text class="dg-fs-sm dg-muted" x="302" y="62">함수</text>
+  <text class="dg-fs-sm dg-muted" x="448" y="62">실패했을 때 가는 곳</text>
+
+  <!-- 레인 1: 동기 -->
+  <rect class="dg-panel" x="14" y="70" width="692" height="110" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="24" y="112">동기 호출</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="24" y="132">RequestResponse</text>
+
+  <rect class="dg-node" x="156" y="92" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="221" y="118" text-anchor="middle">API Gateway</text>
+  <text class="dg-fs-sm dg-muted" x="221" y="138" text-anchor="middle">응답을 기다립니다</text>
+
+  <path class="dg-edge" d="M286 122 L298 122" marker-end="url(#d110-ar)"/>
+
+  <rect class="dg-node" x="302" y="92" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="367" y="118" text-anchor="middle">Lambda</text>
+  <text class="dg-fs-sm dg-muted" x="367" y="138" text-anchor="middle">재시도 없음</text>
+
+  <path class="dg-edge dg-edge--danger" d="M432 122 L444 122" marker-end="url(#d110-ar-danger)"/>
+
+  <rect class="dg-node dg-node--danger" x="448" y="92" width="252" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="462" y="116">DLQ 라는 개념이 없습니다</text>
+  <text class="dg-fs-sm" x="462" y="138">오류가 호출자에게 그대로 돌아갑니다</text>
+
+  <text class="dg-fs-sm dg-bold" x="156" y="172">재시도 주체 — 호출자 (클라이언트 또는 SDK 가 알아서 다시 부릅니다)</text>
+
+  <!-- 레인 2: 비동기 -->
+  <rect class="dg-panel" x="14" y="188" width="692" height="110" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="24" y="230">비동기 호출</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="24" y="250">Event</text>
+
+  <rect class="dg-node" x="156" y="210" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="221" y="236" text-anchor="middle">EventBridge · SNS</text>
+  <text class="dg-fs-sm dg-muted" x="221" y="256" text-anchor="middle">던지고 떠납니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M286 240 L298 240" marker-end="url(#d110-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="302" y="210" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="367" y="236" text-anchor="middle">Lambda 내부 큐</text>
+  <text class="dg-fs-sm dg-bold" x="367" y="256" text-anchor="middle">기본 2회 재시도</text>
+
+  <path class="dg-edge dg-edge--accent" d="M432 240 L444 240" marker-end="url(#d110-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="448" y="210" width="252" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="462" y="234">온-실패 대상 또는 DLQ</text>
+  <text class="dg-fs-sm" x="462" y="256">SQS · SNS · EventBridge · Lambda 중 선택</text>
+
+  <text class="dg-fs-sm dg-bold" x="156" y="290">재시도 주체 — Lambda 서비스 · 대상을 설정하지 않으면 이벤트는 그냥 사라집니다</text>
+
+  <!-- 레인 3: 이벤트 소스 매핑 -->
+  <rect class="dg-panel" x="14" y="306" width="692" height="110" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="24" y="342">이벤트 소스</text>
+  <text class="dg-fs-sm dg-bold" x="24" y="360">매핑 (폴링)</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="24" y="380">Poll-based</text>
+
+  <rect class="dg-node" x="156" y="328" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="221" y="352" text-anchor="middle">SQS · Kinesis</text>
+  <text class="dg-fs-sm dg-bold" x="221" y="370" text-anchor="middle">DynamoDB 스트림</text>
+
+  <path class="dg-edge" d="M298 358 L290 358" marker-end="url(#d110-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="294" y="398" text-anchor="middle">폴링</text>
+
+  <rect class="dg-node" x="302" y="328" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="367" y="352" text-anchor="middle">Lambda</text>
+  <text class="dg-fs-sm dg-muted" x="367" y="372" text-anchor="middle">배치로 꺼내 갑니다</text>
+
+  <path class="dg-edge dg-edge--danger" d="M432 358 L444 358" marker-end="url(#d110-ar-danger)"/>
+
+  <rect class="dg-node dg-node--warn" x="448" y="328" width="252" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="462" y="352">소스에 붙은 DLQ</text>
+  <text class="dg-fs-sm" x="462" y="374">SQS 는 maxReceiveCount 초과 시 이동</text>
+
+  <text class="dg-fs-sm dg-bold" x="156" y="408">재시도 주체 — 이벤트 소스 · 가시성 제한 시간이 지나면 메시지가 다시 보입니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="428" width="680" height="60" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="452" text-anchor="middle">"메시지가 사라졌다"의 진단은 호출 모델을 확인하는 데서 시작합니다</text>
+  <text class="dg-fs-sm" x="360" y="474" text-anchor="middle">DLQ 를 붙일 자리가 모델마다 다르고, 동기 호출에는 아예 그런 자리가 없습니다</text>
+</svg>

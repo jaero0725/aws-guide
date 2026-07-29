@@ -1,0 +1,100 @@
+<svg viewBox="0 0 720 470" role="img" aria-labelledby="d074-title d074-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d074-title">S3 요청이 통과하는 접근 제어 관문의 순서</title>
+  <desc id="d074-desc">Amazon S3 로 들어온 요청이 위에서 아래로 네 개의 관문을 지납니다.
+    첫 관문은 퍼블릭 액세스 차단으로 익명 요청과 퍼블릭 부여만을 대상으로 하며 여기서 걸리면 버킷 정책을 아무리 열어도 소용이 없습니다.
+    둘째는 버킷 정책이며 리소스 기반 정책이라 명시적 거부가 있으면 여기서 결과가 확정됩니다.
+    셋째는 요청 주체에 붙은 IAM 자격 증명 기반 정책이고 허용이 어디에도 없으면 암묵적 거부로 끝납니다.
+    넷째는 객체 ACL 인데 신규 버킷은 ObjectOwnership 이 BucketOwnerEnforced 라 ACL 이 비활성이므로 평가 자체가 일어나지 않습니다.
+    왼쪽 분기는 프리사인 URL 로, URL 자체가 권한을 새로 만드는 것이 아니라 서명한 주체의 권한을 빌려 오는 것이므로
+    같은 관문을 똑같이 통과하며 서명자가 권한을 잃으면 URL 도 함께 죽습니다.
+    접근이 막혔을 때는 어느 관문에서 막혔는지를 이 순서대로 짚어 나가면 됩니다.</desc>
+
+  <defs>
+    <marker id="d074-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d074-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d074-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d074-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="28">요청은 위에서 아래로 관문을 지납니다 — 어디서 막혔는지가 진단의 전부입니다</text>
+
+  <!-- 프리사인 URL 분기 -->
+  <rect class="dg-panel" x="20" y="44" width="168" height="150" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="30" y="66">프리사인 URL</text>
+  <text class="dg-fs-sm" x="30" y="88">URL 은 권한을 새로</text>
+  <text class="dg-fs-sm" x="30" y="106">만들지 않습니다.</text>
+  <text class="dg-fs-sm dg-bold" x="30" y="128">서명한 주체의 권한을</text>
+  <text class="dg-fs-sm dg-bold" x="30" y="146">그대로 빌려 옵니다.</text>
+  <text class="dg-fs-sm dg-muted" x="30" y="170">서명자가 권한을 잃으면</text>
+  <text class="dg-fs-sm dg-muted" x="30" y="188">URL 도 함께 죽습니다</text>
+
+  <path class="dg-edge dg-edge--dashed" d="M188 76 L196 76" marker-end="url(#d074-ar)"/>
+
+  <!-- 요청 -->
+  <rect class="dg-node dg-node--accent" x="200" y="52" width="320" height="46" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="72" text-anchor="middle">S3 API 요청</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="90" text-anchor="middle">서명된 요청 (IAM 주체) 또는 익명 요청</text>
+
+  <path class="dg-edge dg-edge--accent" d="M360 98 L360 112" marker-end="url(#d074-ar-accent)"/>
+
+  <!-- 관문 1 -->
+  <rect class="dg-node" x="200" y="118" width="320" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="216" y="139">1. 퍼블릭 액세스 차단</text>
+  <text class="dg-fs-sm dg-muted" x="216" y="157">익명·퍼블릭 부여만 대상 · 계정과 버킷 양쪽에서 평가</text>
+  <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M520 141 L562 141" marker-end="url(#d074-ar-danger)"/>
+  <text class="dg-fs-sm dg-bold" x="570" y="136">차단 — 버킷 정책이</text>
+  <text class="dg-fs-sm dg-bold" x="570" y="152">열려 있어도 무시됩니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M360 164 L360 178" marker-end="url(#d074-ar-accent)"/>
+
+  <!-- 관문 2 -->
+  <rect class="dg-node" x="200" y="184" width="320" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="216" y="205">2. 버킷 정책 (리소스 기반)</text>
+  <text class="dg-fs-sm dg-muted" x="216" y="223">버킷에 붙은 정책 · 교차 계정 허용도 여기서</text>
+  <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M520 207 L562 207" marker-end="url(#d074-ar-danger)"/>
+  <text class="dg-fs-sm dg-bold" x="570" y="202">명시적 Deny 는</text>
+  <text class="dg-fs-sm dg-bold" x="570" y="218">여기서 확정됩니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M360 230 L360 244" marker-end="url(#d074-ar-accent)"/>
+
+  <!-- 관문 3 -->
+  <rect class="dg-node" x="200" y="250" width="320" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="216" y="271">3. IAM 정책 (자격 증명 기반)</text>
+  <text class="dg-fs-sm dg-muted" x="216" y="289">요청 주체에 붙은 정책 · SCP 와 권한 경계도 함께</text>
+  <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M520 273 L562 273" marker-end="url(#d074-ar-danger)"/>
+  <text class="dg-fs-sm dg-bold" x="570" y="268">허용이 없으면</text>
+  <text class="dg-fs-sm dg-bold" x="570" y="284">암묵적 거부</text>
+
+  <path class="dg-edge dg-edge--accent" d="M360 296 L360 310" marker-end="url(#d074-ar-accent)"/>
+
+  <!-- 관문 4 -->
+  <rect class="dg-node dg-node--muted" x="200" y="316" width="320" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="216" y="337">4. 객체 ACL</text>
+  <text class="dg-fs-sm dg-muted" x="216" y="355">BucketOwnerEnforced 가 기본 — 평가되지 않습니다</text>
+  <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M520 339 L562 339" marker-end="url(#d074-ar-muted)"/>
+  <text class="dg-fs-sm dg-muted" x="570" y="334">비활성이라 사실상</text>
+  <text class="dg-fs-sm dg-muted" x="570" y="350">없는 관문입니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M360 362 L360 376" marker-end="url(#d074-ar-accent)"/>
+
+  <!-- 허용 -->
+  <rect class="dg-node dg-node--ok" x="200" y="382" width="320" height="38" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="406" text-anchor="middle">허용 — 객체에 접근합니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="432" width="680" height="30" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="452" text-anchor="middle">앞 관문에서 막히면 뒤 관문이 열려 있어도 소용없습니다 — 진단은 항상 위에서부터</text>
+</svg>

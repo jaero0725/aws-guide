@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>케이스 2 · 읽기 부하로 데이터베이스가 죽었다 — AWS SAA Guide</title>
+  <meta name="description" content="읽기 요청 폭증으로 RDS 인스턴스가 포화됐을 때 수직 확장, Multi-AZ, 읽기 전용 복제본, ElastiCache 네 후보를 비교합니다. Multi-AZ가 읽기 부하를 덜어 주지 않는 이유와 복제 지연·캐시 신선도를 쿼리 유형별로 나누는 판단 기준을 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cases" data-page="case02"></div>
+
+  <main id="main" class="page" data-page-id="cases/case02">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">아키텍처 케이스</a></li>
+        <li><span aria-current="page">케이스 2 · 읽기 부하로 데이터베이스가 죽었다</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">아키텍처 케이스 · 2</p>
+      <h1>읽기 부하로 데이터베이스가 죽었다</h1>
+      <p class="page__lead">
+        시험이 가장 집요하게 노리는 혼동 쌍이 여기에 있습니다 —
+        <strong>Multi-AZ는 가용성을 위한 것이고, 읽기 전용 복제본은 읽기 확장을 위한 것</strong>입니다.
+        둘은 서로를 대체하지 않습니다.
+        이 케이스는 같은 장애에 네 가지 처방을 대 보고,
+        어느 것이 실제로 부하를 덜어 주는지 판정합니다.
+      </p>
+      <p class="page__meta">
+        주 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a> ·
+        <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>Multi-AZ 배포가 읽기 부하를 덜어 주지 않는 이유를 복제 방식과 엔드포인트로 설명할 수 있습니다.</li>
+        <li>읽기 전용 복제본과 캐시 계층 중 어느 것이 근본 처방인지 쿼리 패턴으로 판단할 수 있습니다.</li>
+        <li>복제 지연과 캐시 신선도가 허용되는 쿼리와 허용되지 않는 쿼리를 구분해 경로를 나눌 수 있습니다.</li>
+        <li>연결 수 고갈이 원인일 때 처방이 달라진다는 점을 설명할 수 있습니다.</li>
+        <li>시험 문항에서 "가용성" 신호와 "읽기 성능" 신호를 구분해 선택지를 소거할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="situation">
+      <h2 id="situation">상황</h2>
+
+      <p>
+        전자상거래 서비스의 상품 상세 페이지가 Amazon RDS for MySQL 단일 인스턴스를 씁니다.
+        Multi-AZ는 켜져 있지 않고, 읽기 전용 복제본도 없습니다.
+        애플리케이션 서버는 <strong>데이터베이스 엔드포인트 하나</strong>만 알고 있으며,
+        모든 쿼리가 그 엔드포인트로 갑니다.
+      </p>
+
+      <p>
+        지난 금요일 프로모션이 시작되자 다음 순서로 장애가 진행됐습니다.
+      </p>
+
+      <ol>
+        <li>상품 상세 페이지 조회가 평소의 여러 배로 늘었습니다.</li>
+        <li>데이터베이스 CPU 사용률이 100%에 붙고 쿼리 지연이 올라갔습니다.</li>
+        <li>애플리케이션의 커넥션 풀이 반환되지 않은 연결로 가득 찼습니다.</li>
+        <li>새 요청이 연결을 얻지 못해 <strong>쓰기 경로(주문 생성)까지 함께 실패</strong>했습니다.</li>
+      </ol>
+
+      <p>
+        쿼리 로그를 보면 읽기가 전체 요청의 대부분이고,
+        그중에서도 <strong>같은 상품 몇 백 건에 대한 동일한 조회</strong>가 반복됩니다.
+        쓰기는 주문과 재고 차감 정도이며 양이 많지 않습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-181">
+        <figcaption>
+          동일한 읽기 부하에 읽기 전용 복제본, ElastiCache 캐시 계층, Multi-AZ 세 처방을 적용했을 때
+          프라이머리 인스턴스에 실제로 도달하는 요청량의 차이 —
+          Multi-AZ의 대기 인스턴스는 읽기 트래픽을 받지 않으므로 부하가 그대로 남습니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          장애 보고서에 "데이터베이스가 죽었다"고 쓰면 처방을 고르지 못합니다.
+          <strong>무엇이 포화됐는지</strong>를 먼저 나눠야 합니다.
+        </p>
+        <p>
+          CPU가 포화됐다면 쿼리 자체를 줄이는 처방(캐시, 복제본, 인덱스)이 맞고,
+          <strong>연결 수</strong>가 포화됐다면 연결을 재사용하는 처방(연결 풀링, RDS Proxy)이 맞습니다.
+          이 케이스는 CPU 포화가 먼저 오고 연결 고갈이 뒤따른 경우입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="requirements">
+      <h2 id="requirements">요구사항과 제약</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구사항과 제약, 그리고 각각이 후보를 어떻게 걸러 내는가</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">내용</th>
+              <th scope="col">후보 필터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">요구 1</th>
+              <td>읽기 처리량을 <strong>수 배 이상</strong> 늘린다</td>
+              <td>프라이머리에 도달하는 요청 자체를 줄이는 안만 통과</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 2</th>
+              <td>읽기 폭주가 <strong>쓰기 경로를 무너뜨리지 않게</strong> 한다</td>
+              <td>읽기와 쓰기의 자원을 분리하는 안이 유리</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 3</th>
+              <td>단일 인스턴스 구성의 <strong>가용 영역 장애 취약성</strong>도 해소한다</td>
+              <td>가용성 처방이 별도로 필요하다 — 읽기 처방과 섞지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 1</th>
+              <td>상품 정보는 <strong>수 초의 지연을 허용</strong>한다</td>
+              <td>복제 지연과 캐시 신선도를 감수할 수 있는 쿼리가 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 2</th>
+              <td><strong>재고 수량과 주문 조회는 지연을 허용하지 않는다</strong></td>
+              <td>이 쿼리들은 프라이머리로 고정해야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 3</th>
+              <td>다음 프로모션까지 <strong>시간이 없다</strong>. 큰 리팩터링은 어렵다</td>
+              <td>코드 변경량이 판단에 들어간다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        배경 개념은 <a href="../basics/ch10.html">10장 RDS와 관계형 데이터베이스</a>와
+        <a href="../basics/ch11.html">11장 NoSQL · 캐시 · 분석 DB</a>에 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="options">
+      <h2 id="options">후보 설계안 비교</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>후보 설계안 4종 비교 — 읽기 부하 경감 효과를 기준으로 판정</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">A · 인스턴스 클래스 확대</th>
+              <th scope="col">B · Multi-AZ 활성화</th>
+              <th scope="col">C · 읽기 전용 복제본</th>
+              <th scope="col">D · ElastiCache 캐시 계층</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">복제 방식</th>
+              <td>해당 없음</td>
+              <td><strong>동기(synchronous)</strong></td>
+              <td><strong>비동기(asynchronous)</strong></td>
+              <td>복제가 아니라 별도 저장소</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 트래픽을 받는가</th>
+              <td>같은 인스턴스가 다 받는다</td>
+              <td><span class="mark-no">대기 인스턴스는 받지 않는다</span></td>
+              <td><span class="mark-ok">받는다 — 별도 읽기 엔드포인트</span></td>
+              <td><span class="mark-ok">받는다 — 데이터베이스에 도달하기 전에 응답</span></td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 부하 경감</th>
+              <td>상한이 인스턴스 크기에 묶인다</td>
+              <td><span class="mark-no">없음</span></td>
+              <td>복제본 수만큼 분산</td>
+              <td><span class="mark-ok">반복 조회가 많을수록 가장 큼</span></td>
+            </tr>
+            <tr>
+              <th scope="row">가용성 기여</th>
+              <td>없음</td>
+              <td><span class="mark-ok">가용 영역 장애 시 자동 장애 조치</span></td>
+              <td>수동 승격이 필요하다</td>
+              <td>데이터베이스 가용성과 무관</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터 신선도</th>
+              <td>항상 최신</td>
+              <td>항상 최신</td>
+              <td>복제 지연만큼 뒤처질 수 있다</td>
+              <td>TTL과 무효화 전략에 달렸다</td>
+            </tr>
+            <tr>
+              <th scope="row">코드 변경</th>
+              <td><span class="mark-ok">없음</span></td>
+              <td><span class="mark-ok">없음 — 엔드포인트가 그대로</span></td>
+              <td>읽기 쿼리를 읽기 엔드포인트로 보내는 분기</td>
+              <td>캐시 조회·적재 로직 추가</td>
+            </tr>
+            <tr>
+              <th scope="row">판정</th>
+              <td><span class="mark-no">임시방편 — 상한이 곧 다시 온다</span></td>
+              <td><span class="mark-ok">채택하되 요구 3(가용성)에 대해서만</span></td>
+              <td><span class="mark-ok">채택 — 요구 1·2의 1차 처방</span></td>
+              <td><span class="mark-ok">채택 — 반복 조회에 대한 근본 처방</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          표에서 한 줄만 외운다면 이것입니다 —
+          <strong>표준 Multi-AZ 인스턴스 배포의 대기 인스턴스는 읽기 트래픽을 받지 않습니다.</strong>
+          그래서 "읽기가 많아 느리다"는 문제문에 Multi-AZ를 답으로 고르면 틀립니다.
+          반대로 "가용 영역 장애를 견뎌야 한다"에 읽기 전용 복제본을 고르는 것도 틀립니다.
+        </p>
+        <p>
+          한 가지 예외를 알아 두면 함정을 피할 수 있습니다.
+          Multi-AZ <strong>DB 클러스터</strong> 배포는 읽기 가능한 대기 인스턴스를 두는
+          <strong>별개의 아키텍처</strong>입니다.
+          문제문이 "Multi-AZ DB 클러스터"라고 명시하지 않았다면
+          표준 Multi-AZ 인스턴스 배포로 읽습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision">
+      <h2 id="decision">선택과 근거</h2>
+
+      <p>
+        <strong>B + C + D를 서로 다른 요구에 각각 배정</strong>합니다.
+        하나로 다 해결하려는 시도가 이 케이스에서 가장 흔한 오답입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구별 처방 배정과 적용 순서</caption>
+          <thead>
+            <tr>
+              <th scope="col">순서</th>
+              <th scope="col">처방</th>
+              <th scope="col">해결하는 요구</th>
+              <th scope="col">왜 이 순서인가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1</th>
+              <td>Multi-AZ 활성화</td>
+              <td>요구 3 (가용 영역 장애)</td>
+              <td>코드 변경이 없고 엔드포인트가 유지되므로 가장 먼저 넣어도 위험이 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">2</th>
+              <td>읽기 전용 복제본 추가 + 지연 허용 읽기를 읽기 엔드포인트로</td>
+              <td>요구 1·2</td>
+              <td>애플리케이션 변경이 "엔드포인트 분기" 한 곳으로 끝난다. 제약 3에 맞는다</td>
+            </tr>
+            <tr>
+              <th scope="row">3</th>
+              <td>반복 조회를 ElastiCache로 흡수</td>
+              <td>요구 1의 근본 처방</td>
+              <td>효과가 가장 크지만 캐시 무효화 설계가 필요하므로 프로모션 이후에 넣는다</td>
+            </tr>
+            <tr>
+              <th scope="row">4</th>
+              <td>연결이 다시 병목이면 RDS Proxy 검토</td>
+              <td>요구 2의 잔여 위험</td>
+              <td>CPU를 먼저 해결한 뒤에도 연결 수가 문제인지 확인하고 판단한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="query-routing">쿼리를 두 갈래로 나눈다</h3>
+      <p>
+        제약 1과 제약 2가 이 설계의 핵심입니다.
+        <strong>모든 읽기를 복제본으로 보내면 안 됩니다.</strong>
+        읽기 전용 복제본은 비동기로 복제되므로 프라이머리보다 뒤처진 데이터를 반환할 수 있습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>쿼리 유형별 경로 배정</caption>
+          <thead>
+            <tr>
+              <th scope="col">쿼리</th>
+              <th scope="col">지연 허용</th>
+              <th scope="col">경로</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">상품 상세 · 카테고리 목록 · 리뷰</th>
+              <td><span class="mark-ok">허용</span></td>
+              <td>캐시 → 없으면 읽기 엔드포인트</td>
+            </tr>
+            <tr>
+              <th scope="row">재고 수량 확인</th>
+              <td><span class="mark-no">불가</span></td>
+              <td>프라이머리(기본 엔드포인트) 고정</td>
+            </tr>
+            <tr>
+              <th scope="row">방금 생성한 주문 조회</th>
+              <td><span class="mark-no">불가</span></td>
+              <td>프라이머리 고정 — 쓰기 직후 읽기는 복제 지연에 그대로 노출된다</td>
+            </tr>
+            <tr>
+              <th scope="row">관리자 리포트 · 집계</th>
+              <td><span class="mark-ok">허용</span></td>
+              <td>읽기 엔드포인트 — 무거운 쿼리를 프라이머리에서 떼어 낸다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          "쓰기 직후 같은 데이터를 읽는" 경로는 복제본에서 가장 자주 사고가 납니다.
+          주문을 만들고 곧바로 주문 상세로 이동하는 화면이 대표적입니다.
+          <strong>세션 안에서 방금 쓴 데이터를 읽는 요청은 프라이머리로 고정</strong>하는 것이
+          가장 단순하고 확실한 규칙입니다.
+        </p>
+      </aside>
+
+      <h3 id="apply-multi-az">1단계 · Multi-AZ 활성화</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">enable-multi-az.sh</span> — 기존 인스턴스에 Multi-AZ 적용 (식별자는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws rds modify-db-instance \
+  --db-instance-identifier shop-prod \
+  --multi-az \
+  --apply-immediately
+
+# 적용 상태와 대기 가용 영역을 확인합니다.
+aws rds describe-db-instances \
+  --db-instance-identifier shop-prod \
+  --query 'DBInstances[0].[MultiAZ,AvailabilityZone,SecondaryAvailabilityZone,Endpoint.Address]' \
+  --output table</code></pre>
+      </figure>
+
+      <p>
+        엔드포인트 주소는 바뀌지 않습니다.
+        장애 조치가 일어나면 같은 이름이 대기 인스턴스를 가리키도록 DNS가 전환됩니다.
+        그래서 애플리케이션 설정을 고칠 필요가 없습니다.
+      </p>
+
+      <h3 id="apply-read-replica">2단계 · 읽기 전용 복제본</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-read-replica.sh</span> — 복제본 생성과 읽기 엔드포인트 확인 (식별자는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws rds create-db-instance-read-replica \
+  --db-instance-identifier shop-prod-read-1 \
+  --source-db-instance-identifier shop-prod
+
+# 복제본은 자기만의 엔드포인트를 가집니다. 이 주소로 읽기 쿼리를 보냅니다.
+aws rds describe-db-instances \
+  --db-instance-identifier shop-prod-read-1 \
+  --query 'DBInstances[0].[DBInstanceStatus,Endpoint.Address]' \
+  --output table</code></pre>
+      </figure>
+
+      <p>
+        복제본 개수에는 상한이 있습니다.
+        MySQL · MariaDB · PostgreSQL은 인스턴스당 <strong>최대 15개</strong>,
+        Oracle과 SQL Server는 <strong>5개</strong>, Db2는 <strong>3개</strong>입니다.
+        복제본은 다른 가용 영역이나 <strong>다른 리전</strong>에도 만들 수 있어
+        재해 복구 구성의 재료로도 쓰입니다
+        (<a href="case08.html">케이스 8 · 리전 장애에 대비한 DR을 설계하라</a>).
+      </p>
+
+      <aside class="note" data-label="참고">
+        <p>
+          복제 지연은 지표로 관측할 수 있습니다.
+          Amazon CloudWatch의 복제 지연 지표에 알람을 걸어 두면
+          "복제본이 얼마나 뒤처져 있는지"를 감으로 판단하지 않아도 됩니다.
+          지연이 커지면 읽기 경로를 일시적으로 프라이머리로 되돌리는 것도 선택지입니다.
+        </p>
+      </aside>
+
+      <h3 id="apply-cache">3단계 · 캐시 계층</h3>
+      <p>
+        반복 조회가 지배적이라는 관측이 캐시를 근본 처방으로 만듭니다.
+        같은 상품 한 건을 1초에 수백 번 조회한다면,
+        복제본을 몇 개 붙이든 <strong>같은 결과를 매번 다시 계산</strong>하고 있는 셈입니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-cache.sh</span> — 복제와 자동 장애 조치를 갖춘 캐시 구성 (식별자는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws elasticache create-replication-group \
+  --replication-group-id shop-cache \
+  --replication-group-description "product detail cache" \
+  --cache-node-type cache.t3.micro \
+  --num-cache-clusters 2 \
+  --automatic-failover-enabled \
+  --multi-az-enabled \
+  --cache-subnet-group-name shop-cache-subnets \
+  --security-group-ids sg-0123456789abcdef0</code></pre>
+      </figure>
+
+      <p>
+        엔진 선택 기준은 단순합니다.
+        <strong>복제 · 자동 장애 조치 · 스냅샷이 필요하면</strong>
+        복제 그룹을 만들 수 있는 엔진(Valkey 또는 Redis OSS)을 고릅니다.
+        Memcached는 다중 스레드로 단순한 키-값 캐시를 처리하지만
+        복제 그룹과 자동 장애 조치를 제공하지 않습니다.
+        시험에서 "캐시가 죽어도 데이터가 남아야 한다"거나
+        "정렬된 자료 구조가 필요하다"는 신호가 있으면 Memcached는 소거 대상입니다.
+      </p>
+
+      <h3 id="cache-strategy">캐시 채우기 전략과 무효화</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>지연 로딩과 라이트 스루의 차이</caption>
+          <thead>
+            <tr>
+              <th scope="col">전략</th>
+              <th scope="col">동작</th>
+              <th scope="col">장점</th>
+              <th scope="col">단점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">지연 로딩(lazy loading)</th>
+              <td>캐시에 없으면 데이터베이스에서 읽어 캐시에 넣는다</td>
+              <td>실제로 요청된 데이터만 캐시에 남는다</td>
+              <td>첫 요청은 항상 느리고, 캐시가 비면 부하가 한꺼번에 몰린다</td>
+            </tr>
+            <tr>
+              <th scope="row">라이트 스루(write-through)</th>
+              <td>쓰기 시점에 데이터베이스와 캐시를 함께 갱신한다</td>
+              <td>캐시가 항상 최신이다</td>
+              <td>읽히지 않는 데이터까지 캐시에 쌓이고, 쓰기 경로가 느려진다</td>
+            </tr>
+            <tr>
+              <th scope="row">TTL 병행</th>
+              <td>두 전략 어느 쪽이든 만료 시간을 함께 둔다</td>
+              <td>무효화를 놓쳐도 언젠가 정정된다</td>
+              <td>TTL 동안은 낡은 값이 보인다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        이 케이스에서는 상품 정보에 지연 로딩과 짧은 TTL을 함께 쓰고,
+        가격 변경처럼 즉시 반영이 필요한 쓰기에서만 해당 키를 명시적으로 삭제합니다.
+        재고 수량은 캐시에 넣지 않습니다 — 제약 2 때문입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost-and-ops">
+      <h2 id="cost-and-ops">비용과 운영에 미치는 영향</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>각 처방이 추가하는 비용 항목과 운영 항목 — 금액이 아니라 항목의 성격입니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">처방</th>
+              <th scope="col">추가되는 비용 항목</th>
+              <th scope="col">추가되는 운영 항목</th>
+              <th scope="col">얻는 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">인스턴스 클래스 확대</th>
+              <td>더 큰 인스턴스 요금으로 대체</td>
+              <td>변경 시 재시작 계획</td>
+              <td>일시적 여유. 상한은 그대로</td>
+            </tr>
+            <tr>
+              <th scope="row">Multi-AZ</th>
+              <td>대기 인스턴스와 <strong>가용 영역 간 복제 트래픽</strong></td>
+              <td>장애 조치 시나리오 점검</td>
+              <td>가용성. <strong>읽기 처리량은 그대로</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 전용 복제본</th>
+              <td>복제본 인스턴스 수만큼. 교차 리전이면 리전 간 전송</td>
+              <td>복제 지연 감시, 승격 절차 문서화</td>
+              <td>읽기 처리량 분산</td>
+            </tr>
+            <tr>
+              <th scope="row">ElastiCache</th>
+              <td>캐시 노드</td>
+              <td>무효화 설계, 캐시 적중률 감시, 콜드 스타트 대비</td>
+              <td>가장 큰 부하 경감과 가장 낮은 응답 지연</td>
+            </tr>
+            <tr>
+              <th scope="row">RDS Proxy</th>
+              <td>프록시 사용 항목</td>
+              <td>연결 고정(pinning) 여부 확인</td>
+              <td>연결 수 병목 완화, 장애 조치 시 연결 전환 단축</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          비용 한정어(<code>MOST cost-effective</code>)가 붙은 문항에서
+          <strong>같은 결과를 내는 두 안 중 캐시 쪽이 유리한 경우가 많습니다.</strong>
+          읽기 전용 복제본은 데이터베이스 인스턴스를 통째로 하나 더 띄우는 반면,
+          캐시는 반복 조회를 흡수해 원본 조회 자체를 줄이기 때문입니다.
+        </p>
+        <p>
+          다만 <strong>반복 조회가 없는 워크로드</strong>에서는 캐시 적중률이 낮아
+          비용만 늘고 효과가 없습니다. 문제문에 "동일한 쿼리가 반복된다",
+          "읽기 대 쓰기 비율이 매우 높다"는 신호가 있는지 먼저 확인합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="checklist">
+      <h2 id="checklist">설계 체크리스트</h2>
+
+      <h3 id="checklist-diagnose">진단할 때</h3>
+      <ul>
+        <li><label><input type="checkbox"> 포화된 자원이 <strong>CPU인지, 연결 수인지, 스토리지 IOPS인지</strong> 지표로 구분했다</label></li>
+        <li><label><input type="checkbox"> 읽기 대 쓰기 비율을 실제 수치로 확인했다</label></li>
+        <li><label><input type="checkbox"> 반복되는 동일 쿼리의 비중을 확인했다 (캐시 효과의 근거)</label></li>
+        <li><label><input type="checkbox"> 느린 쿼리와 누락된 인덱스를 먼저 점검했다 (아키텍처를 바꾸기 전에)</label></li>
+      </ul>
+
+      <h3 id="checklist-design">설계할 때</h3>
+      <ul>
+        <li><label><input type="checkbox"> 가용성 처방과 읽기 확장 처방을 <strong>따로</strong> 배정했다</label></li>
+        <li><label><input type="checkbox"> 복제 지연을 허용할 수 없는 쿼리를 목록으로 뽑아 프라이머리에 고정했다</label></li>
+        <li><label><input type="checkbox"> 쓰기 직후 읽기 경로를 식별해 별도로 처리했다</label></li>
+        <li><label><input type="checkbox"> 캐시에 넣지 않을 데이터(재고·잔액 등)를 명시했다</label></li>
+        <li><label><input type="checkbox"> 캐시 무효화 시점을 쓰기 경로마다 정의했다</label></li>
+        <li><label><input type="checkbox"> 캐시가 비어 있을 때(재시작·장애 직후) 데이터베이스가 견디는지 확인했다</label></li>
+        <li><label><input type="checkbox"> 복제 지연 지표와 캐시 적중률 지표에 알람을 걸었다</label></li>
+        <li><label><input type="checkbox"> 애플리케이션 커넥션 풀 상한이 데이터베이스 최대 연결 수와 정합한다</label></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">관련 시험 포인트</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>문제문의 신호와 정답 방향</caption>
+          <thead>
+            <tr>
+              <th scope="col">문제문의 신호</th>
+              <th scope="col">고르는 것</th>
+              <th scope="col">소거하는 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">읽기가 많아 느리다 / 리포팅 쿼리가 무겁다</th>
+              <td>읽기 전용 복제본</td>
+              <td>Multi-AZ</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 장애를 견뎌야 한다 / 계획된 유지 관리 중단을 줄여야 한다</th>
+              <td>Multi-AZ</td>
+              <td>읽기 전용 복제본</td>
+            </tr>
+            <tr>
+              <th scope="row">같은 데이터를 반복 조회한다 / 밀리초 단위 응답이 필요하다</th>
+              <td>ElastiCache</td>
+              <td>인스턴스 클래스 확대</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>without changing application code</code></th>
+              <td>Multi-AZ, RDS Proxy, 인스턴스 확대</td>
+              <td>캐시 계층 도입(코드 변경이 필요하다)</td>
+            </tr>
+            <tr>
+              <th scope="row">Lambda 동시 실행이 늘어 연결이 고갈된다</th>
+              <td>Amazon RDS Proxy</td>
+              <td>복제본 추가(연결 문제를 풀지 못한다)</td>
+            </tr>
+            <tr>
+              <th scope="row">DynamoDB 앞에 캐시가 필요하다</th>
+              <td>DynamoDB Accelerator(DAX)</td>
+              <td>ElastiCache(가능하지만 코드 변경이 더 크다)</td>
+            </tr>
+            <tr>
+              <th scope="row">다른 리전에서도 읽어야 한다</th>
+              <td>교차 리전 읽기 전용 복제본, Aurora 글로벌 데이터베이스</td>
+              <td>Multi-AZ(같은 리전 안의 구성이다)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          읽기 전용 복제본으로 재해 복구를 구성했다면
+          <strong>장애 시 자동 승격이 일어나지 않는다</strong>는 점을 기억합니다.
+          복제본을 독립 인스턴스로 승격하는 작업은 별도의 조치이며,
+          승격 후에는 원래의 복제 관계가 끊깁니다.
+          "자동으로 장애 조치되어야 한다"는 요구에는 Multi-AZ 또는 Aurora 구성이 답입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch10.html">
+          <span class="card__title">10장 · RDS와 관계형 데이터베이스</span>
+          <span class="card__desc">Multi-AZ와 읽기 전용 복제본의 복제 방식, 엔드포인트 차이, Aurora 클러스터 구조를 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch11.html">
+          <span class="card__title">11장 · NoSQL · 캐시 · 분석 DB</span>
+          <span class="card__desc">ElastiCache 엔진 선택과 캐시 채우기 전략, DAX와의 역할 구분을 정리합니다.</span>
+          <span class="card__meta">기본개념 · 도메인 3</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab04.html">
+          <span class="card__title">실습 4 · RDS Multi-AZ와 읽기 전용 복제본</span>
+          <span class="card__desc">장애 조치를 직접 일으켜 엔드포인트가 어떻게 움직이는지 관찰합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="case07.html">
+          <span class="card__title">케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다</span>
+          <span class="card__desc">같은 프로모션 트래픽이 애플리케이션 계층에서 어떻게 실패하는지 이어서 봅니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../saa/traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">Multi-AZ와 읽기 전용 복제본을 포함한 헷갈리는 쌍을 한 자리에 모았습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">과제 진술 2개가 어떻게 촘촘하게 출제되는지와 출제 포인트를 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html">Amazon RDS 사용 설명서 — 단일 대기 인스턴스를 사용하는 Multi-AZ 배포</a>
+          — 대기 복제본으로 <strong>동기식</strong> 복제한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html">Amazon RDS 사용 설명서 — 읽기 전용 복제본 사용</a>
+          — <strong>비동기식</strong> 복제, 별도 엔드포인트, 승격 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstanceReadReplica.html">Amazon RDS API 레퍼런스 — CreateDBInstanceReadReplica</a>
+          — 엔진별 읽기 전용 복제본 개수 상한(기본 15개, Oracle · SQL Server 5개, Db2 3개)과 지원 엔진 목록</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBInstance.html">Amazon RDS API 레퍼런스 — ModifyDBInstance</a>
+          — <code>MultiAZ</code> 설정과 즉시 적용 옵션</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html">Amazon RDS 사용 설명서 — Amazon RDS Proxy</a>
+          — 연결 풀링과 장애 조치 시 연결 전환에 대한 설명</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_CreateReplicationGroup.html">Amazon ElastiCache API 레퍼런스 — CreateReplicationGroup</a>
+          — 복제 그룹의 자동 장애 조치와 Multi-AZ 설정, 지원 엔진</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/AutoFailover.html">Amazon ElastiCache 개발자 안내서 — 자동 장애 조치</a>
+          — 프라이머리 장애 시 읽기 전용 복제본이 승격되는 조건</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/SelectEngine.html">Amazon ElastiCache 개발자 안내서 — 엔진 선택</a>
+          — 복제와 스냅샷을 지원하는 엔진과 Memcached의 차이</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_BestPractices.html">Amazon RDS 사용 설명서 — 모범 사례</a>
+          — 연결 수와 인스턴스 크기, 모니터링 지표에 대한 권고</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<svg viewBox="0 0 720 486" role="img" aria-labelledby="d090-title d090-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d090-title">RDS Multi-AZ 배포와 읽기 전용 복제본의 구조 대비</title>
+  <desc id="d090-desc">왼쪽은 표준 Multi-AZ 인스턴스 배포입니다. 애플리케이션은 엔드포인트 하나만 알고 있고,
+    프라이머리 인스턴스는 커밋을 다른 가용 영역의 대기 인스턴스에 동기적으로 반영한 뒤에야 응답합니다.
+    대기 인스턴스는 읽기 트래픽을 전혀 받지 않으며 오직 장애 조치를 위해 존재합니다.
+    오른쪽은 읽기 전용 복제본입니다. 프라이머리의 변경이 비동기로 전달되므로 약간의 복제 지연이 생길 수 있고,
+    복제본은 자기 엔드포인트를 따로 가져 읽기 트래픽을 실제로 처리하며, 같은 리전뿐 아니라 다른 리전에도 놓을 수 있습니다.
+    아래 표가 다섯 항목으로 이 차이를 정리합니다. 복제 방식, 목적, 엔드포인트 개수, 두 번째 인스턴스가 읽기를 받는지,
+    배치 가능한 범위입니다. 맨 아래 주의 문구는 읽기 가능한 대기 인스턴스 두 개를 갖는
+    Multi-AZ DB 클러스터 배포가 여기 그려진 표준 Multi-AZ 인스턴스 배포와 다른 아키텍처라는 점을 지적합니다.</desc>
+
+  <defs>
+    <marker id="d090-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d090-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d090-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 좌: Multi-AZ -->
+  <rect class="dg-panel" x="20" y="34" width="330" height="216" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="26">Multi-AZ 배포 (인스턴스 배포)</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="54">가용성 문제를 푸는 구성</text>
+
+  <rect class="dg-node" x="42" y="66" width="130" height="32" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="107" y="87" text-anchor="middle">애플리케이션</text>
+  <path class="dg-edge dg-edge--accent" d="M107 98 L107 112" marker-end="url(#d090-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="32" y="116" width="150" height="30" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="107" y="136" text-anchor="middle">엔드포인트 하나뿐</text>
+  <path class="dg-edge dg-edge--accent" d="M107 146 L107 162" marker-end="url(#d090-ar-accent)"/>
+
+  <text class="dg-fs-sm dg-bold" x="186" y="158" text-anchor="middle">동기 복제</text>
+
+  <rect class="dg-node dg-node--accent" x="34" y="166" width="138" height="58" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="103" y="188" text-anchor="middle">프라이머리</text>
+  <text class="dg-fs-sm dg-muted" x="103" y="208" text-anchor="middle">읽기 · 쓰기</text>
+
+  <rect class="dg-node dg-node--muted" x="200" y="166" width="138" height="58" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="269" y="188" text-anchor="middle">대기 인스턴스</text>
+  <text class="dg-fs-sm dg-bold" x="269" y="208" text-anchor="middle">읽기 트래픽 없음</text>
+
+  <path class="dg-edge dg-edge--accent" d="M174 195 L196 195" marker-end="url(#d090-ar-accent)"/>
+  <path class="dg-x" d="M262 236 L276 250 M276 236 L262 250"/>
+  <text class="dg-fs-sm dg-muted" x="103" y="244" text-anchor="middle">AZ-a</text>
+  <text class="dg-fs-sm dg-muted" x="200" y="244" text-anchor="end">AZ-b</text>
+
+  <!-- 우: 읽기 전용 복제본 -->
+  <rect class="dg-panel" x="370" y="34" width="330" height="216" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="384" y="26">읽기 전용 복제본 (Read Replica)</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="54">읽기 확장 문제를 푸는 구성</text>
+
+  <rect class="dg-node" x="470" y="66" width="130" height="32" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="535" y="87" text-anchor="middle">애플리케이션</text>
+  <path class="dg-edge" d="M513 98 L462 112" marker-end="url(#d090-ar)"/>
+  <path class="dg-edge dg-edge--ok" d="M557 98 L608 112" marker-end="url(#d090-ar-ok)"/>
+
+  <rect class="dg-node" x="382" y="116" width="140" height="30" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="452" y="136" text-anchor="middle">쓰기 엔드포인트</text>
+  <rect class="dg-node dg-node--ok" x="548" y="116" width="140" height="30" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="618" y="136" text-anchor="middle">읽기 엔드포인트</text>
+
+  <path class="dg-edge" d="M452 146 L449 162" marker-end="url(#d090-ar)"/>
+  <path class="dg-edge dg-edge--ok" d="M618 146 L621 162" marker-end="url(#d090-ar-ok)"/>
+
+  <text class="dg-fs-sm dg-bold" x="535" y="158" text-anchor="middle">비동기 복제</text>
+
+  <rect class="dg-node" x="382" y="166" width="134" height="58" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="449" y="188" text-anchor="middle">프라이머리</text>
+  <text class="dg-fs-sm dg-muted" x="449" y="208" text-anchor="middle">읽기 · 쓰기</text>
+
+  <rect class="dg-node dg-node--ok" x="554" y="166" width="134" height="58" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="621" y="188" text-anchor="middle">읽기 전용 복제본</text>
+  <text class="dg-fs-sm dg-bold" x="621" y="208" text-anchor="middle">읽기 트래픽 처리</text>
+
+  <path class="dg-edge dg-edge--dashed" d="M518 195 L550 195" marker-end="url(#d090-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="449" y="244" text-anchor="middle">AZ-a</text>
+  <text class="dg-fs-sm dg-muted" x="621" y="244" text-anchor="middle">다른 AZ 또는 다른 리전</text>
+
+  <!-- 비교표 -->
+  <rect class="dg-node dg-node--empty" x="20" y="266" width="680" height="150" rx="4"/>
+  <path class="dg-grid" d="M20 296 L700 296 M20 326 L700 326 M20 356 L700 356 M20 386 L700 386
+                            M200 266 L200 416 M450 266 L450 416"/>
+
+  <text class="dg-fs-sm dg-muted" x="30" y="286">항목</text>
+  <text class="dg-fs-sm dg-bold" x="210" y="286">Multi-AZ 배포</text>
+  <text class="dg-fs-sm dg-bold" x="460" y="286">읽기 전용 복제본</text>
+
+  <text class="dg-fs-sm dg-bold" x="30" y="316">복제 방식</text>
+  <text class="dg-fs-sm" x="210" y="316">동기 — 커밋이 양쪽에 반영된 뒤 응답</text>
+  <text class="dg-fs-sm" x="460" y="316">비동기 — 복제 지연이 생길 수 있음</text>
+
+  <text class="dg-fs-sm dg-bold" x="30" y="346">푸는 문제</text>
+  <text class="dg-fs-sm" x="210" y="346">고가용성 · 재해 복구</text>
+  <text class="dg-fs-sm" x="460" y="346">읽기 성능 확장</text>
+
+  <text class="dg-fs-sm dg-bold" x="30" y="376">엔드포인트</text>
+  <text class="dg-fs-sm" x="210" y="376">하나 — 장애 조치 후에도 그대로</text>
+  <text class="dg-fs-sm" x="460" y="376">읽기용 엔드포인트가 따로 생김</text>
+
+  <text class="dg-fs-sm dg-bold" x="30" y="406">배치 범위</text>
+  <text class="dg-fs-sm" x="210" y="406">같은 리전의 다른 AZ</text>
+  <text class="dg-fs-sm" x="460" y="406">같은 리전 또는 교차 리전</text>
+
+  <!-- 주의 -->
+  <rect class="dg-node dg-node--warn" x="20" y="426" width="680" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="448">여기 그린 것은 표준 Multi-AZ 인스턴스 배포입니다</text>
+  <text class="dg-fs-sm" x="34" y="470">Multi-AZ DB 클러스터 배포는 읽기 가능한 대기 인스턴스 두 개를 갖는 별개 아키텍처이므로 섞지 않습니다</text>
+</svg>
