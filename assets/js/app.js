@@ -70,76 +70,77 @@
   var FALLBACK_TOC = [
     ['home', '홈', [['index', 'AWS SAA Guide 홈', null]]],
     ['basics', '기본개념', [
-      ['ch01', 'Kafka 개요와 이벤트 스트리밍', '1'],
-      ['ch02', '아키텍처와 핵심 개념', '2'],
-      ['ch03', 'KRaft와 클러스터 메타데이터', '3'],
-      ['ch04', 'Producer 심화', '4'],
-      ['ch05', 'Consumer 심화', '5'],
-      ['ch06', '전달 보장과 트랜잭션', '6'],
-      ['ch07', '스토리지·리텐션·컴팩션', '7'],
-      ['ch08', '스키마와 직렬화', '8'],
-      ['ch09', 'Kafka Connect', '9'],
-      ['ch10', 'Kafka Streams와 ksqlDB', '10'],
-      ['ch11', '운영 기초', '11'],
-      ['appendix-legacy', '부록 · 버전 표기와 레거시', '부록']
+      ['ch01', 'AWS 글로벌 인프라와 계정 기초', '1'],
+      ['ch02', 'IAM과 자격 증명', '2'],
+      ['ch03', 'VPC 네트워킹 기초', '3'],
+      ['ch04', 'VPC 연결과 하이브리드', '4'],
+      ['ch05', 'EC2와 컴퓨트', '5'],
+      ['ch06', 'EBS와 블록 스토리지', '6'],
+      ['ch07', '로드 밸런싱과 오토스케일링', '7'],
+      ['ch08', 'S3와 오브젝트 스토리지', '8'],
+      ['ch09', '파일 스토리지와 데이터 전송', '9'],
+      ['ch10', 'RDS와 관계형 데이터베이스', '10'],
+      ['ch11', 'NoSQL · 캐시 · 분석 DB', '11'],
+      ['ch12', '서버리스와 애플리케이션 통합', '12'],
+      ['ch13', '컨테이너', '13'],
+      ['ch14', '엣지와 DNS', '14'],
+      ['ch15', '데이터 분석 파이프라인', '15'],
+      ['ch16', '보안 · 암호화 · 거버넌스', '16'],
+      ['ch17', '모니터링 · 운영 · 계정 관리', '17'],
+      ['ch18', '비용 최적화 · 마이그레이션 · DR', '18']
     ]],
     ['quiz', '문제 풀이', [
       ['index', '문제 풀이 허브', null],
-      ['diagnostic', '진단 테스트 (30문항)', null],
+      ['diagnostic', '진단 테스트 (40문항)', null],
       ['review', '오답 노트', null],
       ['result', '결과 리포트', null]
     ]],
-    ['ccdak', 'CCDAK', [
-      ['index', 'CCDAK 개요·학습 플랜', null],
-      ['domain-app-development', 'Application Development', null],
-      ['domain-fundamentals', 'Fundamentals', null],
-      ['domain-connect', 'Kafka Connect', null],
-      ['domain-observability', 'Application Observability', null],
-      ['domain-streams', 'Kafka Streams', null],
-      ['domain-testing', 'Application Testing', null],
-      ['flashcards', '플래시카드', null],
+    ['saa', 'SAA 시험 대비', [
+      ['index', '시험 개요 · 8주 학습 플랜', null],
+      ['domain-secure', '보안 아키텍처 설계 (30%)', null],
+      ['domain-resilient', '복원력 있는 아키텍처 설계 (26%)', null],
+      ['domain-performance', '고성능 아키텍처 설계 (24%)', null],
+      ['domain-cost', '비용 최적화 아키텍처 설계 (20%)', null],
+      ['keywords', '한정어 키워드 사전', null],
       ['traps', '함정 사전', null],
+      ['flashcards', '플래시카드', null],
       ['cram', '벼락치기 요약', null],
       ['exam-tips', '시험 당일 전략', null]
     ]],
-    ['ccaak', 'CCAAK', [
-      ['index', 'CCAAK 개요·학습 플랜', null],
-      ['exam-tips', '시험 당일 전략', null]
+    ['labs', '실습 예제', [
+      ['lab01', '3계층 VPC 직접 구성', '1'],
+      ['lab02', 'ALB + ASG 웹 티어', '2'],
+      ['lab03', 'S3 정적 사이트 + CloudFront', '3'],
+      ['lab04', 'RDS Multi-AZ와 읽기 복제본', '4'],
+      ['lab05', 'DynamoDB 테이블 설계', '5'],
+      ['lab06', 'Lambda + API Gateway', '6'],
+      ['lab07', 'SQS + Lambda 비동기 처리', '7'],
+      ['lab08', 'EventBridge 이벤트 아키텍처', '8'],
+      ['lab09', 'ECS Fargate 서비스 배포', '9'],
+      ['lab10', 'VPC 엔드포인트로 S3 접근', '10'],
+      ['lab11', 'KMS 고객 관리형 키 암호화', '11'],
+      ['lab12', 'CloudWatch 알람 + SNS', '12']
     ]],
-    ['practice', '실무 예제', [
-      ['ex01', '로컬 KRaft 클러스터 구축', '1'],
-      ['ex02', 'Spring Boot Producer/Consumer', '2'],
-      ['ex03', '안전한 Producer 설정', '3'],
-      ['ex04', '컨슈머 오프셋 전략', '4'],
-      ['ex05', 'Exactly-Once 파이프라인', '5'],
-      ['ex06', 'DLQ + 재시도 패턴', '6'],
-      ['ex07', 'Avro 스키마 진화', '7'],
-      ['ex08', 'Connect CDC 파이프라인', '8'],
-      ['ex09', 'Streams 실시간 집계', '9'],
-      ['ex10', '컨슈머 Lag 모니터링', '10'],
-      ['ex11', 'MirrorMaker 2 복제', '11'],
-      ['ex12', 'Python / Node 클라이언트', '12']
-    ]],
-    ['cases', '실수 케이스', [
-      ['case01', '데이터가 사라졌다', '1'],
-      ['case02', '무한 리밸런스 루프', '2'],
-      ['case03', '브로커 장애 후 유실', '3'],
-      ['case04', '주문 상태가 뒤바뀜', '4'],
-      ['case05', '파티션 1000개가 더 느림', '5'],
-      ['case06', 'RF=3인데 유실', '6'],
-      ['case07', '재처리로 이중 결제', '7'],
-      ['case08', '상태 토픽이 사라짐', '8'],
-      ['case09', '스키마 배포 후 전원 사망', '9'],
-      ['case10', '큰 메시지 무한 재시도', '10']
+    ['cases', '아키텍처 케이스', [
+      ['case01', 'EC2에 액세스 키를 심었다', '1'],
+      ['case02', '읽기 부하로 DB가 죽었다', '2'],
+      ['case03', 'S3 비용이 매달 늘어난다', '3'],
+      ['case04', '퍼블릭 서브넷에 DB를 뒀다', '4'],
+      ['case05', '단일 AZ 설계가 무너졌다', '5'],
+      ['case06', '데이터 전송 요금 초과', '6'],
+      ['case07', '스케일아웃이 못 따라갔다', '7'],
+      ['case08', '리전 장애 DR 설계', '8'],
+      ['case09', '온프레미스 파일 서버 이전', '9'],
+      ['case10', '규정 준수 감사 대응', '10']
     ]],
     ['cheatsheet', '빠른참조', [
-      ['cli', 'CLI 명령', null],
-      ['config', '설정값', null],
-      ['metrics', 'JMX 메트릭', null],
-      ['troubleshooting', '트러블슈팅', null],
-      ['security', '보안', null],
-      ['streams', 'Streams', null],
-      ['connect', 'Connect', null]
+      ['services', '서비스 한 줄 정의', null],
+      ['compare', '헷갈리는 쌍 비교', null],
+      ['limits', '한도 · 기본값', null],
+      ['decision-tree', '서비스 선택 결정 트리', null],
+      ['security', '보안 · 암호화', null],
+      ['network', '네트워크 연결', null],
+      ['cost', '요금 · 비용 절감', null]
     ]]
   ];
 
@@ -183,9 +184,9 @@
       '<button type="button" class="icon-btn topbar__menu" data-act="drawer" aria-expanded="false" ' +
         'aria-controls="sidebar-mount" aria-label="목차 열기">' + SVG.menu + '</button>' +
       '<a class="topbar__brand" href="' + url('index.html') + '">' +
-        '<span class="topbar__brand-mark" aria-hidden="true">K</span>' +
+        '<span class="topbar__brand-mark" aria-hidden="true">A</span>' +
         '<span>AWS SAA Guide</span></a>' +
-      '<span class="topbar__ver" title="이 사이트의 기준 버전">Apache Kafka 4.3.x</span>' +
+      '<span class="topbar__ver" title="이 사이트가 대비하는 시험">SAA-C03</span>' +
       '<span class="topbar__spacer"></span>' +
       '<button type="button" class="search-trigger" data-act="search" hidden>' +
         SVG.search + '<span class="search-trigger__label">검색</span><kbd>/</kbd></button>' +

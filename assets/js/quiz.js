@@ -52,18 +52,22 @@
      ====================================================================== */
   var GRADUATE_STREAK = 3;
 
-  /* CCDAK 도메인 가중치 (잠정치 — Wave 3 C1이 공식 Exam Guide로 확정) */
-  var CCDAK_DOMAINS = [
-    { name: 'Application Development',   weight: 28, chapters: ['ch04', 'ch05', 'ch06'], page: 'ccdak/domain-app-development.html' },
-    { name: 'Fundamentals',              weight: 23, chapters: ['ch02', 'ch07', 'ch08'], page: 'ccdak/domain-fundamentals.html' },
-    { name: 'Kafka Connect',             weight: 15, chapters: ['ch09'],                 page: 'ccdak/domain-connect.html' },
-    { name: 'Application Observability', weight: 13, chapters: ['ch11', 'ch04'],         page: 'ccdak/domain-observability.html' },
-    { name: 'Kafka Streams',             weight: 12, chapters: ['ch10'],                 page: 'ccdak/domain-streams.html' },
-    { name: 'Application Testing',       weight: 8,  chapters: ['ch10'],                 page: 'ccdak/domain-testing.html' }
+  /* SAA-C03 도메인 가중치 — 공식 시험 가이드 확정값 (PLAN.md §0).
+     name 은 공식 영문 명칭이며 문제 JSON 의 domain 과 문자 단위로 일치해야 한다.
+     label 은 화면 표기용 한국어. chapters 는 진단 결과가 만드는 복습 링크의 대상이다. */
+  var SAA_DOMAINS = [
+    { name: 'Design Secure Architectures',          label: '보안 아키텍처 설계',        weight: 30,
+      chapters: ['ch02', 'ch03', 'ch16'],                 page: 'saa/domain-secure.html' },
+    { name: 'Design Resilient Architectures',       label: '복원력 있는 아키텍처 설계',  weight: 26,
+      chapters: ['ch07', 'ch10', 'ch12', 'ch18'],         page: 'saa/domain-resilient.html' },
+    { name: 'Design High-Performing Architectures', label: '고성능 아키텍처 설계',      weight: 24,
+      chapters: ['ch05', 'ch08', 'ch11', 'ch14', 'ch15'], page: 'saa/domain-performance.html' },
+    { name: 'Design Cost-Optimized Architectures',  label: '비용 최적화 아키텍처 설계',  weight: 20,
+      chapters: ['ch05', 'ch08', 'ch18'],                 page: 'saa/domain-cost.html' }
   ];
   function domainMeta(name) {
-    for (var i = 0; i < CCDAK_DOMAINS.length; i++) {
-      if (CCDAK_DOMAINS[i].name === name) return CCDAK_DOMAINS[i];
+    for (var i = 0; i < SAA_DOMAINS.length; i++) {
+      if (SAA_DOMAINS[i].name === name) return SAA_DOMAINS[i];
     }
     return { name: name, weight: null, chapters: [], page: null };
   }
@@ -140,14 +144,11 @@
   var FALLBACK_SET_CANDIDATES = [
     'basics-ch01', 'basics-ch02', 'basics-ch03', 'basics-ch04', 'basics-ch05',
     'basics-ch06', 'basics-ch07', 'basics-ch08', 'basics-ch09', 'basics-ch10',
-    'basics-ch11', 'basics-appendix-legacy',
-    'ccdak-diagnostic',
-    'ccdak-app-development', 'ccdak-fundamentals', 'ccdak-connect',
-    'ccdak-observability', 'ccdak-streams', 'ccdak-testing',
-    'ccdak-mock-1', 'ccdak-mock-2', 'ccdak-mock-3', 'ccdak-mock-4',
-    'ccaak-fundamentals', 'ccaak-security', 'ccaak-connect',
-    'ccaak-deployment', 'ccaak-cluster-config', 'ccaak-observability',
-    'ccaak-troubleshooting', 'ccaak-mock-1'
+    'basics-ch11', 'basics-ch12', 'basics-ch13', 'basics-ch14', 'basics-ch15',
+    'basics-ch16', 'basics-ch17', 'basics-ch18',
+    'saa-diagnostic',
+    'saa-secure', 'saa-resilient', 'saa-performance', 'saa-cost',
+    'saa-mock-1', 'saa-mock-2', 'saa-mock-3', 'saa-mock-4'
   ];
 
   function discoverSets() {
@@ -811,7 +812,11 @@
     html += '<span class="badge">' + esc(TYPE_LABEL[p.type] || p.type) + '</span>';
     if (q.difficulty) html += '<span class="badge badge--' + esc(q.difficulty) + '">' + esc(DIFF_LABEL[q.difficulty] || q.difficulty) + '</span>';
     if (q.domain) html += '<span class="badge">' + esc(q.domain) + '</span>';
-    if (q.exam && q.exam !== 'BASICS') html += '<span class="badge badge--' + (q.exam === 'CCDAK' ? 'ccdak' : 'ccaak') + '">' + esc(q.exam) + '</span>';
+    if (q.exam && q.exam !== 'BASICS') html += '<span class="badge badge--saa">' + esc(q.exam) + '</span>';
+    /* SAA-C03 에 없는 유형은 학습용임을 화면에 명시한다 (PLAN.md §3-2) */
+    if (p.type === 'matching' || p.type === 'ordering') {
+      html += '<span class="badge badge--study" title="SAA-C03 실제 시험에는 이 유형이 출제되지 않습니다">학습용 유형</span>';
+    }
     html += '</div>';
 
     html += '<p class="quiz__stem">' + md(q.question) + '</p>';
@@ -1193,7 +1198,7 @@
 
   function buildDiagnostic(result) {
     var rows = [];
-    CCDAK_DOMAINS.forEach(function (d) {
+    SAA_DOMAINS.forEach(function (d) {
       var v = result.byDomain[d.name];
       if (!v || !v.total) return;
       var pct = Math.round((v.correct / v.total) * 100);
@@ -1250,7 +1255,7 @@
       out += '<li><a href="' + url('quiz/index.html') + '?mode=domain&amp;domain=' +
         encodeURIComponent(r.domain) + '">' + esc(r.domain) + ' 연습문제</a></li>';
       if (r.tier !== 'maintain') {
-        out += '<li><a href="' + url('ccdak/traps.html') + '">함정 사전</a></li>';
+        out += '<li><a href="' + url('saa/traps.html') + '">함정 사전</a></li>';
       }
       out += '</ul></li>';
     });
@@ -1288,11 +1293,11 @@
 
     /* --- diagnostic: 단일 세트이므로 매니페스트가 필요 없습니다 --- */
     if (mode === 'diagnostic') {
-      return loadSet('ccdak-diagnostic').then(function (s) {
-        return { questions: s.questions, title: s.title || 'CCDAK 진단 테스트', setIds: [s.setId] };
+      return loadSet('saa-diagnostic').then(function (s) {
+        return { questions: s.questions, title: s.title || 'SAA 진단 테스트', setIds: [s.setId] };
       }).catch(function () {
-        return { questions: [], title: 'CCDAK 진단 테스트', setIds: ['ccdak-diagnostic'],
-                 missing: 'ccdak-diagnostic.json' };
+        return { questions: [], title: 'SAA 진단 테스트', setIds: ['saa-diagnostic'],
+                 missing: 'saa-diagnostic.json' };
       });
     }
 
@@ -1316,7 +1321,7 @@
 
       /* --- weakness (약점 집중) --- */
       if (mode === 'weakness') {
-        return loadAllQuestions(manifest, { exam: exam || 'CCDAK', mock: false }).then(function (all) {
+        return loadAllQuestions(manifest, { exam: exam || 'SAA', mock: false }).then(function (all) {
           var pr = progressApi();
           var idToDomain = {};
           all.forEach(function (q) { idToDomain[q.id] = q.domain; });
@@ -1325,7 +1330,7 @@
 
           // 도메인 점수: 진단 결과가 있으면 우선, 없으면 누적 정답률
           var weakDomains = [];
-          CCDAK_DOMAINS.forEach(function (d) {
+          SAA_DOMAINS.forEach(function (d) {
             var pct = null;
             if (diag && diag.byDomain && diag.byDomain[d.name]) pct = diag.byDomain[d.name].pct;
             else if (mastery[d.name] && mastery[d.name].attempts > 0) pct = mastery[d.name].pct;
@@ -1366,7 +1371,7 @@
           qs = qs.filter(function (q) { return q.domain === cfg.domain; });
         }
         var title = cfg.title ||
-          (mode === 'exam' ? ((exam || 'CCDAK') + ' 모의고사')
+          (mode === 'exam' ? ((exam || 'SAA') + ' 모의고사')
            : mode === 'domain' ? ('도메인 연습 — ' + (cfg.domain || '전체'))
            : mode === 'random' ? '랜덤 챌린지' : '문제 풀이');
         return { questions: qs, title: title, setIds: sets.map(function (s) { return s.setId; }), manifest: manifest };
@@ -1424,7 +1429,7 @@
         count: cfg.count || 0,
         shuffleChoices: cfg.shuffleChoices !== false,
         shuffleQuestions: s.preserveOrder ? false : (cfg.shuffleQuestions !== false),
-        durationSec: cfg.durationSec || (mode === 'exam' ? 90 * 60 : null),
+        durationSec: cfg.durationSec || (mode === 'exam' ? 130 * 60 : null),
         showNav: cfg.showNav != null ? cfg.showNav : (mode === 'exam'),
         resumeKey: cfg.resumeKey || (mode === 'exam' ? 'exam:' + s.setIds.join(',') : null),
         diagnostic: cfg.diagnostic || mode === 'diagnostic',
@@ -1582,7 +1587,7 @@
             mode: mode, exam: exam || null, domain: domain || null,
             sets: setId ? [setId] : null,
             count: mode === 'exam' && !count ? 60 : count,
-            durationSec: mode === 'exam' ? 90 * 60 : null
+            durationSec: mode === 'exam' ? 130 * 60 : null
           });
         });
       }
@@ -1594,8 +1599,8 @@
           exam: q.exam || null,
           domain: q.domain || null,
           sets: q.set ? [q.set] : null,
-          count: parseInt(q.count, 10) || (q.mode === 'exam' ? 60 : 0),
-          durationSec: q.mode === 'exam' ? 90 * 60 : null
+          count: parseInt(q.count, 10) || (q.mode === 'exam' ? 65 : 0),
+          durationSec: q.mode === 'exam' ? 130 * 60 : null
         });
       } else if (sets.length) {
         host.innerHTML = emptyBox('모드를 고르고 “시작”을 누르세요.',
@@ -1663,8 +1668,8 @@
       mode: 'diagnostic',
       diagnostic: true,
       shuffleQuestions: false,   // 도메인 × 5문항 구성을 유지
-      title: 'CCDAK 진단 테스트',
-      exam: 'CCDAK',
+      title: 'SAA 진단 테스트',
+      exam: 'SAA',
       onFinish: function (result) {
         // 결과 요약은 Engine 이 이미 렌더링합니다. 학습 순서는 진단 블록에도 반영.
         if (prev && result.diagnostic) {
@@ -1887,7 +1892,7 @@
     grade: grade,
     describeAnswer: describeAnswer,
     describeResponse: describeResponse,
-    CCDAK_DOMAINS: CCDAK_DOMAINS,
+    SAA_DOMAINS: SAA_DOMAINS,
     TYPE_LABEL: TYPE_LABEL,
     DIFF_LABEL: DIFF_LABEL,
     TIER: TIER,

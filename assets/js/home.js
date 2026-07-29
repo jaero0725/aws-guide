@@ -9,38 +9,32 @@
   var doc = global.document;
   if (!doc) return;
 
-  /* CCDAK 도메인 가중치 — 공식 블루프린트 출제 비중(%) */
-  var CCDAK_WEIGHT = {
-    'Application Development': 28,
-    'Fundamentals': 23,
-    'Kafka Connect': 15,
-    'Application Observability': 13,
-    'Kafka Streams': 12,
-    'Application Testing': 8
+  /* SAA-C03 도메인 가중치 — 공식 시험 가이드 확정값 (PLAN.md §0) */
+  var SAA_WEIGHT = {
+    'Design Secure Architectures': 30,
+    'Design Resilient Architectures': 26,
+    'Design High-Performing Architectures': 24,
+    'Design Cost-Optimized Architectures': 20
   };
-  var CCDAK_ORDER = Object.keys(CCDAK_WEIGHT);
+  var SAA_ORDER = Object.keys(SAA_WEIGHT);
   var DOMAIN_KO = {
-    'Application Development': '애플리케이션 개발',
-    'Fundamentals': '기초',
-    'Kafka Connect': 'Kafka Connect',
-    'Application Observability': '관측성',
-    'Kafka Streams': 'Kafka Streams',
-    'Application Testing': '테스팅'
+    'Design Secure Architectures': '보안 아키텍처 설계',
+    'Design Resilient Architectures': '복원력 있는 아키텍처 설계',
+    'Design High-Performing Architectures': '고성능 아키텍처 설계',
+    'Design Cost-Optimized Architectures': '비용 최적화 아키텍처 설계'
   };
   var DOMAIN_PAGE = {
-    'Application Development': 'ccdak/domain-app-development.html',
-    'Fundamentals': 'ccdak/domain-fundamentals.html',
-    'Kafka Connect': 'ccdak/domain-connect.html',
-    'Application Observability': 'ccdak/domain-observability.html',
-    'Kafka Streams': 'ccdak/domain-streams.html',
-    'Application Testing': 'ccdak/domain-testing.html'
+    'Design Secure Architectures': 'saa/domain-secure.html',
+    'Design Resilient Architectures': 'saa/domain-resilient.html',
+    'Design High-Performing Architectures': 'saa/domain-performance.html',
+    'Design Cost-Optimized Architectures': 'saa/domain-cost.html'
   };
   var SECTION_KO = {
-    basics: '기본개념', practice: '실무 예제', cases: '실수 케이스',
-    cheatsheet: '빠른참조', ccdak: 'CCDAK', ccaak: 'CCAAK', quiz: '문제풀이'
+    basics: '기본개념', labs: '실습 예제', cases: '아키텍처 케이스',
+    cheatsheet: '빠른참조', saa: 'SAA 시험 대비', quiz: '문제풀이'
   };
   /* 학습 권장 순서 — 다음 페이지 추천이 이 순서를 따릅니다 */
-  var SECTION_ORDER = ['basics', 'practice', 'cases', 'ccdak', 'cheatsheet', 'ccaak'];
+  var SECTION_ORDER = ['basics', 'labs', 'cases', 'saa', 'cheatsheet'];
 
   var FLASHCARD_TOTAL = 232;
 
@@ -85,7 +79,7 @@
   }
 
   /**
-   * 문항 id → CCDAK 도메인.
+   * 문항 id → SAA 도메인.
    * 도메인 연습 세트(mock·diagnostic 아님)의 setId 접두사로만 판정합니다.
    * 모의고사·진단 문항은 세트가 혼합 구성이라 여기서 null 이 되고,
    * 대신 시험 이력의 byDomain(문항별 도메인 집계)으로 더합니다.
@@ -93,7 +87,7 @@
   function makeDomainResolver(manifest) {
     var prefixes = (manifest.sets || [])
       .filter(function (s) {
-        return s.exam === 'CCDAK' && !s.mock && !s.diagnostic && CCDAK_WEIGHT[s.domain];
+        return s.exam === 'SAA' && !s.mock && !s.diagnostic && SAA_WEIGHT[s.domain];
       })
       .map(function (s) { return { p: s.setId + '-', d: s.domain }; })
       .sort(function (a, b) { return b.p.length - a.p.length; });
@@ -131,7 +125,7 @@
     exams.filter(isMixedExam).forEach(function (e) {
       var bd = e.byDomain || {};
       Object.keys(bd).forEach(function (d) {
-        if (!CCDAK_WEIGHT[d]) return;
+        if (!SAA_WEIGHT[d]) return;
         var b = bucket(d);
         b.correct += +bd[d].correct || 0;
         b.attempts += +bd[d].total || 0;
@@ -231,13 +225,13 @@
       kpi('모의고사 최고', bestMock ? bestMock.pct + '<small>%</small>' : '<small>미응시</small>',
         mocks.length ? mocks.length + '회 응시' : '4세트 · 각 60문항', 'quiz/index.html') +
       kpi('플래시카드 졸업', graduated + '<small>/' + FLASHCARD_TOTAL + '</small>',
-        ratio(graduated, FLASHCARD_TOTAL) + '% 암기', 'ccdak/flashcards.html') +
+        ratio(graduated, FLASHCARD_TOTAL) + '% 암기', 'saa/flashcards.html') +
       '</ul>';
 
     /* --- 첫 방문: 여기서 끝냅니다 (아직 그릴 통계가 없습니다) --- */
     if (fresh) {
       html += '<aside class="note note--info" data-label="아직 기록이 없습니다">' +
-        '<p>진단 테스트를 먼저 풀면 CCDAK 6개 도메인 중 약한 곳이 드러나고, ' +
+        '<p>진단 테스트를 먼저 풀면 SAA 4개 도메인 중 약한 곳이 드러나고, ' +
         '이 자리에 도메인별 정답률 · 다음에 할 일 · 응시 이력이 채워집니다. ' +
         '기록은 이 브라우저의 <code>localStorage</code>에만 남고 서버로 전송되지 않습니다.</p>' +
         '<p><a class="btn btn--primary" href="quiz/diagnostic.html">진단 테스트 30문항 시작</a></p>' +
@@ -247,13 +241,13 @@
       return;
     }
 
-    /* --- CCDAK 도메인 숙련도 --- */
-    var domainRows = CCDAK_ORDER.map(function (d) {
+    /* --- SAA 도메인 숙련도 --- */
+    var domainRows = SAA_ORDER.map(function (d) {
       var t = totals[d];
       return {
         domain: d,
-        weight: CCDAK_WEIGHT[d],
-        name: DOMAIN_KO[d] + ' · 출제 ' + CCDAK_WEIGHT[d] + '%',
+        weight: SAA_WEIGHT[d],
+        name: DOMAIN_KO[d] + ' · 출제 ' + SAA_WEIGHT[d] + '%',
         href: DOMAIN_PAGE[d],
         pct: t ? t.pct : 0,
         attempts: t ? t.attempts : 0,
@@ -264,11 +258,11 @@
       };
     });
 
-    html += '<h3>CCDAK 도메인 숙련도</h3>' +
+    html += '<h3>SAA 도메인 숙련도</h3>' +
       '<p class="dash__note">이름 옆 숫자는 실제 시험 출제 비중입니다. ' +
       '<strong>비중이 큰 도메인의 낮은 점수부터</strong> 메꾸는 것이 점수 대비 효율이 가장 좋습니다. ' +
       '도메인 연습문제와 <strong>시험 모드로 응시한</strong> 모의고사·진단 결과를 함께 집계합니다. 학습 모드로 푼 모의고사 문항은 위 KPI 에는 잡히지만 도메인별로는 나뉘지 않습니다.</p>' +
-      barChart(domainRows, 'CCDAK 도메인별 정답률');
+      barChart(domainRows, 'SAA 도메인별 정답률');
 
     /* --- 다음에 할 일 --- */
     /* 손실 = 출제 비중 × 부족분. 아직 안 푼 도메인은 추천 대상에서 제외합니다. */
@@ -332,7 +326,7 @@
         '<thead><tr><th scope="col">세트</th><th scope="col">점수</th>' +
         '<th scope="col">정답</th><th scope="col">응시 시각</th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table></div>' +
-        '<p class="dash__note">Confluent는 CCDAK 합격 점수와 문항 수를 공개하지 않습니다. ' +
+        '<p class="dash__note">합격선 720점은 100–1000 스케일 점수이므로 정답률과 1:1로 대응하지 않습니다. ' +
         '여기 점수는 이 사이트 자체 기준의 참고값입니다.</p>';
     }
 

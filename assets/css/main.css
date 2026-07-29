@@ -556,8 +556,10 @@ section { margin-bottom: var(--space-6); }
   white-space: nowrap;
   vertical-align: 0.08em;
 }
-.badge--ccdak { border-color: var(--c-exam-border); color: var(--c-exam-text); background: var(--c-exam-bg); }
-.badge--ccaak { border-color: var(--c-version-border); color: var(--c-version-text); background: var(--c-version-bg); }
+.badge--saa   { border-color: var(--c-exam-border); color: var(--c-exam-text); background: var(--c-exam-bg); }
+/* SAA-C03 에 없는 문항 유형(연결형·순서 배열)을 학습용으로 낼 때 붙이는 배지.
+   "시험에 이 유형이 나온다"는 오해를 막는 장치이므로 눈에 띄어야 한다. */
+.badge--study { border-color: var(--c-version-border); color: var(--c-version-text); background: var(--c-version-bg); }
 .badge--easy { border-color: var(--c-success-border); color: var(--c-success-text); background: var(--c-success-bg); }
 .badge--medium { border-color: var(--c-warn-border); color: var(--c-warn-text); background: var(--c-warn-bg); }
 .badge--hard { border-color: var(--c-danger-border); color: var(--c-danger-text); background: var(--c-danger-bg); }
@@ -1509,7 +1511,7 @@ html:not(.js) body { padding-top: 0; }
 
   /* 인쇄에서는 가로 스크롤이 존재하지 않는다. overflow-x:auto 를 그대로 두면
      넓은 표·코드·다이어그램의 잘린 부분이 종이에서 영구히 사라진다.
-     (A7이 ccdak/cram.html 인쇄 검증 중 발견) */
+     (벼락치기 페이지 인쇄 검증 중 발견) */
   .table-scroll, .dg-scroll, pre { overflow-x: visible !important; }
   .table-scroll table { min-width: 0; }
   /* 표가 지면 폭을 넘으면 셀 내용을 접어서 보이게 한다 */

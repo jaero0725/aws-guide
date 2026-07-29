@@ -1,0 +1,106 @@
+/* ==========================================================================
+   AWS SAA Guide — 차트 (chart.css)
+
+   figure.chart 의 프레임·캔버스 높이·표 대체본 스타일입니다.
+   차트 안쪽 색은 전부 charts.js 가 viz.css 의 --dg-* 토큰을 읽어 캔버스에
+   직접 그리므로, 여기서는 **바깥 껍데기만** 다룹니다.
+
+   구조:
+     figure.chart
+       ├─ div.chart__canvas   (높이 예약 · 캔버스 컨테이너)
+       │    └─ canvas
+       ├─ details.chart__table  (표 대체본 — 접근성·인쇄용)
+       └─ figcaption
+   ========================================================================== */
+
+figure.chart {
+  margin: var(--space-6) 0;
+  padding: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-2);
+  background: var(--c-surface);
+  overflow: hidden;
+}
+
+/* 캔버스 높이를 미리 예약합니다. Chart.js 는 컨테이너 높이를 보고 그리는데,
+   높이가 0이면 아무것도 안 그려지거나 1px 로 찌그러집니다.
+   --chart-h 는 등록부의 spec.height 가 덮어씁니다. */
+.chart__canvas {
+  --chart-h: 340px;
+  position: relative;
+  height: var(--chart-h);
+  padding: var(--space-4);
+  box-sizing: content-box;
+}
+
+.chart__canvas > canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 표 대체본 — 기본은 접혀 있고, 인쇄에서는 펼칩니다 */
+.chart__table {
+  border-top: 1px solid var(--c-border);
+  background: var(--c-bg-subtle);
+  font-size: var(--fs-sm);
+}
+.chart__table > summary {
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  color: var(--c-link);
+  font-weight: var(--fw-medium);
+  list-style-position: inside;
+}
+.chart__table > summary:hover { color: var(--c-link-hover); }
+.chart__table > summary:focus-visible {
+  outline: 2px solid var(--c-focus-ring);
+  outline-offset: -2px;
+}
+.chart__table .table-scroll {
+  border: 0;
+  border-top: 1px solid var(--c-border);
+  border-radius: 0;
+}
+.chart__table table { margin: 0; }
+
+figure.chart > figcaption {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--c-border);
+  color: var(--c-text-secondary);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+}
+
+/* 등록되지 않았거나 생성에 실패한 차트 */
+.chart__missing {
+  margin: var(--space-4);
+  padding: var(--space-4);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--radius-2);
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
+.chart__missing p { margin: 0 0 var(--space-2); }
+.chart__missing p:last-child { margin-bottom: 0; }
+
+/* 좁은 화면 — 차트는 축소하지 않고 높이를 줄입니다.
+   가로 스크롤을 만들면 캔버스 전체가 잘려 보여서 오히려 못 읽습니다. */
+@media (max-width: 560px) {
+  .chart__canvas {
+    --chart-h: 280px;
+    padding: var(--space-3);
+  }
+}
+
+/* 인쇄 — 표를 펼치고 캔버스는 축소해 함께 싣습니다.
+   캔버스가 흑백 인쇄에서 뭉개질 수 있으므로 표가 있어야 정보가 살아남습니다. */
+@media print {
+  figure.chart { break-inside: avoid; border-color: #999; }
+  .chart__canvas { --chart-h: 240px; }
+  .chart__table { display: block; }
+  .chart__table > summary { display: none; }
+  .chart__table[open] > *,
+  .chart__table > .table-scroll { display: block; }
+  .chart__table .table-scroll { overflow-x: visible; }
+}

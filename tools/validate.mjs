@@ -8,7 +8,8 @@
 
      --links      HTML 내부 링크 대상 파일·앵커(#id) 존재 확인
      --questions  data/questions/*.json 스키마 검증 (single/multiple/matching/ordering)
-     --html       CDN 참조·인라인 style/script·img alt·--zookeeper·h2/h3 id 검사
+     --html       CDN 참조·인라인 style/script·img alt·AWS 최신성·h2/h3 id 검사
+     --charts     차트 플레이스홀더 ↔ charts*.js 등록 양방향 일치 검사
      --diagrams   HTML↔SVG 양방향 일치, 하드코딩 색, 접근성 속성, viewBox
      --all        위 전부
      --strict     "아직 생성되지 않은 예정 경로" 경고를 오류로 승격 (Wave 3/4용)
@@ -36,6 +37,7 @@ const FLAGS = {
   questions: ALL || has('--questions'),
   html: ALL || has('--html'),
   diagrams: ALL || has('--diagrams'),
+  charts: ALL || has('--charts'),
   strict: has('--strict'),
   deploy: has('--deploy'),
   quiet: has('--quiet')
@@ -172,44 +174,53 @@ function checkHtmlQuality(file, text) {
     }
   }
 
-  /* ZooKeeper 현행 서술 금지
-     단, "4.0에서 제거되었다 / 더 이상 없다" 처럼 **제거 사실을 가르치는 문맥**은 허용합니다.
-     그 서술 자체가 VERSION_POLICY 가 요구하는 내용이기 때문입니다. */
-  const REMOVED_CTX = /제거|삭제|없습니다|없다|deprecated|더 이상|사라졌|폐기|지원하지 않|존재하지 않/;
+  /* ── AWS 최신성 정책 (docs/SERVICE_CURRENCY.md) ────────────────────────
+     AWS 는 서비스 이름과 기본 동작이 자주 바뀐다. 시중 한국어 자료 상당수가
+     2020~2022년 기준이라, 옛 사실을 "현행"으로 서술하면 그대로 오답이 된다.
+     여기서는 **틀린 사실을 현행처럼 쓴 경우만** 잡는다.
+     "예전에는 X였지만 지금은 Y다" 처럼 변경 사실을 가르치는 문맥은 허용한다. */
+  const OUTDATED_CTX = /이전|과거|예전|였|였습니다|했었|바뀌|변경|더 이상|deprecated|종료|폐기|지원하지 않|은퇴|retired|현재는|지금은|개명|이름이/;
 
   /* 인라인된 SVG 다이어그램 내부는 이 검사에서 제외한다.
-     D-020(ZooKeeper vs KRaft 비교)처럼 두 모드를 나란히 보여주는 다이어그램은
-     좌측 패널에서 2.x 의 `--zookeeper` 사용을 설명하는 것이 정당하다.
-     그런데 패널 헤더("Kafka 2.x")와 설명 <text> 가 서로 다른 줄에 있어
-     문맥 윈도우(±200자)로는 역사적 맥락임을 판별할 수 없다.
-     → 다이어그램은 --diagrams 패스에서 별도로 검증하므로 여기서는 건너뛴다.
-     (inline-diagrams 실행 후에만 나타나던 오탐이라 배포 빌드에서만 터졌다) */
+     "구 아키텍처 vs 신 아키텍처"를 나란히 보여주는 비교 다이어그램은 좌측 패널에서
+     옛 동작을 그리는 것이 정당한데, 패널 헤더와 설명 <text> 가 서로 다른 줄에 있어
+     문맥 윈도우로는 역사적 맥락임을 판별할 수 없다.
+     → 다이어그램은 --diagrams 패스에서 별도로 검증하므로 여기서는 건너뛴다. */
   const proseOnly = text.replace(/<svg\b[\s\S]*?<\/svg>/gi, (mm) => ' '.repeat(mm.length));
 
   if (!isLegacyAppendix) {
-    for (const m of proseOnly.matchAll(/--zookeeper\b/g)) {
-      const ctx = proseOnly.slice(Math.max(0, m.index - 200), m.index + 200);
-      if (REMOVED_CTX.test(ctx)) continue;   // 제거 사실을 설명하는 문맥 → 허용
+    /* (1) S3 최종 일관성 — 2020-12 부터 모든 리전에서 강력한 읽기 후 쓰기 일관성.
+           시중 자료가 가장 많이 틀리는 항목이라 ERROR 로 둔다. */
+    for (const m of proseOnly.matchAll(/(?:S3|에스쓰리)[^.。\n]{0,60}?(최종 일관성|결과적 일관성|eventual(?:ly)? consistent|eventual consistency)/gi)) {
+      const ctx = proseOnly.slice(Math.max(0, m.index - 160), m.index + 220);
+      if (OUTDATED_CTX.test(ctx)) continue;
       err(f, lineAt(text, m.index),
-        '`--zookeeper` 를 사용 가능한 옵션처럼 서술했습니다 — 4.0에서 제거되었습니다 (제거 사실을 설명하는 문맥만 허용)');
+        'S3 를 최종 일관성으로 서술했습니다 — 2020년 12월부터 강력한 읽기 후 쓰기 일관성(strong read-after-write consistency)입니다');
     }
-    // "ZooKeeper에 접속/저장" 같은 현행 서술 탐지 (역사적 맥락 표현은 통과시킴)
-    for (const m of proseOnly.matchAll(/(?:ZooKeeper|주키퍼|zookeeper)(?:에|가|는|를|와|의)?\s*(접속|연결|저장|등록|기동|실행)/g)) {
-      const ctx = proseOnly.slice(Math.max(0, m.index - 120), m.index + 60);
-      if (/이전|과거|였|했었|3\.x|2\.x|레거시|제거|더 이상|历史/.test(ctx)) continue;
-      warn(f, lineAt(text, m.index), `ZooKeeper 를 현행 동작으로 서술한 것 같습니다: "${m[0]}" — 역사적 맥락임을 명시하세요`);
-    }
-  }
 
-  /* 2.13을 Kafka 버전으로 서술
-     "Kafka 2.13이라는 버전은 존재하지 않는다" 처럼 **부정하는 문맥은 허용**합니다.
-     그 문장이 바로 VERSION_POLICY §1 이 요구하는 서술입니다.
-     줄바꿈을 건너뛰지 않도록 같은 줄 안에서만 매칭합니다(코드블록의 지시선 아트 오탐 방지). */
-  for (const m of text.matchAll(/Kafka[ \t]*(?:버전[ \t]*)?2\.13/gi)) {
-    const ctx = text.slice(m.index, m.index + 120);
-    if (REMOVED_CTX.test(ctx)) continue;                 // "…존재하지 않습니다"
-    if (/Scala/i.test(text.slice(Math.max(0, m.index - 120), m.index + 120))) continue;
-    err(f, lineAt(text, m.index), '"2.13"은 Scala 버전입니다. Kafka 2.13이라는 버전은 존재하지 않습니다');
+    /* (2) EC2-Classic — 2022-08 완전 종료 */
+    for (const m of proseOnly.matchAll(/EC2[-\s]?Classic/gi)) {
+      const ctx = proseOnly.slice(Math.max(0, m.index - 180), m.index + 180);
+      if (OUTDATED_CTX.test(ctx)) continue;
+      err(f, lineAt(text, m.index),
+        'EC2-Classic 을 사용 가능한 것처럼 서술했습니다 — 2022년 8월 종료되었습니다 (종료 사실을 설명하는 문맥만 허용)');
+    }
+
+    /* (3) 개명된 서비스의 옛 이름 — 새 이름 병기 없이 단독 사용하면 경고 */
+    const RENAMED = [
+      { re: /AWS\s+Single\s+Sign-?On|\bAWS\s+SSO\b/gi, now: 'AWS IAM Identity Center', hint: /IAM\s+Identity\s+Center/i },
+      { re: /Amazon\s+Elasticsearch\s+Service/gi,      now: 'Amazon OpenSearch Service', hint: /OpenSearch/i },
+      { re: /AWS\s+Server\s+Migration\s+Service|\bAWS\s+SMS\b/gi, now: 'AWS Application Migration Service (MGN)', hint: /Application\s+Migration|MGN/i }
+    ];
+    for (const { re, now, hint } of RENAMED) {
+      re.lastIndex = 0;
+      for (const m of proseOnly.matchAll(re)) {
+        const ctx = proseOnly.slice(Math.max(0, m.index - 200), m.index + 200);
+        if (hint.test(ctx) || OUTDATED_CTX.test(ctx)) continue;
+        warn(f, lineAt(text, m.index),
+          `"${m[0].trim()}" 은 옛 이름입니다 — 현재 이름은 ${now} 입니다 (병기하거나 새 이름을 쓰세요)`);
+      }
+    }
   }
 
   /* h2/h3 id */
@@ -501,33 +512,36 @@ function checkDiagrams(htmlFiles) {
 /* ==========================================================================
    4. 문제 JSON (--questions)
    ========================================================================== */
-const REF_HOSTS = ['kafka.apache.org', 'cwiki.apache.org', 'docs.confluent.io',
-                   'developer.confluent.io', 'github.com/apache/kafka',
-                   'issues.apache.org', 'archive.apache.org'];
-const EXAMS = new Set(['CCDAK', 'CCAAK', 'BASICS']);
+/* refs 는 **독자가 열 수 있는 공식 문서 URL** 이어야 한다.
+   이 환경에서 우리가 사실을 확인한 경로(botocore, CloudFormation 스펙, GitHub 원본)는
+   학습자에게 부적절하므로 refs 에 쓰지 않는다. 확인 경로와 인용 경로를 분리한다.
+   자세한 근거는 docs/FACT_SOURCES.md §6. */
+const REF_HOSTS = [
+  'docs.aws.amazon.com',
+  'aws.amazon.com',
+  'aws.amazon.com/blogs',
+  'aws.amazon.com/architecture',
+  'awscli.amazonaws.com'
+];
+const EXAMS = new Set(['SAA', 'BASICS']);
 
 /* 혼합 세트(모의고사·진단)의 문항별 domain 검사용 공식 도메인 목록.
    진단 모드의 도메인 집계와 학습 순서 생성이 이 문자열과 정확히 일치해야 동작한다.
-   CCAAK 가중치는 공식 확인 불가지만 섹션 이름 자체는 확정된 값이다. */
+   SAA-C03 시험 가이드의 공식 도메인 명칭이며 오타는 곧 기능 고장이다. */
 const EXAM_DOMAINS = {
-  CCDAK: [
-    'Application Development',
-    'Fundamentals',
-    'Kafka Connect',
-    'Application Observability',
-    'Kafka Streams',
-    'Application Testing'
-  ],
-  CCAAK: [
-    'Kafka Fundamentals',
-    'Kafka Security',
-    'Kafka Connect',
-    'Deployment Architecture',
-    'Cluster Configuration',
-    'Observability',
-    'Troubleshooting'
+  SAA: [
+    'Design Secure Architectures',
+    'Design Resilient Architectures',
+    'Design High-Performing Architectures',
+    'Design Cost-Optimized Architectures'
   ]
 };
+
+/* SAA-C03 의 실제 문항 유형은 객관식(single)과 복수 응답(multiple) 두 가지뿐이다.
+   matching/ordering 은 암기 효율이 좋아 기본개념 확인문제에서 학습용으로만 쓴다.
+   시험 세트에 섞이면 "시험에 이런 유형이 나온다"는 잘못된 기대를 만들므로 막는다.
+   (PLAN.md §3-2) */
+const EXAM_ONLY_TYPES = new Set(['single', 'multiple']);
 const DIFFS = new Set(['easy', 'medium', 'hard']);
 const TYPES = new Set(['single', 'multiple', 'matching', 'ordering']);
 const CHOICE_IDS = new Set(['A', 'B', 'C', 'D', 'E']);
@@ -565,7 +579,7 @@ function checkQuestions() {
     const setId = name.replace(/\.json$/, '');
 
     /* 세트 레벨 */
-    for (const k of ['setId', 'title', 'exam', 'domain', 'kafkaVersion']) {
+    for (const k of ['setId', 'title', 'exam', 'domain', 'examCode']) {
       if (!set[k]) err(f, 1, `세트 필수 필드 누락: ${k}`);
     }
     if (set.setId && set.setId !== setId) {
@@ -622,14 +636,20 @@ function checkQuestions() {
       else if (set.domain && q.domain !== set.domain) E(`domain("${q.domain}") 이 세트("${set.domain}") 와 다릅니다`);
 
       if (!q.chapter) E('chapter 누락 — 결과 리포트의 복습 링크가 이 값에 의존합니다');
-      else if (!/^(?:ch(?:0[1-9]|1[01])|appendix-legacy)$/.test(q.chapter)) {
-        E(`chapter 형식 오류: "${q.chapter}" — ch01~ch11 또는 appendix-legacy`);
+      else if (!/^ch(?:0[1-9]|1[0-8])$/.test(q.chapter)) {
+        E(`chapter 형식 오류: "${q.chapter}" — ch01~ch18`);
       }
 
       if (!DIFFS.has(q.difficulty)) E(`difficulty 값 오류: ${q.difficulty}`);
       else stats.diff[q.difficulty]++;
 
       if (!TYPES.has(q.type)) { E(`type 값 오류: ${q.type}`); return; }
+
+      /* SAA-C03 은 객관식·복수 응답 두 유형뿐이다. 시험 세트에 학습용 유형이 섞이면
+         "시험에 연결형이 나온다"는 잘못된 기대를 만든다. (PLAN.md §3-2) */
+      if (q.exam === 'SAA' && !EXAM_ONLY_TYPES.has(q.type)) {
+        E(`type="${q.type}" 는 SAA-C03 시험에 없는 유형입니다 — exam:"SAA" 세트는 single/multiple 만 허용합니다 (학습용 유형은 basics-* 세트에만)`);
+      }
       stats.type[q.type]++;
 
       if (!q.question || typeof q.question !== 'string') E('question 누락');
@@ -873,6 +893,80 @@ function checkQuestions() {
 }
 
 /* ==========================================================================
+   5. 차트 (--charts)
+   --------------------------------------------------------------------------
+   다이어그램과 같은 분리 구조를 쓴다. 콘텐츠는 플레이스홀더만 두고,
+   실제 스펙은 assets/js/charts*.js 의 register('C-###', …) 가 제공한다.
+   양쪽이 어긋나면 페이지에 "등록되지 않았습니다" 상자가 그대로 배포된다.
+   ========================================================================== */
+function checkCharts(htmlFiles) {
+  /* (a) 등록된 ID 수집 — charts.js 및 charts-*.js */
+  const jsDir = path.join(ROOT, 'assets', 'js');
+  const registered = new Map();          // 'C-001' → 파일명
+  if (fs.existsSync(jsDir)) {
+    for (const name of fs.readdirSync(jsDir).sort()) {
+      if (!/^charts.*\.js$/.test(name)) continue;
+      const text = read(path.join(jsDir, name));
+      /* 주석 안의 사용 예시(register('C-010', …))를 실제 등록으로 오인하지 않도록
+         블록·행 주석을 공백으로 치환한 뒤 스캔한다. 길이를 보존해야 lineAt 이 맞는다. */
+      const code = text
+        .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+        .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1) => p1 + ' '.repeat(m.length - p1.length));
+      for (const m of code.matchAll(/\bregister(?:Chart)?\s*\(\s*['"](C-\d{3})['"]/g)) {
+        const id = m[1].toUpperCase();
+        if (registered.has(id)) {
+          err('assets/js/' + name, lineAt(text, m.index),
+            `차트 ID 중복: ${id} (이미 ${registered.get(id)} 에 있습니다)`);
+        } else {
+          registered.set(id, 'assets/js/' + name);
+        }
+      }
+    }
+  }
+
+  /* (b) HTML 플레이스홀더 */
+  const referenced = new Set();
+  const figRe = /<figure\b[^>]*class\s*=\s*["'][^"']*\bchart\b[^"']*["'][^>]*>/gi;
+  for (const file of htmlFiles) {
+    const f = rel(file);
+    const text = read(file);
+    for (const m of text.matchAll(figRe)) {
+      const line = lineAt(text, m.index);
+      const close = text.indexOf('</figure>', m.index);
+      const body = close < 0 ? '' : text.slice(m.index, close);
+
+      const idm = /data-chart\s*=\s*["']([^"']+)["']/i.exec(m[0]);
+      if (!idm) { err(f, line, 'figure.chart 에 data-chart 속성이 없습니다'); continue; }
+      const raw = idm[1].trim().toUpperCase();
+      if (!/^C-\d{3}$/.test(raw)) {
+        err(f, line, `data-chart 형식 오류: "${idm[1]}" — C-### 형식이어야 합니다`);
+        continue;
+      }
+      referenced.add(raw);
+
+      if (!/<figcaption/i.test(body)) {
+        warn(f, line, `${raw} 차트에 <figcaption> 이 없습니다 — 캔버스는 스크린 리더에 읽히지 않으므로 캡션이 정보의 정본입니다`);
+      }
+      if (!registered.has(raw)) {
+        err(f, line, `${raw} 가 assets/js/charts*.js 에 등록되지 않았습니다 — 페이지에 "등록되지 않았습니다" 상자가 그대로 노출됩니다`);
+      }
+      /* 캔버스를 직접 쓰면 charts.js 의 생성 경로와 충돌한다 */
+      if (/<canvas\b/i.test(body)) {
+        err(f, line, `${raw} 플레이스홀더에 <canvas> 를 직접 쓰지 마세요 — charts.js 가 생성합니다`);
+      }
+    }
+  }
+
+  /* (c) 고아 등록 — 아무 페이지도 참조하지 않는 차트 */
+  for (const [id, where] of registered) {
+    if (!referenced.has(id)) {
+      planned(where, 1,
+        `${id} 등록만 있고 이 차트를 참조하는 HTML 플레이스홀더가 없습니다 — <figure class="chart" data-chart="${id}">`);
+    }
+  }
+}
+
+/* ==========================================================================
    실행
    ========================================================================== */
 const htmlFiles = walk(ROOT, (p) => /\.html?$/i.test(p)).sort();
@@ -885,6 +979,7 @@ if (FLAGS.html || FLAGS.links) {
   }
 }
 if (FLAGS.diagrams) checkDiagrams(htmlFiles);
+if (FLAGS.charts) checkCharts(htmlFiles);
 if (FLAGS.questions) checkQuestions();
 
 /* ---------- 출력 ---------------------------------------------------------- */
@@ -903,6 +998,7 @@ if (FLAGS.links) parts.push('links');
 if (FLAGS.questions) parts.push('questions');
 if (FLAGS.html) parts.push('html');
 if (FLAGS.diagrams) parts.push('diagrams');
+if (FLAGS.charts) parts.push('charts');
 
 console.log('');
 console.log(`검사 대상: ${parts.join(', ')} · HTML ${htmlFiles.length}개`);

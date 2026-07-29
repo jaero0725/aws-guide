@@ -44,86 +44,79 @@ const SECTIONS = [
     { id: 'index', path: 'index.html', title: 'AWS SAA Guide 홈' }
   ]},
   { id: 'basics', title: '기본개념', pages: [
-    { id: 'ch01', num: '1', title: 'Kafka 개요와 이벤트 스트리밍' },
-    { id: 'ch02', num: '2', title: '아키텍처와 핵심 개념' },
-    { id: 'ch03', num: '3', title: 'KRaft와 클러스터 메타데이터' },
-    { id: 'ch04', num: '4', title: 'Producer 심화' },
-    { id: 'ch05', num: '5', title: 'Consumer 심화' },
-    { id: 'ch06', num: '6', title: '전달 보장과 트랜잭션' },
-    { id: 'ch07', num: '7', title: '스토리지·리텐션·컴팩션' },
-    { id: 'ch08', num: '8', title: '스키마와 직렬화' },
-    { id: 'ch09', num: '9', title: 'Kafka Connect' },
-    { id: 'ch10', num: '10', title: 'Kafka Streams와 ksqlDB' },
-    { id: 'ch11', num: '11', title: '운영 기초' },
-    { id: 'appendix-legacy', num: '부록', title: '버전 표기와 레거시' }
+    { id: 'ch01', num: '1',  title: 'AWS 글로벌 인프라와 계정 기초' },
+    { id: 'ch02', num: '2',  title: 'IAM과 자격 증명' },
+    { id: 'ch03', num: '3',  title: 'VPC 네트워킹 기초' },
+    { id: 'ch04', num: '4',  title: 'VPC 연결과 하이브리드' },
+    { id: 'ch05', num: '5',  title: 'EC2와 컴퓨트' },
+    { id: 'ch06', num: '6',  title: 'EBS와 블록 스토리지' },
+    { id: 'ch07', num: '7',  title: '로드 밸런싱과 오토스케일링' },
+    { id: 'ch08', num: '8',  title: 'S3와 오브젝트 스토리지' },
+    { id: 'ch09', num: '9',  title: '파일 스토리지와 데이터 전송' },
+    { id: 'ch10', num: '10', title: 'RDS와 관계형 데이터베이스' },
+    { id: 'ch11', num: '11', title: 'NoSQL · 캐시 · 분석 DB' },
+    { id: 'ch12', num: '12', title: '서버리스와 애플리케이션 통합' },
+    { id: 'ch13', num: '13', title: '컨테이너' },
+    { id: 'ch14', num: '14', title: '엣지와 DNS' },
+    { id: 'ch15', num: '15', title: '데이터 분석 파이프라인' },
+    { id: 'ch16', num: '16', title: '보안 · 암호화 · 거버넌스' },
+    { id: 'ch17', num: '17', title: '모니터링 · 운영 · 계정 관리' },
+    { id: 'ch18', num: '18', title: '비용 최적화 · 마이그레이션 · DR' }
   ]},
   { id: 'quiz', title: '문제 풀이', pages: [
-    { id: 'index', title: '문제 풀이 허브' },
-    { id: 'diagnostic', title: '진단 테스트 (30문항)' },
-    { id: 'review', title: '오답 노트' },
-    { id: 'result', title: '결과 리포트' }
+    { id: 'index',      title: '문제 풀이 허브' },
+    { id: 'diagnostic', title: '진단 테스트 (40문항)' },
+    { id: 'review',     title: '오답 노트' },
+    { id: 'result',     title: '결과 리포트' }
   ]},
-  { id: 'ccdak', title: 'CCDAK', pages: [
-    { id: 'index', title: '개요 · 4주 학습 플랜' },
-    { id: 'domain-app-development', title: 'Application Development' },
-    { id: 'domain-fundamentals', title: 'Fundamentals' },
-    { id: 'domain-connect', title: 'Kafka Connect' },
-    { id: 'domain-observability', title: 'Application Observability' },
-    { id: 'domain-streams', title: 'Kafka Streams' },
-    { id: 'domain-testing', title: 'Application Testing' },
+  { id: 'saa', title: 'SAA 시험 대비', pages: [
+    { id: 'index', title: '시험 개요 · 8주 학습 플랜' },
+    /* 도메인 페이지 제목은 SAA-C03 시험 가이드의 공식 명칭이며
+       validate.mjs 의 EXAM_DOMAINS.SAA 와 의미가 일치해야 한다. */
+    { id: 'domain-secure',      title: '보안 아키텍처 설계 (30%)' },
+    { id: 'domain-resilient',   title: '복원력 있는 아키텍처 설계 (26%)' },
+    { id: 'domain-performance', title: '고성능 아키텍처 설계 (24%)' },
+    { id: 'domain-cost',        title: '비용 최적화 아키텍처 설계 (20%)' },
+    { id: 'keywords',   title: '한정어 키워드 사전' },
+    { id: 'traps',      title: '함정 사전' },
     { id: 'flashcards', title: '플래시카드' },
-    { id: 'traps', title: '함정 사전' },
-    { id: 'cram', title: '벼락치기 요약' },
-    { id: 'exam-tips', title: '시험 당일 전략' }
+    { id: 'cram',       title: '벼락치기 요약' },
+    { id: 'exam-tips',  title: '시험 당일 전략' }
   ]},
-  { id: 'ccaak', title: 'CCAAK', pages: [
-    { id: 'index', title: '개요 · 학습 플랜' },
-    /* 섹션 이름은 Confluent 블루프린트 확정값이며 validate.mjs 의
-       EXAM_DOMAINS.CCAAK 와 문자 단위로 일치해야 한다. 가중치는 공식 확인이
-       불가해 표기하지 않는다 (docs/FACT_SOURCES.md §7). */
-    { id: 'domain-fundamentals',    title: 'Kafka Fundamentals' },
-    { id: 'domain-security',        title: 'Kafka Security' },
-    { id: 'domain-connect',         title: 'Kafka Connect' },
-    { id: 'domain-deployment',      title: 'Deployment Architecture' },
-    { id: 'domain-cluster-config',  title: 'Cluster Configuration' },
-    { id: 'domain-observability',   title: 'Observability' },
-    { id: 'domain-troubleshooting', title: 'Troubleshooting' },
-    { id: 'exam-tips', title: '시험 당일 전략' }
+  { id: 'labs', title: '실습 예제', pages: [
+    { id: 'lab01', num: '1',  title: '3계층 VPC 직접 구성' },
+    { id: 'lab02', num: '2',  title: 'ALB + ASG 웹 티어' },
+    { id: 'lab03', num: '3',  title: 'S3 정적 사이트 + CloudFront + OAC' },
+    { id: 'lab04', num: '4',  title: 'RDS Multi-AZ와 읽기 전용 복제본' },
+    { id: 'lab05', num: '5',  title: 'DynamoDB 테이블 설계' },
+    { id: 'lab06', num: '6',  title: 'Lambda + API Gateway REST API' },
+    { id: 'lab07', num: '7',  title: 'SQS + Lambda 비동기 처리' },
+    { id: 'lab08', num: '8',  title: 'EventBridge 이벤트 기반 아키텍처' },
+    { id: 'lab09', num: '9',  title: 'ECS Fargate 서비스 배포' },
+    { id: 'lab10', num: '10', title: 'VPC 엔드포인트로 S3 비공개 접근' },
+    { id: 'lab11', num: '11', title: 'KMS 고객 관리형 키 암호화' },
+    { id: 'lab12', num: '12', title: 'CloudWatch 알람 + SNS 알림' }
   ]},
-  { id: 'practice', title: '실무 예제', pages: [
-    { id: 'ex01', num: '1', title: '로컬 KRaft 클러스터 구축' },
-    { id: 'ex02', num: '2', title: 'Spring Boot Producer/Consumer' },
-    { id: 'ex03', num: '3', title: '안전한 Producer 설정' },
-    { id: 'ex04', num: '4', title: '컨슈머 오프셋 전략' },
-    { id: 'ex05', num: '5', title: 'Exactly-Once 파이프라인' },
-    { id: 'ex06', num: '6', title: 'DLQ + 재시도 패턴' },
-    { id: 'ex07', num: '7', title: 'Avro 스키마 진화' },
-    { id: 'ex08', num: '8', title: 'Connect CDC 파이프라인' },
-    { id: 'ex09', num: '9', title: 'Streams 실시간 집계' },
-    { id: 'ex10', num: '10', title: '컨슈머 Lag 모니터링' },
-    { id: 'ex11', num: '11', title: 'MirrorMaker 2 복제' },
-    { id: 'ex12', num: '12', title: 'Python / Node 클라이언트' }
-  ]},
-  { id: 'cases', title: '실수 케이스', pages: [
-    { id: 'case01', num: '1', title: '배포 후 며칠치 데이터가 사라졌다' },
-    { id: 'case02', num: '2', title: '컨슈머가 무한 리밸런스 루프에 빠졌다' },
-    { id: 'case03', num: '3', title: '브로커 장애 후 메시지가 유실됐다' },
-    { id: 'case04', num: '4', title: '같은 주문의 상태가 뒤바뀌어 저장됐다' },
-    { id: 'case05', num: '5', title: '파티션을 1000개로 늘렸더니 더 느려졌다' },
-    { id: 'case06', num: '6', title: 'RF=3인데 브로커 1대 죽자 유실됐다' },
-    { id: 'case07', num: '7', title: '재처리했더니 결제가 두 번 됐다' },
-    { id: 'case08', num: '8', title: '상태 토픽 데이터가 조용히 사라졌다' },
-    { id: 'case09', num: '9', title: '스키마 배포 후 전체 컨슈머가 죽었다' },
-    { id: 'case10', num: '10', title: '큰 메시지가 무한 재시도로 쌓였다' }
+  { id: 'cases', title: '아키텍처 케이스', pages: [
+    { id: 'case01', num: '1',  title: 'EC2에 액세스 키를 심어 배포했다' },
+    { id: 'case02', num: '2',  title: '읽기 부하로 데이터베이스가 죽었다' },
+    { id: 'case03', num: '3',  title: 'S3 비용이 매달 늘어난다' },
+    { id: 'case04', num: '4',  title: '퍼블릭 서브넷에 데이터베이스를 뒀다' },
+    { id: 'case05', num: '5',  title: '단일 AZ 설계가 장애로 전면 중단됐다' },
+    { id: 'case06', num: '6',  title: '데이터 전송 요금이 예산을 넘겼다' },
+    { id: 'case07', num: '7',  title: '트래픽 급증에 스케일아웃이 못 따라갔다' },
+    { id: 'case08', num: '8',  title: '리전 장애에 대비한 DR을 설계하라' },
+    { id: 'case09', num: '9',  title: '온프레미스 파일 서버를 클라우드로' },
+    { id: 'case10', num: '10', title: '규정 준수 감사에 대응하라' }
   ]},
   { id: 'cheatsheet', title: '빠른참조', pages: [
-    { id: 'cli', title: 'CLI 명령' },
-    { id: 'config', title: '설정값' },
-    { id: 'metrics', title: 'JMX 메트릭' },
-    { id: 'troubleshooting', title: '트러블슈팅 결정 트리' },
-    { id: 'security', title: '보안 설정' },
-    { id: 'streams', title: 'Streams DSL' },
-    { id: 'connect', title: 'Connect REST · SMT' }
+    { id: 'services',      title: '서비스 한 줄 정의' },
+    { id: 'compare',       title: '헷갈리는 쌍 비교' },
+    { id: 'limits',        title: '한도 · 기본값' },
+    { id: 'decision-tree', title: '서비스 선택 결정 트리' },
+    { id: 'security',      title: '보안 · 암호화' },
+    { id: 'network',       title: '네트워크 연결' },
+    { id: 'cost',          title: '요금 · 비용 절감' }
   ]}
 ];
 
@@ -217,7 +210,7 @@ function buildToc() {
 
   const toc = {
     generatedAt: new Date().toISOString().slice(0, 10),
-    kafkaVersion: '4.3',
+    examCode: 'SAA-C03',
     total,
     built,
     sections

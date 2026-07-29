@@ -8,10 +8,10 @@
    {
      "generatedAt": "2026-07-28",
      "decks": [
-       { "deckId": "ccdak-producer-defaults",
-         "file": "ccdak-producer-defaults.json",
-         "title": "Producer 설정 기본값",
-         "exam": "CCDAK", "chapter": "ch04", "count": 24 }
+       { "deckId": "saa-service-picker",
+         "file": "saa-service-picker.json",
+         "title": "SAA — 상황별 서비스 고르기",
+         "exam": "SAA", "chapter": "ch01", "count": 24 }
      ]
    }
    ```
@@ -19,26 +19,26 @@
    덱 파일:  data/flashcards/{deckId}.json
    ```json
    {
-     "deckId": "ccdak-producer-defaults",
-     "title": "Producer 설정 기본값",
-     "exam": "CCDAK",
-     "kafkaVersion": "4.3",
+     "deckId": "saa-service-picker",
+     "title": "SAA — 상황별 서비스 고르기",
+     "exam": "SAA",
+     "examCode": "SAA-C03",
      "cards": [
-       { "id": "fc-prod-001",
-         "deck": "ccdak-producer-defaults",
-         "front": "`acks` 의 기본값은?",
-         "back": "`all` — Kafka 3.0부터 기본값이 `1` 에서 바뀌었습니다.",
-         "tags": ["acks", "durability"],
-         "chapter": "ch04" }
+       { "id": "fc-svc-001",
+         "deck": "saa-service-picker",
+         "front": "장기 보관 · 검색이 드문 데이터에 가장 저렴한 S3 클래스는?",
+         "back": "**Amazon S3 Glacier Deep Archive** — 최저 비용, 검색에 시간이 걸립니다.",
+         "tags": ["s3", "storage-class", "cost"],
+         "chapter": "ch01" }
      ]
    }
    ```
    · id      전역 유일 (`fc-` 접두어 권장). 진도 저장 키가 됩니다.
    · deck    소속 deckId (없으면 파일의 deckId 를 자동 주입)
-   · front   앞면. 설정명·개념. `백틱`으로 코드 표기 가능
-   · back    뒷면. 기본값·정의. `백틱`, **굵게** 사용 가능
+   · front   앞면. 상황·개념·용어. `백틱`으로 코드 표기 가능
+   · back    뒷면. 서비스명·값·정의. `백틱`, **굵게** 사용 가능
    · tags    2~5개
-   · chapter 'ch01'~'ch11' — 복습 링크 생성에 사용
+   · chapter 'ch01'~'ch18' — 복습 링크 생성에 사용
 
    간격 반복
      "알았음" 3회 연속 → 졸업(graduated). "몰랐음"이면 streak 와 졸업이 리셋됩니다.
