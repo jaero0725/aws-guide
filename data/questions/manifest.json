@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-07-29",
   "examCode": "SAA-C03",
-  "totalQuestions": 200,
+  "totalQuestions": 268,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -11,6 +11,16 @@
       "domain": "AWS 글로벌 인프라와 계정 기초",
       "chapter": "ch01",
       "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-cost",
+      "file": "saa-cost.json",
+      "title": "SAA — 비용 최적화 아키텍처 설계 (20%) 도메인 연습",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "count": 68,
       "mock": false,
       "diagnostic": false
     },
