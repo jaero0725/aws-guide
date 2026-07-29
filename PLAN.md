@@ -124,6 +124,8 @@
 | AWS SSO | **AWS IAM Identity Center** 로 개명 | 2022 |
 | Amazon Elasticsearch Service | **Amazon OpenSearch Service** 로 개명 | 2021 |
 | SysOps Administrator – Associate | **CloudOps Engineer – Associate (SOA-C03)** 로 개명 | 2025-09 |
+| EBS `gp3` 상한 | 최대 **64 TiB · 80,000 IOPS · 2,000 MiB/s** (구 자료: 16 TiB · 16,000 · 1,000) | 2025-09 |
+| Route 53 라우팅 정책 | **8종** (지연 시간·가중치·장애 조치·지리적 위치·**지리 근접**·다중값 응답·**IP 기반**·단순) | — |
 
 > 시험 범위 밖이지만 학습자가 접하게 되는 신규 서비스(Aurora DSQL, S3 Tables, S3 Vectors 등)는
 > **"시험 범위 아님"을 명시**하고 인지 수준으로만 다룬다.
@@ -504,13 +506,13 @@ AG.charts.register('C-012', function (ctx) {
 |---|---|---|---|
 | C-001 | SAA 도메인 가중치 | doughnut | `saa/index.html` |
 | C-002 | 8주 학습 플랜 | 수평 바(간트) | `saa/index.html` |
-| C-010 | S3 스토리지 클래스 비용 비교 | bar | ch08 |
+| C-010 | S3 스토리지 클래스 **상대** 비용 등급 | bar | ch08 |
 | C-011 | S3 스토리지 클래스 최소 저장 기간·검색 시간 | grouped bar | ch08 |
 | C-020 | EBS 볼륨 타입 최대 IOPS·처리량 | grouped bar | ch06 |
-| C-030 | EC2 구매 옵션 상대 비용·유연성 | scatter | ch05 |
+| C-030 | EC2 구매 옵션 **상대** 비용 대 유연성 | scatter | ch05 |
 | C-040 | **DR 4전략 RTO/RPO 산점도** | scatter | ch18 |
 | C-041 | DR 전략 비용 대 복구 시간 | line | ch18 |
-| C-050 | 데이터 전송 요금 지도 | bar | ch18, cheatsheet/cost |
+| C-050 | 데이터 전송 **과금 여부** 지도 (무료/과금/비쌈) | bar | ch18, cheatsheet/cost |
 | C-060 | ALB·NLB·GWLB 특성 비교 | radar | ch07 |
 | C-070 | DynamoDB 온디맨드 vs 프로비저닝 손익분기 | line | ch11 |
 | C-080 | 캐시 계층별 지연시간 | 로그 스케일 bar | ch14 |
@@ -520,6 +522,15 @@ AG.charts.register('C-012', function (ctx) {
 
 > 차트는 **수치가 확인된 것만** 만든다. `docs/FACT_SOURCES.md`에서 검증하지 못한 값으로는
 > 차트를 만들지 않는다. 상대적 비교만 가능하면 축에 숫자 대신 순위/등급을 쓰고 그 사실을 캡션에 밝힌다.
+>
+> ⚠️ **요금 금액은 이 환경에서 확인이 구조적으로 불가능하다** (AWS 요금 API·요금 페이지 전부 차단).
+> 따라서 **금액이 축에 오는 차트는 만들지 않는다.** C-010 · C-030 · C-050 은 전부
+> 상대 등급(저렴 → 비쌈) 또는 범주(무료 / 과금 / 리전 간)로 그리고, 캡션에
+> "상대 비교이며 실제 금액은 리전·시점에 따라 다릅니다"를 반드시 적는다.
+>
+> 반대로 **성능 수치는 확인된 값을 쓴다.** 예: `gp3` 는 2025년 9월부터
+> 최대 **80,000 IOPS / 2,000 MiB/s / 64 TiB** 이다(구 자료의 16,000 / 1,000 / 16 TiB 아님).
+> 이런 "시중 자료가 틀린 값"이야말로 차트로 보여줄 가치가 가장 크다.
 
 ### 4-2. 다이어그램 (SVG)
 
