@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>벼락치기 요약 — AWS SAA Guide</title>
+  <meta name="description" content="시험 전날 한 번에 훑는 SAA-C03 단일 페이지 요약입니다. 시험 사실, 한정어 축약표, 도메인별 최빈 판단 지점, 확인된 한도값, 헷갈리는 쌍, 최신성 교정 항목을 표 중심으로 압축했습니다. 인쇄해서 쓸 수 있습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="saa" data-page="cram"></div>
+
+  <main id="main" class="page page--wide" data-page-id="saa/cram">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="index.html">시험 대비</a></li>
+        <li><span aria-current="page">벼락치기 요약</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">시험 대비 · 시험 전날</p>
+      <h1>벼락치기 요약</h1>
+      <p class="page__lead">
+        시험 전날과 시험 직전에 한 번에 훑는 <strong>단일 페이지 요약</strong>입니다.
+        새 내용을 배우는 페이지가 아니라 <strong>이미 배운 것을 되살리는 페이지</strong>이므로
+        설명을 최소화하고 표로만 구성했습니다.
+        브라우저의 인쇄 기능으로 그대로 출력할 수 있습니다.
+      </p>
+      <p class="page__meta">
+        수록한 수치는 전부 <strong>확인된 값</strong>만입니다.
+        확인하지 못한 한도와 요금 금액은 의도적으로 비워 두었습니다 —
+        불확실한 수치를 외우는 것은 외우지 않느니만 못합니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">이 페이지의 사용법</h2>
+      <ul>
+        <li>시험 전날 1회, 시험장 이동 중 1회 통독하는 것을 기준으로 분량을 맞췄습니다.</li>
+        <li>표의 왼쪽 열만 보고 나머지를 스스로 말한 뒤 대조하면 자가 점검이 됩니다.</li>
+        <li>막히는 행에만 표시하고, 그 항목의 담당 페이지로만 돌아가십시오.</li>
+        <li>인쇄하면 사이드바와 상단바가 빠지고 표가 지면 폭에 맞춰 접힙니다.</li>
+        <li>새 개념을 여기서 처음 만난다면 시험 전날에는 넘기는 편이 낫습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-facts">
+      <h2 id="exam-facts">시험 사실</h2>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>SAA-C03 시험 운영 정보</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">시험장에서의 의미</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">시험 코드</th><td>SAA-C03</td><td>—</td></tr>
+            <tr><th scope="row">문항 수</th><td>65문항</td><td>채점 50 + 비채점 15. 낯선 문항은 비채점일 수 있습니다</td></tr>
+            <tr><th scope="row">시간</th><td>130분</td><td>문항당 2분. 90초 안에 안 잡히면 표시하고 넘어갑니다</td></tr>
+            <tr><th scope="row">합격 점수</th><td>720점 / 100–1000</td><td>스케일 점수입니다. 정답률과 1대1로 대응하지 않습니다</td></tr>
+            <tr><th scope="row">채점 방식</th><td>보상형(compensatory)</td><td>도메인별 과락이 없습니다. 총점만 봅니다</td></tr>
+            <tr><th scope="row">오답 감점</th><td>없음</td><td><strong>빈칸을 남기지 않습니다.</strong> 모르면 찍습니다</td></tr>
+            <tr><th scope="row">문항 유형</th><td>객관식(단일 정답) · 복수 응답</td><td>두 가지뿐입니다. 복수 응답은 문제문에 개수가 명시됩니다</td></tr>
+            <tr><th scope="row">응시료</th><td>USD 150</td><td>원화 금액은 결제 시점 환율에 따라 다릅니다</td></tr>
+            <tr><th scope="row">유효 기간</th><td>3년</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>도메인 가중치와 대응 담당 페이지</caption>
+          <thead>
+            <tr>
+              <th scope="col">도메인</th>
+              <th scope="col">가중치</th>
+              <th scope="col">과제 진술</th>
+              <th scope="col">담당 페이지</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">보안 아키텍처 설계</th>
+              <td>30%</td><td>3개</td>
+              <td><a href="domain-secure.html">도메인 1</a></td>
+            </tr>
+            <tr>
+              <th scope="row">복원력 있는 아키텍처 설계</th>
+              <td>26%</td><td>2개</td>
+              <td><a href="domain-resilient.html">도메인 2</a></td>
+            </tr>
+            <tr>
+              <th scope="row">고성능 아키텍처 설계</th>
+              <td>24%</td><td>5개</td>
+              <td><a href="domain-performance.html">도메인 3</a></td>
+            </tr>
+            <tr>
+              <th scope="row">비용 최적화 아키텍처 설계</th>
+              <td>20%</td><td>4개</td>
+              <td><a href="domain-cost.html">도메인 4</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="qualifiers">
+      <h2 id="qualifiers">한정어 축약표</h2>
+
+      <p>
+        문제문의 <strong>마지막 문장</strong>을 먼저 읽고 아래 표에서 행을 찾은 뒤 선택지를 봅니다.
+        전체 해설은 <a href="keywords.html">한정어 키워드 사전</a>에 있습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>한정어가 가리키는 선택지와 배제하는 선택지</caption>
+          <thead>
+            <tr>
+              <th scope="col">한정어</th>
+              <th scope="col">가리키는 쪽</th>
+              <th scope="col">배제하는 쪽</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">MOST cost-effective</th>
+              <td>스팟, S3 Glacier·IA 계열, Savings Plans·예약 인스턴스, 서버리스, 라이트사이징</td>
+              <td>요구에 없는 다중 리전, 불필요한 프로비저닝된 IOPS, 전용 호스트</td>
+            </tr>
+            <tr>
+              <th scope="row">LEAST operational overhead</th>
+              <td>AWS Lambda, AWS Fargate, Aurora Serverless v2, Amazon DynamoDB, Amazon S3, 관리형 서비스</td>
+              <td>"인스턴스를 시작해 직접 설치·운영한다"</td>
+            </tr>
+            <tr>
+              <th scope="row">MOST highly available</th>
+              <td>다중 가용 영역, 가용 영역에 걸친 Auto Scaling 그룹, ELB, RDS Multi-AZ, 가용 영역마다 둔 NAT</td>
+              <td>단일 가용 영역 구성, 클러스터 배치 그룹</td>
+            </tr>
+            <tr>
+              <th scope="row">MOST resilient · DR</th>
+              <td>리전 간 복제, 파일럿 라이트·웜 스탠바이, AWS Backup, Route 53 장애 조치</td>
+              <td>RTO·RPO 요구와 어긋나는 전략</td>
+            </tr>
+            <tr>
+              <th scope="row">MOST secure</th>
+              <td>IAM 역할, KMS 고객 관리형 키, 프라이빗 서브넷, VPC 엔드포인트, 최소 권한</td>
+              <td>액세스 키 심기, 퍼블릭 버킷, 보안 그룹으로 차단</td>
+            </tr>
+            <tr>
+              <th scope="row">LOWEST latency</th>
+              <td>CloudFront, ElastiCache, DAX, Global Accelerator, 클러스터 배치 그룹, 읽기 전용 복제본</td>
+              <td>배치 처리, 원거리 단일 리전</td>
+            </tr>
+            <tr>
+              <th scope="row">MOST scalable · decoupled</th>
+              <td>SQS, SNS, EventBridge, Auto Scaling 그룹, Lambda</td>
+              <td>동기 직접 호출, 수직 확장</td>
+            </tr>
+            <tr>
+              <th scope="row">without changing application code</th>
+              <td>ALB, ElastiCache, Amazon EFS, RDS Proxy, DAX, Multi-AZ 전환</td>
+              <td>읽기 전용 복제본 추가처럼 엔드포인트 변경이 따르는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">real-time · near-real-time</th>
+              <td>Kinesis Data Streams, Amazon Data Firehose, Amazon MSK</td>
+              <td>AWS Glue 배치, 야간 일괄 처리</td>
+            </tr>
+            <tr>
+              <th scope="row">must not traverse the internet</th>
+              <td>VPC 엔드포인트, AWS PrivateLink, AWS Direct Connect</td>
+              <td>NAT 게이트웨이 경유, "TLS로 암호화하니 괜찮다"</td>
+            </tr>
+            <tr>
+              <th scope="row">compliance · audit</th>
+              <td>CloudTrail, AWS Config, KMS 고객 관리형 키, S3 Object Lock, 리전 고정</td>
+              <td>증적이 남지 않는 구성</td>
+            </tr>
+            <tr>
+              <th scope="row">existing infrastructure</th>
+              <td>Direct Connect, Storage Gateway, DataSync, AWS Outposts</td>
+              <td>전면 교체를 전제한 안</td>
+            </tr>
+            <tr>
+              <th scope="row">minimal downtime migration</th>
+              <td>AWS DMS, AWS Application Migration Service(MGN), 블루/그린</td>
+              <td>중단 후 일괄 이전</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="우선순위">
+        <p>
+          한정어보다 <strong>제약이 우선</strong>합니다.
+          "인터넷을 경유하면 안 된다", "가용 영역 장애를 견뎌야 한다" 같은 제약을 위반하는 선택지는
+          아무리 저렴하고 단순해도 오답입니다. <strong>제약 위반부터 소거한 뒤 한정어를 적용</strong>합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="domain-hot-spots">
+      <h2 id="domain-hot-spots">도메인별 최빈 판단 지점</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 1 보안 아키텍처 설계 (30%)</caption>
+          <thead>
+            <tr>
+              <th scope="col">판단</th>
+              <th scope="col">한 문장 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">액세스 키인가 IAM 역할인가</th><td>거의 항상 역할. 임시 자격 증명이 자동 교체됩니다</td></tr>
+            <tr><th scope="row">정책 평가 순위</th><td>명시적 거부 &gt; 명시적 허용 &gt; 암묵적 거부</td></tr>
+            <tr><th scope="row">정책 결합</th><td>자격 증명 기반 + 리소스 기반(동일 계정)은 합집합. 권한 경계·SCP·세션 정책은 교집합</td></tr>
+            <tr><th scope="row">교차 계정 접근</th><td>호출자 쪽과 리소스 쪽이 <strong>둘 다</strong> 허용해야 합니다</td></tr>
+            <tr><th scope="row">SCP</th><td>권한을 부여하지 않고 상한만. 멤버 계정 루트에도 적용됩니다</td></tr>
+            <tr><th scope="row">권한 경계</th><td>개별 IAM 주체에 거는 상한. 적용 범위가 SCP와 다릅니다</td></tr>
+            <tr><th scope="row">보안 그룹과 네트워크 ACL</th><td>상태 저장 vs 상태 비저장. 보안 그룹에는 거부 규칙이 없습니다</td></tr>
+            <tr><th scope="row">비공개 접근</th><td>S3·DynamoDB는 게이트웨이 엔드포인트, 나머지는 인터페이스 엔드포인트</td></tr>
+            <tr><th scope="row">S3 암호화 선택</th><td>키 관리 주체와 감사 요구가 기준. 감사가 필요하면 SSE-KMS</td></tr>
+            <tr><th scope="row">비밀 관리</th><td>자동 교체 요구가 있으면 Secrets Manager, 없으면 Parameter Store</td></tr>
+            <tr><th scope="row">탐지 서비스</th><td>위협은 GuardDuty, 취약점은 Inspector, 민감 데이터는 Macie, 집계는 Security Hub</td></tr>
+            <tr><th scope="row">웹 보호</th><td>요청 내용 규칙은 WAF, 디도스 대응은 Shield</td></tr>
+            <tr><th scope="row">감사 추적</th><td>누가 호출했나는 CloudTrail, 구성이 규칙에 맞나는 Config</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 2 복원력 있는 아키텍처 설계 (26%)</caption>
+          <thead>
+            <tr>
+              <th scope="col">판단</th>
+              <th scope="col">한 문장 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Multi-AZ와 읽기 전용 복제본</th><td>동기·가용성 vs 비동기·읽기 확장. 대기 인스턴스는 읽기를 받지 않습니다</td></tr>
+            <tr><th scope="row">Multi-AZ DB 클러스터</th><td>읽기 가능한 대기를 두는 <strong>별개의 아키텍처</strong>입니다. 문제문이 지목할 때만 적용합니다</td></tr>
+            <tr><th scope="row">느슨한 결합</th><td>동기 호출을 SQS·SNS·EventBridge로 끊습니다</td></tr>
+            <tr><th scope="row">SQS와 SNS 조합</th><td>팬아웃과 완충이 함께 필요하면 SNS 주제에 여러 SQS 큐를 구독시킵니다</td></tr>
+            <tr><th scope="row">표준 큐와 FIFO 큐</th><td>순서·중복 제거가 명시되면 FIFO. 큐 타입은 생성 후 변경할 수 없습니다</td></tr>
+            <tr><th scope="row">가시성 타임아웃과 DLQ</th><td>처리 시간보다 짧으면 중복 처리, 반복 실패는 DLQ로 격리합니다</td></tr>
+            <tr><th scope="row">가용성의 출발점</th><td>인스턴스 대수가 아니라 <strong>가용 영역 개수</strong>를 봅니다</td></tr>
+            <tr><th scope="row">단일 장애점</th><td>단일 NAT, 단일 인스턴스, 인스턴스 로컬 상태, 단일 리전</td></tr>
+            <tr><th scope="row">헬스체크</th><td>Auto Scaling 그룹이 ELB 헬스체크를 쓰면 응답 없는 인스턴스도 교체됩니다</td></tr>
+            <tr><th scope="row">DR 4전략</th><td>백업·복원 → 파일럿 라이트 → 웜 스탠바이 → 다중 사이트. 오른쪽일수록 복구가 빠르고 상시 비용이 큽니다</td></tr>
+            <tr><th scope="row">RTO와 RPO</th><td>RTO는 <strong>얼마나 빨리</strong>, RPO는 <strong>얼마나 잃어도 되는가</strong></td></tr>
+            <tr><th scope="row">리전 장애 조치</th><td>Route 53 장애 조치 라우팅 + 상태 확인</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 3 고성능 아키텍처 설계 (24%)</caption>
+          <thead>
+            <tr>
+              <th scope="col">판단</th>
+              <th scope="col">한 문장 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">스토리지의 모양</th><td>디스크로 인식하면 블록, 동시 마운트면 파일, HTTP 키 접근이면 객체</td></tr>
+            <tr><th scope="row">EBS 볼륨 타입</th><td>IOPS 중심은 gp3·io2, 처리량 중심은 st1·sc1. st1·sc1은 부트 볼륨 불가</td></tr>
+            <tr><th scope="row">인스턴스 스토어</th><td>중지·종료 시 소실됩니다. 영속 데이터에 쓰지 않습니다</td></tr>
+            <tr><th scope="row">공유 파일 시스템</th><td>Linux 다중 마운트는 EFS, Windows SMB는 FSx for Windows File Server, 고성능 컴퓨팅은 FSx for Lustre</td></tr>
+            <tr><th scope="row">S3 성능</th><td>접두사 분산, 멀티파트 업로드, 바이트 범위 요청, 업로드 가속은 Transfer Acceleration</td></tr>
+            <tr><th scope="row">읽기 지연</th><td>범용 캐시는 ElastiCache, DynamoDB 전용은 DAX, 다양한 조회는 읽기 전용 복제본, 거리 문제는 CloudFront</td></tr>
+            <tr><th scope="row">핫 파티션</th><td>카디널리티가 낮은 파티션 키가 원인. 용량 증설로 해결되지 않습니다</td></tr>
+            <tr><th scope="row">LSI와 GSI</th><td>파티션 키가 테이블과 같아야 하면 LSI. 5개와 20개</td></tr>
+            <tr><th scope="row">확장 방향</th><td>탄력성이 요구면 수평 확장. 상태 비저장 설계가 전제입니다</td></tr>
+            <tr><th scope="row">배치 그룹</th><td>저지연은 클러스터, 장애 격리는 분산, 그룹 격리는 파티션</td></tr>
+            <tr><th scope="row">컨테이너</th><td>오케스트레이터(ECS·EKS)와 실행 방식(EC2·Fargate)은 별개의 선택입니다</td></tr>
+            <tr><th scope="row">로드 밸런서</th><td>HTTP는 ALB, TCP·UDP·고정 IP는 NLB, GENEVE 어플라이언스는 GWLB</td></tr>
+            <tr><th scope="row">엣지</th><td>HTTP 캐싱은 CloudFront, TCP·UDP와 고정 IP는 Global Accelerator</td></tr>
+            <tr><th scope="row">스트리밍 수집</th><td>다중 소비자·재처리는 Data Streams, 대상 적재는 Firehose, Kafka 자산은 MSK</td></tr>
+            <tr><th scope="row">분석</th><td>S3 위 임시 SQL은 Athena, 반복 대규모 분석은 Redshift, 프레임워크 이식은 EMR</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 4 비용 최적화 아키텍처 설계 (20%)</caption>
+          <thead>
+            <tr>
+              <th scope="col">판단</th>
+              <th scope="col">한 문장 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">구매 옵션</th><td>중단 가능은 스팟, 상시 기저 부하는 Savings Plans·예약 인스턴스, 변동분은 온디맨드</td></tr>
+            <tr><th scope="row">Savings Plans의 성격</th><td>시간당 <strong>지출 금액</strong> 약정입니다. 용량을 예약하지 않습니다</td></tr>
+            <tr><th scope="row">S3 클래스</th><td>접근 빈도와 허용 검색 시간. 최소 저장 기간에 걸리면 오히려 손해입니다</td></tr>
+            <tr><th scope="row">Intelligent-Tiering</th><td>접근 패턴을 모를 때. 패턴이 명확하면 수명 주기 규칙</td></tr>
+            <tr><th scope="row">숨은 S3 비용</th><td>이전 버전과 불완전한 멀티파트 업로드. 목록에 그대로 보이지 않습니다</td></tr>
+            <tr><th scope="row">One Zone-IA</th><td>가용 영역이 하나입니다. 재생성 가능한 사본에만 씁니다</td></tr>
+            <tr><th scope="row">데이터 전송</th><td>인바운드는 대체로 무과금, 아웃바운드·가용 영역 간·리전 간은 과금</td></tr>
+            <tr><th scope="row">NAT 비용</th><td>게이트웨이 엔드포인트는 라우팅 경로라 상시 가동 자원이 없습니다</td></tr>
+            <tr><th scope="row">CloudFront</th><td>반복 전송이 많을수록 오리진 송신 절감 효과가 큽니다</td></tr>
+            <tr><th scope="row">데이터베이스</th><td>유휴가 길면 Aurora Serverless v2나 DynamoDB 온디맨드</td></tr>
+            <tr><th scope="row">비용 가시성</th><td>분석은 Cost Explorer, 알림은 Budgets, 원본은 Cost and Usage Report</td></tr>
+            <tr><th scope="row">라이트사이징</th><td>크기 제안은 Compute Optimizer, 폭넓은 점검은 Trusted Advisor</td></tr>
+            <tr><th scope="row">대량 전송</th><td>대역폭·기한이면 Snow Family, 주기적 동기화면 DataSync, 상시 접근이면 Storage Gateway</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verified-limits">
+      <h2 id="verified-limits">확인된 한도값</h2>
+
+      <p>
+        아래는 <strong>AWS 1차 소스에서 확인된 값</strong>만 담았습니다.
+        널리 알려져 있으나 확인하지 못한 값은 의도적으로 넣지 않았습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>AWS Lambda</caption>
+          <thead>
+            <tr><th scope="col">항목</th><th scope="col">기본값</th><th scope="col">범위</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">실행 시간</th><td>3초</td><td>최대 900초(15분)</td></tr>
+            <tr><th scope="row">메모리</th><td>128 MB</td><td>128 MB – 10,240 MB, 1 MB 단위. 메모리를 늘리면 CPU도 함께 늘어납니다</td></tr>
+            <tr><th scope="row">임시 스토리지 <code>/tmp</code></th><td>512 MB</td><td>512 MB – 10,240 MB</td></tr>
+            <tr><th scope="row">동기 호출 페이로드</th><td>—</td><td>6 MB</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Amazon SQS</caption>
+          <thead>
+            <tr><th scope="col">속성</th><th scope="col">기본값</th><th scope="col">범위</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">가시성 제한 시간</th><td>30초</td><td>0초 – 12시간</td></tr>
+            <tr><th scope="row">메시지 보존 기간</th><td>4일</td><td>60초 – 14일</td></tr>
+            <tr><th scope="row">최대 메시지 크기</th><td>1 MiB</td><td>1 KiB – 1 MiB</td></tr>
+            <tr><th scope="row">지연 큐</th><td>0초</td><td>0 – 900초</td></tr>
+            <tr><th scope="row">FIFO 처리량</th><td>—</td><td>배치 없이 초당 300개, 배치 사용 시 초당 3,000개. 고처리량 모드로 확장</td></tr>
+            <tr><th scope="row">큐 이름 재사용</th><td>—</td><td>삭제 후 같은 이름으로 만들려면 최소 60초 대기</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Amazon EBS 볼륨 타입</caption>
+          <thead>
+            <tr><th scope="col">타입</th><th scope="col">크기</th><th scope="col">IOPS · 처리량</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><code>gp3</code></th><td>1 – 65,536 GiB</td><td>3,000(기본) – 80,000 IOPS · 125(기본) – 2,000 MiB/s</td></tr>
+            <tr><th scope="row"><code>gp2</code></th><td>1 – 16,384 GiB</td><td>IOPS를 따로 지정하지 않습니다. 볼륨 타입 미지정 시 기본값</td></tr>
+            <tr><th scope="row"><code>io1</code></th><td>4 – 16,384 GiB</td><td>100 – 64,000 IOPS</td></tr>
+            <tr><th scope="row"><code>io2</code></th><td>4 – 65,536 GiB</td><td>100 – 256,000 IOPS</td></tr>
+            <tr><th scope="row"><code>st1</code> · <code>sc1</code></th><td>125 – 16,384 GiB</td><td>부트 볼륨으로 사용 불가</td></tr>
+            <tr><th scope="row">인스턴스 측 상한</th><td>—</td><td>Nitro 시스템 최대 256,000 IOPS, 그 밖은 최대 32,000 IOPS</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Amazon S3 스토리지 클래스</caption>
+          <thead>
+            <tr>
+              <th scope="col">클래스</th>
+              <th scope="col">가용 영역</th>
+              <th scope="col">최소 저장 기간</th>
+              <th scope="col">최소 청구 크기</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">S3 Standard</th><td>3개 이상</td><td>없음</td><td>없음</td></tr>
+            <tr><th scope="row">S3 Standard-IA</th><td>3개 이상</td><td>30일</td><td>128 KB</td></tr>
+            <tr><th scope="row">S3 One Zone-IA</th><td>1개</td><td>30일</td><td>128 KB</td></tr>
+            <tr><th scope="row">S3 Glacier Instant Retrieval</th><td>3개 이상</td><td>90일</td><td>128 KB</td></tr>
+            <tr><th scope="row">S3 Glacier Flexible Retrieval</th><td>3개 이상</td><td>90일</td><td>40 KB</td></tr>
+            <tr><th scope="row">S3 Glacier Deep Archive</th><td>3개 이상</td><td>180일</td><td>40 KB</td></tr>
+            <tr><th scope="row">S3 Intelligent-Tiering</th><td>3개 이상</td><td>없음</td><td>없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Amazon S3 복원 시간과 전환 제약</caption>
+          <thead>
+            <tr><th scope="col">항목</th><th scope="col">값</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Glacier Flexible Retrieval 신속(Expedited)</th><td>1 – 5분</td></tr>
+            <tr><th scope="row">Glacier Flexible Retrieval 대량(Bulk)</th><td>5 – 12시간</td></tr>
+            <tr><th scope="row">Glacier Deep Archive 기본 검색</th><td>12시간</td></tr>
+            <tr><th scope="row">Intelligent-Tiering 아카이브 액세스 티어</th><td>90일 미접근 시 자동 이동</td></tr>
+            <tr><th scope="row">Intelligent-Tiering 딥 아카이브 액세스 티어</th><td>180일 미접근 시 자동 이동</td></tr>
+            <tr><th scope="row">IA 계열 전환 전제</th><td>최소 30일 저장되어 있어야 합니다</td></tr>
+            <tr><th scope="row">전환되지 않는 객체</th><td>128 KB 미만</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Amazon DynamoDB 인덱스</caption>
+          <thead>
+            <tr><th scope="col">항목</th><th scope="col">LSI</th><th scope="col">GSI</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">최대 개수</th><td>5개</td><td>20개</td></tr>
+            <tr><th scope="row">파티션 키</th><td>테이블과 동일</td><td>달라도 됩니다</td></tr>
+            <tr><th scope="row">크기 제약</th><td>파티션 키 값당 10 GB</td><td>없음</td></tr>
+            <tr><th scope="row">처리 용량</th><td>테이블과 공유</td><td>인덱스가 자체 보유</td></tr>
+            <tr><th scope="row">프로젝션 타입</th><td colspan="2"><code>KEYS_ONLY</code> · <code>INCLUDE</code> · <code>ALL</code>. <code>INCLUDE</code>의 비키 속성은 모든 인덱스 합산 100개까지</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>열거값으로 외울 목록</caption>
+          <thead>
+            <tr><th scope="col">항목</th><th scope="col">값</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Route 53 라우팅 정책</th>
+              <td><strong>8종</strong> — 단순 · 가중치 기반 · 지연 시간 기반 · 장애 조치 · 지리적 위치 · 지리 근접 · 다중값 응답 · IP 기반</td>
+            </tr>
+            <tr>
+              <th scope="row">Elastic Load Balancing 타입</th>
+              <td><strong>3종</strong> — Application(L7, HTTP·HTTPS) · Network(L4, TCP·TLS·UDP·QUIC) · Gateway(GENEVE)</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 서버 측 암호화</th>
+              <td>SSE-S3 · SSE-KMS · DSSE-KMS · SSE-C</td>
+            </tr>
+            <tr>
+              <th scope="row">DR 4전략</th>
+              <td>백업·복원 · 파일럿 라이트 · 웜 스탠바이 · 다중 사이트 액티브-액티브</td>
+            </tr>
+            <tr>
+              <th scope="row">Well-Architected 6개 기둥</th>
+              <td>운영 우수성 · 보안 · 안정성(Reliability, 신뢰성으로도 번역됨) · 성능 효율성 · 비용 최적화 · 지속 가능성</td>
+            </tr>
+            <tr>
+              <th scope="row">배치 그룹</th>
+              <td>클러스터 · 분산 · 파티션</td>
+            </tr>
+            <tr>
+              <th scope="row">마이그레이션 6R</th>
+              <td>리호스트 · 리플랫폼 · 리팩터 · 리퍼처스 · 리테인 · 리타이어</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pairs-digest">
+      <h2 id="pairs-digest">헷갈리는 쌍 요약</h2>
+
+      <p>
+        각 행의 오른쪽 칸이 <strong>둘을 가르는 한 문장</strong>입니다.
+        전체 44쌍과 해설은 <a href="traps.html">함정 사전</a>에 있습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>시험에서 가장 자주 뒤집히는 쌍 요약</caption>
+          <thead>
+            <tr>
+              <th scope="col">쌍</th>
+              <th scope="col">가르는 한 문장</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Multi-AZ vs 읽기 전용 복제본</th><td>동기·가용성 vs 비동기·읽기 확장. 대기 인스턴스는 읽기를 받지 않습니다</td></tr>
+            <tr><th scope="row">보안 그룹 vs 네트워크 ACL</th><td>인스턴스·상태 저장·허용만 vs 서브넷·상태 비저장·거부 가능</td></tr>
+            <tr><th scope="row">게이트웨이 vs 인터페이스 엔드포인트</th><td>라우팅 경로(S3·DynamoDB 전용) vs 서브넷의 네트워크 인터페이스</td></tr>
+            <tr><th scope="row">NAT 게이트웨이 vs NAT 인스턴스</th><td>관리형이고 보안 그룹 연결 불가 vs 직접 운영하고 포트 포워딩 가능</td></tr>
+            <tr><th scope="row">Direct Connect vs VPN</th><td>전용 회선 vs 인터넷 위 암호화 터널. 경로 제약에는 Direct Connect</td></tr>
+            <tr><th scope="row">VPC 피어링 vs Transit Gateway</th><td>일대일이고 전이 없음 vs 허브형 다중 연결</td></tr>
+            <tr><th scope="row">ALB vs NLB</th><td>L7 HTTP 라우팅 vs L4와 고정 IP</td></tr>
+            <tr><th scope="row">NLB vs GWLB</th><td>일반 L4 분산 vs GENEVE 어플라이언스 삽입</td></tr>
+            <tr><th scope="row">CloudFront vs Global Accelerator</th><td>엣지 캐싱(HTTP) vs 고정 애니캐스트 IP(TCP·UDP)</td></tr>
+            <tr><th scope="row">지연 시간 vs 지리적 위치 vs 지리 근접</th><td>성능 vs 질의 출발지 vs 리소스 위치와 편향</td></tr>
+            <tr><th scope="row">WAF vs Shield</th><td>요청 내용 규칙 vs 디도스 대응</td></tr>
+            <tr><th scope="row">LSI vs GSI</th><td>테이블과 같은 파티션 키 vs 다른 파티션 키. 5개 vs 20개</td></tr>
+            <tr><th scope="row">DAX vs ElastiCache</th><td>DynamoDB 전용·코드 변경 최소 vs 범용 캐시·로직 직접 구현</td></tr>
+            <tr><th scope="row">Aurora vs RDS</th><td>공유 스토리지·복제본이 장애 조치 대상 겸용 vs 인스턴스별 비동기 복제</td></tr>
+            <tr><th scope="row">S3 Standard-IA vs One Zone-IA</th><td>가용 영역 3개 이상 vs 1개. 최소 기간·크기는 동일</td></tr>
+            <tr><th scope="row">Glacier Flexible vs Deep Archive</th><td>90일·시간 단위 복원 vs 180일·기본 12시간</td></tr>
+            <tr><th scope="row">S3 버킷 정책 vs ACL</th><td>현행 표준 vs 신규 버킷에서 기본 비활성</td></tr>
+            <tr><th scope="row">EBS vs 인스턴스 스토어</th><td>영속 vs 중지·종료 시 소실</td></tr>
+            <tr><th scope="row">스냅샷 vs AMI</th><td>볼륨 시점 백업 vs 인스턴스 시작 템플릿</td></tr>
+            <tr><th scope="row">EFS vs FSx</th><td>Linux NFS 다중 마운트 vs Windows SMB 또는 고성능 컴퓨팅</td></tr>
+            <tr><th scope="row">SQS vs SNS vs EventBridge</th><td>큐 vs 팬아웃 vs 내용 기반 규칙 라우팅</td></tr>
+            <tr><th scope="row">표준 큐 vs FIFO 큐</th><td>처리량 우선 vs 순서와 중복 제거. 타입은 변경 불가</td></tr>
+            <tr><th scope="row">Kinesis Data Streams vs Firehose</th><td>보관·다중 소비자·재처리 vs 관리형 배달 경로</td></tr>
+            <tr><th scope="row">ECS vs EKS vs Fargate</th><td>오케스트레이터 둘과 실행 방식 하나. 층위가 다릅니다</td></tr>
+            <tr><th scope="row">SCP vs 권한 경계</th><td>조직·계정 상한(루트 포함) vs 개별 주체 상한</td></tr>
+            <tr><th scope="row">자격 증명 기반 vs 리소스 기반</th><td>동일 계정은 합집합, 교차 계정은 양쪽 모두 필요</td></tr>
+            <tr><th scope="row">Secrets Manager vs Parameter Store</th><td>자동 교체 내장 vs 없음</td></tr>
+            <tr><th scope="row">GuardDuty vs Inspector vs Macie</th><td>위협 vs 취약점 vs 민감 데이터 위치</td></tr>
+            <tr><th scope="row">CloudTrail vs Config vs CloudWatch</th><td>API 호출 vs 구성 준수 vs 지표·로그·알람</td></tr>
+            <tr><th scope="row">예약 인스턴스 vs Savings Plans</th><td>인스턴스 속성 약정(용량 예약 가능) vs 시간당 지출 약정</td></tr>
+            <tr><th scope="row">대상 추적 vs 단계별 스케일링</th><td>목표값 유지 vs 위반 크기별 단계 조정</td></tr>
+            <tr><th scope="row">파일럿 라이트 vs 웜 스탠바이</th><td>핵심만 준비하고 대부분 꺼 둠 vs 축소 규모로 상시 가동</td></tr>
+            <tr><th scope="row">Snow Family vs DataSync</th><td>오프라인 물리 배송 vs 네트워크 전송과 주기적 동기화</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="currency-fixes">
+      <h2 id="currency-fixes">시중 자료가 틀린 항목</h2>
+
+      <p>
+        오래된 자료로 공부했다면 아래 항목에서 <strong>그대로 오답을 냅니다.</strong>
+        시험 직전에 이 표만은 반드시 확인하십시오.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>바뀐 기본값과 수치</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">낡은 서술</th>
+              <th scope="col">현행</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 일관성</th>
+              <td>"최종적 일관성"</td>
+              <td>모든 리전에서 <strong>강력한 읽기 후 쓰기 일관성</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S3 신규 버킷</th>
+              <td>"퍼블릭 차단을 켜야 한다", "ACL로 권한 관리"</td>
+              <td>퍼블릭 액세스 차단 <strong>켜짐</strong>, ACL <strong>비활성</strong>, 신규 객체 <strong>SSE-S3 자동 암호화</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S3 버전 관리</th>
+              <td>"기본값이 전부 안전해졌다"</td>
+              <td><strong>버전 관리는 여전히 기본 비활성화</strong>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">EBS <code>gp3</code></th>
+              <td>"최대 16,000 IOPS · 1,000 MiB/s · 16 TiB"</td>
+              <td><strong>80,000 IOPS · 2,000 MiB/s · 64 TiB</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">EBS <code>io2</code></th>
+              <td>"최대 64,000 IOPS"</td>
+              <td><strong>최대 256,000 IOPS</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Route 53 정책 개수</th>
+              <td>"6가지" 또는 "7가지"</td>
+              <td><strong>8가지</strong> — 지리 근접과 IP 기반이 흔히 누락됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier</th>
+              <td>"Glacier와 Deep Archive 2종"</td>
+              <td><strong>3종</strong> — Instant Retrieval · Flexible Retrieval · Deep Archive</td>
+            </tr>
+            <tr>
+              <th scope="row">EC2-Classic</th>
+              <td>"EC2-Classic과 VPC 중 선택"</td>
+              <td><strong>종료되었습니다.</strong> 모든 EC2는 VPC에서 실행됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS SSO</th>
+              <td>"AWS Single Sign-On"</td>
+              <td><strong>AWS IAM Identity Center</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Elasticsearch Service</th>
+              <td>"Amazon Elasticsearch Service"</td>
+              <td><strong>Amazon OpenSearch Service</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Aurora Serverless</th>
+              <td>"v1은 0으로 축소된다"</td>
+              <td>v1은 <strong>지원 종료</strong>. 현재 선택지는 <strong>v2</strong>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">IMDS</th>
+              <td>"IMDSv1로 메타데이터 접근"</td>
+              <td>계정 수준에서 <strong>IMDSv2를 신규 시작 기본값</strong>으로 설정할 수 있습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="final-checks">
+      <h2 id="final-checks">시험장에서의 마지막 규칙</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>풀이 순서와 시간 관리</caption>
+          <thead>
+            <tr><th scope="col">규칙</th><th scope="col">내용</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">읽는 순서</th><td>마지막 문장(한정어)을 먼저 읽고, 제약을 확인한 뒤, 선택지를 봅니다</td></tr>
+            <tr><th scope="row">소거 순서</th><td>제약 위반 → 기술적으로 불가능 → 한정어 불일치 순으로 버립니다</td></tr>
+            <tr><th scope="row">시간 배분</th><td>문항당 2분. 90초에 방향이 안 잡히면 표시하고 넘어갑니다</td></tr>
+            <tr><th scope="row">찍기</th><td>오답 감점이 없습니다. <strong>빈칸으로 제출하지 않습니다</strong></td></tr>
+            <tr><th scope="row">답 바꾸기</th><td>문제문을 잘못 읽었다는 근거가 새로 생겼을 때만 바꿉니다</td></tr>
+            <tr><th scope="row">낯선 문항</th><td>비채점 15문항이 섞여 있습니다. 하나에 흔들려 페이스를 잃지 않습니다</td></tr>
+            <tr><th scope="row">범위 밖</th><td>개발자 도구 계열이 선택지에 있으면 대개 오답입니다. CloudFormation은 범위 안입니다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          시험 전날에 <strong>새 개념을 공부하지 않습니다.</strong>
+          이 페이지에서 막히는 행에만 표시하고, 해당 항목의 담당 페이지만 열어 확인하십시오.
+          시험 당일의 세부 절차와 시간 배분 전략은 <a href="exam-tips.html">시험 당일 전략</a>에 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="exam-tips.html">
+          <span class="card__title">시험 당일 전략</span>
+          <span class="card__desc">시간 배분, 3회 통과 전략, 소거법, 찍기 규칙. 이 페이지가 지식이라면 그쪽은 절차입니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">여기서 요약한 쌍의 전체 목록과 해설입니다. 막히는 쌍이 있으면 그쪽으로 갑니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">한정어 축약표의 원본입니다. 한정어가 충돌할 때의 우선순위까지 다룹니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="flashcards.html">
+          <span class="card__title">플래시카드</span>
+          <span class="card__desc">표를 눈으로 읽는 것보다 인출 연습이 효과가 큽니다. 남은 시간이 있으면 여기서 돌립니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../quiz/review.html">
+          <span class="card__title">오답 노트</span>
+          <span class="card__desc">틀린 문항만 다시 출제합니다. 시험 전날에 가장 효율이 높은 학습입니다.</span>
+          <span class="card__meta">문제 풀이</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/limits.html">
+          <span class="card__title">한도·기본값 빠른참조</span>
+          <span class="card__desc">확인된 한도값의 전체 목록입니다. 이 페이지는 그중 시험에 자주 나오는 것만 담았습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">SAA-C03 시험 가이드</a>
+          — 문항 수, 시간, 합격 점수, 채점 방식, 도메인 가중치</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html">AWS Lambda 개발자 안내서 — 할당량</a>
+          — 실행 시간, 메모리, 임시 스토리지, 동기 호출 페이로드</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html">Amazon SQS API 레퍼런스 — CreateQueue</a>
+          — 큐 속성별 기본값과 범위</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html">Amazon SQS 개발자 안내서 — 고처리량 FIFO 큐</a>
+          — 배치 유무에 따른 초당 메시지 수</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVolume.html">Amazon EC2 API 레퍼런스 — CreateVolume</a>
+          — 볼륨 타입별 크기·IOPS·처리량과 인스턴스 측 상한</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 클래스별 가용 영역 수, 최소 저장 기간, 최소 청구 크기, 복원 시간</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html">Amazon S3 사용 설명서 — 수명 주기 전환 시 일반 고려 사항</a>
+          — 30일 전환 제약과 128 KB 미만 객체 제외</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SecondaryIndexes.html">Amazon DynamoDB 개발자 안내서 — 보조 인덱스</a>
+          — LSI·GSI 개수 상한, 키 스키마 제약, 프로젝션 타입</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html">Amazon Route 53 API 레퍼런스 — ResourceRecordSet</a>
+          — 라우팅 정책 여덟 가지</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateLoadBalancer.html">Elastic Load Balancing API 레퍼런스 — CreateLoadBalancer</a>
+          — 로드 밸런서 타입과 지원 프로토콜</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html">IAM 사용 설명서 — 정책 평가 로직</a>
+          — 평가 순서와 정책 유형별 결합 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html">AWS Well-Architected Framework</a>
+          — 여섯 개 기둥</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

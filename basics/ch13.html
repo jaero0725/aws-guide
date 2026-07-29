@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>13장 · 컨테이너 — AWS SAA Guide</title>
+  <meta name="description" content="Amazon ECS의 클러스터와 태스크 정의, 태스크, 서비스가 어떻게 맞물리는가. EC2 시작 유형과 AWS Fargate를 운영 부담으로 가르는 기준. 자주 혼동되는 태스크 역할과 태스크 실행 역할의 구분. Amazon ECR과 서비스 오토스케일링, Application Load Balancer 연동. 그리고 ECS와 EKS, Fargate, AWS Lambda 중 무엇을 언제 고르는지 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch13"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch13">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">13장 · 컨테이너</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 13장</p>
+      <h1>컨테이너</h1>
+      <p class="page__lead">
+        컨테이너 문항은 "컨테이너를 어떻게 만드는가"를 묻지 않습니다.
+        <strong>어디까지를 우리가 운영하고 어디부터를 AWS에 맡기는가</strong>를 묻습니다.
+        같은 컨테이너를 EC2 인스턴스 위에서 돌릴 수도, AWS Fargate 위에서 돌릴 수도 있고,
+        오케스트레이션을 Amazon ECS가 할 수도 Amazon EKS가 할 수도 있습니다.
+        이 장은 그 경계선을 긋는 기준을 정리합니다.
+      </p>
+      <p class="page__meta">
+        이 장은 <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>와
+        <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>에 걸쳐 있습니다.
+        가장 자주 나오는 두 지점은 <strong>EC2 시작 유형과 Fargate의 선택</strong>,
+        그리고 <strong>태스크 역할과 태스크 실행 역할의 구분</strong>입니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>Amazon ECS의 클러스터 · 태스크 정의 · 태스크 · 서비스가 어떤 포함 관계인지 설명할 수 있습니다.</li>
+        <li>EC2 시작 유형과 AWS Fargate를 <strong>운영 부담과 제어 수준</strong>을 기준으로 구분해 고를 수 있습니다.</li>
+        <li>태스크 역할과 태스크 실행 역할이 서로 다른 주체의 권한이라는 점을 설명하고, 권한 오류를 어느 쪽 문제인지 판별할 수 있습니다.</li>
+        <li>서비스 오토스케일링과 Application Load Balancer 연동으로 컨테이너 워크로드를 확장할 수 있습니다.</li>
+        <li>ECS 대신 EKS를 고르는 근거와, 컨테이너 대신 AWS Lambda를 고르는 근거를 구분해 설명할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="container-basics">
+      <h2 id="container-basics">컨테이너가 해결하는 문제</h2>
+
+      <p>
+        컨테이너는 애플리케이션과 그 실행에 필요한 라이브러리를 하나의 이미지로 묶습니다.
+        같은 이미지가 개발 노트북에서도 운영 환경에서도 같은 방식으로 실행되므로,
+        <strong>"내 환경에서는 되는데"라는 문제가 배포 단계에서 사라집니다.</strong>
+      </p>
+      <p>
+        그러나 이미지를 만드는 것과 <strong>수십 개의 컨테이너를 여러 서버에 배치하고 상태를 유지하는 것</strong>은
+        전혀 다른 일입니다. 어느 서버에 몇 개를 띄울지, 죽으면 어디에 다시 띄울지,
+        새 버전을 어떻게 무중단으로 교체할지를 관리하는 것이 오케스트레이션이고,
+        AWS에서 그 역할을 하는 서비스가 <strong>Amazon ECS</strong>와 <strong>Amazon EKS</strong>입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>컨테이너 관련 AWS 서비스의 역할 분담</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">역할</th>
+              <th scope="col">한 문장 요약</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon ECR</th>
+              <td>이미지 저장소(레지스트리)</td>
+              <td>컨테이너 이미지를 보관하고 배포합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon ECS</th>
+              <td>오케스트레이션(AWS 고유)</td>
+              <td>AWS에 맞춰 설계된 오케스트레이터입니다. 개념이 적고 통합이 깊습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EKS</th>
+              <td>오케스트레이션(Kubernetes)</td>
+              <td>관리형 Kubernetes 컨트롤 플레인을 제공합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Fargate</th>
+              <td>서버리스 컴퓨팅 <strong>엔진</strong></td>
+              <td>오케스트레이터가 아닙니다. ECS와 EKS가 <strong>컨테이너를 올릴 대상</strong>입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>Fargate는 ECS나 EKS의 경쟁 상대가 아닙니다.</strong>
+          Fargate는 "컨테이너를 어디에 올릴 것인가"에 대한 답이고,
+          ECS와 EKS는 "무엇이 배치를 관리할 것인가"에 대한 답입니다.
+          그래서 <strong>ECS on Fargate</strong>, <strong>ECS on EC2</strong>,
+          <strong>EKS on Fargate</strong>, <strong>EKS on EC2</strong>가 모두 성립합니다.
+          "ECS와 Fargate 중 무엇을 고를까"라는 질문 자체가 두 축을 섞은 것입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="ecs">
+      <h2 id="ecs">Amazon ECS — 구성요소와 시작 유형</h2>
+
+      <h3 id="ecs-components">클러스터 · 태스크 정의 · 태스크 · 서비스</h3>
+
+      <figure class="diagram" data-diagram="D-120">
+        <figcaption>
+          Amazon ECS의 포함 관계와 두 시작 유형 — 클러스터 안에서 서비스가 태스크 정의를 근거로 태스크를 띄우며,
+          EC2 시작 유형에서는 컨테이너 인스턴스가 우리 책임으로 남고 AWS Fargate에서는 그 계층이 사라집니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon ECS의 네 가지 구성요소</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성요소</th>
+              <th scope="col">무엇인가</th>
+              <th scope="col">비유하자면</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">태스크 정의(task definition)</th>
+              <td>어떤 이미지를 어떤 CPU · 메모리 · 포트 · 환경 변수 · 로그 설정 · IAM 역할로 실행할지 적은 <strong>청사진</strong>입니다. 버전(리비전)이 쌓입니다</td>
+              <td>설계도</td>
+            </tr>
+            <tr>
+              <th scope="row">태스크(task)</th>
+              <td>태스크 정의를 근거로 <strong>실제로 실행된 컨테이너 묶음</strong>입니다. 하나의 태스크에 여러 컨테이너가 들어갈 수 있습니다</td>
+              <td>설계도로 만든 실물 하나</td>
+            </tr>
+            <tr>
+              <th scope="row">서비스(service)</th>
+              <td>원하는 개수(<code>desiredCount</code>)의 태스크를 <strong>계속 유지</strong>합니다. 죽으면 다시 띄우고, 로드 밸런서에 등록하고, 새 버전으로 교체합니다</td>
+              <td>실물을 항상 N개로 유지하는 관리자</td>
+            </tr>
+            <tr>
+              <th scope="row">클러스터(cluster)</th>
+              <td>태스크와 서비스를 담는 <strong>논리적 그룹</strong>입니다. EC2 시작 유형에서는 여기에 컨테이너 인스턴스가 등록됩니다</td>
+              <td>작업장</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        태스크를 한 번만 실행하고 끝내는 배치 작업이라면 서비스가 필요 없습니다.
+        반대로 <strong>항상 떠 있어야 하는 웹 애플리케이션</strong>은 서비스로 만들어야
+        장애 시 자동 복구와 로드 밸런서 연동이 동작합니다.
+      </p>
+
+      <h3 id="launch-type-ec2-vs-fargate">EC2 시작 유형과 AWS Fargate <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        같은 태스크 정의를 두 방식으로 실행할 수 있습니다.
+        AWS API 문서는 <strong>EC2 시작 유형이 "클러스터에 등록된 Amazon EC2 인스턴스에서 태스크를 실행"</strong>하고,
+        <strong>Fargate 시작 유형이 "Fargate 온디맨드 인프라에서 태스크를 실행"</strong>한다고 설명합니다.
+        차이는 기능이 아니라 <strong>누가 인스턴스를 책임지는가</strong>입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon ECS 시작 유형 비교 — 판단 기준은 운영 부담과 제어 수준입니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">EC2 시작 유형</th>
+              <th scope="col">AWS Fargate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">인스턴스 관리</th>
+              <td><span class="mark-no">고객 책임</span> — AMI 선택, 패치, 용량 계획, 인스턴스 확장</td>
+              <td><span class="mark-ok">AWS 책임</span> — 인스턴스라는 개념 자체가 보이지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">과금 단위</th>
+              <td>띄워 둔 <strong>EC2 인스턴스</strong> 기준</td>
+              <td>태스크에 지정한 <strong>vCPU와 메모리</strong> 기준</td>
+            </tr>
+            <tr>
+              <th scope="row">밀도 조절</th>
+              <td><span class="mark-ok">가능</span> — 한 인스턴스에 여러 태스크를 촘촘히 채워 활용률을 올릴 수 있습니다</td>
+              <td><span class="mark-no">불가</span> — 태스크마다 독립된 실행 환경입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 수준 제어</th>
+              <td><span class="mark-ok">가능</span> — GPU, 특정 인스턴스 패밀리, 호스트 접근, 커널 파라미터</td>
+              <td><span class="mark-no">불가</span> — 호스트에 접근할 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 모드</th>
+              <td><code>bridge</code>(기본) · <code>host</code> · <code>awsvpc</code> · <code>none</code></td>
+              <td><strong><code>awsvpc</code> 필수</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">스팟 활용</th>
+              <td>스팟 인스턴스를 클러스터에 넣어 사용</td>
+              <td>Fargate Spot을 쓰려면 <strong>용량 공급자 전략</strong>을 지정해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"기존 EC2 자산을 활용", "GPU가 필요", "인스턴스 수준 튜닝이 필요", "높은 밀도로 비용을 낮춘다"</td>
+              <td><strong>"운영 부담을 최소화"</strong>, "서버를 관리하고 싶지 않다", "부하가 들쭉날쭉하다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계, 복원력 있는 아키텍처 설계">
+        <p>
+          <strong>"운영 부담이 가장 적은(LEAST operational overhead)"</strong>이 붙으면
+          컨테이너 문항의 답은 거의 언제나 <strong>AWS Fargate</strong>입니다.
+          "EC2 인스턴스를 Auto Scaling 그룹으로 관리한다"는 선택지는
+          기능적으로는 맞지만 한정어에 지므로 소거 대상입니다.
+        </p>
+        <p>
+          반대로 <strong>"GPU가 필요하다"</strong>, <strong>"호스트에 에이전트를 설치해야 한다"</strong>,
+          <strong>"이미 보유한 예약 인스턴스를 활용해야 한다"</strong>는 제약이 명시되면
+          그 순간 Fargate는 후보에서 빠지고 <strong>EC2 시작 유형</strong>이 답이 됩니다.
+          명시된 제약이 한정어보다 먼저입니다.
+        </p>
+      </aside>
+
+      <h3 id="ecs-network-mode">네트워크 모드</h3>
+      <p>
+        태스크 정의의 <code>networkMode</code>가 컨테이너의 네트워크 방식을 정합니다.
+        AWS API 문서는 지정하지 않으면 기본값이 <code>bridge</code>이며,
+        <strong>Fargate에서는 <code>awsvpc</code>가 필수</strong>라고 명시합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon ECS 태스크의 네트워크 모드</caption>
+          <thead>
+            <tr>
+              <th scope="col">모드</th>
+              <th scope="col">동작</th>
+              <th scope="col">함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>awsvpc</code></th>
+              <td>태스크마다 <strong>탄력적 네트워크 인터페이스</strong>가 할당되고 VPC의 IP 주소를 받습니다</td>
+              <td>태스크 단위로 <strong>보안 그룹</strong>을 붙일 수 있습니다. Fargate에서는 이 모드만 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>bridge</code>(기본)</th>
+              <td>인스턴스의 가상 네트워크 브리지를 씁니다</td>
+              <td>동적 호스트 포트 매핑을 쓸 수 있어 한 인스턴스에 같은 태스크를 여러 개 띄울 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>host</code></th>
+              <td>인스턴스의 네트워크 스택을 직접 씁니다</td>
+              <td>성능이 높지만 <strong>포트 매핑이 고정</strong>되어 같은 태스크를 한 인스턴스에 여러 개 띄울 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>none</code></th>
+              <td>외부 연결이 없습니다</td>
+              <td>포트 매핑을 지정할 수 없습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <code>awsvpc</code> 모드의 태스크는 VPC 안의 리소스와 같은 방식으로 통신하므로
+        보안 그룹과 서브넷 설계가 <a href="ch03.html#security-group">3장 VPC 네트워킹 기초</a>의 규칙을 그대로 따릅니다.
+        프라이빗 서브넷에 둔 태스크가 인터넷으로 나가야 하면 NAT 게이트웨이가,
+        AWS 서비스에만 접근하면 되면 <a href="ch04.html#vpc-endpoint-choice">VPC 엔드포인트</a>가 필요합니다.
+      </p>
+
+      <h3 id="ecs-service-scheduling">서비스 스케줄링 전략</h3>
+      <p>
+        서비스에는 두 가지 스케줄링 전략이 있습니다.
+      </p>
+      <ul>
+        <li><strong>REPLICA</strong> — 원하는 개수만큼의 태스크를 클러스터 전체에 배치하고 유지합니다.
+          AWS 문서는 <strong>기본적으로 가용 영역에 걸쳐 태스크를 분산</strong>한다고 명시합니다.
+          다중 가용 영역 배치가 기본 동작이라는 뜻이며, 이것이 컨테이너 워크로드의 고가용성 기반입니다.</li>
+        <li><strong>DAEMON</strong> — 배치 제약을 만족하는 <strong>모든 컨테이너 인스턴스에 정확히 하나씩</strong> 배포합니다.
+          로그 수집이나 모니터링 에이전트처럼 노드마다 하나가 필요한 워크로드에 씁니다.
+          원하는 개수를 지정하지 않고, 서비스 오토스케일링도 쓰지 않습니다.</li>
+      </ul>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-service.sh</span> — Fargate 시작 유형으로 서비스를 만들고 다중 가용 영역 서브넷에 배치 (ID와 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws ecs create-service \
+  --cluster app-cluster \
+  --service-name web \
+  --task-definition web:7 \
+  --desired-count 4 \
+  --launch-type FARGATE \
+  --network-configuration 'awsvpcConfiguration={
+      subnets=[subnet-0123456789abcdef0,subnet-0abcdef1234567890],
+      securityGroups=[sg-0123456789abcdef0],
+      assignPublicIp=DISABLED}' \
+  --health-check-grace-period-seconds 60</code></pre>
+      </figure>
+      <p>
+        <code>--health-check-grace-period-seconds</code>는 태스크가 처음 시작된 뒤
+        로드 밸런서와 컨테이너 상태 확인 실패를 <strong>무시하는 기간</strong>입니다.
+        지정하지 않으면 기본값은 0이므로, 부팅이 느린 애플리케이션은
+        준비되기도 전에 비정상으로 판정되어 반복해서 교체될 수 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="ecs-iam-roles">
+      <h2 id="ecs-iam-roles">태스크 역할과 태스크 실행 역할 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        이름이 비슷해서 가장 많이 혼동되는 지점이고, 그래서 시험이 자주 노립니다.
+        두 역할은 <strong>서로 다른 주체가 서로 다른 시점에</strong> 씁니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-121">
+        <figcaption>
+          태스크 역할과 태스크 실행 역할의 주체 차이 — 태스크 역할은 컨테이너 안의 애플리케이션 코드가
+          Amazon S3나 Amazon DynamoDB를 호출할 때 쓰는 권한이고,
+          태스크 실행 역할은 ECS 에이전트가 Amazon ECR에서 이미지를 받고 CloudWatch Logs에 로그를 보낼 때 쓰는 권한입니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>태스크 역할과 태스크 실행 역할의 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">태스크 역할(<code>taskRoleArn</code>)</th>
+              <th scope="col">태스크 실행 역할(<code>executionRoleArn</code>)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">누가 쓰는가</th>
+              <td><strong>컨테이너 안의 애플리케이션 코드</strong></td>
+              <td><strong>Amazon ECS 컨테이너 에이전트</strong>(우리 코드가 아닙니다)</td>
+            </tr>
+            <tr>
+              <th scope="row">언제 쓰는가</th>
+              <td>태스크가 실행되는 동안, 코드가 AWS API를 호출할 때</td>
+              <td>태스크를 <strong>시작하기 전과 실행 중</strong>, 인프라 작업을 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">대표 권한</th>
+              <td>S3 객체 읽기, DynamoDB 테이블 쓰기, SQS 메시지 수신</td>
+              <td>ECR에서 이미지 가져오기, CloudWatch Logs에 로그 쓰기, Secrets Manager에서 값 주입</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS 문서의 정의</th>
+              <td>"이 태스크의 컨테이너가 맡을 수 있는 IAM 역할. 이 태스크의 모든 컨테이너에 이 역할의 권한이 부여됩니다"</td>
+              <td>"ECS 컨테이너 에이전트가 사용자를 대신해 AWS API를 호출하도록 허용하는 태스크 실행 역할"</td>
+            </tr>
+            <tr>
+              <th scope="row">없거나 잘못되면</th>
+              <td>태스크는 뜨지만 <strong>애플리케이션이 권한 오류</strong>를 냅니다</td>
+              <td><strong>태스크가 아예 시작되지 않습니다</strong>(이미지를 못 받거나 로그를 못 씀)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">task-definition.json</span> — 두 역할을 각각 지정한 태스크 정의 (ARN은 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "family": "web",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/WebTaskRole",
+  "executionRoleArn": "arn:aws:iam::123456789012:role/WebTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "web",
+      "image": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/web:1.4.0",
+      "essential": true,
+      "portMappings": [{ "containerPort": 8080, "protocol": "tcp" }],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/web",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>증상으로 역할을 판별합니다.</strong>
+          <strong>"태스크가 시작되지 못하고 이미지를 가져올 수 없다"</strong>면 태스크 실행 역할 문제이고,
+          <strong>"컨테이너는 떴는데 S3 접근이 거부된다"</strong>면 태스크 역할 문제입니다.
+        </p>
+        <p>
+          그리고 컨테이너에 <strong>액세스 키를 환경 변수로 넣는 선택지는 오답</strong>입니다.
+          EC2 인스턴스에서 액세스 키를 쓰지 않는 것과 정확히 같은 이유입니다
+          (<a href="ch02.html#iam-role-vs-access-key">2장 IAM과 자격 증명</a>).
+          컨테이너 안의 코드는 태스크 역할로 임시 자격 증명을 받습니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          EC2 시작 유형에는 <strong>컨테이너 인스턴스의 IAM 역할</strong>이 하나 더 있습니다.
+          EC2 인스턴스가 클러스터에 등록하고 상태를 보고할 때 쓰는 역할이며,
+          위의 두 역할과는 또 다른 것입니다.
+          <strong>인스턴스 역할의 권한이 컨테이너에도 상속된다고 가정하지 않습니다.</strong>
+          애플리케이션 권한은 태스크 역할로 따로 주는 것이 최소 권한 원칙에 맞습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="ecr">
+      <h2 id="ecr">Amazon ECR — 이미지 레지스트리</h2>
+
+      <p>
+        Amazon Elastic Container Registry(ECR)는 컨테이너 이미지를 저장하는 관리형 레지스트리입니다.
+        ECS · EKS와 같은 계정 · 리전 안에 있으므로 이미지를 받아오는 경로가 짧고,
+        접근 제어를 IAM으로 통일할 수 있습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon ECR에서 시험 관점으로 알아 둘 것</caption>
+          <thead>
+            <tr>
+              <th scope="col">기능</th>
+              <th scope="col">무엇을 하는가</th>
+              <th scope="col">언제 답이 되는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">리포지토리 정책</th>
+              <td>리소스 기반 정책으로 <strong>다른 계정에 풀 권한</strong>을 줍니다</td>
+              <td>"조직의 여러 계정이 같은 이미지를 써야 한다"</td>
+            </tr>
+            <tr>
+              <th scope="row">이미지 스캔</th>
+              <td>이미지의 취약점을 검사합니다</td>
+              <td>"배포 전 취약점을 확인해야 한다"</td>
+            </tr>
+            <tr>
+              <th scope="row">수명 주기 정책</th>
+              <td>오래되거나 태그 없는 이미지를 <strong>자동으로 정리</strong>합니다</td>
+              <td>"레지스트리 저장 비용이 계속 늘어난다"</td>
+            </tr>
+            <tr>
+              <th scope="row">태그 변경 불가 설정</th>
+              <td>같은 태그를 덮어쓰지 못하게 막습니다</td>
+              <td>"배포된 이미지가 바뀌면 안 된다"</td>
+            </tr>
+            <tr>
+              <th scope="row">교차 리전 복제</th>
+              <td>레지스트리 설정으로 다른 리전 · 계정에 이미지를 복제합니다</td>
+              <td>"다중 리전 배포에서 이미지 다운로드가 느리다", 리전 장애 대비</td>
+            </tr>
+            <tr>
+              <th scope="row">저장 시 암호화</th>
+              <td>이미지를 암호화해 저장하며 KMS 키를 지정할 수 있습니다</td>
+              <td>"고객 관리형 키로 암호화해야 한다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          <strong>"프라이빗 서브넷의 태스크가 이미지를 가져오지 못한다"</strong>는 시나리오는
+          ECR 권한 문제가 아니라 <strong>네트워크 경로 문제</strong>인 경우가 많습니다.
+          NAT 게이트웨이가 없거나, ECR과 Amazon S3용
+          <a href="ch04.html#interface-endpoint">VPC 엔드포인트</a>가 없는 것이 원인입니다.
+          "인터넷을 거치면 안 된다"는 제약이 함께 있으면 답은 VPC 엔드포인트입니다.
+        </p>
+        <p>
+          레지스트리 저장 비용이 늘어나는 문제는 <strong>수명 주기 정책</strong>으로 답합니다.
+          Amazon S3의 수명 주기 규칙과 같은 성격의 도구입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="ecs-scaling-and-alb">
+      <h2 id="ecs-scaling-and-alb">서비스 오토스케일링과 로드 밸런서 연동</h2>
+
+      <h3 id="service-auto-scaling">서비스 오토스케일링</h3>
+      <p>
+        ECS 서비스의 태스크 개수는 <strong>Application Auto Scaling</strong>이 조절합니다.
+        조절 대상(확장 가능 차원)은 <code>ecs:service:DesiredCount</code>이며,
+        정책 유형은 <strong>대상 추적</strong> · <strong>단계별</strong> · <strong>예측</strong>이 있습니다.
+        Auto Scaling 그룹과 개념이 같으므로
+        <a href="ch07.html#scaling-policies">7장 로드 밸런싱과 오토스케일링</a>에서 배운 판단이 그대로 적용됩니다.
+      </p>
+      <p>
+        여기서 EC2 시작 유형에는 <strong>확장 축이 두 개</strong>라는 점이 중요합니다.
+      </p>
+      <ul>
+        <li><strong>태스크 개수</strong> — 서비스 오토스케일링이 조절합니다.</li>
+        <li><strong>컨테이너 인스턴스 개수</strong> — Auto Scaling 그룹이나 용량 공급자가 조절합니다.
+          태스크를 늘리려 해도 인스턴스에 빈 자리가 없으면 태스크는 대기 상태로 남습니다.</li>
+      </ul>
+      <p>
+        Fargate에는 두 번째 축이 없습니다. 태스크 개수만 조절하면 끝입니다.
+        이것이 "운영 부담이 적다"는 말의 구체적인 내용입니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">register-and-scale.sh</span> — ECS 서비스를 확장 대상으로 등록하고 대상 추적 정책을 붙입니다 (이름과 값은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws application-autoscaling register-scalable-target \
+  --service-namespace ecs \
+  --scalable-dimension ecs:service:DesiredCount \
+  --resource-id service/app-cluster/web \
+  --min-capacity 4 \
+  --max-capacity 40
+
+aws application-autoscaling put-scaling-policy \
+  --service-namespace ecs \
+  --scalable-dimension ecs:service:DesiredCount \
+  --resource-id service/app-cluster/web \
+  --policy-name cpu-target-50 \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration file://target-tracking.json</code></pre>
+      </figure>
+
+      <h3 id="alb-integration">Application Load Balancer 연동</h3>
+      <p>
+        서비스에 로드 밸런서를 붙이면 태스크가 뜨고 질 때마다
+        <strong>대상 그룹에 자동으로 등록되고 해제</strong>됩니다.
+        AWS 문서는 로드 밸런서를 쓰는 서비스의 태스크는
+        실행 중이면서 <strong>로드 밸런서가 정상으로 보고할 때만</strong> 정상으로 간주된다고 명시합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>컨테이너 워크로드에서 로드 밸런서 선택</caption>
+          <thead>
+            <tr>
+              <th scope="col">요구</th>
+              <th scope="col">선택</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">경로나 호스트로 여러 서비스에 나눠 보낸다</th>
+              <td><strong>Application Load Balancer</strong></td>
+              <td>L7 리스너 규칙으로 경로 기반 라우팅을 합니다. 마이크로서비스의 기본 선택입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">TCP · UDP 트래픽이거나 고정 IP가 필요하다</th>
+              <td><strong>Network Load Balancer</strong></td>
+              <td>L4에서 동작하며 가용 영역마다 고정 IP를 가질 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">한 인스턴스에 같은 태스크를 여러 개 띄운다</th>
+              <td>ALB + <code>bridge</code> 모드의 동적 포트 매핑</td>
+              <td>포트가 겹치지 않게 자동 배정됩니다. <code>host</code> 모드로는 불가능합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">태스크 단위로 보안 그룹을 붙인다</th>
+              <td><code>awsvpc</code> 모드 + 대상 유형 <code>ip</code></td>
+              <td>태스크마다 네트워크 인터페이스가 있으므로 IP 대상으로 등록됩니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        로드 밸런서 세 종류의 계층과 프로토콜 차이는
+        <a href="ch07.html#load-balancer-types">7장</a>에서 정리했습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          컨테이너 워크로드의 고가용성도 결론은 같습니다 — <strong>가용 영역이 몇 개인가</strong>입니다.
+          서비스의 REPLICA 전략은 기본적으로 가용 영역에 걸쳐 태스크를 분산하지만,
+          <strong>서브넷을 한 가용 영역에만 지정하면 분산할 곳이 없습니다.</strong>
+          네트워크 구성에 여러 가용 영역의 서브넷을 넣는 것이 전제입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="eks">
+      <h2 id="eks">Amazon EKS — 관리형 Kubernetes</h2>
+
+      <h3 id="eks-architecture">컨트롤 플레인과 노드</h3>
+      <p>
+        EKS는 Kubernetes 컨트롤 플레인을 관리형으로 제공합니다.
+        AWS API 문서는 컨트롤 플레인이 <strong>AWS가 관리하는 계정에서 실행</strong>되고,
+        <strong>여러 가용 영역에 걸쳐 프로비저닝</strong>되며
+        Network Load Balancer가 앞에 놓인다고 설명합니다.
+        <strong>노드는 우리 계정에서 실행</strong>되며 컨트롤 플레인에 연결됩니다.
+      </p>
+      <p>
+        즉 EKS에서도 컴퓨팅 계층의 선택은 남아 있습니다.
+        관리형 노드 그룹으로 EC2 인스턴스를 쓰거나, Fargate 프로파일을 만들어 파드를 Fargate에서 실행합니다.
+        Fargate 프로파일은 <strong>선택기(selector)로 어떤 파드를 Fargate에서 실행할지 선언</strong>하며,
+        AWS 문서는 프로파일마다 선택기를 최대 5개까지 둘 수 있고 각 선택기에 네임스페이스가 필수라고 명시합니다.
+      </p>
+
+      <h3 id="ecs-vs-eks">언제 ECS 대신 EKS인가</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon ECS와 Amazon EKS의 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Amazon ECS</th>
+              <th scope="col">Amazon EKS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">오케스트레이터</th>
+              <td>AWS 고유. 개념이 적고 AWS 서비스와의 통합이 기본입니다</td>
+              <td><strong>Kubernetes</strong>. 업계 표준 API와 생태계를 그대로 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">학습 · 운영 부담</th>
+              <td><span class="mark-ok">낮음</span> — 태스크 정의와 서비스만 알면 시작됩니다</td>
+              <td><span class="mark-no">높음</span> — 클러스터 버전 업그레이드, 애드온, 매니페스트 관리가 남습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">이식성</th>
+              <td>AWS 안에서 동작합니다</td>
+              <td><strong>온프레미스나 다른 환경의 Kubernetes와 같은 매니페스트</strong>를 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"AWS만 쓴다", "운영 부담을 최소화한다", "빠르게 시작한다"</td>
+              <td><strong>"이미 Kubernetes를 쓰고 있다"</strong>, <strong>"온프레미스 클러스터와 같은 방식으로 운영해야 한다"</strong>, "Kubernetes 생태계 도구가 필요하다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          EKS를 고르는 근거는 성능이나 비용이 아니라 <strong>기존 자산과 이식성</strong>입니다.
+          문제문에 <strong>"온프레미스에서 이미 Kubernetes로 운영 중"</strong>이거나
+          <strong>"기존 Kubernetes 매니페스트를 그대로 쓰고 싶다"</strong>가 있으면 EKS입니다.
+        </p>
+        <p>
+          그런 단서가 없는데 "운영 부담 최소"만 있으면 <strong>ECS on Fargate</strong>가 더 강한 답입니다.
+          EKS는 컨트롤 플레인이 관리형이어도 <strong>클러스터 운영 자체가 남습니다.</strong>
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="container-choice">
+      <h2 id="container-choice">ECS · EKS · Fargate · Lambda — 선택 기준 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        이 판단은 두 단계로 나누면 흔들리지 않습니다.
+        <strong>먼저 "컨테이너가 필요한가 함수로 충분한가"를 가르고,
+        그다음 "무엇이 오케스트레이션하고 어디에 올릴 것인가"를 정합니다.</strong>
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구사항에서 컴퓨팅 모델로 가는 판단 경로</caption>
+          <thead>
+            <tr>
+              <th scope="col">문제문의 신호</th>
+              <th scope="col">선택</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">짧은 이벤트 처리, 실행이 15분 이내</th>
+              <td><strong>AWS Lambda</strong></td>
+              <td>서버도 컨테이너 오케스트레이션도 없습니다. 운영 부담이 가장 낮습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">15분을 넘거나 상시 실행되는 서버 프로세스</th>
+              <td><strong>컨테이너</strong></td>
+              <td>Lambda의 최대 실행 시간 900초를 넘으면 함수로 담을 수 없습니다(<a href="ch12.html#lambda-limits">12장</a>)</td>
+            </tr>
+            <tr>
+              <th scope="row">기존 컨테이너 이미지를 그대로 옮긴다</th>
+              <td><strong>ECS on Fargate</strong></td>
+              <td>이미지를 바꾸지 않고 서버 관리 없이 실행합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">운영 부담 최소, Kubernetes 요구 없음</th>
+              <td><strong>ECS on Fargate</strong></td>
+              <td>인스턴스 계층이 사라지고 개념도 가장 적습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">GPU · 인스턴스 수준 제어 · 높은 밀도가 필요</th>
+              <td><strong>ECS on EC2</strong></td>
+              <td>Fargate는 호스트 제어를 제공하지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">이미 Kubernetes를 쓰고 있고 이식성이 요구된다</th>
+              <td><strong>EKS</strong></td>
+              <td>같은 매니페스트와 도구를 유지합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">중단되어도 되는 배치 작업의 비용을 낮춘다</th>
+              <td>스팟 활용(EC2 스팟 또는 Fargate Spot)</td>
+              <td>중단 가능성을 감수하는 대신 비용을 낮춥니다. Fargate Spot은 용량 공급자 전략이 필요합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          컨테이너 문항의 오답 유도 패턴은 대체로 둘입니다.
+          <strong>(1) 운영 부담 최소를 요구하면서 EC2 인스턴스 관리를 답으로 넣는 것</strong>,
+          <strong>(2) 명시된 제약(GPU, 호스트 접근, 기존 Kubernetes)을 무시하고 Fargate를 넣는 것</strong>입니다.
+        </p>
+        <p>
+          두 경우 모두 <strong>명시된 제약이 한정어를 이깁니다.</strong>
+          제약을 먼저 읽고 후보를 지운 다음, 남은 것 중에서 한정어로 고릅니다.
+          이 독해 순서는 <a href="../saa/exam-tips.html#read-qualifier-first">시험 당일 전략</a>에 정리되어 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"Fargate는 ECS의 대안이다"</strong> —
+          Fargate는 오케스트레이터가 아니라 <strong>컨테이너를 실행하는 컴퓨팅 엔진</strong>입니다.
+          배치와 복구, 서비스 유지는 여전히 ECS나 EKS가 합니다.
+          그래서 <strong>ECS on Fargate</strong>와 <strong>EKS on Fargate</strong>가 모두 성립하고,
+          "ECS냐 Fargate냐"라는 대립은 성립하지 않습니다.
+          문항의 선택지에서 두 축을 분리해 읽는 습관이 필요합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"태스크 실행 역할이 있으니 컨테이너가 S3를 읽을 수 있다"</strong> —
+          태스크 실행 역할은 <strong>ECS 에이전트</strong>가 이미지를 받고 로그를 보낼 때 쓰는 권한입니다.
+          컨테이너 안의 애플리케이션 코드가 AWS API를 호출할 때 쓰는 것은 <strong>태스크 역할</strong>입니다.
+          두 역할은 <strong>주체가 다르므로 권한이 상속되지도 않습니다.</strong>
+          "태스크는 뜨는데 애플리케이션이 권한 오류"라면 실행 역할이 아니라 태스크 역할을 봐야 합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"EKS는 관리형이니 ECS보다 운영이 편하다"</strong> —
+          EKS가 관리해 주는 것은 <strong>컨트롤 플레인</strong>입니다.
+          클러스터 버전 업그레이드, 애드온 호환성, 매니페스트와 노드 관리는 여전히 우리 몫입니다.
+          운영 부담만 놓고 보면 <strong>ECS on Fargate가 가장 낮습니다.</strong>
+          EKS를 고르는 근거는 편의성이 아니라 <strong>Kubernetes 생태계와 이식성</strong>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>13장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Fargate의 정체</th>
+                <td>오케스트레이터가 아니라 <strong>서버리스 컴퓨팅 엔진</strong>. ECS와 EKS 양쪽에서 쓸 수 있다</td>
+                <td>"ECS 대 Fargate"로 두 축을 섞어 읽음</td>
+              </tr>
+              <tr>
+                <th scope="row">태스크 정의</th>
+                <td>이미지 · CPU · 메모리 · 포트 · 로그 · <strong>두 개의 IAM 역할</strong>을 적은 청사진. 리비전이 쌓인다</td>
+                <td>태스크 정의를 고치면 실행 중인 태스크가 바뀐다고 생각 — 새 리비전으로 서비스를 갱신해야 한다</td>
+              </tr>
+              <tr>
+                <th scope="row">서비스</th>
+                <td>원하는 개수의 태스크를 유지하고, 로드 밸런서에 등록하며, 장애 시 다시 띄운다</td>
+                <td>태스크를 직접 실행해 두고 고가용성을 기대함</td>
+              </tr>
+              <tr>
+                <th scope="row">REPLICA 전략</th>
+                <td>기본적으로 <strong>가용 영역에 걸쳐 분산</strong>한다</td>
+                <td>서브넷을 한 가용 영역에만 지정해 분산이 일어나지 않음</td>
+              </tr>
+              <tr>
+                <th scope="row">DAEMON 전략</th>
+                <td>배치 제약을 만족하는 <strong>모든 컨테이너 인스턴스에 하나씩</strong>. 원하는 개수와 서비스 오토스케일링을 쓰지 않는다</td>
+                <td>웹 서비스에 DAEMON을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">EC2 시작 유형</th>
+                <td>인스턴스가 <strong>고객 책임</strong>. 패치 · 용량 · 확장을 직접 한다</td>
+                <td>"운영 부담 최소" 문항에서 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Fargate</th>
+                <td>인스턴스 계층이 사라진다. 과금은 태스크의 <strong>vCPU와 메모리</strong> 기준</td>
+                <td>GPU나 호스트 접근이 필요한 요구에도 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">네트워크 모드</th>
+                <td>기본은 <code>bridge</code>, <strong>Fargate는 <code>awsvpc</code> 필수</strong></td>
+                <td>Fargate에서 <code>bridge</code>를 쓸 수 있다고 생각</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>awsvpc</code> 모드</th>
+                <td>태스크마다 네트워크 인터페이스와 IP. <strong>태스크 단위 보안 그룹</strong>이 가능하다</td>
+                <td>보안 그룹을 인스턴스 단위로만 생각해 태스크 격리를 설계하지 못함</td>
+              </tr>
+              <tr>
+                <th scope="row">태스크 역할</th>
+                <td><strong>컨테이너 안의 코드</strong>가 AWS API를 호출할 때의 권한</td>
+                <td>액세스 키를 환경 변수로 넣는 선택지를 고름 — 거의 항상 오답이다</td>
+              </tr>
+              <tr>
+                <th scope="row">태스크 실행 역할</th>
+                <td><strong>ECS 에이전트</strong>가 ECR에서 이미지를 받고 로그를 보낼 때의 권한</td>
+                <td>애플리케이션 권한을 여기에 넣음</td>
+              </tr>
+              <tr>
+                <th scope="row">두 역할의 증상 구분</th>
+                <td><strong>태스크가 안 뜨면</strong> 실행 역할, <strong>뜨는데 API 호출이 거부되면</strong> 태스크 역할</td>
+                <td>증상과 역할을 반대로 연결</td>
+              </tr>
+              <tr>
+                <th scope="row">서비스 오토스케일링</th>
+                <td>Application Auto Scaling이 <code>ecs:service:DesiredCount</code>를 조절한다</td>
+                <td>EC2 시작 유형에서 <strong>인스턴스 확장 축을 잊어</strong> 태스크가 대기 상태로 쌓임</td>
+              </tr>
+              <tr>
+                <th scope="row">상태 확인 유예 기간</th>
+                <td>지정하지 않으면 기본 <strong>0초</strong>. 부팅이 느리면 반복 교체가 일어난다</td>
+                <td>"태스크가 계속 재시작된다"의 원인을 애플리케이션에서만 찾음</td>
+              </tr>
+              <tr>
+                <th scope="row">동적 포트 매핑</th>
+                <td><code>bridge</code> 모드 + ALB로 한 인스턴스에 같은 태스크를 여러 개 띄운다</td>
+                <td><code>host</code> 모드로 같은 것을 하려다 포트 충돌</td>
+              </tr>
+              <tr>
+                <th scope="row">EKS 컨트롤 플레인</th>
+                <td>AWS 관리 계정에서 <strong>여러 가용 영역에 걸쳐</strong> 실행되고, 노드는 <strong>우리 계정</strong>에서 실행된다</td>
+                <td>노드까지 AWS가 관리한다고 생각</td>
+              </tr>
+              <tr>
+                <th scope="row">EKS를 고르는 근거</th>
+                <td><strong>기존 Kubernetes 자산과 이식성</strong></td>
+                <td>"관리형이니 더 편하다"를 근거로 고름 — 운영 부담은 ECS on Fargate가 더 낮다</td>
+              </tr>
+              <tr>
+                <th scope="row">ECR 이미지 풀 실패</th>
+                <td>프라이빗 서브넷이면 <strong>NAT 게이트웨이 또는 VPC 엔드포인트</strong>가 필요하다</td>
+                <td>IAM 권한만 확인하고 네트워크 경로를 놓침</td>
+              </tr>
+              <tr>
+                <th scope="row">ECR 저장 비용</th>
+                <td><strong>수명 주기 정책</strong>으로 오래된 이미지를 정리한다</td>
+                <td>수동 삭제 운영을 답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">컨테이너 대 Lambda</th>
+                <td>실행이 <strong>900초를 넘거나</strong> 상시 프로세스면 컨테이너</td>
+                <td>15분 넘는 배치를 Lambda로 설계</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          컨테이너 비용 문항은 두 방향뿐입니다.
+          <strong>활용률을 올리거나(EC2 시작 유형에 태스크를 촘촘히 채운다),
+          유휴를 없애거나(Fargate로 태스크 단위 과금으로 바꾼다)</strong>입니다.
+          중단되어도 되는 워크로드라면 스팟을 얹는 선택지가 추가됩니다.
+          구매 옵션의 판단 기준은 <a href="ch05.html#ec2-purchase-options">5장 EC2와 컴퓨트</a>에 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <p>
+        <span class="badge badge--study">학습용 유형</span>
+        연결형과 순서 배열 문항이 섞여 있을 수 있습니다.
+        이 두 유형은 암기 확인에 효율이 좋아 기본개념 확인 문제에만 넣었으며,
+        실제 SAA-C03 시험에는 출제되지 않습니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch13" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch12.html">
+          <span class="card__title">12장 · 서버리스와 애플리케이션 통합</span>
+          <span class="card__desc">컨테이너 대신 함수를 고르는 기준과, 컨테이너 앞뒤에 놓이는 큐와 이벤트 버스를 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch07.html#load-balancer-types">
+          <span class="card__title">7장 · 로드 밸런싱과 오토스케일링</span>
+          <span class="card__desc">서비스에 붙이는 로드 밸런서의 선택 기준과 스케일링 정책이 여기 있습니다. 컨테이너에도 그대로 적용됩니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch02.html#iam-role-vs-access-key">
+          <span class="card__title">2장 · IAM과 자격 증명</span>
+          <span class="card__desc">태스크 역할이 왜 액세스 키보다 나은지, 신뢰 정책이 어떻게 생겼는지의 근거입니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab09.html">
+          <span class="card__title">실습 9 · ECS Fargate 서비스 배포</span>
+          <span class="card__desc">태스크 정의와 두 역할의 분리, 서비스 오토스케일링을 직접 구성해 봅니다.</span>
+          <span class="card__meta">실습</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">다중 가용 영역 배치와 상태 비저장 설계라는 전제가 컨테이너에서도 같다는 점을 확인합니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/services.html">
+          <span class="card__title">서비스 빠른참조</span>
+          <span class="card__desc">ECS · EKS · Fargate · ECR의 한 줄 정의와 선택 기준을 다른 서비스와 나란히 놓고 봅니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 동작 서술은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/application_architecture.html">Amazon ECS 개발자 안내서 — 애플리케이션 아키텍처</a>
+          — 클러스터 · 태스크 정의 · 태스크 · 서비스의 관계</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html">Amazon ECS 개발자 안내서 — 시작 유형</a>
+          — EC2 시작 유형과 Fargate 시작 유형의 차이</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS-Fargate.html">Amazon ECS 개발자 안내서 — AWS Fargate</a>
+          — Fargate가 서버리스 컴퓨팅 엔진이라는 정의</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html">Amazon ECS 개발자 안내서 — Fargate 용량 공급자</a>
+          — Fargate Spot을 쓰려면 용량 공급자 전략이 필요하다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_CreateService.html">Amazon ECS API 레퍼런스 — CreateService</a>
+          — REPLICA 전략이 기본적으로 가용 영역에 걸쳐 분산한다는 서술, DAEMON 전략의 동작, 상태 확인 유예 기간의 기본값 0</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RegisterTaskDefinition.html">Amazon ECS API 레퍼런스 — RegisterTaskDefinition</a>
+          — <code>taskRoleArn</code>과 <code>executionRoleArn</code>의 정의, <code>networkMode</code>의 기본값과 Fargate의 <code>awsvpc</code> 요구</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html">Amazon ECS 개발자 안내서 — 태스크의 IAM 역할</a>
+          — 컨테이너 안의 코드가 쓰는 권한이라는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html">Amazon ECS 개발자 안내서 — 태스크 실행 IAM 역할</a>
+          — ECS 에이전트가 이미지를 받고 로그를 보낼 때 쓰는 권한이라는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html">Amazon ECS 개발자 안내서 — 태스크 네트워킹</a>
+          — <code>awsvpc</code> 모드에서 태스크마다 네트워크 인터페이스가 할당된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-load-balancing.html">Amazon ECS 개발자 안내서 — 서비스 로드 밸런싱</a>
+          — 대상 그룹 등록과 로드 밸런서 상태 확인이 태스크의 정상 판정에 쓰인다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html">Amazon ECS 개발자 안내서 — 서비스 오토스케일링</a>
+          — Application Auto Scaling이 서비스의 원하는 태스크 개수를 조절한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/Repositories.html">Amazon ECR 사용 설명서 — 리포지토리</a>
+          — 이미지 저장 단위와 접근 제어</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/LifecyclePolicies.html">Amazon ECR 사용 설명서 — 수명 주기 정책</a>
+          — 오래되거나 태그 없는 이미지를 자동으로 정리하는 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html">Amazon ECR 사용 설명서 — 이미지 스캔</a>
+          — 취약점 검사 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/repository-policies.html">Amazon ECR 사용 설명서 — 리포지토리 정책</a>
+          — 다른 계정에 풀 권한을 부여하는 리소스 기반 정책</li>
+        <li><a href="https://docs.aws.amazon.com/eks/latest/userguide/capabilities.html">Amazon EKS 사용 설명서 — 클러스터 기능</a>
+          — 컨트롤 플레인이 AWS 관리 계정에서 여러 가용 영역에 걸쳐 실행되고 노드는 고객 계정에서 실행된다는 구조</li>
+        <li><a href="https://docs.aws.amazon.com/eks/latest/userguide/fargate-profile.html">Amazon EKS 사용 설명서 — Fargate 프로파일</a>
+          — 선택기로 파드를 Fargate에 배치하는 방식과 파드 실행 역할</li>
+        <li><a href="https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html">Amazon EKS 사용 설명서 — 관리형 노드 그룹</a>
+          — 노드를 EC2 인스턴스로 운영하는 방식</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>
