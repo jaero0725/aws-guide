@@ -537,12 +537,14 @@ aws kinesis increase-stream-retention-period \
       </p>
 
       <figure class="code">
-        <figcaption><span class="code__name">athena-partition.sql</span> — 파티션 컬럼으로 스캔 범위를 좁힙니다</figcaption>
-        <pre><code class="lang-sql">SELECT status_code, COUNT(*) AS hits
-FROM cloudfront_logs
-WHERE year = '2026' AND month = '07' AND day = '29'
-GROUP BY status_code
-ORDER BY hits DESC;</code></pre>
+        <figcaption><span class="code__name">athena-query.sh</span> — 파티션 컬럼으로 스캔 범위를 좁혀 실행합니다. 버킷 이름과 날짜는 예시입니다</figcaption>
+        <pre><code class="lang-bash">aws athena start-query-execution \
+  --query-string "SELECT status_code, COUNT(*) AS hits \
+    FROM cloudfront_logs \
+    WHERE year='2026' AND month='07' AND day='29' \
+    GROUP BY status_code ORDER BY hits DESC" \
+  --work-group primary \
+  --result-configuration OutputLocation=s3://example-athena-results/</code></pre>
       </figure>
 
       <h3 id="redshift">Amazon Redshift</h3>

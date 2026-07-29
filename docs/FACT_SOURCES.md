@@ -681,6 +681,30 @@ enum: ["HTTP", "HTTPS", "TCP", "TLS", "UDP", "TCP_UDP", "GENEVE", "QUIC", "TCP_Q
 NLB를 다중 AZ에 두고 AZ마다 대상 수가 다를 때 트래픽이 고르지 않게 분배되는 현상이
 바로 이 기본값 차이에서 온다. ch07·D-064 서술은 이 인용문과 일치해야 한다.
 
+### 4.17 S3 최대 객체 크기 ✅확인됨 — 5 TB 아님
+
+**출처**: botocore `s3/2006-03-01/service-2.json.gz` (2026-07-29 확인) →
+`CopyObject` documentation 원문.
+
+> "**You can store individual objects of up to 50 TB in Amazon S3.**
+> You create a copy of your object up to 5 GB in size in a single atomic action using this API.
+> However, to copy an object greater than 5 GB, you must use the multipart upload …"
+
+**교차 확인**: [Amazon S3 increases the maximum object size to 50 TB](https://aws.amazon.com/about-aws/whats-new/2025/12/amazon-s3-maximum-object-size-50-tb/)
+— 2025년 12월, 기존 5 TB에서 10배 상향. 모든 스토리지 클래스와 모든 기능에서 사용 가능하며
+AWS GovCloud (US)를 제외한 전 리전에 적용된다.
+
+| 항목 | 값 | 비고 |
+|---|---|---|
+| 단일 객체 최대 크기 | **50 TB** | 2025-12 상향 (구 5 TB) |
+| 단일 `PUT` 업로드 최대 | 5 GB | 그 이상은 멀티파트 업로드 |
+| `CopyObject` 단일 호출 최대 | 5 GB | 그 이상은 멀티파트 업로드 복사 |
+| 멀티파트 파트 최소 크기 | 5 MB | 마지막 파트는 예외 (`EntityTooSmall` 오류 문서) |
+
+> **⚠️ 시중 자료가 거의 전부 "S3 객체 최대 5 TB"로 적고 있다.**
+> 이것은 §7 최신성 목록의 대표 사례이며, 옛 값을 그대로 쓰면 오답이 된다.
+> 5 GB(단일 PUT·CopyObject 한계)와 50 TB(객체 크기 한계)를 혼동하지 않도록 함께 서술한다.
+
 ### 4.15 검증 요약
 
 | 항목 | 상태 |

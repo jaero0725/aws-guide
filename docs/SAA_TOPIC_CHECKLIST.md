@@ -170,6 +170,8 @@ SAA는 서비스를 하나씩 아는 시험이 아니라 **여러 개의 맞는 
 | 82 | **EBS gp3 상한 상향** (2025-09): 64 TiB · 80,000 IOPS · 2,000 MiB/s | `gp3-limits-2025` | ❌ 수동 |
 | 83 | **Route 53 라우팅 정책은 8종** — 지리 근접·IP 기반이 흔히 누락된다 | `route53-eight-policies` | ❌ 수동 |
 | 84 | IMDSv2 기본값 정책 (2024) | `imdsv2-default` | ❌ 수동 |
+| 85 | **S3 단일 객체 최대 크기는 50 TB** (2025-12 상향, 구 5 TB) | `s3-object-size-50tb` | ❌ 수동 |
+| 86 | **ALB 교차 영역 로드 밸런싱은 끌 수 없다.** NLB·GWLB만 기본 꺼짐 | `cross-zone-defaults` | ❌ 수동 |
 
 ---
 
