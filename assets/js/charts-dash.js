@@ -58,10 +58,10 @@
   /* SAA-C03 도메인 — 가중치는 공식 시험 가이드 확정값 (PLAN.md §0 · FACT_SOURCES.md §4.14).
      quiz.js 의 SAA_DOMAINS · home.js 의 SAA_WEIGHT 와 같은 키를 씁니다. */
   var SAA = [
-    { name: 'Design Secure Architectures', ko: '보안 아키텍처 설계', weight: 30 },
-    { name: 'Design Resilient Architectures', ko: '복원력 있는 아키텍처 설계', weight: 26 },
-    { name: 'Design High-Performing Architectures', ko: '고성능 아키텍처 설계', weight: 24 },
-    { name: 'Design Cost-Optimized Architectures', ko: '비용 최적화 아키텍처 설계', weight: 20 }
+    { name: 'Design Secure Architectures', ko: '보안 아키텍처 설계', short: '보안', weight: 30 },
+    { name: 'Design Resilient Architectures', ko: '복원력 있는 아키텍처 설계', short: '복원력', weight: 26 },
+    { name: 'Design High-Performing Architectures', ko: '고성능 아키텍처 설계', short: '고성능', weight: 24 },
+    { name: 'Design Cost-Optimized Architectures', ko: '비용 최적화 아키텍처 설계', short: '비용 최적화', weight: 20 }
   ];
   var SAA_BY_NAME = {};
   SAA.forEach(function (d) { SAA_BY_NAME[d.name] = d; });
@@ -448,7 +448,9 @@
         type: 'radar',
         height: 360,
         data: {
-          labels: SAA.map(function (d) { return d.ko + ' (' + d.weight + '%)'; }),
+          /* 레이더의 축 라벨은 짧게 씁니다. 긴 이름은 차트 영역 밖으로 잘립니다.
+             전체 명칭은 툴팁과 a11yTable 에 그대로 남습니다. */
+          labels: SAA.map(function (d) { return d.short + ' (' + d.weight + '%)'; }),
           datasets: [{
             label: '정답률 (%) — ' + sourceLabel,
             data: values,
