@@ -1,0 +1,67 @@
+<svg viewBox="0 0 720 440" role="img" aria-labelledby="d003-title d003-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d003-title">AWS Organizations 계층과 SCP 상한</title>
+  <desc id="d003-desc">조직 루트 아래에 조직 단위(OU)가 놓이고 그 아래에 멤버 계정이 들어가는 트리 구조입니다.
+    서비스 제어 정책은 조직 루트, OU, 개별 계정 어느 수준에나 붙을 수 있고,
+    붙은 지점부터 그 아래 전체의 권한 상한이 됩니다.
+    왼쪽 쐐기는 아래로 내려갈수록 상한이 좁아진다는 것을 나타냅니다.
+    상위에서 막은 것을 하위에서 다시 열 수는 없기 때문에 실효 권한은 경로 위의 모든 상한이 겹치는 부분입니다.
+    SCP 는 권한을 부여하지 않고 상한만 정하며, 멤버 계정의 루트 사용자에게도 적용됩니다.</desc>
+
+  <defs>
+    <marker id="d003-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 상한 쐐기 -->
+  <path d="M24 60 L166 60 L140 340 L50 340 Z"
+        fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="95" y="86" text-anchor="middle">권한 상한</text>
+  <text class="dg-fs-sm" x="95" y="186" text-anchor="middle">아래로 갈수록</text>
+  <text class="dg-fs-sm" x="95" y="206" text-anchor="middle">좁아집니다</text>
+  <text class="dg-fs-sm dg-muted" x="95" y="316" text-anchor="middle">실효 권한</text>
+
+  <!-- 트리 -->
+  <rect class="dg-node" x="380" y="56" width="160" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="460" y="86" text-anchor="middle">조직 루트</text>
+  <rect x="520" y="44" width="46" height="22" rx="4"
+        fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="543" y="60" text-anchor="middle">SCP</text>
+
+  <rect class="dg-node" x="210" y="150" width="180" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="300" y="180" text-anchor="middle">OU · 운영</text>
+  <rect x="370" y="138" width="46" height="22" rx="4"
+        fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="393" y="154" text-anchor="middle">SCP</text>
+
+  <rect class="dg-node" x="470" y="150" width="180" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="560" y="180" text-anchor="middle">OU · 샌드박스</text>
+
+  <rect class="dg-node" x="200" y="250" width="90" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="245" y="277" text-anchor="middle">계정 A</text>
+  <rect class="dg-node" x="300" y="250" width="90" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="345" y="277" text-anchor="middle">계정 B</text>
+  <rect class="dg-node" x="460" y="250" width="90" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="505" y="277" text-anchor="middle">계정 C</text>
+  <rect class="dg-node" x="560" y="250" width="90" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="605" y="277" text-anchor="middle">계정 D</text>
+  <rect x="630" y="238" width="46" height="22" rx="4"
+        fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="653" y="254" text-anchor="middle">SCP</text>
+
+  <path class="dg-edge" d="M460 104 L300 146" marker-end="url(#d003-ar)"/>
+  <path class="dg-edge" d="M460 104 L560 146" marker-end="url(#d003-ar)"/>
+  <path class="dg-edge" d="M300 198 L245 246" marker-end="url(#d003-ar)"/>
+  <path class="dg-edge" d="M300 198 L345 246" marker-end="url(#d003-ar)"/>
+  <path class="dg-edge" d="M560 198 L505 246" marker-end="url(#d003-ar)"/>
+  <path class="dg-edge" d="M560 198 L605 246" marker-end="url(#d003-ar)"/>
+
+  <text class="dg-fs-sm dg-muted" x="200" y="318">계정 A · B 는 루트 SCP 와 OU SCP 두 겹의 상한 아래에 있습니다</text>
+  <text class="dg-fs-sm dg-muted" x="200" y="340">계정 D 는 루트 SCP 와 자기 계정 SCP 의 상한 아래에 있습니다</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="360" width="680" height="66" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="384" text-anchor="middle">SCP 는 루트 · OU · 계정 어느 수준에나 붙어 하위 전체의 권한 상한이 됩니다</text>
+  <text class="dg-fs-sm" x="360" y="406" text-anchor="middle">권한을 부여하지는 않으며, 멤버 계정의 루트 사용자에게도 적용됩니다</text>
+</svg>
