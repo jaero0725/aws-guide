@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-07-29",
   "examCode": "SAA-C03",
-  "totalQuestions": 390,
+  "totalQuestions": 400,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -40,6 +40,16 @@
       "title": "S3와 오브젝트 스토리지 확인 문제",
       "exam": "BASICS",
       "domain": "S3와 오브젝트 스토리지",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch12",
+      "file": "basics-ch12.json",
+      "title": "서버리스와 애플리케이션 통합 확인 문제",
+      "exam": "BASICS",
+      "domain": "서버리스와 애플리케이션 통합",
       "count": 10,
       "mock": false,
       "diagnostic": false
