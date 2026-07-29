@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-07-29",
   "examCode": "SAA-C03",
-  "totalQuestions": 268,
+  "totalQuestions": 350,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -21,6 +21,16 @@
       "exam": "SAA",
       "domain": "Design Cost-Optimized Architectures",
       "count": 68,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-performance",
+      "file": "saa-performance.json",
+      "title": "SAA — 고성능 아키텍처 설계 (24%) 도메인 연습",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "count": 82,
       "mock": false,
       "diagnostic": false
     },
