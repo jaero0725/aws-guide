@@ -123,12 +123,12 @@
 
       <h3 id="az-name-vs-az-id">가용 영역 이름과 가용 영역 ID</h3>
       <p>
-        <code>ap-northeast-2a</code> 같은 <strong>가용 영역 이름</strong>은 계정마다 다른 물리 가용 영역에 매핑됩니다.
-        A 계정의 <code>ap-northeast-2a</code>와 B 계정의 <code>ap-northeast-2a</code>가 같은 곳이라는 보장이 없습니다.
+        <code>us-east-1a</code> 같은 <strong>가용 영역 이름</strong>은 계정마다 다른 물리 가용 영역에 매핑됩니다.
+        A 계정의 <code>us-east-1a</code>와 B 계정의 <code>us-east-1a</code>가 같은 곳이라는 보장이 없습니다.
         AWS가 계정별로 이름을 무작위로 배정해 특정 가용 영역에 부하가 몰리는 것을 막기 때문입니다.
       </p>
       <p>
-        반면 <code>apne2-az1</code> 형태의 <strong>가용 영역 ID</strong>는 모든 계정에서 같은 물리 위치를 가리킵니다.
+        반면 <code>use1-az1</code> 형태의 <strong>가용 영역 ID</strong>는 모든 계정에서 같은 물리 위치를 가리킵니다.
         EC2 API 문서는 <code>AvailabilityZoneId</code>에 대해 "계정 간에 일관된 식별자를 제공하므로
         <code>AvailabilityZone</code>보다 이 옵션이 선호된다"고 명시합니다.
         여러 계정이 VPC 서브넷을 공유하거나 계정 간 배치를 맞춰야 할 때는 이름이 아니라 ID로 이야기해야 합니다.
@@ -142,11 +142,12 @@ aws ec2 describe-availability-zones \
   --query 'AvailabilityZones[].[ZoneName,ZoneId,ZoneType,OptInStatus]' \
   --output table
 
-# 옵트인하지 않은 존까지 포함해 로컬 존·Wavelength 존을 확인합니다.
+# 옵트인하지 않은 존까지 포함해 로컬 존을 확인합니다.
 aws ec2 describe-availability-zones \
   --region us-west-2 \
   --all-availability-zones \
-  --query 'AvailabilityZones[?ZoneType!=`availability-zone`].[ZoneName,ZoneType,OptInStatus,ParentZoneName]' \
+  --filters Name=zone-type,Values=local-zone \
+  --query 'AvailabilityZones[].[ZoneName,OptInStatus,ParentZoneName]' \
   --output table</code></pre>
       </figure>
 
@@ -957,7 +958,7 @@ aws s3 sync ./build s3://example-app-assets</code></pre>
               </tr>
               <tr>
                 <th scope="row">가용 영역 이름 대 ID</th>
-                <td>이름(<code>ap-northeast-2a</code>)은 <strong>계정마다 다르게 매핑</strong>, ID(<code>apne2-az1</code>)는 계정 간 일관</td>
+                <td>이름(<code>us-east-1a</code>)은 <strong>계정마다 다르게 매핑</strong>, ID(<code>use1-az1</code>)는 계정 간 일관</td>
                 <td>계정 간 배치를 이름으로 맞추려다 실제로는 다른 가용 영역에 놓임</td>
               </tr>
               <tr>
@@ -1177,6 +1178,8 @@ aws s3 sync ./build s3://example-app-assets</code></pre>
   <script src="../assets/js/viz.js" defer></script>
   <script src="../assets/vendor/chart.umd.min.js" defer></script>
   <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
   <script src="../assets/js/quiz.js" defer></script>
 </body>

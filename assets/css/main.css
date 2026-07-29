@@ -731,6 +731,55 @@ tbody tr:hover > td { background: var(--c-bg-subtle); }
 .diff pre { padding: var(--space-3); }
 
 /* ==========================================================================
+   컴포넌트 — .split (중립 2단 대비)
+   --------------------------------------------------------------------------
+   .diff 는 "틀린 것 → 고친 것"이라 한쪽이 빨갛고 한쪽이 초록이다.
+   그런데 책임 공유 모델(AWS 책임 / 고객 책임)처럼 **어느 쪽도 틀리지 않은**
+   두 영역을 나란히 보여야 할 때가 있다. 그때 .diff 를 쓰면 한쪽이 잘못된
+   것처럼 읽힌다.
+
+   레이블은 data-label 로 준다 (.note 와 같은 규약).
+     <div class="split">
+       <div class="split__a" data-label="AWS 책임 — of the cloud">…</div>
+       <div class="split__b" data-label="고객 책임 — in the cloud">…</div>
+     </div>
+
+   ch01 책임 공유 모델, ch02 자격 증명 기반 대 리소스 기반 정책,
+   ch16 보안 서비스 경계, 보안 치트시트에서 쓴다.
+   ========================================================================== */
+.split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+}
+.split__a, .split__b {
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--c-border);
+  border-top-width: 3px;
+  border-radius: var(--radius-2);
+  background: var(--c-surface);
+  font-size: var(--fs-sm);
+}
+.split__a { border-top-color: var(--c-accent-border); background: var(--c-accent-soft); }
+.split__b { border-top-color: var(--c-border-strong); background: var(--c-bg-subtle); }
+.split__a > :first-child, .split__b > :first-child { margin-top: 0; }
+.split__a > :last-child,  .split__b > :last-child  { margin-bottom: 0; }
+.split__a[data-label]::before, .split__b[data-label]::before {
+  content: attr(data-label);
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-wide);
+}
+.split__a[data-label]::before { color: var(--c-accent-text); }
+.split__b[data-label]::before { color: var(--c-text-secondary); }
+.split figure.code { margin: var(--space-2) 0 0; background: var(--c-code-bg); }
+.split pre { padding: var(--space-3); }
+
+/* ==========================================================================
    컴포넌트 — figure.diagram
    (SVG 자체 스타일은 viz.css)
    ========================================================================== */
