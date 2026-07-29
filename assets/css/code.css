@@ -1,0 +1,112 @@
+/* ==========================================================================
+   AWS SAA Guide — 코드 하이라이팅 테마
+   --------------------------------------------------------------------------
+   assets/js/highlight.js 가 붙이는 클래스만 스타일링합니다.
+   외부 하이라이터 라이브러리를 쓰지 않으므로 클래스 어휘는 아래가 전부입니다.
+
+     .hl-com   주석
+     .hl-str   문자열 / 문자
+     .hl-key   키워드 / 예약어
+     .hl-num   숫자 / 불리언 / null
+     .hl-prop  속성명 · 설정키 · JSON 키
+     .hl-type  타입 · 클래스명 (대문자 시작 식별자)
+     .hl-fn    함수·메서드 호출
+     .hl-ann   애노테이션 / 데코레이터 (@Bean)
+     .hl-punc  구두점 (연산자 등, 약하게)
+     .hl-tag   XML/HTML 태그명
+     .hl-attr  XML/HTML 속성명
+     .hl-flag  셸 옵션 (--bootstrap-server)
+     .hl-var   셸 변수 ($VAR)
+
+   대비: 라이트/다크 양쪽에서 본문 대비 4.5:1 이상을 목표로 채도를 낮게 잡았습니다.
+   ========================================================================== */
+
+figure.code pre, pre { color: var(--c-text); }
+
+.hl-com  { color: var(--hl-com); font-style: italic; }
+.hl-str  { color: var(--hl-str); }
+.hl-key  { color: var(--hl-key); font-weight: 600; }
+.hl-num  { color: var(--hl-num); }
+.hl-prop { color: var(--hl-prop); }
+.hl-type { color: var(--hl-type); }
+.hl-fn   { color: var(--hl-fn); }
+.hl-ann  { color: var(--hl-ann); }
+.hl-punc { color: var(--hl-punc); }
+.hl-tag  { color: var(--hl-key); }
+.hl-attr { color: var(--hl-prop); }
+.hl-flag { color: var(--hl-fn); }
+.hl-var  { color: var(--hl-ann); }
+
+/* ---- 라이트 ------------------------------------------------------------- */
+:root {
+  --hl-com:  #5d6773;
+  --hl-str:  #0a6640;
+  --hl-key:  #8a2c8f;
+  --hl-num:  #9b4b0e;
+  --hl-prop: #12518f;
+  --hl-type: #0f6b7a;
+  --hl-fn:   #1a4fa8;
+  --hl-ann:  #94510a;
+  --hl-punc: #5a6472;
+}
+
+/* ---- 다크 (OS 추종) ----------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --hl-com:  #8d97a3;
+    --hl-str:  #86d6a6;
+    --hl-key:  #e69ae0;
+    --hl-num:  #f0b37c;
+    --hl-prop: #8dc2f5;
+    --hl-type: #71d4d9;
+    --hl-fn:   #9fbdf5;
+    --hl-ann:  #e8c07a;
+    --hl-punc: #a2abb7;
+  }
+}
+
+/* ---- 명시적 다크 (미디어쿼리를 이김) ------------------------------------ */
+:root[data-theme="dark"] {
+  --hl-com:  #8d97a3;
+  --hl-str:  #86d6a6;
+  --hl-key:  #e69ae0;
+  --hl-num:  #f0b37c;
+  --hl-prop: #8dc2f5;
+  --hl-type: #71d4d9;
+  --hl-fn:   #9fbdf5;
+  --hl-ann:  #e8c07a;
+  --hl-punc: #a2abb7;
+}
+
+/* ---- 명시적 라이트 (미디어쿼리를 이김) ---------------------------------- */
+:root[data-theme="light"] {
+  --hl-com:  #5d6773;
+  --hl-str:  #0a6640;
+  --hl-key:  #8a2c8f;
+  --hl-num:  #9b4b0e;
+  --hl-prop: #12518f;
+  --hl-type: #0f6b7a;
+  --hl-fn:   #1a4fa8;
+  --hl-ann:  #94510a;
+  --hl-punc: #5a6472;
+}
+
+/* ---- 강조 라인 / 삭제·추가 표시 (선택적) -------------------------------- */
+figure.code .hl-line-add {
+  display: block;
+  background: var(--c-success-bg);
+  box-shadow: -0.75rem 0 0 var(--c-success-bg), 0.75rem 0 0 var(--c-success-bg);
+}
+figure.code .hl-line-del {
+  display: block;
+  background: var(--c-danger-bg);
+  box-shadow: -0.75rem 0 0 var(--c-danger-bg), 0.75rem 0 0 var(--c-danger-bg);
+}
+
+/* 인쇄: 색을 회색조로 낮추고 굵기로 구분 */
+@media print {
+  .hl-com  { color: #666; }
+  .hl-str, .hl-num { color: #333; }
+  .hl-key  { color: #000; font-weight: 700; }
+  .hl-prop, .hl-type, .hl-fn, .hl-ann, .hl-punc, .hl-flag, .hl-var { color: #222; }
+}

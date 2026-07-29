@@ -1,0 +1,443 @@
+/* ==========================================================================
+   AWS SAA Guide — 다이어그램 디자인 시스템 (viz.css)
+   --------------------------------------------------------------------------
+   V1–V3 시각화 에이전트가 만드는 83개 SVG가 전부 이 토큰만 사용합니다.
+   SVG 안에 색을 하드코딩하면 (#000 / #fff / black / white) Wave 3에서 CRITICAL.
+
+   로드 순서:  tokens.css → main.css → viz.css   (code.css 는 순서 무관)
+
+   ┌─ 색 토큰 ─────────────────────────────────────────────────────────────┐
+   │ --dg-stroke        기본 선 / 테두리                                   │
+   │ --dg-fill          노드 배경                                          │
+   │ --dg-fill-alt      보조 노드 배경 (대비용)                            │
+   │ --dg-accent        강조 (핵심 경로)                                   │
+   │ --dg-muted         비활성 / 배경 요소                                 │
+   │ --dg-danger        실패 · 유실 지점                                   │
+   │ --dg-ok            성공 · 정상 경로                                   │
+   │ --dg-warn          주의                                               │
+   │ --dg-text          다이어그램 내 텍스트                               │
+   ├─ 보조 색 토큰 (위 9종의 연한 배경쌍) ─────────────────────────────────┤
+   │ --dg-bg            다이어그램 캔버스 배경 (거의 안 씀. 투명 권장)     │
+   │ --dg-accent-soft   --dg-accent 노드의 fill                            │
+   │ --dg-danger-soft   --dg-danger 노드의 fill                            │
+   │ --dg-ok-soft       --dg-ok 노드의 fill                                │
+   │ --dg-warn-soft     --dg-warn 노드의 fill                              │
+   │ --dg-muted-soft    --dg-muted 노드의 fill                             │
+   │ --dg-text-muted    보조 레이블 텍스트                                 │
+   │ --dg-grid          눈금 · 보조선 (아주 연함)                          │
+   ├─ 선 굵기 ─────────────────────────────────────────────────────────────┤
+   │ --dg-sw-1          1.5   얇은 선 (기본)                               │
+   │ --dg-sw-2          2.5   굵은 선 (강조 경로)                          │
+   │ --dg-sw-hair       0.75  눈금 · 보조선 전용                           │
+   ├─ 파선 패턴 (색만으로 구분하지 않기 위한 수단) ────────────────────────┤
+   │ --dg-dash-1        "5 3"    일반 파선                                 │
+   │ --dg-dash-2        "2 2"    점선                                      │
+   │ --dg-dash-3        "9 4 2 4" 일점쇄선                                 │
+   ├─ 기타 ────────────────────────────────────────────────────────────────┤
+   │ --dg-radius        4       노드 모서리 반경                           │
+   │ --dg-min-w         720px   좁은 화면에서 축소 대신 스크롤할 최소 폭   │
+   └───────────────────────────────────────────────────────────────────────┘
+
+   텍스트 크기 유틸리티 (SVG <text class="…">):
+     .dg-fs-sm 13px  ·  .dg-fs-md 15px  ·  .dg-fs-lg 18px  ·  .dg-fs-xl 22px
+   font-family 는 지정하지 않습니다 (CSS 가 상속시킵니다).
+   좌표계 폭은 720 고정이며, 좁은 화면에서는 축소 대신 --dg-min-w 로
+   가로 스크롤하므로 13px 는 실제 13px 로 렌더링됩니다.
+   ========================================================================== */
+
+:root {
+  /* ---- 다이어그램 색: 라이트 ------------------------------------------- */
+  --dg-stroke: #4d5764;
+  --dg-fill: #f4f6f9;
+  --dg-fill-alt: #e7ebf1;
+  --dg-accent: #1256a0;
+  --dg-muted: #8b939e;
+  --dg-danger: #b3261e;
+  --dg-ok: #1c6b3a;
+  --dg-warn: #8a5a06;
+  --dg-text: #1b2027;
+
+  --dg-bg: transparent;
+  --dg-accent-soft: #e4eef8;
+  --dg-danger-soft: #fbe9e8;
+  --dg-ok-soft: #e6f4ea;
+  --dg-warn-soft: #fdf3e0;
+  --dg-muted-soft: #eef0f3;
+  --dg-text-muted: #5c6673;
+  --dg-grid: #c9d0d9;
+
+  /* ---- 기하 (테마 무관) ----------------------------------------------- */
+  --dg-sw-1: 1.5;
+  --dg-sw-2: 2.5;
+  --dg-sw-hair: 0.75;
+
+  --dg-dash-1: 5 3;
+  --dg-dash-2: 2 2;
+  --dg-dash-3: 9 4 2 4;
+
+  --dg-radius: 4;
+  --dg-min-w: 720px;
+}
+
+/* ---- 다이어그램 색: 다크 (OS 추종) -------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --dg-stroke: #9aa4b0;
+    --dg-fill: #1d222a;
+    --dg-fill-alt: #262d36;
+    --dg-accent: #79b8f3;
+    --dg-muted: #79828d;
+    --dg-danger: #f08a8a;
+    --dg-ok: #7ec894;
+    --dg-warn: #e8bf72;
+    --dg-text: #e3e7ec;
+
+    --dg-bg: transparent;
+    --dg-accent-soft: #17293c;
+    --dg-danger-soft: #301a1c;
+    --dg-ok-soft: #16291d;
+    --dg-warn-soft: #2b2415;
+    --dg-muted-soft: #21262d;
+    --dg-text-muted: #aeb6c0;
+    --dg-grid: #333b45;
+  }
+}
+
+/* ---- 명시적 다크 (미디어쿼리를 이김) ------------------------------------ */
+:root[data-theme="dark"] {
+  --dg-stroke: #9aa4b0;
+  --dg-fill: #1d222a;
+  --dg-fill-alt: #262d36;
+  --dg-accent: #79b8f3;
+  --dg-muted: #79828d;
+  --dg-danger: #f08a8a;
+  --dg-ok: #7ec894;
+  --dg-warn: #e8bf72;
+  --dg-text: #e3e7ec;
+
+  --dg-bg: transparent;
+  --dg-accent-soft: #17293c;
+  --dg-danger-soft: #301a1c;
+  --dg-ok-soft: #16291d;
+  --dg-warn-soft: #2b2415;
+  --dg-muted-soft: #21262d;
+  --dg-text-muted: #aeb6c0;
+  --dg-grid: #333b45;
+}
+
+/* ---- 명시적 라이트 (미디어쿼리를 이김) ---------------------------------- */
+:root[data-theme="light"] {
+  --dg-stroke: #4d5764;
+  --dg-fill: #f4f6f9;
+  --dg-fill-alt: #e7ebf1;
+  --dg-accent: #1256a0;
+  --dg-muted: #8b939e;
+  --dg-danger: #b3261e;
+  --dg-ok: #1c6b3a;
+  --dg-warn: #8a5a06;
+  --dg-text: #1b2027;
+
+  --dg-bg: transparent;
+  --dg-accent-soft: #e4eef8;
+  --dg-danger-soft: #fbe9e8;
+  --dg-ok-soft: #e6f4ea;
+  --dg-warn-soft: #fdf3e0;
+  --dg-muted-soft: #eef0f3;
+  --dg-text-muted: #5c6673;
+  --dg-grid: #c9d0d9;
+}
+
+/* ==========================================================================
+   컨테이너
+   --------------------------------------------------------------------------
+   .dg-scroll 은 app.js / tools/inline-diagrams.mjs 가 SVG를 감싸며 주입합니다.
+   시각화 에이전트는 이 래퍼를 SVG 파일 안에 쓰지 않습니다 (SVG 루트만 작성).
+   ========================================================================== */
+.dg-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+}
+
+svg.ag-diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  background: var(--dg-bg);
+  color: var(--dg-text);          /* currentColor 기본값 */
+  font-family: var(--font-sans);  /* SVG 내부는 폰트를 상속하지 않으므로 명시 */
+  overflow: visible;
+}
+
+/* 좁은 화면: 축소해서 글자가 안 읽히는 것보다 가로 스크롤이 낫습니다.
+   720px 기준 좌표계를 1:1로 렌더링하므로 .dg-fs-sm(13px)이 실제 13px가 됩니다. */
+@media (max-width: 780px) {
+  .dg-scroll > svg.ag-diagram {
+    min-width: var(--dg-min-w);
+    max-width: none;
+    width: var(--dg-min-w);
+  }
+}
+/* 래퍼 없이 figure 직속으로 들어온 경우의 폴백 */
+@media (max-width: 780px) {
+  figure.diagram { overflow-x: auto; }
+  figure.diagram > svg.ag-diagram { min-width: var(--dg-min-w); width: var(--dg-min-w); max-width: none; }
+}
+
+/* ==========================================================================
+   텍스트
+   ========================================================================== */
+svg.ag-diagram text { fill: var(--dg-text); }
+svg.ag-diagram .dg-fs-sm { font-size: 13px; }
+svg.ag-diagram .dg-fs-md { font-size: 15px; }
+svg.ag-diagram .dg-fs-lg { font-size: 18px; }
+svg.ag-diagram .dg-fs-xl { font-size: 22px; }
+svg.ag-diagram .dg-bold { font-weight: 600; }
+svg.ag-diagram .dg-mono { font-family: var(--font-mono); }
+svg.ag-diagram .dg-muted { fill: var(--dg-text-muted); }
+svg.ag-diagram .dg-num { font-variant-numeric: tabular-nums; }
+
+/* ==========================================================================
+   기본 도형 클래스 (권장 어휘 — 일관성 확보용)
+   ========================================================================== */
+svg.ag-diagram .dg-node {
+  fill: var(--dg-fill);
+  stroke: var(--dg-stroke);
+  stroke-width: var(--dg-sw-1);
+}
+svg.ag-diagram .dg-node--alt     { fill: var(--dg-fill-alt); }
+svg.ag-diagram .dg-node--accent  { fill: var(--dg-accent-soft); stroke: var(--dg-accent); stroke-width: var(--dg-sw-2); }
+svg.ag-diagram .dg-node--danger  { fill: var(--dg-danger-soft); stroke: var(--dg-danger); stroke-width: var(--dg-sw-2); }
+svg.ag-diagram .dg-node--ok      { fill: var(--dg-ok-soft);     stroke: var(--dg-ok);     stroke-width: var(--dg-sw-2); }
+svg.ag-diagram .dg-node--warn    { fill: var(--dg-warn-soft);   stroke: var(--dg-warn);   stroke-width: var(--dg-sw-2); }
+svg.ag-diagram .dg-node--muted   { fill: var(--dg-muted-soft);  stroke: var(--dg-muted);  stroke-dasharray: var(--dg-dash-1); }
+svg.ag-diagram .dg-node--empty   { fill: none; stroke: var(--dg-muted); stroke-width: var(--dg-sw-1); stroke-dasharray: var(--dg-dash-2); }
+/* D-001·D-021 이 쓰는데 정의가 없어 일반 노드와 구분되지 않았습니다. */
+svg.ag-diagram .dg-node--done    { fill: var(--dg-ok-soft); stroke: var(--dg-ok); stroke-width: var(--dg-sw-1); }
+
+svg.ag-diagram .dg-edge {
+  fill: none;
+  stroke: var(--dg-stroke);
+  stroke-width: var(--dg-sw-1);
+  stroke-linecap: round;
+}
+svg.ag-diagram .dg-edge--accent  { stroke: var(--dg-accent); stroke-width: var(--dg-sw-2); }
+svg.ag-diagram .dg-edge--danger  { stroke: var(--dg-danger); stroke-width: var(--dg-sw-2); }
+svg.ag-diagram .dg-edge--ok      { stroke: var(--dg-ok);     stroke-width: var(--dg-sw-2); }
+svg.ag-diagram .dg-edge--warn    { stroke: var(--dg-warn);   stroke-width: var(--dg-sw-2); }
+svg.ag-diagram .dg-edge--muted   { stroke: var(--dg-muted); }
+svg.ag-diagram .dg-edge--dashed  { stroke-dasharray: var(--dg-dash-1); }
+svg.ag-diagram .dg-edge--dotted  { stroke-dasharray: var(--dg-dash-2); }
+svg.ag-diagram .dg-edge--dashdot { stroke-dasharray: var(--dg-dash-3); }
+
+/* 눈금 · 보조선 */
+svg.ag-diagram .dg-grid {
+  fill: none;
+  stroke: var(--dg-grid);
+  stroke-width: var(--dg-sw-hair);
+}
+/* 그룹 경계 (점선 사각형) */
+svg.ag-diagram .dg-panel {
+  fill: none;
+  stroke: var(--dg-muted);
+  stroke-width: var(--dg-sw-1);
+  stroke-dasharray: var(--dg-dash-1);
+}
+/* 화살촉 — marker 안의 path 에 붙입니다 */
+svg.ag-diagram .dg-marker          { fill: var(--dg-stroke); stroke: none; }
+svg.ag-diagram .dg-marker--accent  { fill: var(--dg-accent); }
+svg.ag-diagram .dg-marker--danger  { fill: var(--dg-danger); }
+svg.ag-diagram .dg-marker--ok      { fill: var(--dg-ok); }
+svg.ag-diagram .dg-marker--warn    { fill: var(--dg-warn); }
+svg.ag-diagram .dg-marker--muted   { fill: var(--dg-muted); }
+
+/* 유실·실패 표시 X */
+svg.ag-diagram .dg-x {
+  fill: none;
+  stroke: var(--dg-danger);
+  stroke-width: var(--dg-sw-2);
+  stroke-linecap: round;
+}
+
+/* ==========================================================================
+   상태 (viz.js setNodeState 가 data-state 를 부여)
+   --------------------------------------------------------------------------
+   data-state 값 어휘:  on | off | active | done | error | pending | hidden
+   ========================================================================== */
+svg.ag-diagram [data-state="off"]     { opacity: 0.32; }
+svg.ag-diagram [data-state="hidden"]  { opacity: 0; pointer-events: none; }
+svg.ag-diagram [data-state="pending"] { opacity: 0.6; }
+svg.ag-diagram [data-state="on"] .dg-node,
+svg.ag-diagram .dg-node[data-state="on"] { fill: var(--dg-accent-soft); stroke: var(--dg-accent); }
+svg.ag-diagram [data-state="active"] .dg-node,
+svg.ag-diagram .dg-node[data-state="active"] { fill: var(--dg-accent-soft); stroke: var(--dg-accent); stroke-width: var(--dg-sw-2); }
+svg.ag-diagram [data-state="active"] .dg-edge,
+svg.ag-diagram .dg-edge[data-state="active"] { stroke: var(--dg-accent); stroke-width: var(--dg-sw-2); }
+svg.ag-diagram [data-state="done"] .dg-node,
+svg.ag-diagram .dg-node[data-state="done"] { fill: var(--dg-ok-soft); stroke: var(--dg-ok); }
+svg.ag-diagram [data-state="error"] .dg-node,
+svg.ag-diagram .dg-node[data-state="error"] { fill: var(--dg-danger-soft); stroke: var(--dg-danger); }
+
+/* 상태 전환 애니메이션 (reduced-motion 에서 제거) */
+svg.ag-diagram .dg-node,
+svg.ag-diagram .dg-edge,
+svg.ag-diagram [data-state] {
+  transition: opacity 140ms cubic-bezier(0.4, 0, 0.2, 1),
+              fill 140ms cubic-bezier(0.4, 0, 0.2, 1),
+              stroke 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+svg.ag-diagram .dg-move {
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 포커스 가능한 SVG 내부 요소 (키보드 조작 대상) */
+svg.ag-diagram [tabindex]:focus-visible {
+  outline: 2px solid var(--c-focus-ring);
+  outline-offset: 2px;
+}
+svg.ag-diagram .dg-hit { fill: transparent; stroke: none; cursor: pointer; }
+
+/* ==========================================================================
+   인터랙티브 컨트롤 (viz.js bindControls 가 생성)
+   --------------------------------------------------------------------------
+   전부 실제 <button> / <input> / <select> 입니다. div+click 은 쓰지 않습니다.
+   ========================================================================== */
+.dg-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--c-border);
+}
+.dg-controls__group { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.dg-controls__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.dg-controls__label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--c-text-secondary);
+}
+
+.dg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--c-control-border);
+  border-radius: var(--radius-2);
+  background: var(--c-control-bg);
+  color: var(--c-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.dg-btn:hover { background: var(--c-control-hover-bg); }
+.dg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.dg-btn[aria-pressed="true"] {
+  background: var(--c-accent-soft);
+  border-color: var(--c-accent-border);
+  color: var(--c-accent-text);
+}
+.dg-btn--primary {
+  background: var(--c-accent); border-color: var(--c-accent);
+  color: var(--c-bg); font-weight: var(--fw-semibold);
+}
+.dg-btn--primary:hover { background: var(--c-accent-text); border-color: var(--c-accent-text); }
+
+.dg-slider {
+  width: 100%;
+  min-width: 8rem;
+  max-width: 16rem;
+  accent-color: var(--c-accent);
+  cursor: pointer;
+}
+.dg-slider__value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5em;
+  color: var(--c-text-secondary);
+}
+.dg-select { font-size: var(--fs-sm); }
+
+/* 상태 표시 텍스트 */
+.dg-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--c-text-secondary);
+}
+.dg-readout b {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+}
+
+/* 범례 — 색 + 패턴/텍스트 병기 (색만으로 구분 금지) */
+.dg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+  color: var(--c-text-secondary);
+}
+.dg-legend > li { display: flex; align-items: center; gap: var(--space-2); margin: 0; min-width: 0; }
+.dg-legend__swatch {
+  flex: 0 0 auto;
+  width: 1.1rem; height: 0.7rem;
+  border: 1.5px solid var(--dg-stroke);
+  border-radius: 2px;
+  background: var(--dg-fill);
+}
+.dg-legend__swatch[data-kind="accent"] { border-color: var(--dg-accent); background: var(--dg-accent-soft); }
+.dg-legend__swatch[data-kind="danger"] { border-color: var(--dg-danger); background: var(--dg-danger-soft); }
+.dg-legend__swatch[data-kind="ok"]     { border-color: var(--dg-ok);     background: var(--dg-ok-soft); }
+.dg-legend__swatch[data-kind="warn"]   { border-color: var(--dg-warn);   background: var(--dg-warn-soft); }
+.dg-legend__swatch[data-kind="muted"]  { border-color: var(--dg-muted);  background: var(--dg-muted-soft); border-style: dashed; }
+.dg-legend__swatch[data-kind="line"]   { height: 0; border-width: 0; border-top: 2.5px solid var(--dg-stroke); border-radius: 0; background: none; }
+.dg-legend__swatch[data-kind="line-dashed"] { height: 0; border-width: 0; border-top: 2.5px dashed var(--dg-stroke); border-radius: 0; background: none; }
+
+/* aria-live 안내 영역 (viz.js announce) */
+.dg-live {
+  margin-top: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--c-text-secondary);
+  min-height: 1.5em;
+}
+.dg-live:empty { min-height: 0; }
+
+/* ==========================================================================
+   모션 축소
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  svg.ag-diagram .dg-node,
+  svg.ag-diagram .dg-edge,
+  svg.ag-diagram [data-state],
+  svg.ag-diagram .dg-move,
+  .dg-btn { transition: none !important; }
+  svg.ag-diagram animate,
+  svg.ag-diagram animateTransform,
+  svg.ag-diagram animateMotion { display: none; }
+}
+
+/* ==========================================================================
+   인쇄 — 컨트롤은 숨기고 다이어그램은 축소해 한 페이지에
+   ========================================================================== */
+@media print {
+  .dg-controls, .dg-live { display: none !important; }
+  .dg-scroll { overflow: visible; }
+  .dg-scroll > svg.ag-diagram,
+  figure.diagram > svg.ag-diagram { min-width: 0; width: 100%; max-width: 100%; }
+  svg.ag-diagram { break-inside: avoid; }
+}
