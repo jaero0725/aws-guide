@@ -1,0 +1,59 @@
+<svg viewBox="0 0 720 400" role="img" aria-labelledby="d033-title d033-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d033-title">Site-to-Site VPN과 Direct Connect의 하이브리드 배치</title>
+  <desc id="d033-desc">온프레미스 데이터센터에서 AWS 로 들어오는 두 경로를 같은 그림에 놓았습니다.
+    위쪽 경로는 Site-to-Site VPN 입니다. 고객 게이트웨이에서 암호화된 터널 두 개가 나가고 공용 인터넷을 지나
+    가상 프라이빗 게이트웨이나 Transit Gateway 에 붙습니다. 빠르게 구축할 수 있지만 대역폭과 지연이 인터넷 상태에 좌우됩니다.
+    아래쪽 경로는 AWS Direct Connect 입니다. Direct Connect 로케이션을 거쳐 전용 회선으로 들어오므로 인터넷을 경유하지 않고
+    대역폭과 지연이 일정하지만 회선을 준비하는 데 시간이 걸리고 회선 자체가 단일 장애점이 됩니다.
+    그래서 Direct Connect 를 주 경로로 두고 Site-to-Site VPN 을 백업으로 함께 구성하는 조합이 표준이 됩니다.</desc>
+
+  <defs>
+    <marker id="d033-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d033-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node" x="20" y="120" width="140" height="120" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="90" y="170" text-anchor="middle">온프레미스</text>
+  <text class="dg-fs-sm dg-bold" x="90" y="190" text-anchor="middle">데이터센터</text>
+
+  <rect class="dg-node" x="196" y="58" width="120" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="256" y="80" text-anchor="middle">고객 게이트웨이</text>
+  <text class="dg-fs-sm dg-muted" x="256" y="100" text-anchor="middle">CGW</text>
+
+  <rect class="dg-node dg-node--accent" x="196" y="250" width="120" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="256" y="272" text-anchor="middle">Direct Connect</text>
+  <text class="dg-fs-sm dg-muted" x="256" y="292" text-anchor="middle">로케이션</text>
+
+  <rect class="dg-panel" x="380" y="90" width="320" height="180" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="392" y="110">AWS · VPC</text>
+  <rect class="dg-node" x="396" y="140" width="140" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="466" y="170" text-anchor="middle">VGW 또는</text>
+  <text class="dg-fs-sm dg-bold" x="466" y="192" text-anchor="middle">Transit Gateway</text>
+  <rect class="dg-node" x="560" y="140" width="126" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="623" y="186" text-anchor="middle">VPC 리소스</text>
+  <path class="dg-edge" d="M536 180 L556 180" marker-end="url(#d033-ar)"/>
+
+  <path class="dg-edge" d="M160 150 L180 150 L180 74 L192 74" marker-end="url(#d033-ar)"/>
+  <path class="dg-edge dg-edge--dashed" d="M316 72 L392 152" marker-end="url(#d033-ar)"/>
+  <path class="dg-edge dg-edge--dashed" d="M316 92 L392 168" marker-end="url(#d033-ar)"/>
+  <text class="dg-fs-sm" x="330" y="66">터널 1</text>
+  <text class="dg-fs-sm" x="330" y="112">터널 2</text>
+
+  <path class="dg-edge dg-edge--accent" d="M160 210 L180 210 L180 276 L192 276" marker-end="url(#d033-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M316 276 L392 208" marker-end="url(#d033-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="330" y="292">전용 회선</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="42">Site-to-Site VPN — 인터넷을 경유하는 암호화 터널 2개 · 빠르게 구축</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="330">AWS Direct Connect — 인터넷을 경유하지 않는 전용 회선 · 대역폭과 지연이 일정 · 구축에 시간 필요</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="342" width="680" height="52" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="364" text-anchor="middle">Direct Connect 를 주 경로로, Site-to-Site VPN 을 백업으로</text>
+  <text class="dg-fs-sm" x="360" y="384" text-anchor="middle">전용 회선 하나만 두면 그 회선이 단일 장애점이 되므로 두 경로를 함께 구성합니다</text>
+</svg>

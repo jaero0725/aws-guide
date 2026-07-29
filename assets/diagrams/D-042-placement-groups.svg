@@ -1,0 +1,80 @@
+<svg viewBox="0 0 720 420" role="img" aria-labelledby="d042-title d042-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d042-title">배치 그룹 3종의 장애 도메인</title>
+  <desc id="d042-desc">같은 랙 그림 위에 세 가지 배치 그룹 전략을 나란히 놓았습니다.
+    클러스터 배치 그룹은 하나의 가용 영역 안에서 인스턴스를 물리적으로 가깝게 모아 네트워크 지연을 최소화하지만
+    같은 랙을 공유하므로 랙 하나가 죽으면 전부 함께 죽습니다.
+    파티션 배치 그룹은 인스턴스를 파티션 단위로 묶고 파티션마다 서로 다른 랙에 배치하므로
+    랙 하나가 죽어도 한 파티션만 잃습니다. 분산 시스템의 복제본 배치에 맞습니다.
+    분산 배치 그룹은 인스턴스마다 랙을 완전히 분리하므로 장애 격리가 가장 강하지만 한 그룹에 넣을 수 있는 수가 제한됩니다.
+    아래 축이 결론입니다. 네트워크 성능 최적화와 장애 격리는 서로 반대 방향으로 움직입니다.</desc>
+
+  <text class="dg-fs-md dg-bold" x="126" y="30" text-anchor="middle">클러스터</text>
+  <text class="dg-fs-md dg-bold" x="360" y="30" text-anchor="middle">파티션</text>
+  <text class="dg-fs-md dg-bold" x="594" y="30" text-anchor="middle">분산</text>
+  <text class="dg-fs-sm dg-muted" x="126" y="50" text-anchor="middle">한 AZ 안에 근접 배치</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="50" text-anchor="middle">파티션마다 다른 랙</text>
+  <text class="dg-fs-sm dg-muted" x="594" y="50" text-anchor="middle">인스턴스마다 다른 하드웨어</text>
+
+  <!-- 클러스터 -->
+  <rect class="dg-panel" x="20" y="62" width="212" height="200" rx="4"/>
+  <rect class="dg-node dg-node--alt" x="34" y="76" width="184" height="120" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="44" y="94">랙 1</text>
+  <rect class="dg-node dg-node--accent" x="44" y="102" width="76" height="38" rx="3"/>
+  <text class="dg-fs-sm" x="82" y="126" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--accent" x="128" y="102" width="76" height="38" rx="3"/>
+  <text class="dg-fs-sm" x="166" y="126" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--accent" x="44" y="146" width="76" height="38" rx="3"/>
+  <text class="dg-fs-sm" x="82" y="170" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--accent" x="128" y="146" width="76" height="38" rx="3"/>
+  <text class="dg-fs-sm" x="166" y="170" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--empty" x="34" y="204" width="184" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="126" y="224" text-anchor="middle">랙 2 — 사용 안 함</text>
+  <text class="dg-fs-sm dg-muted" x="126" y="242" text-anchor="middle">근접이 목적</text>
+
+  <!-- 파티션 -->
+  <rect class="dg-panel" x="254" y="62" width="212" height="200" rx="4"/>
+  <rect class="dg-node dg-node--alt" x="268" y="76" width="184" height="84" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="278" y="94">랙 1 · 파티션 1</text>
+  <rect class="dg-node dg-node--accent" x="278" y="102" width="76" height="48" rx="3"/>
+  <text class="dg-fs-sm" x="316" y="131" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--accent" x="362" y="102" width="76" height="48" rx="3"/>
+  <text class="dg-fs-sm" x="400" y="131" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--alt" x="268" y="168" width="184" height="84" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="278" y="186">랙 2 · 파티션 2</text>
+  <rect class="dg-node dg-node--accent" x="278" y="194" width="76" height="48" rx="3"/>
+  <text class="dg-fs-sm" x="316" y="223" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--accent" x="362" y="194" width="76" height="48" rx="3"/>
+  <text class="dg-fs-sm" x="400" y="223" text-anchor="middle">인스턴스</text>
+
+  <!-- 분산 -->
+  <rect class="dg-panel" x="488" y="62" width="212" height="200" rx="4"/>
+  <rect class="dg-node dg-node--alt" x="502" y="76" width="88" height="84" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="512" y="94">랙 1</text>
+  <rect class="dg-node dg-node--accent" x="510" y="102" width="72" height="48" rx="3"/>
+  <text class="dg-fs-sm" x="546" y="131" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--alt" x="598" y="76" width="88" height="84" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="608" y="94">랙 2</text>
+  <rect class="dg-node dg-node--accent" x="606" y="102" width="72" height="48" rx="3"/>
+  <text class="dg-fs-sm" x="642" y="131" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--alt" x="502" y="168" width="88" height="84" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="512" y="186">랙 3</text>
+  <rect class="dg-node dg-node--accent" x="510" y="194" width="72" height="48" rx="3"/>
+  <text class="dg-fs-sm" x="546" y="223" text-anchor="middle">인스턴스</text>
+  <rect class="dg-node dg-node--alt" x="598" y="168" width="88" height="84" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="608" y="186">랙 4</text>
+  <rect class="dg-node dg-node--accent" x="606" y="194" width="72" height="48" rx="3"/>
+  <text class="dg-fs-sm" x="642" y="223" text-anchor="middle">인스턴스</text>
+
+  <text class="dg-fs-sm" x="126" y="284" text-anchor="middle">랙 하나가 죽으면 전부</text>
+  <text class="dg-fs-sm" x="360" y="284" text-anchor="middle">랙 하나가 죽으면 한 파티션만</text>
+  <text class="dg-fs-sm" x="594" y="284" text-anchor="middle">랙 하나가 죽으면 하나만</text>
+
+  <path class="dg-grid" d="M20 306 L700 306"/>
+  <text class="dg-fs-sm dg-bold" x="20" y="332">← 네트워크 지연이 낮다 (성능 최적화)</text>
+  <text class="dg-fs-sm dg-bold" x="700" y="332" text-anchor="end">장애 격리가 강하다 →</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="346" width="680" height="56" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="370" text-anchor="middle">성능 최적화와 장애 격리는 서로 반대 방향입니다</text>
+  <text class="dg-fs-sm" x="360" y="392" text-anchor="middle">HPC 처럼 노드 간 지연이 중요하면 클러스터, 가용성이 중요하면 파티션이나 분산을 고릅니다</text>
+</svg>

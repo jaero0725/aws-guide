@@ -1,0 +1,84 @@
+<svg viewBox="0 0 720 510" role="img" aria-labelledby="d040-title d040-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d040-title">EC2 구매 옵션 5종 결정 트리</title>
+  <desc id="d040-desc">워크로드의 성격을 네 번 물어 다섯 가지 구매 옵션 중 하나로 수렴시키는 결정 트리입니다.
+    먼저 중단을 허용할 수 있으면 스팟 인스턴스입니다.
+    허용할 수 없다면 1년 이상 꾸준히 쓸 계획인지 묻고, 아니라면 온디맨드입니다.
+    꾸준히 쓴다면 물리 서버 가시성이나 소켓·코어 단위 라이선스 요구가 있는지 묻고, 있다면 전용 호스트입니다.
+    없다면 특정 가용 영역의 용량 예약이 필요한지 묻고, 필요하면 예약 인스턴스, 필요 없고 유연성이 중요하면 Savings Plans 입니다.
+    금액은 표시하지 않습니다. 약정 기간이 길고 중단을 더 많이 허용할수록 단가가 낮아진다는 상대 관계만 기억하면 됩니다.</desc>
+
+  <defs>
+    <marker id="d040-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d040-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node dg-node--alt" x="20" y="44" width="220" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="130" y="70" text-anchor="middle">중단을 허용할 수 있는가</text>
+  <text class="dg-fs-sm dg-muted" x="130" y="90" text-anchor="middle">배치 · 렌더링 · 상태 비저장</text>
+
+  <rect class="dg-node dg-node--alt" x="20" y="140" width="220" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="130" y="166" text-anchor="middle">1년 이상 꾸준히 쓰는가</text>
+  <text class="dg-fs-sm dg-muted" x="130" y="186" text-anchor="middle">기저 부하가 있는가</text>
+
+  <rect class="dg-node dg-node--alt" x="20" y="236" width="220" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="130" y="262" text-anchor="middle">물리 서버 가시성이 필요한가</text>
+  <text class="dg-fs-sm dg-muted" x="130" y="282" text-anchor="middle">소켓·코어 단위 라이선스</text>
+
+  <rect class="dg-node dg-node--alt" x="20" y="332" width="220" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="130" y="358" text-anchor="middle">용량 예약이 필요한가</text>
+  <text class="dg-fs-sm dg-muted" x="130" y="378" text-anchor="middle">특정 AZ 의 자리 확보</text>
+
+  <rect class="dg-node dg-node--accent" x="470" y="40" width="230" height="68" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="484" y="64">스팟 인스턴스</text>
+  <text class="dg-fs-sm" x="484" y="84">단가가 가장 낮습니다</text>
+  <text class="dg-fs-sm dg-muted" x="484" y="102">용량이 회수되면 중단됩니다</text>
+
+  <rect class="dg-node" x="470" y="136" width="230" height="68" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="484" y="160">온디맨드</text>
+  <text class="dg-fs-sm" x="484" y="180">약정이 없습니다</text>
+  <text class="dg-fs-sm dg-muted" x="484" y="198">단가는 가장 높습니다</text>
+
+  <rect class="dg-node" x="470" y="232" width="230" height="68" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="484" y="256">전용 호스트</text>
+  <text class="dg-fs-sm" x="484" y="276">물리 호스트를 통째로 할당</text>
+  <text class="dg-fs-sm dg-muted" x="484" y="294">소켓·코어 라이선스에 대응</text>
+
+  <rect class="dg-node" x="470" y="328" width="230" height="68" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="484" y="352">예약 인스턴스</text>
+  <text class="dg-fs-sm" x="484" y="372">1년 또는 3년 약정</text>
+  <text class="dg-fs-sm dg-muted" x="484" y="390">영역 지정 시 용량 예약</text>
+
+  <rect class="dg-node" x="470" y="424" width="230" height="68" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="484" y="448">Savings Plans</text>
+  <text class="dg-fs-sm" x="484" y="468">1년 또는 3년 약정</text>
+  <text class="dg-fs-sm dg-muted" x="484" y="486">사용량 기준 · 인스턴스 유연</text>
+
+  <path class="dg-edge dg-edge--accent" d="M240 74 L466 74" marker-end="url(#d040-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="252" y="66">예</text>
+  <path class="dg-edge" d="M130 104 L130 136" marker-end="url(#d040-ar)"/>
+  <text class="dg-fs-sm" x="138" y="126">아니오</text>
+
+  <path class="dg-edge" d="M240 170 L466 170" marker-end="url(#d040-ar)"/>
+  <text class="dg-fs-sm" x="252" y="162">아니오</text>
+  <path class="dg-edge" d="M130 200 L130 232" marker-end="url(#d040-ar)"/>
+  <text class="dg-fs-sm" x="138" y="222">예</text>
+
+  <path class="dg-edge" d="M240 266 L466 266" marker-end="url(#d040-ar)"/>
+  <text class="dg-fs-sm" x="252" y="258">예</text>
+  <path class="dg-edge" d="M130 296 L130 328" marker-end="url(#d040-ar)"/>
+  <text class="dg-fs-sm" x="138" y="318">아니오</text>
+
+  <path class="dg-edge" d="M240 362 L466 362" marker-end="url(#d040-ar)"/>
+  <text class="dg-fs-sm" x="252" y="354">예</text>
+  <path class="dg-edge" d="M130 392 L130 458 L466 458" marker-end="url(#d040-ar)"/>
+  <text class="dg-fs-sm" x="138" y="424">아니오</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="486">금액은 쓰지 않습니다 — 약정 기간이 길고 중단을 더 허용할수록 단가가 낮아진다는 상대 관계만 기억합니다</text>
+</svg>

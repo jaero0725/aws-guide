@@ -1,0 +1,79 @@
+<svg viewBox="0 0 720 470" role="img" aria-labelledby="d031-title d031-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d031-title">게이트웨이 엔드포인트와 인터페이스 엔드포인트의 구현 위치 차이</title>
+  <desc id="d031-desc">두 VPC 엔드포인트는 이름만 비슷하고 구현 위치가 전혀 다릅니다.
+    게이트웨이 엔드포인트는 서브넷 안에 아무것도 만들지 않고 라우팅 테이블에 접두사 목록을 대상으로 하는 경로 한 줄을 추가합니다.
+    지원 대상은 Amazon S3 와 Amazon DynamoDB 둘뿐이며 보안 그룹을 붙일 수 없습니다.
+    인터페이스 엔드포인트는 지정한 서브넷 안에 사설 IP 를 가진 탄력적 네트워크 인터페이스를 실제로 만들고,
+    프라이빗 DNS 를 켜면 서비스의 공용 DNS 이름이 그 사설 IP 로 해석되어 트래픽이 가로채집니다.
+    ENI 이므로 보안 그룹을 붙일 수 있고 지원 대상 서비스도 훨씬 넓습니다.
+    라우팅 테이블에 경로가 생기는가, 서브넷에 ENI 가 생기는가 — 이 구현 위치의 차이가 결론입니다.</desc>
+
+  <defs>
+    <marker id="d031-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="185" y="30" text-anchor="middle">게이트웨이 엔드포인트</text>
+  <text class="dg-fs-md dg-bold" x="535" y="30" text-anchor="middle">인터페이스 엔드포인트 (PrivateLink)</text>
+
+  <!-- 왼쪽 -->
+  <rect class="dg-panel" x="20" y="44" width="330" height="146" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="64">VPC · 프라이빗 서브넷</text>
+  <rect class="dg-node" x="34" y="74" width="130" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="99" y="103" text-anchor="middle">EC2 인스턴스</text>
+  <rect class="dg-node dg-node--accent" x="186" y="74" width="150" height="100" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="261" y="96" text-anchor="middle">라우팅 테이블</text>
+  <text class="dg-fs-sm dg-mono" x="261" y="120" text-anchor="middle">pl-xxxx (S3)</text>
+  <text class="dg-fs-sm dg-mono" x="261" y="142" text-anchor="middle">→ vpce-0a1b2c</text>
+  <text class="dg-fs-sm dg-muted" x="261" y="164" text-anchor="middle">경로 한 줄이 전부</text>
+  <path class="dg-edge dg-edge--accent" d="M164 98 L182 98" marker-end="url(#d031-ar)"/>
+
+  <rect class="dg-node" x="90" y="216" width="200" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="190" y="244" text-anchor="middle">Amazon S3 · DynamoDB</text>
+  <path class="dg-edge dg-edge--accent" d="M261 174 L261 200 L190 200 L190 212" marker-end="url(#d031-ar)"/>
+
+  <!-- 오른쪽 -->
+  <rect class="dg-panel" x="370" y="44" width="330" height="146" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="382" y="64">VPC · 프라이빗 서브넷</text>
+  <rect class="dg-node" x="384" y="74" width="130" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="449" y="103" text-anchor="middle">EC2 인스턴스</text>
+  <rect class="dg-node dg-node--accent" x="536" y="74" width="150" height="100" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="611" y="96" text-anchor="middle">ENI</text>
+  <text class="dg-fs-sm dg-mono" x="611" y="120" text-anchor="middle">10.0.2.15</text>
+  <text class="dg-fs-sm dg-muted" x="611" y="142" text-anchor="middle">서브넷 안에 생성</text>
+  <text class="dg-fs-sm dg-muted" x="611" y="164" text-anchor="middle">보안 그룹 부착 가능</text>
+  <path class="dg-edge dg-edge--accent" d="M514 98 L532 98" marker-end="url(#d031-ar)"/>
+
+  <rect class="dg-node" x="440" y="216" width="200" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="540" y="244" text-anchor="middle">대부분의 AWS 서비스</text>
+  <path class="dg-edge dg-edge--accent" d="M611 174 L611 200 L540 200 L540 212" marker-end="url(#d031-ar)"/>
+
+  <!-- 비교표 -->
+  <rect class="dg-node dg-node--alt" x="20" y="282" width="680" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="30" y="300">비교 항목</text>
+  <text class="dg-fs-sm dg-bold" x="216" y="300">게이트웨이 엔드포인트</text>
+  <text class="dg-fs-sm dg-bold" x="466" y="300">인터페이스 엔드포인트</text>
+  <rect class="dg-node" x="20" y="308" width="680" height="112" rx="4"/>
+  <path class="dg-grid" d="M20 336 L700 336 M20 364 L700 364 M20 392 L700 392 M210 308 L210 420 M460 308 L460 420"/>
+
+  <text class="dg-fs-sm dg-muted" x="30" y="327">구현 위치</text>
+  <text class="dg-fs-sm dg-bold" x="216" y="327">라우팅 테이블의 경로</text>
+  <text class="dg-fs-sm dg-bold" x="466" y="327">서브넷 안의 ENI</text>
+
+  <text class="dg-fs-sm dg-muted" x="30" y="355">대상 서비스</text>
+  <text class="dg-fs-sm" x="216" y="355">S3 · DynamoDB 만</text>
+  <text class="dg-fs-sm" x="466" y="355">대부분의 AWS · 파트너 서비스</text>
+
+  <text class="dg-fs-sm dg-muted" x="30" y="383">트래픽 유도</text>
+  <text class="dg-fs-sm" x="216" y="383">접두사 목록(pl-) 경로</text>
+  <text class="dg-fs-sm" x="466" y="383">프라이빗 DNS 가 가로챔</text>
+
+  <text class="dg-fs-sm dg-muted" x="30" y="411">보안 그룹</text>
+  <text class="dg-fs-sm" x="216" y="411">붙일 수 없음</text>
+  <text class="dg-fs-sm" x="466" y="411">ENI 에 붙일 수 있음</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="446">둘 다 트래픽이 인터넷으로 나가지 않는다는 점은 같습니다 — 다른 것은 구현 위치입니다</text>
+</svg>

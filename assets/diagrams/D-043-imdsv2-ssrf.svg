@@ -1,0 +1,80 @@
+<svg viewBox="0 0 720 470" role="img" aria-labelledby="d043-title d043-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d043-title">IMDSv2 요청 흐름과 SSRF 차단</title>
+  <desc id="d043-desc">위쪽은 IMDSv2 의 정상 요청 흐름입니다.
+    인스턴스 안의 프로세스가 먼저 PUT 으로 토큰 발급을 요청하고, TTL 헤더와 함께 세션 토큰을 받습니다.
+    그 뒤 메타데이터를 읽는 모든 GET 요청에 토큰 헤더를 실어야만 응답을 받습니다. 토큰이 없는 GET 은 거부됩니다.
+    아래쪽은 서버 측 요청 위조 공격 비교입니다.
+    공격자는 취약한 애플리케이션이 임의의 URL 을 대신 가져오게 만들 수는 있지만 보통 GET 만 유도할 수 있고
+    임의 헤더를 붙이게 할 수도 없습니다.
+    그래서 IMDSv1 에서는 자격 증명이 그대로 빠져나가지만 IMDSv2 에서는 토큰 발급 단계에서 막힙니다.
+    아울러 hop limit 을 1 로 두면 응답 패킷이 한 홉을 넘지 못하므로 컨테이너처럼 한 홉 건너에 있는 프로세스가 접근하지 못합니다.</desc>
+
+  <defs>
+    <marker id="d043-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d043-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d043-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="30">IMDSv2 — 토큰을 먼저 받아야 합니다</text>
+
+  <rect class="dg-node" x="20" y="46" width="190" height="130" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="115" y="104" text-anchor="middle">인스턴스 안의</text>
+  <text class="dg-fs-sm dg-bold" x="115" y="124" text-anchor="middle">애플리케이션</text>
+
+  <rect class="dg-node dg-node--accent" x="500" y="46" width="200" height="130" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="600" y="94" text-anchor="middle">인스턴스 메타데이터</text>
+  <text class="dg-fs-sm dg-bold" x="600" y="114" text-anchor="middle">서비스 (IMDS)</text>
+  <text class="dg-fs-sm dg-mono" x="600" y="140" text-anchor="middle">169.254.169.254</text>
+
+  <path class="dg-edge dg-edge--accent" d="M210 68 L496 68" marker-end="url(#d043-ar-accent)"/>
+  <text class="dg-fs-sm dg-mono" x="220" y="62">1. PUT /latest/api/token</text>
+  <path class="dg-edge dg-edge--accent" d="M496 100 L214 100" marker-end="url(#d043-ar-accent)"/>
+  <text class="dg-fs-sm" x="220" y="94">2. 세션 토큰 발급 (TTL 지정)</text>
+  <path class="dg-edge dg-edge--accent" d="M210 132 L496 132" marker-end="url(#d043-ar-accent)"/>
+  <text class="dg-fs-sm dg-mono" x="220" y="126">3. GET + 토큰 헤더</text>
+  <path class="dg-edge dg-edge--accent" d="M496 164 L214 164" marker-end="url(#d043-ar-accent)"/>
+  <text class="dg-fs-sm" x="220" y="158">4. 메타데이터 · 임시 자격 증명 응답</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="196">토큰 헤더가 없는 GET 은 거부됩니다 — 여기가 IMDSv1 과 갈리는 지점입니다</text>
+
+  <path class="dg-grid" d="M20 212 L700 212"/>
+  <text class="dg-fs-md dg-bold" x="20" y="238">서버 측 요청 위조(SSRF) 공격 비교</text>
+
+  <rect class="dg-node" x="20" y="252" width="150" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="95" y="282" text-anchor="middle">공격자</text>
+  <text class="dg-fs-sm dg-muted" x="95" y="302" text-anchor="middle">URL 을 주입</text>
+
+  <rect class="dg-node dg-node--warn" x="210" y="252" width="190" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="305" y="278" text-anchor="middle">취약한 애플리케이션</text>
+  <text class="dg-fs-sm" x="305" y="298" text-anchor="middle">GET 만 대신 보낼 수 있음</text>
+  <text class="dg-fs-sm dg-muted" x="305" y="316" text-anchor="middle">임의 헤더 주입은 어려움</text>
+
+  <path class="dg-edge" d="M170 287 L206 287" marker-end="url(#d043-ar)"/>
+
+  <rect class="dg-node dg-node--danger" x="440" y="240" width="260" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="452" y="258">IMDSv1 — 그대로 응답</text>
+  <text class="dg-fs-sm" x="452" y="277">토큰 없이 GET 만으로 자격 증명 유출</text>
+  <path class="dg-edge dg-edge--danger" d="M400 275 L436 264" marker-end="url(#d043-ar-danger)"/>
+
+  <rect class="dg-node dg-node--ok" x="440" y="298" width="260" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="452" y="316">IMDSv2 — 토큰 단계에서 차단</text>
+  <text class="dg-fs-sm" x="452" y="335">PUT 과 헤더를 유도할 수 없어 실패</text>
+  <path class="dg-edge dg-edge--ok" d="M400 299 L436 315"/>
+  <path class="dg-x" d="M410 296 L426 312 M426 296 L410 312"/>
+
+  <rect class="dg-node dg-node--accent" x="20" y="364" width="680" height="52" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="386" text-anchor="middle">hop limit — 응답 패킷이 넘을 수 있는 홉 수의 상한</text>
+  <text class="dg-fs-sm" x="360" y="406" text-anchor="middle">1 로 두면 인스턴스 자신만 읽을 수 있고, 컨테이너처럼 한 홉 건너에 있는 프로세스는 읽지 못합니다</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="444">IMDSv2 를 필수로 강제하면(HttpTokens=required) IMDSv1 방식 요청 자체가 받아들여지지 않습니다</text>
+</svg>

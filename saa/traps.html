@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>함정 사전 — AWS SAA Guide</title>
+  <meta name="description" content="SAA-C03에서 반복적으로 혼동을 유발하는 개념 쌍을 결정적 차이, 선택 기준, 시험이 노리는 지점으로 나누어 정리합니다. Multi-AZ와 읽기 전용 복제본, 보안 그룹과 네트워크 ACL, ALB와 NLB, LSI와 GSI를 포함해 44쌍을 일곱 갈래로 묶었습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="saa" data-page="traps"></div>
+
+  <main id="main" class="page page--wide" data-page-id="saa/traps">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="index.html">시험 대비</a></li>
+        <li><span aria-current="page">함정 사전</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">시험 대비 · 함정 사전</p>
+      <h1>함정 사전</h1>
+      <p class="page__lead">
+        SAA-C03의 오답 선택지는 대부분 <strong>존재하지 않는 서비스가 아니라 옆자리 서비스</strong>입니다.
+        Multi-AZ 자리에 읽기 전용 복제본을, 인터페이스 엔드포인트 자리에 게이트웨이 엔드포인트를 놓아 둡니다.
+        그래서 두 개념을 각각 아는 것으로는 부족하고, <strong>둘을 가르는 한 문장</strong>을 가지고 있어야 합니다.
+        이 페이지는 그 한 문장을 쌍 단위로 모아 놓은 사전입니다.
+      </p>
+      <p class="page__meta">
+        수록한 쌍은 <strong>44개</strong>이며 일곱 갈래로 묶었습니다.
+        한정어 해석은 <a href="keywords.html">한정어 키워드 사전</a>이,
+        시험장에서의 소거 절차는 <a href="exam-tips.html">시험 당일 전략</a>이 담당합니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>혼동되는 개념 쌍마다 결정적 차이를 한 문장으로 말할 수 있습니다.</li>
+        <li>요구사항의 성격을 보고 쌍의 어느 쪽이 답인지 근거를 들어 고를 수 있습니다.</li>
+        <li>시험이 각 쌍에서 무엇을 뒤집어 오답을 만드는지 미리 알고 선택지를 소거할 수 있습니다.</li>
+        <li>대립처럼 보이지만 사실 대립이 아닌 쌍(Fargate, Multi-AZ DB 클러스터 등)을 구분할 수 있습니다.</li>
+        <li>취약한 쌍을 찾아 해당 챕터와 도메인 페이지로 되돌아갈 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="how-to-read">
+      <h2 id="how-to-read">이 사전을 읽는 방법</h2>
+
+      <p>
+        표의 네 열은 각각 다른 일을 합니다.
+        <strong>결정적 차이</strong>는 두 개념을 가르는 구조적 사실이고,
+        <strong>어느 쪽이 언제</strong>는 요구사항에서 그 사실을 끌어내는 신호이며,
+        <strong>시험이 노리는 지점</strong>은 오답 선택지가 실제로 뒤집는 부분입니다.
+      </p>
+      <p>
+        공부할 때는 왼쪽에서 오른쪽으로 읽고,
+        복습할 때는 <strong>쌍 이름만 보고 나머지 세 칸을 스스로 말해 본 뒤</strong> 대조하십시오.
+        세 칸 중 하나라도 막히면 그 행의 담당 개념이 아직 판단 가능한 상태가 아닙니다.
+      </p>
+
+      <aside class="note" data-label="참고">
+        <p>
+          쌍의 이름에 <strong>vs</strong>가 붙어 있다고 해서 언제나 둘 중 하나만 고른다는 뜻은 아닙니다.
+          요구사항에 가용성과 읽기 확장이 함께 있으면 Multi-AZ 배포와 읽기 전용 복제본을
+          <strong>둘 다 구성하는 선택지</strong>가 정답입니다.
+          쌍은 대립이 아니라 <strong>구분해야 할 두 축</strong>이라고 읽는 편이 정확합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="database-and-cache">
+      <h2 id="database-and-cache">데이터베이스와 캐시</h2>
+
+      <p>
+        이 갈래는 <strong>가용성 요구와 성능 요구를 섞어 놓는 방식</strong>으로 함정을 만듭니다.
+        문제문에서 "장애가 나도 계속 동작해야 한다"인지 "느려서 못 쓰겠다"인지를 먼저 확정하면
+        후보가 절반으로 줄어듭니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>데이터베이스와 캐시에서 혼동되는 쌍 일곱 개</caption>
+          <thead>
+            <tr>
+              <th scope="col">쌍</th>
+              <th scope="col">결정적 차이</th>
+              <th scope="col">어느 쪽이 언제</th>
+              <th scope="col">시험이 노리는 지점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1. RDS Multi-AZ 배포 vs 읽기 전용 복제본</th>
+              <td>Multi-AZ는 <strong>동기(synchronous) 복제</strong>로 가용성을, 읽기 전용 복제본은 <strong>비동기(asynchronous) 복제</strong>로 읽기 확장을 담당합니다. Multi-AZ의 대기 인스턴스는 읽기 트래픽을 받지 않습니다</td>
+              <td>가용 영역 장애를 견디고 자동 장애 조치가 필요하면 Multi-AZ, 읽기 부하로 응답이 느려졌으면 읽기 전용 복제본. 요구가 둘 다면 둘 다 구성합니다</td>
+              <td>"Multi-AZ 대기 인스턴스로 읽기를 분산한다"는 선택지. 표준 Multi-AZ 인스턴스 배포에서는 틀립니다</td>
+            </tr>
+            <tr>
+              <th scope="row">2. Multi-AZ 인스턴스 배포 vs Multi-AZ DB 클러스터 배포</th>
+              <td>같은 이름을 쓰지만 <strong>별개의 아키텍처</strong>입니다. DB 클러스터 배포는 읽기 가능한 대기 인스턴스를 둡니다</td>
+              <td>문제문이 어느 배포를 말하는지 그대로 따릅니다. 명시가 없으면 표준 인스턴스 배포로 읽습니다</td>
+              <td>둘을 뒤섞어 "Multi-AZ면 언제나 대기에서 읽을 수 있다"로 일반화하게 만드는 서술</td>
+            </tr>
+            <tr>
+              <th scope="row">3. Amazon Aurora vs Amazon RDS</th>
+              <td>Aurora는 <strong>여러 가용 영역에 걸친 공유 스토리지 계층</strong> 위에서 동작하고, 복제본이 읽기 처리와 장애 조치 대상을 겸합니다. RDS의 읽기 전용 복제본은 별도 인스턴스로 비동기 복제됩니다</td>
+              <td>읽기 확장과 빠른 장애 조치를 함께 요구하면 Aurora, 특정 엔진 버전이나 기존 구성을 그대로 옮기는 것이 목적이면 RDS</td>
+              <td>Aurora에 RDS 방식의 읽기 전용 복제본 생성을 적용하는 선택지. Aurora는 클러스터에 인스턴스를 추가하는 방식입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">4. DynamoDB LSI vs GSI</th>
+              <td>로컬 보조 인덱스(Local Secondary Index, LSI)는 <strong>테이블과 같은 파티션 키</strong>를 써야 하고, 글로벌 보조 인덱스(Global Secondary Index, GSI)는 <strong>다른 파티션 키</strong>를 쓸 수 있습니다</td>
+              <td>같은 파티션 키 안에서 다른 정렬 기준이 필요하면 LSI, 완전히 다른 속성으로 조회해야 하면 GSI</td>
+              <td>개수 상한을 뒤집는 선택지. <strong>LSI는 최대 5개, GSI는 최대 20개</strong>이고, LSI에는 파티션 키 값당 10GB 제한이 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">5. DynamoDB 온디맨드 vs 프로비저닝된 용량 모드</th>
+              <td>온디맨드는 요청 단위로 처리하고, 프로비저닝은 읽기·쓰기 용량을 미리 지정합니다. <strong>모드는 나중에 변경할 수 있습니다</strong></td>
+              <td>트래픽을 예측할 수 없거나 급증이 잦으면 온디맨드, 안정적이고 예측 가능한 부하면 프로비저닝(오토 스케일링 병용)</td>
+              <td>"용량 모드는 생성 후 바꿀 수 없다"는 서술. 바꿀 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">6. DynamoDB Accelerator(DAX) vs Amazon ElastiCache</th>
+              <td>DAX는 <strong>DynamoDB 전용</strong> 캐시이며 DynamoDB API와 호환됩니다. ElastiCache는 범용 캐시이고 캐시 적재·무효화를 애플리케이션이 구현합니다</td>
+              <td>DynamoDB 읽기 지연을 코드 변경 없이 줄이려면 DAX, 관계형 데이터베이스 결과나 세션·리더보드 같은 임의의 데이터를 캐싱하려면 ElastiCache</td>
+              <td>관계형 데이터베이스 부하 문항에 DAX를 넣는 선택지, 반대로 DynamoDB 문항에 "코드를 고쳐 캐시를 붙인다"를 넣는 선택지</td>
+            </tr>
+            <tr>
+              <th scope="row">7. ElastiCache Redis 엔진 vs Memcached 엔진</th>
+              <td>Redis 엔진은 <strong>복제·영속성·자료 구조</strong>를 제공하고, Memcached 엔진은 단순 키-값 캐시를 <strong>여러 노드에 수평 분할</strong>합니다</td>
+              <td>장애 조치나 데이터 구조가 필요하면 Redis 엔진, 순수 캐시를 노드 추가로 넓히기만 하면 되면 Memcached 엔진</td>
+              <td>"고가용성이 필요하다"고 해 놓고 Memcached를 답으로 유도하는 구성</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          이 갈래에서 가장 자주 재활용되는 오답은 <strong>1번 쌍을 뒤집는 것</strong>입니다.
+          읽기 부하 문항에 Multi-AZ 전환을, 가용 영역 장애 문항에 읽기 전용 복제본 추가를 정답처럼 놓습니다.
+          <strong>동기·비동기</strong>와 <strong>가용성·읽기 확장</strong>이라는 두 축을 먼저 떠올리면 즉시 갈립니다.
+          자세한 비교는 <a href="domain-resilient.html#multi-az-vs-read-replica">복원력 도메인 페이지</a>에 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="network-and-access">
+      <h2 id="network-and-access">네트워크와 접근 경로</h2>
+
+      <p>
+        이 갈래의 판단 기준은 거의 언제나 <strong>계층과 경로</strong>입니다.
+        어느 계층에서 막는가, 트래픽이 어디를 지나는가 두 가지만 확인하면
+        암호화 여부나 관리 편의 같은 부차적 서술에 끌려가지 않습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>네트워크와 접근 경로에서 혼동되는 쌍 일곱 개</caption>
+          <thead>
+            <tr>
+              <th scope="col">쌍</th>
+              <th scope="col">결정적 차이</th>
+              <th scope="col">어느 쪽이 언제</th>
+              <th scope="col">시험이 노리는 지점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">8. 보안 그룹 vs 네트워크 ACL</th>
+              <td>보안 그룹은 <strong>인스턴스 수준 · 상태 저장(stateful) · 허용 규칙만</strong>, 네트워크 ACL은 <strong>서브넷 수준 · 상태 비저장(stateless) · 허용과 거부 모두</strong>입니다</td>
+              <td>계층 간 접근을 여는 것은 보안 그룹, 서브넷 단위로 특정 대역을 막는 것은 네트워크 ACL</td>
+              <td>"보안 그룹으로 특정 IP를 차단한다" — 보안 그룹에는 거부 규칙이 없으므로 항상 오답입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">9. 게이트웨이 엔드포인트 vs 인터페이스 엔드포인트</th>
+              <td>게이트웨이 엔드포인트는 <strong>라우팅 테이블의 경로</strong>이고 Amazon S3와 Amazon DynamoDB 전용입니다. 인터페이스 엔드포인트(AWS PrivateLink)는 <strong>서브넷에 네트워크 인터페이스</strong>를 만듭니다</td>
+              <td>대상이 S3나 DynamoDB면 게이트웨이 엔드포인트, 그 밖의 서비스나 온프레미스에서의 접근이 필요하면 인터페이스 엔드포인트</td>
+              <td>S3 접근에 인터페이스 엔드포인트를 답으로 놓는 구성, 그리고 게이트웨이 엔드포인트에 보안 그룹을 연결한다는 서술</td>
+            </tr>
+            <tr>
+              <th scope="row">10. NAT 게이트웨이 vs NAT 인스턴스</th>
+              <td>NAT 게이트웨이는 <strong>AWS 관리형</strong>이고 보안 그룹을 연결할 수 없습니다. NAT 인스턴스는 사용자가 운영하는 EC2 인스턴스라 보안 그룹·포트 포워딩·배스천 겸용이 가능합니다</td>
+              <td>운영 부담을 줄이는 것이 요구면 NAT 게이트웨이. 포트 포워딩이나 배스천 겸용처럼 인스턴스여야 가능한 요구가 명시되면 NAT 인스턴스</td>
+              <td>"관리형이니 자동으로 다중 가용 영역"이라는 서술. NAT 게이트웨이는 <strong>지정한 서브넷의 가용 영역 안에서만</strong> 동작하므로 이중화는 가용 영역마다 하나씩 두어야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">11. VPC 피어링 vs AWS Transit Gateway</th>
+              <td>피어링은 <strong>두 VPC를 일대일</strong>로 잇고 전이적 라우팅이 없습니다. Transit Gateway는 <strong>허브</strong> 역할을 하며 다수 VPC와 온프레미스를 한 지점에 모읍니다</td>
+              <td>VPC가 둘뿐이면 피어링, 수가 늘어 연결 조합이 급증하거나 온프레미스까지 함께 묶어야 하면 Transit Gateway</td>
+              <td>"피어링을 여러 개 만들면 전이적으로 통신된다"는 서술. 피어링은 전이되지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">12. AWS Direct Connect vs Site-to-Site VPN</th>
+              <td>Direct Connect는 <strong>전용 회선</strong>이라 공용 인터넷을 지나지 않습니다. VPN은 인터넷 위에 IPsec 터널을 세우므로 <strong>암호화되지만 경로는 공용망</strong>입니다</td>
+              <td>일관된 대역폭과 비공개 경로가 요구면 Direct Connect, 빠르게 구축하거나 백업 경로가 목적이면 VPN</td>
+              <td>"인터넷을 경유하면 안 된다"는 제약에 VPN을 답으로 놓는 구성. 암호화는 경로 제약을 대신하지 못합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">13. Application Load Balancer vs Network Load Balancer</th>
+              <td>ALB는 <strong>L7</strong>에서 HTTP·HTTPS를 처리하고 경로·호스트 기반 라우팅을 합니다. NLB는 <strong>L4</strong>에서 TCP·TLS·UDP를 처리합니다</td>
+              <td>HTTP 헤더나 경로로 라우팅해야 하면 ALB. TCP·UDP 프로토콜이거나 <strong>고정 IP 주소</strong>가 필요하면 NLB</td>
+              <td>UDP 트래픽이나 고정 IP 요구에 ALB를 놓는 구성. ALB는 HTTP 계열만 처리합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">14. Network Load Balancer vs Gateway Load Balancer</th>
+              <td>GWLB는 <strong>GENEVE 프로토콜</strong>로 서드파티 가상 어플라이언스에 트래픽을 투명하게 넘깁니다. 애플리케이션 부하 분산이 목적이 아닙니다</td>
+              <td>방화벽·침입 탐지 같은 <strong>인라인 검사 어플라이언스</strong>를 배치하는 요구면 GWLB, 그 밖의 L4 부하 분산은 NLB</td>
+              <td>어플라이언스 삽입 요구에 NLB를, 일반 TCP 부하 분산에 GWLB를 놓는 맞바꾸기</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          8번과 9번은 도메인 1에서 가장 자주 재활용되는 두 쌍입니다.
+          <strong>상태 저장 여부</strong>와 <strong>대상 서비스가 S3·DynamoDB인가</strong>는
+          한 문장으로 즉시 답할 수 있어야 합니다.
+          배경 지식은 <a href="../basics/ch03.html">3장 VPC 네트워킹 기초</a>와
+          <a href="../basics/ch04.html">4장 VPC 연결과 하이브리드</a>가 담당합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="edge-and-dns">
+      <h2 id="edge-and-dns">엣지와 DNS</h2>
+
+      <p>
+        엣지 서비스는 이름이 비슷하고 효과가 겹쳐 보여서 혼동을 만듭니다.
+        <strong>캐싱인가 경로 최적화인가</strong>, <strong>질의의 출발지인가 리소스의 위치인가</strong>
+        두 질문이 이 갈래의 대부분을 가릅니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>엣지와 DNS에서 혼동되는 쌍 네 개</caption>
+          <thead>
+            <tr>
+              <th scope="col">쌍</th>
+              <th scope="col">결정적 차이</th>
+              <th scope="col">어느 쪽이 언제</th>
+              <th scope="col">시험이 노리는 지점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">15. Amazon CloudFront vs AWS Global Accelerator</th>
+              <td>CloudFront는 엣지에서 <strong>콘텐츠를 캐싱</strong>하는 HTTP 계열 서비스이고, Global Accelerator는 <strong>고정 애니캐스트 IP</strong>로 AWS 백본까지의 경로를 앞당기며 TCP·UDP를 다룹니다</td>
+              <td>정적·동적 웹 콘텐츠 가속이면 CloudFront. 게임·음성 같은 비HTTP 프로토콜이거나 <strong>고정 IP</strong>와 빠른 리전 장애 조치가 필요하면 Global Accelerator</td>
+              <td>UDP 워크로드에 CloudFront를 놓는 구성. 반대로 이미지·동영상 배포에 Global Accelerator를 놓는 구성</td>
+            </tr>
+            <tr>
+              <th scope="row">16. 지연 시간 vs 지리적 위치 vs 지리 근접 라우팅</th>
+              <td>지연 시간 기반은 <strong>측정된 지연이 가장 낮은 리전</strong>으로, 지리적 위치는 <strong>질의가 어디서 왔는가</strong>로, 지리 근접은 <strong>리소스의 위치와 편향(bias) 값</strong>으로 응답합니다</td>
+              <td>성능이 목적이면 지연 시간 기반. 규정·저작권·언어처럼 <strong>사용자 위치로 콘텐츠를 갈라야 하면</strong> 지리적 위치. 리소스 쪽 위치를 기준으로 트래픽 비중을 조정하려면 지리 근접</td>
+              <td>"유럽 사용자에게는 유럽 데이터만 제공해야 한다"는 규정 요구에 지연 시간 기반을 놓는 구성</td>
+            </tr>
+            <tr>
+              <th scope="row">17. 장애 조치 라우팅 vs 다중값 응답 라우팅</th>
+              <td>장애 조치는 <strong>기본과 보조를 정해</strong> 상태 확인 실패 시 전환합니다. 다중값 응답은 여러 레코드를 <strong>거의 무작위로</strong> 함께 돌려줍니다</td>
+              <td>재해 복구용 대기 사이트로 넘기는 요구면 장애 조치. 여러 정상 대상에 요청을 흩뿌리는 정도면 다중값 응답</td>
+              <td>다중값 응답을 로드 밸런서 대체재로 서술하는 선택지. 부하 분산 알고리즘도 세션 처리도 제공하지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">18. AWS WAF vs AWS Shield</th>
+              <td>WAF는 <strong>HTTP 요청의 내용</strong>을 규칙으로 검사합니다. Shield는 <strong>디도스(DDoS) 공격</strong> 대응이며 표준 보호는 기본 제공, 상위 보호는 별도 구독입니다</td>
+              <td>SQL 삽입·특정 경로·요청 비율 같은 L7 규칙이면 WAF. 대규모 볼륨 공격 대응과 대응 팀 지원이 요구면 Shield 상위 보호</td>
+              <td>애플리케이션 계층 규칙 요구에 Shield를, 볼륨 공격 대응에 WAF만을 답으로 놓는 맞바꾸기</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="storage-pairs">
+      <h2 id="storage-pairs">스토리지</h2>
+
+      <p>
+        스토리지 갈래의 함정은 <strong>같은 서비스의 다른 티어</strong>에서 나옵니다.
+        서비스 이름이 정답과 같아서 안심하고 고르게 만드는 것이 이 유형의 설계 의도입니다.
+        클래스·타입·복제 범위를 요구사항과 하나씩 대조해야 합니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>스토리지에서 혼동되는 쌍 일곱 개</caption>
+          <thead>
+            <tr>
+              <th scope="col">쌍</th>
+              <th scope="col">결정적 차이</th>
+              <th scope="col">어느 쪽이 언제</th>
+              <th scope="col">시험이 노리는 지점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">19. S3 Standard-IA vs S3 One Zone-IA</th>
+              <td>저장하는 <strong>가용 영역 수</strong>가 다릅니다. Standard-IA는 3개 이상, One Zone-IA는 <strong>1개</strong>입니다. 최소 저장 기간 30일과 최소 청구 크기 128KB는 둘 다 같습니다</td>
+              <td>재생성할 수 있는 사본이나 이차 백업이면 One Zone-IA, 원본이거나 가용 영역 장애를 견뎌야 하면 Standard-IA</td>
+              <td>"더 저렴하니까 One Zone-IA"로 유도한 뒤 가용 영역 장애 내성 요구를 문제문에 숨겨 두는 구성</td>
+            </tr>
+            <tr>
+              <th scope="row">20. S3 Glacier Flexible Retrieval vs Deep Archive</th>
+              <td>최소 저장 기간이 <strong>90일과 180일</strong>로 다르고, 검색 시간도 다릅니다. Deep Archive의 기본 검색 시간은 12시간입니다</td>
+              <td>몇 시간 안에 꺼내야 할 가능성이 있으면 Flexible Retrieval, 규정상 장기 보관이고 꺼낼 일이 거의 없으면 Deep Archive</td>
+              <td>"수 분 안에 복원"이 요구인데 Deep Archive를 답으로 놓는 구성. 반대로 10년 보관 요구에 Standard를 놓는 구성</td>
+            </tr>
+            <tr>
+              <th scope="row">21. S3 버킷 정책 vs ACL</th>
+              <td>버킷 정책은 <strong>리소스 기반 정책</strong>이고, ACL은 객체·버킷 단위의 옛 접근 제어 방식입니다. <strong>신규 버킷은 ACL이 비활성 상태</strong>로 만들어집니다</td>
+              <td>접근 제어는 버킷 정책과 IAM 정책으로 합니다. ACL은 개별 객체마다 소유자를 달리해야 하는 드문 경우에만 남습니다</td>
+              <td>"ACL로 퍼블릭 읽기를 준다"는 선택지. 현행 기본 구성에서는 ACL 자체가 꺼져 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">22. 교차 리전 복제(CRR) vs 동일 리전 복제(SRR)</th>
+              <td>복제 대상 버킷이 <strong>다른 리전인가 같은 리전인가</strong>입니다. 두 복제 모두 원본 버킷에 버전 관리가 켜져 있어야 합니다</td>
+              <td>리전 장애 대비나 사용자 근접 배치면 CRR, 로그 집계·계정 분리·데이터 주권 요구가 같은 리전 안에서 해결되면 SRR</td>
+              <td>복제만 켜면 <strong>기존 객체까지 자동으로 복사된다</strong>고 서술하는 선택지, 그리고 버전 관리 전제 조건을 빼놓는 구성</td>
+            </tr>
+            <tr>
+              <th scope="row">23. Amazon EBS vs 인스턴스 스토어</th>
+              <td>EBS는 <strong>네트워크로 연결된 영속 볼륨</strong>이고, 인스턴스 스토어는 호스트에 물리적으로 붙은 임시 저장소로 <strong>인스턴스를 중지·종료하면 사라집니다</strong></td>
+              <td>데이터가 인스턴스보다 오래 살아야 하면 EBS. 캐시·스크래치·임시 처리 공간이면 인스턴스 스토어</td>
+              <td>인스턴스 스토어를 데이터베이스 데이터 파일 위치로 제안하는 선택지. 중지 한 번으로 데이터가 사라집니다</td>
+            </tr>
+            <tr>
+              <th scope="row">24. EBS 스냅샷 vs AMI</th>
+              <td>스냅샷은 <strong>볼륨 하나의 시점 백업</strong>이고, AMI는 <strong>인스턴스를 시작하기 위한 템플릿</strong>으로 루트 볼륨 스냅샷과 블록 디바이스 매핑을 함께 담습니다</td>
+              <td>데이터 볼륨만 되살리면 스냅샷, 같은 구성의 인스턴스를 다시 띄우거나 다른 리전에 배포하면 AMI</td>
+              <td>"스냅샷으로 다른 리전에 인스턴스를 시작한다"는 선택지. 인스턴스를 시작하려면 AMI가 필요합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">25. Amazon EFS vs Amazon FSx</th>
+              <td>EFS는 <strong>Linux용 NFS 공유 파일 시스템</strong>으로 여러 가용 영역에서 동시에 마운트됩니다. FSx는 용도별 파일 시스템 제품군으로, Windows File Server는 SMB와 Active Directory 통합을, Lustre는 고성능 컴퓨팅용 처리량을 담당합니다</td>
+              <td>여러 Linux 인스턴스가 같은 파일을 봐야 하면 EFS. Windows 애플리케이션의 SMB 공유면 FSx for Windows File Server, 대규모 병렬 분석이면 FSx for Lustre</td>
+              <td>Windows 워크로드에 EFS를, Linux 공유에 FSx for Windows File Server를 놓는 맞바꾸기</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          21번 쌍은 <strong>2023년에 기본값이 바뀐 항목</strong>입니다.
+          신규 버킷은 퍼블릭 액세스 차단이 켜진 상태로 생성되고, ACL이 비활성이며,
+          신규 객체가 SSE-S3로 자동 암호화됩니다.
+          다만 <strong>버킷 버전 관리는 여전히 기본 비활성화</strong>이므로,
+          22번 쌍의 전제 조건을 문항이 감춰 두는 일이 자주 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="integration-and-compute">
+      <h2 id="integration-and-compute">애플리케이션 통합과 컴퓨팅</h2>
+
+      <p>
+        이 갈래는 <strong>대립이 아닌 것을 대립처럼 보이게</strong> 만드는 함정이 많습니다.
+        AWS Fargate는 Amazon ECS·Amazon EKS의 경쟁자가 아니라 실행 방식이고,
+        Amazon SNS와 Amazon SQS는 조합해서 쓰는 것이 정답인 경우가 많습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>애플리케이션 통합과 컴퓨팅에서 혼동되는 쌍 여섯 개</caption>
+          <thead>
+            <tr>
+              <th scope="col">쌍</th>
+              <th scope="col">결정적 차이</th>
+              <th scope="col">어느 쪽이 언제</th>
+              <th scope="col">시험이 노리는 지점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">26. Amazon SQS vs Amazon SNS vs Amazon EventBridge</th>
+              <td>SQS는 <strong>한 메시지를 한 소비자</strong>가 가져가는 큐, SNS는 <strong>모든 구독자에게 팬아웃</strong>, EventBridge는 <strong>이벤트 내용에 따른 규칙 라우팅</strong>입니다</td>
+              <td>급증분 완충과 재시도면 SQS, 하나의 사건을 여러 시스템이 받아야 하면 SNS, 이벤트 종류별로 다른 대상에 보내거나 AWS 서비스 이벤트에 반응해야 하면 EventBridge</td>
+              <td>팬아웃과 완충을 동시에 요구하는 문항. 정답은 <strong>SNS 주제에 여러 SQS 큐를 구독</strong>시키는 조합인데, 셋 중 하나만 고르게 유도합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">27. SQS 표준 큐 vs FIFO 큐</th>
+              <td>표준 큐는 순서를 보장하지 않는 대신 처리량이 거의 무제한이고, FIFO 큐는 <strong>메시지 그룹 안에서 엄격한 순서</strong>와 중복 제거를 제공합니다</td>
+              <td>순서나 중복 제거가 명시되면 FIFO, 그렇지 않으면 표준</td>
+              <td>"표준 큐를 FIFO로 전환한다"는 선택지. <strong>큐 타입은 생성 후 변경할 수 없습니다.</strong> 또한 FIFO 큐는 <code>MessageGroupId</code> 없이 전송하면 실패합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">28. Kinesis Data Streams vs Data Firehose</th>
+              <td>Data Streams는 <strong>샤드에 데이터를 보관</strong>해 여러 소비자가 각자 읽고 재처리할 수 있게 합니다. Firehose는 <strong>버퍼링해 대상으로 전달하는 관리형 배달 경로</strong>입니다</td>
+              <td>소비자를 직접 구현하고 재생·다중 소비가 필요하면 Data Streams. Amazon S3나 OpenSearch 같은 대상으로 코드 없이 적재하면 Firehose</td>
+              <td>"실시간"이라는 한정어를 붙여 놓고 배치 도구를 답으로 놓는 구성. 반대로 단순 적재 요구에 소비자 구현이 필요한 Data Streams를 놓는 과잉 설계</td>
+            </tr>
+            <tr>
+              <th scope="row">29. Amazon ECS vs Amazon EKS vs AWS Fargate</th>
+              <td><strong>Fargate는 오케스트레이터가 아니라 서버리스 실행 모드</strong>이며 ECS와 EKS 양쪽에서 쓸 수 있습니다. ECS는 AWS 자체 오케스트레이터, EKS는 관리형 Kubernetes입니다</td>
+              <td>Kubernetes 생태계나 기존 매니페스트를 그대로 써야 하면 EKS, AWS 안에서 단순하게 컨테이너를 돌리면 ECS. 어느 쪽이든 <strong>노드 운영 부담을 없애려면 Fargate</strong></td>
+              <td>"ECS와 Fargate 중 무엇을 고르는가"처럼 층위가 다른 셋을 나란히 세우는 선택지 배열</td>
+            </tr>
+            <tr>
+              <th scope="row">30. 수직 확장 vs 수평 확장</th>
+              <td>수직 확장은 인스턴스를 더 큰 타입으로 바꾸는 것이라 <strong>상한이 있고 교체 시 중단</strong>이 따릅니다. 수평 확장은 대수를 늘리는 것이라 상한이 훨씬 넓습니다</td>
+              <td>탄력성·내결함성·비용 최적화가 요구면 수평 확장. 단일 스레드 성능처럼 나눌 수 없는 요구에만 수직 확장</td>
+              <td>급증 대응 문항에서 "더 큰 인스턴스로 변경한다"를 정답처럼 놓는 구성. 상태 비저장 설계가 전제되면 거의 언제나 수평 확장이 답입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">31. 배치 그룹 — 클러스터 vs 분산 vs 파티션</th>
+              <td>클러스터는 <strong>한 가용 영역에 몰아</strong> 지연을 줄이고, 분산은 <strong>서로 다른 하드웨어로 흩어</strong> 동시 장애를 막으며, 파티션은 <strong>파티션 단위로 하드웨어를 분리</strong>합니다</td>
+              <td>노드 간 통신 지연이 병목이면 클러스터, 소수의 중요 인스턴스를 격리하려면 분산, 분산 데이터 플랫폼처럼 그룹 단위 격리가 필요하면 파티션</td>
+              <td>고가용성 요구에 클러스터 배치 그룹을 답으로 놓는 구성. 클러스터는 오히려 장애 범위를 좁은 곳에 모읍니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="security-and-governance">
+      <h2 id="security-and-governance">보안과 거버넌스</h2>
+
+      <p>
+        이 갈래에서는 <strong>무엇을 하는 서비스인가</strong>보다
+        <strong>어떤 질문에 답하는 서비스인가</strong>로 구분하는 편이 빠릅니다.
+        문제문의 동사가 "감사한다", "탐지한다", "찾는다" 중 무엇인지 보면 대체로 하나만 남습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>보안과 거버넌스에서 혼동되는 쌍 여섯 개</caption>
+          <thead>
+            <tr>
+              <th scope="col">쌍</th>
+              <th scope="col">결정적 차이</th>
+              <th scope="col">어느 쪽이 언제</th>
+              <th scope="col">시험이 노리는 지점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">32. SCP vs 권한 경계</th>
+              <td>서비스 제어 정책(Service Control Policy, SCP)은 <strong>조직·계정 단위</strong> 상한이고 멤버 계정의 루트 사용자에게도 적용됩니다. 권한 경계는 <strong>개별 IAM 주체</strong>에 거는 상한입니다</td>
+              <td>계정 전체에서 특정 리전이나 서비스를 금지하면 SCP, 개발자가 자기보다 큰 권한의 역할을 만들지 못하게 하면 권한 경계</td>
+              <td>"SCP로 권한을 부여한다"는 서술. <strong>SCP는 권한을 부여하지 않습니다.</strong> 실제 허용은 여전히 IAM 정책이 해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">33. 자격 증명 기반 정책 vs 리소스 기반 정책</th>
+              <td>자격 증명 기반 정책은 주체에 붙고, 리소스 기반 정책은 리소스에 붙으며 <strong><code>Principal</code> 요소</strong>를 가집니다</td>
+              <td>동일 계정 안에서는 둘 중 하나만 허용해도 통과합니다(합집합). <strong>교차 계정에서는 양쪽 모두 허용</strong>해야 합니다</td>
+              <td>교차 계정 접근 문항에서 한쪽만 고치는 선택지. 그리고 권한 경계·SCP·세션 정책까지 합집합으로 착각하게 만드는 서술 — 이 셋은 교집합입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">34. AWS Secrets Manager vs Parameter Store</th>
+              <td>Secrets Manager는 <strong>자동 교체(rotation)가 내장</strong>되어 있고, AWS Systems Manager Parameter Store에는 그 기능이 없습니다. Parameter Store는 <code>SecureString</code>으로 비밀도 저장할 수 있습니다</td>
+              <td>자격 증명을 주기적으로 교체해야 하면 Secrets Manager, 설정값을 계층 구조로 관리하고 교체 요구가 없으면 Parameter Store</td>
+              <td>교체 요구가 문제문에 있는데 Parameter Store를 답으로 놓는 구성. 반대로 단순 설정값 관리에 Secrets Manager를 놓는 과잉 설계</td>
+            </tr>
+            <tr>
+              <th scope="row">35. KMS 고객 관리형 키 vs AWS 관리형 키</th>
+              <td>고객 관리형 키는 <strong>키 정책·별칭·교체·삭제 일정을 직접 통제</strong>하고 교차 계정 공유가 가능합니다. AWS 관리형 키는 서비스가 자동으로 만들어 쓰며 키 정책을 직접 편집하지 않습니다</td>
+              <td>키 정책으로 접근을 따로 제한하거나 다른 계정과 공유해야 하면 고객 관리형 키. 암호화 사실만 필요하면 AWS 관리형 키로 충분합니다</td>
+              <td>"IAM 정책만 열면 복호화된다"는 서술. <strong>키 정책과 IAM 정책이 함께 허용</strong>해야 복호화됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">36. GuardDuty vs Inspector vs Macie</th>
+              <td>Amazon GuardDuty는 <strong>이상 행위와 위협</strong>을 탐지하고, Amazon Inspector는 <strong>워크로드의 취약점</strong>을 점검하며, Amazon Macie는 <strong>민감 데이터의 위치</strong>를 찾습니다</td>
+              <td>계정에서 수상한 활동이 보인다면 GuardDuty, 인스턴스·컨테이너 이미지의 취약점 점검이면 Inspector, S3에 개인정보가 있는지 확인하면 Macie</td>
+              <td>"S3에서 민감 정보를 찾아라"에 GuardDuty를 놓는 구성. 여러 서비스의 결과를 모아 보는 요구라면 AWS Security Hub입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">37. CloudTrail vs Config vs CloudWatch</th>
+              <td>AWS CloudTrail은 <strong>누가 어떤 API를 호출했는가</strong>, AWS Config는 <strong>리소스 구성이 규칙에 맞는가</strong>, Amazon CloudWatch는 <strong>지표·로그·알람</strong>을 담당합니다</td>
+              <td>감사 추적이면 CloudTrail, 구성 준수와 변경 이력이면 Config, 성능 감시와 임계값 알림이면 CloudWatch</td>
+              <td>"누가 이 보안 그룹을 열었는지 찾아라"에 Config를, "규정 위반 구성을 지속적으로 평가하라"에 CloudTrail을 놓는 맞바꾸기</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          32번과 33번은 접근이 거부되는 이유를 찾는 문항에서 함께 등장합니다.
+          확인 순서는 정해져 있습니다 —
+          <strong>명시적 거부가 있는가, SCP가 허용하는가, 권한 경계 안인가,
+          자격 증명 기반 정책이 허용하는가, 교차 계정이면 리소스 기반 정책이 허용하는가.</strong>
+          이 순서로 선택지를 대조하면 대개 하나만 남습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost-and-recovery">
+      <h2 id="cost-and-recovery">비용 · 확장 · 복구 · 운영</h2>
+
+      <p>
+        비용과 복구 갈래는 <strong>교환 조건을 감추는 방식</strong>으로 함정을 만듭니다.
+        더 싼 안에는 더 긴 복구 시간이나 더 좁은 유연성이 붙어 있고,
+        문제문은 그 교환 조건 중 한쪽만 명시합니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>비용·확장·복구·운영에서 혼동되는 쌍 일곱 개</caption>
+          <thead>
+            <tr>
+              <th scope="col">쌍</th>
+              <th scope="col">결정적 차이</th>
+              <th scope="col">어느 쪽이 언제</th>
+              <th scope="col">시험이 노리는 지점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">38. 예약 인스턴스 vs Savings Plans</th>
+              <td>예약 인스턴스(Reserved Instance, RI)는 <strong>인스턴스 속성에 대한 약정</strong>이고, Savings Plans는 <strong>시간당 지출 금액에 대한 약정</strong>이라 조건을 만족하는 사용량에 자동 적용됩니다</td>
+              <td>인스턴스 타입이 고정되어 있고 <strong>용량 예약</strong>까지 필요하면 존 단위 RI. 인스턴스 패밀리나 리전이 바뀔 여지가 있으면 Savings Plans</td>
+              <td>"Savings Plans가 용량을 예약해 준다"는 서술. 지출 약정이지 용량 확보 수단이 아닙니다</td>
+            </tr>
+            <tr>
+              <th scope="row">39. 스팟 인스턴스 vs 온디맨드</th>
+              <td>스팟 인스턴스는 <strong>AWS가 회수하면 중단</strong>됩니다. 온디맨드는 중단되지 않는 대신 약정 할인이 없습니다</td>
+              <td>중단되어도 되는 배치·렌더링·스테이트리스 작업이면 스팟. 중단이 곧 장애인 워크로드면 온디맨드나 약정 옵션</td>
+              <td>데이터베이스나 상태를 가진 계층에 스팟을 답으로 놓는 구성. "비용 최적화"라는 한정어만 보고 고르게 만듭니다</td>
+            </tr>
+            <tr>
+              <th scope="row">40. 대상 추적 vs 단계별 스케일링</th>
+              <td>대상 추적은 <strong>지표의 목표값을 유지</strong>하도록 AWS가 알아서 조정하고, 단계별 스케일링은 <strong>알람을 얼마나 초과했는지</strong>에 따라 단계별 조정량을 사용자가 정합니다</td>
+              <td>평균 CPU 사용률 같은 단일 지표를 일정하게 유지하면 대상 추적. 위반 크기에 따라 다르게 반응해야 하면 단계별 스케일링</td>
+              <td>"규칙을 세밀히 정의해야 한다"는 요구에 대상 추적을, 단순 유지 요구에 단계별 정책을 놓는 맞바꾸기. 시각이 정해진 트래픽이면 예약 스케일링이 답입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">41. 파일럿 라이트 vs 웜 스탠바이</th>
+              <td>파일럿 라이트는 <strong>데이터 복제와 핵심 요소만</strong> 준비해 두고 대부분을 꺼 둡니다. 웜 스탠바이는 <strong>축소된 규모로 항상 가동</strong>하며 트래픽을 받을 수 있는 상태입니다</td>
+              <td>복구 시간을 시간 단위로 허용하면 파일럿 라이트, 분 단위로 줄여야 하면 웜 스탠바이. 무중단이 요구면 다중 사이트 액티브-액티브</td>
+              <td>RTO 요구를 명시해 놓고 상시 가동 범위가 요구보다 작거나 큰 전략을 답으로 놓는 구성</td>
+            </tr>
+            <tr>
+              <th scope="row">42. Snow Family vs AWS DataSync</th>
+              <td>Snow Family는 <strong>물리 장비를 배송해 오프라인으로</strong> 옮기고, DataSync는 <strong>네트워크로 전송</strong>하는 에이전트 기반 서비스입니다</td>
+              <td>대역폭이 부족하거나 회선이 없어 기한 안에 못 옮기면 Snow Family. 회선이 충분하고 주기적 동기화가 필요하면 DataSync</td>
+              <td>대역폭과 기한을 문제문에 숨겨 두고 반대쪽을 고르게 만드는 구성. 상시 하이브리드 접근이 목적이면 AWS Storage Gateway가 답입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">43. Cost Explorer vs AWS Budgets</th>
+              <td>Cost Explorer는 <strong>이미 발생한 비용을 분석</strong>하고, AWS Budgets는 <strong>한도를 정해 초과를 알립니다.</strong> 상세 원장이 필요하면 AWS Cost and Usage Report입니다</td>
+              <td>어디에 얼마를 썼는지 파악하면 Cost Explorer, 초과 시 알림을 받아야 하면 Budgets, 청구 항목 단위 원본 데이터가 필요하면 Cost and Usage Report</td>
+              <td>"예산 초과 시 알림"이라는 요구에 Cost Explorer를 놓는 구성</td>
+            </tr>
+            <tr>
+              <th scope="row">44. AWS CloudFormation vs AWS CDK</th>
+              <td>CloudFormation은 템플릿으로 인프라를 선언하는 <strong>시험 범위 안</strong> 서비스입니다. AWS CDK는 <strong>시험 범위 밖</strong>입니다</td>
+              <td>인프라를 코드로 정의·재배포하는 요구는 CloudFormation으로 답합니다</td>
+              <td>학습 자료에서 둘을 나란히 소개하는 습관 때문에 생기는 혼동입니다. 시험에서 판단 대상이 되는 것은 CloudFormation뿐입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="시험 범위 아님">
+        <p>
+          AWS CDK는 AWS가 명시적으로 시험 범위 밖으로 지정한 서비스입니다.
+          44번 쌍은 <strong>학습 대상으로 소개하기 위한 것이 아니라</strong>,
+          범위 안팎을 가르기 위해 넣었습니다. 학습 시간을 배분하지 마십시오.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="not-really-pairs">
+      <h2 id="not-really-pairs">쌍이 아닌 쌍</h2>
+
+      <p>
+        마지막으로, <strong>대립 구도 자체가 잘못된</strong> 세 가지를 따로 모았습니다.
+        이 유형은 선택지 배열만으로 오해를 만들기 때문에,
+        문제를 읽는 순간 "이 둘은 층위가 다르다"고 알아차리는 것이 유일한 방어입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>대립처럼 배열되지만 층위가 다른 세 가지</caption>
+          <thead>
+            <tr>
+              <th scope="col">잘못된 대립</th>
+              <th scope="col">실제 관계</th>
+              <th scope="col">문항에서의 대처</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">ECS vs Fargate</th>
+              <td>Fargate는 ECS(그리고 EKS)의 <strong>실행 방식</strong>입니다. 경쟁 서비스가 아닙니다</td>
+              <td>고를 것은 오케스트레이터(ECS인가 EKS인가)와 실행 방식(EC2인가 Fargate인가) <strong>두 가지</strong>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">SQS vs SNS</th>
+              <td>완충과 팬아웃은 함께 쓸 수 있습니다. SNS 주제에 여러 SQS 큐를 구독시키는 구성이 표준 패턴입니다</td>
+              <td>둘 다 포함한 선택지가 있으면 그쪽을 먼저 검토합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Multi-AZ vs 다중 리전</th>
+              <td>가용 영역 이중화와 리전 이중화는 <strong>다루는 장애의 크기</strong>가 다릅니다. 대체 관계가 아닙니다</td>
+              <td>문제문의 장애 시나리오가 가용 영역 규모인지 리전 규모인지 먼저 확정합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          시험 직전에는 이 페이지를 <strong>쌍 이름만 훑는 용도</strong>로 씁니다.
+          이름을 보고 결정적 차이가 즉시 떠오르지 않는 행에만 표시해 두고,
+          그 행의 담당 챕터로 돌아가는 것이 남은 시간을 쓰는 가장 효율적인 방법입니다.
+          압축본은 <a href="cram.html">벼락치기 요약</a>에 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">쌍의 어느 쪽을 고를지는 결국 한정어가 정합니다. MOST cost-effective와 LEAST operational overhead가 무엇을 배제하는지 다룹니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="domain-secure.html">
+          <span class="card__title">보안 아키텍처 설계 (30%)</span>
+          <span class="card__desc">8번 · 9번 · 32번 · 33번 쌍의 배경입니다. 정책 결합 규칙과 비공개 경로 설계를 정면으로 다룹니다.</span>
+          <span class="card__meta">시험 대비 · 도메인</span>
+        </a></li>
+        <li><a class="card" href="domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">1번 · 26번 · 41번 쌍의 배경입니다. Multi-AZ와 읽기 전용 복제본, DR 4전략을 판단 지점으로 정리했습니다.</span>
+          <span class="card__meta">시험 대비 · 도메인</span>
+        </a></li>
+        <li><a class="card" href="domain-performance.html">
+          <span class="card__title">고성능 아키텍처 설계 (24%)</span>
+          <span class="card__desc">4번 · 13번 · 15번 · 28번 쌍의 배경입니다. 스토리지·컴퓨팅·데이터베이스·네트워크·데이터 수집을 다룹니다.</span>
+          <span class="card__meta">시험 대비 · 도메인</span>
+        </a></li>
+        <li><a class="card" href="domain-cost.html">
+          <span class="card__title">비용 최적화 아키텍처 설계 (20%)</span>
+          <span class="card__desc">19번 · 38번 · 39번 · 42번 쌍의 배경입니다. 금액이 아니라 구조로 비용을 판단하는 방법을 다룹니다.</span>
+          <span class="card__meta">시험 대비 · 도메인</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/compare.html">
+          <span class="card__title">헷갈리는 쌍 빠른참조</span>
+          <span class="card__desc">같은 쌍을 표 한 장으로 압축한 치트시트입니다. 이 페이지가 설명이라면 그쪽은 대조표입니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html">Amazon VPC 사용 설명서 — 보안</a>
+          — 보안 그룹과 네트워크 ACL의 공식 비교표(적용 계층, 허용·거부, 평가 방식, 상태 저장 여부)</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html">Amazon RDS 사용 설명서 — Multi-AZ DB 인스턴스 배포</a>
+          — 동기 복제와 대기 인스턴스의 역할</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html">Amazon RDS 사용 설명서 — 읽기 전용 복제본 사용</a>
+          — 비동기 복제와 별도 읽기 엔드포인트</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SecondaryIndexes.html">Amazon DynamoDB 개발자 안내서 — 보조 인덱스</a>
+          — LSI와 GSI의 키 스키마 제약과 개수 상한</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 클래스별 가용 영역 수, 최소 저장 기간, 최소 청구 크기</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">Amazon S3 API 레퍼런스 — CreateBucket</a>
+          — 신규 버킷의 퍼블릭 액세스 차단과 객체 소유권 기본값</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVolume.html">Amazon EC2 API 레퍼런스 — CreateVolume</a>
+          — EBS 볼륨 타입과 유효 범위</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html">Amazon SQS API 레퍼런스 — CreateQueue</a>
+          — 큐 타입이 생성 후 변경되지 않는다는 서술과 FIFO 큐 속성</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html">IAM 사용 설명서 — 정책 평가 로직</a>
+          — 정책 유형별 결합 규칙(합집합과 교집합), SCP의 성질</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html">Amazon Route 53 API 레퍼런스 — ResourceRecordSet</a>
+          — 라우팅 정책별 식별 요소</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateLoadBalancer.html">Elastic Load Balancing API 레퍼런스 — CreateLoadBalancer</a>
+          — 로드 밸런서 타입 세 가지와 지원 프로토콜</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">SAA-C03 시험 가이드</a>
+          — 도메인 구성과 과제 진술</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>
