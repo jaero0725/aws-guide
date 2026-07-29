@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>케이스 10 · 규정 준수 감사에 대응하라 — AWS SAA Guide</title>
+  <meta name="description" content="감사관의 네 가지 질문에 CloudTrail, AWS Config, S3 Object Lock, AWS KMS를 각각 배정하고, 데이터 레지던시를 조직 수준 가드레일로 고정하는 설계를 정리합니다. 거버넌스 모드와 규정 준수 모드의 차이까지 다룹니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cases" data-page="case10"></div>
+
+  <main id="main" class="page" data-page-id="cases/case10">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">아키텍처 케이스</a></li>
+        <li><span aria-current="page">케이스 10 · 규정 준수 감사에 대응하라</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">아키텍처 케이스 · 10</p>
+      <h1>규정 준수 감사에 대응하라</h1>
+      <p class="page__lead">
+        감사 대응은 서비스를 나열하는 일이 아니라
+        <strong>질문마다 답할 서비스를 배정하는 일</strong>입니다.
+        "누가 무엇을 했는가", "구성이 규칙을 지키는가",
+        "기록이 변조되지 않았는가", "키를 누가 언제 썼는가" —
+        네 질문에 각각 다른 서비스가 대응합니다.
+      </p>
+      <p class="page__meta">
+        주 도메인: <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a> ·
+        과제 진술 1.3 적절한 데이터 보안 제어 결정
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>감사 요구를 네 가지 질문으로 나누고 각각에 서비스를 배정할 수 있습니다.</li>
+        <li>CloudTrail, AWS Config, CloudWatch가 답하는 질문의 차이를 설명할 수 있습니다.</li>
+        <li>S3 Object Lock의 거버넌스 모드와 규정 준수 모드를 구분해 고를 수 있습니다.</li>
+        <li>고객 관리형 키를 쓰는 이유를 감사 관점에서 설명할 수 있습니다.</li>
+        <li>데이터 레지던시 요구를 조직 수준 가드레일로 고정할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="situation">
+      <h2 id="situation">상황</h2>
+
+      <p>
+        금융 관련 서비스가 외부 감사를 받게 되었습니다.
+        감사관이 요구한 항목은 다음과 같습니다.
+      </p>
+
+      <ol>
+        <li>지난 1년간 <strong>누가 어떤 API를 호출했는지</strong> 전부 제출할 것.
+          여러 계정을 쓰고 있다면 계정별로 빠짐없이.</li>
+        <li>보안 그룹·버킷·데이터베이스의 구성이 <strong>내부 규칙을 지키고 있었는지</strong>,
+          지키지 않은 기간이 있었다면 언제부터 언제까지인지 제시할 것.</li>
+        <li>거래 기록 파일이 보존 기간 동안 <strong>수정·삭제되지 않았음</strong>을 증명할 것.
+          관리자 권한을 가진 사람도 지울 수 없어야 함.</li>
+        <li>암호화 키를 <strong>누가 언제 사용했는지</strong> 제시하고, 교체 정책을 설명할 것.</li>
+        <li>고객 데이터가 <strong>지정된 리전 밖에서 처리되지 않았음</strong>을 보일 것.</li>
+      </ol>
+
+      <p>
+        현재 상태는 이렇습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>현재 상태와 요구 항목의 간극</caption>
+          <thead>
+            <tr>
+              <th scope="col">요구</th>
+              <th scope="col">현재</th>
+              <th scope="col">간극</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1. API 호출 기록</th>
+              <td>계정마다 개별 추적이 있고 일부는 단일 리전만</td>
+              <td>계정 간 통합이 없고 누락 리전이 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">2. 구성 준수 이력</th>
+              <td>점검을 사람이 분기마다 수동으로</td>
+              <td>위반이 언제 시작됐는지 알 수 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">3. 기록 불변성</th>
+              <td>버킷 정책으로 삭제를 제한</td>
+              <td>정책은 바꿀 수 있다. 증명이 되지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">4. 키 사용 기록</th>
+              <td>대부분 서비스 기본 암호화 사용</td>
+              <td>키 사용 주체를 세밀하게 제시하기 어렵다</td>
+            </tr>
+            <tr>
+              <th scope="row">5. 데이터 레지던시</th>
+              <td>합의는 있으나 기술적 제약이 없다</td>
+              <td>다른 리전에 리소스를 만들 수 있다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="diagram" data-diagram="D-161">
+        <figcaption>
+          "누가 무엇을 호출했는가"(CloudTrail), "리소스 구성이 규칙을 지키는가"(AWS Config),
+          "얼마나 잘 동작하는가"(CloudWatch) 세 질문을 각 서비스에 배정한 구분.
+          감사 시나리오에서 서비스를 고르는 기준은 이 질문 구분 하나입니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>"버킷 정책으로 삭제를 막았다"는 것은 증명이 되지 않습니다.</strong>
+          정책은 충분한 권한을 가진 주체가 언제든 바꿀 수 있고,
+          바꾼 뒤 지우고 다시 되돌리면 흔적을 찾기 어렵습니다.
+          감사관이 요구하는 것은 <strong>바꿀 수 없다는 구조적 보장</strong>이며,
+          그 답은 정책이 아니라 <strong>잠금(lock)</strong>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="question-mapping">
+      <h2 id="question-mapping">질문마다 서비스를 배정한다</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>감사 질문과 대응 서비스</caption>
+          <thead>
+            <tr>
+              <th scope="col">질문</th>
+              <th scope="col">서비스</th>
+              <th scope="col">제출물</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">누가 무엇을 호출했는가</th>
+              <td>AWS CloudTrail</td>
+              <td>이벤트 기록과 무결성 검증용 다이제스트 파일</td>
+            </tr>
+            <tr>
+              <th scope="row">구성이 규칙을 지켰는가</th>
+              <td>AWS Config</td>
+              <td>구성 항목 이력과 규칙 평가 결과의 시계열</td>
+            </tr>
+            <tr>
+              <th scope="row">기록이 변조되지 않았는가</th>
+              <td>Amazon S3 Object Lock</td>
+              <td>보존 모드와 기간, 법적 보존 설정</td>
+            </tr>
+            <tr>
+              <th scope="row">키를 누가 언제 썼는가</th>
+              <td>AWS KMS + CloudTrail</td>
+              <td>키 정책과 키 사용 API 호출 기록</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터가 지정 리전을 벗어나지 않았는가</th>
+              <td>서비스 제어 정책(SCP) + Config</td>
+              <td>가드레일 정책과 위반 없음을 보이는 평가 결과</td>
+            </tr>
+            <tr>
+              <th scope="row">얼마나 잘 동작했는가</th>
+              <td>Amazon CloudWatch</td>
+              <td>지표와 알람 (감사 항목은 아니지만 혼동 대상)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          세 서비스를 구분하는 기준은 하나입니다.
+        </p>
+        <ul>
+          <li><strong>CloudTrail</strong> — 누가 무엇을 <strong>호출</strong>했는가 (행위)</li>
+          <li><strong>AWS Config</strong> — 리소스 <strong>구성</strong>이 어떠했고 규칙을 지켰는가 (상태)</li>
+          <li><strong>CloudWatch</strong> — 얼마나 잘 <strong>동작</strong>했는가 (성능·가용성)</li>
+        </ul>
+        <p>
+          문제문이 "누가 이 보안 그룹을 열었는지 찾아야 한다"면 CloudTrail이고,
+          "규칙을 위반한 보안 그룹을 상시로 찾아내야 한다"면 Config입니다.
+          두 문장을 구분하지 못하면 이 유형의 문항을 계속 놓칩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="requirements">
+      <h2 id="requirements">요구사항과 제약</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구사항과 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">내용</th>
+              <th scope="col">설계에 주는 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">요구 1</th>
+              <td>기록은 <strong>계정 전체·리전 전체</strong>를 포함한다</td>
+              <td>조직 추적과 다중 리전 설정이 필요하다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 2</th>
+              <td>기록 자체가 <strong>변조되지 않았음</strong>을 보여야 한다</td>
+              <td>로그 파일 무결성 검증과 저장소 잠금이 함께 필요하다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 3</th>
+              <td>위반 여부를 <strong>상시</strong> 판정한다</td>
+              <td>수동 점검은 이력을 만들지 못한다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 1</th>
+              <td>운영 계정의 관리자도 <strong>기록을 지울 수 없어야</strong> 한다</td>
+              <td>로그 저장 계정을 분리한다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 2</th>
+              <td>보존 기간은 규정이 정한 값을 <strong>정확히</strong> 지킨다</td>
+              <td>너무 길게 잡으면 비용과 개인정보 위험이 늘어난다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 3</th>
+              <td>운영에 큰 부담을 주지 않는다</td>
+              <td>관리형 서비스와 자동 평가를 우선한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        배경 개념은 <a href="../basics/ch16.html">16장 보안 · 암호화 · 거버넌스</a>와
+        <a href="../basics/ch17.html">17장 모니터링 · 운영 · 계정 관리</a>에 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="options">
+      <h2 id="options">후보 설계안 비교</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>후보 설계안 3종 비교 — 감사 요구를 어디까지 충족하는가</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">A · 계정마다 개별 추적 유지</th>
+              <th scope="col">B · 조직 추적 + 중앙 로그 계정</th>
+              <th scope="col">C · B + Object Lock + Config 규칙 + SCP 가드레일</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">전 계정 포괄</th>
+              <td><span class="mark-no">누락 위험이 상존</span></td>
+              <td><span class="mark-ok">조직 단위로 자동 포함</span></td>
+              <td><span class="mark-ok">동일</span></td>
+            </tr>
+            <tr>
+              <th scope="row">운영 계정 관리자의 삭제</th>
+              <td><span class="mark-no">가능</span></td>
+              <td>로그 계정 권한 분리로 제한</td>
+              <td><span class="mark-ok">보존 모드로 구조적으로 차단</span></td>
+            </tr>
+            <tr>
+              <th scope="row">위반 시점 특정</th>
+              <td><span class="mark-no">불가</span></td>
+              <td>부분적</td>
+              <td><span class="mark-ok">규칙 평가 이력으로 특정</span></td>
+            </tr>
+            <tr>
+              <th scope="row">리전 이탈 방지</th>
+              <td>없음</td>
+              <td>없음</td>
+              <td><span class="mark-ok">SCP로 사전 차단</span></td>
+            </tr>
+            <tr>
+              <th scope="row">운영 부담</th>
+              <td>계정이 늘 때마다 수동 작업</td>
+              <td>낮다</td>
+              <td>초기 설계 후 낮다</td>
+            </tr>
+            <tr>
+              <th scope="row">판정</th>
+              <td><span class="mark-no">오답</span></td>
+              <td>필요하지만 불충분</td>
+              <td><span class="mark-ok">선택</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision">
+      <h2 id="decision">선택과 근거</h2>
+
+      <p><strong>C안</strong>을 고릅니다. 요구별로 나눠 구성합니다.</p>
+
+      <h3 id="cloudtrail">1 · 조직 추적으로 기록을 모은다</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-org-trail.sh</span> — 전 계정·전 리전 추적과 로그 파일 무결성 검증 (이름과 ARN은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws cloudtrail create-trail \
+  --name org-audit-trail \
+  --s3-bucket-name example-central-audit-logs \
+  --is-multi-region-trail \
+  --is-organization-trail \
+  --enable-log-file-validation \
+  --kms-key-id arn:aws:kms:ap-northeast-2:123456789012:key/12345678-1234-1234-1234-123456789012
+
+aws cloudtrail start-logging --name org-audit-trail
+
+# 설정이 의도대로 들어갔는지 확인합니다.
+aws cloudtrail describe-trails \
+  --query 'trailList[].[Name,IsMultiRegionTrail,IsOrganizationTrail,LogFileValidationEnabled,KmsKeyId]' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          세 설정 모두 <strong>기본값이 꺼짐</strong>입니다.
+        </p>
+        <ul>
+          <li><code>IsMultiRegionTrail</code> — 기본은 <strong>현재 리전만</strong> 기록합니다.
+            켜지 않으면 다른 리전의 활동이 통째로 빠집니다.</li>
+          <li><code>IsOrganizationTrail</code> — 기본은 <strong>현재 계정만</strong>입니다.
+            조직 관리 계정이나 위임된 관리자 계정에서만 켤 수 있습니다.</li>
+          <li><code>EnableLogFileValidation</code> — 기본은 꺼짐입니다.
+            켜야 다이제스트 파일이 만들어지고, <strong>로그가 변조되지 않았음을 검증</strong>할 수 있습니다.</li>
+        </ul>
+        <p>
+          요구 1·2를 만족시키려면 셋 다 켜야 합니다.
+          "CloudTrail을 켜 두었다"는 답변만으로는 감사를 통과하지 못하는 이유가 여기 있습니다.
+        </p>
+      </aside>
+
+      <p>
+        저장 위치는 <strong>별도의 로그 아카이브 계정</strong>으로 둡니다(제약 1).
+        운영 계정의 관리자가 아무리 강한 권한을 가져도
+        다른 계정의 버킷에는 그 권한이 미치지 않습니다.
+        계정 경계가 가장 강한 격리라는 원칙이 여기서도 그대로 적용됩니다.
+      </p>
+
+      <h3 id="object-lock">2 · Object Lock으로 불변성을 만든다</h3>
+      <p>
+        S3 Object Lock은 객체를 <strong>쓰기 한 번, 읽기 여러 번(WORM)</strong> 방식으로 보호합니다.
+        보존 모드는 두 가지이고, 이 선택이 감사 대응의 성패를 가릅니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Object Lock 보존 모드 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">거버넌스 모드(<code>GOVERNANCE</code>)</th>
+              <th scope="col">규정 준수 모드(<code>COMPLIANCE</code>)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">보존 기간 중 삭제</th>
+              <td>특별한 권한을 가진 주체는 해제할 수 있다</td>
+              <td><span class="mark-ok">누구도 할 수 없다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">보존 기간 단축</th>
+              <td>특별한 권한으로 가능</td>
+              <td><span class="mark-no">불가 — 연장만 가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row">루트 사용자</th>
+              <td>해제 가능</td>
+              <td><span class="mark-no">해제 불가</span></td>
+            </tr>
+            <tr>
+              <th scope="row">쓰임</th>
+              <td>내부 정책 강제, 실수 방지</td>
+              <td>규제 대응, 감사 증빙</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        요구 3(관리자도 지울 수 없어야 함)은 <strong>규정 준수 모드</strong>를 지목합니다.
+        다만 이 모드는 되돌릴 수 없으므로,
+        <strong>보존 기간을 잘못 길게 설정하면 그 기간 내내 비용을 부담</strong>해야 합니다(제약 2).
+        기간은 규정 문서에서 그대로 가져오고, 임의로 넉넉하게 잡지 않습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">object-lock.sh</span> — 버전 관리와 Object Lock 기본 보존 설정 (버킷 이름과 기간은 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># Object Lock 은 버전 관리를 전제로 합니다.
+aws s3api put-bucket-versioning \
+  --bucket example-transaction-records \
+  --versioning-configuration Status=Enabled
+
+# 새 객체에 기본으로 적용될 보존 규칙을 정합니다.
+# 모드와 기간이 함께 필요하고, Days 와 Years 를 동시에 지정할 수 없습니다.
+aws s3api put-object-lock-configuration \
+  --bucket example-transaction-records \
+  --object-lock-configuration '{
+      "ObjectLockEnabled": "Enabled",
+      "Rule": {
+        "DefaultRetention": { "Mode": "COMPLIANCE", "Years": 7 }
+      }
+    }'
+
+# 개별 객체에 법적 보존을 걸면 보존 기간과 무관하게 삭제가 막힙니다.
+aws s3api put-object-legal-hold \
+  --bucket example-transaction-records \
+  --key 2026/07/ledger.parquet \
+  --legal-hold Status=ON</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <strong>법적 보존(legal hold)</strong>은 보존 기간과 별개로 동작합니다.
+          기간이 끝났더라도 법적 보존이 켜져 있으면 삭제할 수 없고,
+          적절한 권한을 가진 주체가 명시적으로 해제해야 합니다.
+          소송이나 조사로 <strong>기간이 정해지지 않은 보존</strong>이 필요할 때 씁니다.
+        </p>
+        <p>
+          백업에도 같은 개념이 있습니다.
+          AWS Backup의 볼트 잠금을 쓰면 백업 복구 지점의 삭제와 보존 기간 단축을 막을 수 있습니다.
+        </p>
+      </aside>
+
+      <h3 id="config-rules">3 · Config로 준수 이력을 만든다</h3>
+      <p>
+        요구 2(위반 기간 제시)는 <strong>상시 평가</strong>가 있어야 답할 수 있습니다.
+        AWS Config는 리소스 구성 변경을 기록하고, 규칙으로 준수 여부를 평가합니다.
+        평가 결과가 시간축에 남으므로
+        "언제부터 언제까지 위반 상태였는가"를 그대로 제시할 수 있습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">config-status.sh</span> — 기록기 상태와 규칙 평가 결과 확인</figcaption>
+        <pre><code class="lang-bash"># 구성 기록기가 켜져 있는지 확인합니다.
+aws configservice describe-configuration-recorder-status \
+  --query 'ConfigurationRecordersStatus[].[name,recording,lastStatus]' \
+  --output table
+
+# 규칙별 준수 여부를 조회합니다.
+aws configservice describe-compliance-by-config-rule \
+  --query 'ComplianceByConfigRules[].[ConfigRuleName,Compliance.ComplianceType]' \
+  --output table
+
+# 특정 리소스의 구성 변경 이력을 가져옵니다.
+aws configservice get-resource-config-history \
+  --resource-type AWS::EC2::SecurityGroup \
+  --resource-id sg-0123456789abcdef0 \
+  --query 'configurationItems[].[configurationItemCaptureTime,configurationItemStatus]' \
+  --output table</code></pre>
+      </figure>
+
+      <p>
+        규칙은 감사 항목에서 그대로 도출합니다 —
+        퍼블릭 액세스가 켜진 버킷, <code>0.0.0.0/0</code>이 허용된 보안 그룹,
+        암호화되지 않은 볼륨과 데이터베이스, 로그가 꺼진 리소스.
+        각각 <a href="case04.html">케이스 4</a>와
+        <a href="case01.html">케이스 1</a>에서 다룬 사고의 상시 탐지판입니다.
+      </p>
+
+      <h3 id="kms">4 · 고객 관리형 키로 키 사용을 감사한다</h3>
+      <p>
+        요구 4(키 사용 주체와 교체 정책)는
+        <strong>고객 관리형 키</strong>를 쓸 때 가장 명확하게 답할 수 있습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>KMS 키 종류와 감사·통제 범위</caption>
+          <thead>
+            <tr>
+              <th scope="col">키 종류</th>
+              <th scope="col">키 정책 통제</th>
+              <th scope="col">교체</th>
+              <th scope="col">감사 관점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS 소유 키</th>
+              <td><span class="mark-no">불가</span></td>
+              <td>AWS가 관리</td>
+              <td>키 단위로 제시할 것이 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS 관리형 키</th>
+              <td><span class="mark-no">직접 편집 불가</span></td>
+              <td><strong>매년 자동 교체. 켜고 끌 수 없다</strong></td>
+              <td>사용 기록은 남지만 접근 통제를 우리가 정할 수 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">고객 관리형 키</th>
+              <td><span class="mark-ok">키 정책으로 직접 통제</span></td>
+              <td>자동 교체를 켤 수 있고 주기를 조정할 수 있다</td>
+              <td><span class="mark-ok">누가 언제 어떤 키를 썼는지 제시할 수 있다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        자동 교체의 기본 주기는 <strong>약 365일</strong>이고 필요하면 조정할 수 있습니다.
+        자동 교체는 <strong>대칭 암호화 키에만</strong> 적용되며,
+        비대칭 키·HMAC 키·가져온 키 재료·사용자 지정 키 스토어는 대상이 아닙니다.
+        이 경계를 모른 채 "모든 키를 자동 교체한다"고 답하면 감사에서 다시 질문을 받습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">kms-rotation.sh</span> — 고객 관리형 키의 자동 교체 설정과 확인 (키 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws kms enable-key-rotation \
+  --key-id 12345678-1234-1234-1234-123456789012
+
+aws kms get-key-rotation-status \
+  --key-id 12345678-1234-1234-1234-123456789012
+
+# 키 정책은 누가 이 키를 쓸 수 있는지를 정합니다.
+aws kms get-key-policy \
+  --key-id 12345678-1234-1234-1234-123456789012 \
+  --policy-name default</code></pre>
+      </figure>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          고객 관리형 키의 자동 교체 주기는
+          <strong>2022년 5월에 3년에서 1년으로 변경</strong>되었습니다.
+          "3년마다 교체된다"고 쓰인 자료는 현행 기준이 아닙니다.
+        </p>
+      </aside>
+
+      <h3 id="residency">5 · 데이터 레지던시를 가드레일로 고정한다</h3>
+      <p>
+        요구 5는 합의가 아니라 <strong>기술적 제약</strong>으로 답해야 합니다.
+        서비스 제어 정책으로 승인되지 않은 리전에서의 호출을 거부하면,
+        "만들 수 없었다"는 것이 곧 증거가 됩니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">deny-outside-regions.json</span> — 승인된 리전 밖 호출을 거부하는 SCP (리전 코드는 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyOutsideApprovedRegions",
+      "Effect": "Deny",
+      "NotAction": [
+        "iam:*",
+        "organizations:*",
+        "cloudfront:*",
+        "route53:*",
+        "support:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:RequestedRegion": ["ap-northeast-2"]
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <p>
+        리전 개념이 없는 글로벌 서비스는 <code>NotAction</code>으로 빼 둡니다.
+        빼지 않으면 IAM 사용자 생성이나 DNS 레코드 수정까지 막혀 조직이 마비됩니다.
+      </p>
+
+      <p>
+        SCP의 성질 두 가지를 기억합니다.
+        <strong>SCP는 권한을 부여하지 않고 상한만 정합니다.</strong>
+        그리고 <strong>멤버 계정의 루트 사용자에게도 적용됩니다.</strong>
+        루트를 통제할 수 있는 유일한 수단이라는 점이 감사 대응에서 중요합니다.
+      </p>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          리전 제한을 걸어도 <strong>리전 간 복제를 켜 두면 데이터는 이동합니다.</strong>
+          S3 교차 리전 복제, 교차 리전 스냅샷 복사, 글로벌 테이블이 대표적입니다.
+          재해 복구 설계(<a href="case08.html">케이스 8</a>)와 데이터 레지던시 요구는
+          정면으로 충돌할 수 있으므로 <strong>둘을 같은 자리에서 결정</strong>해야 합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost-and-ops">
+      <h2 id="cost-and-ops">비용과 운영에 미치는 영향</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>거버넌스 구성이 만드는 비용·운영 항목 — 금액이 아니라 항목의 성격입니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">비용 성격</th>
+              <th scope="col">운영 성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">CloudTrail 조직 추적</th>
+              <td>기록량과 저장 용량에 비례</td>
+              <td>데이터 이벤트를 무분별하게 켜면 양이 급증한다. 대상 리소스를 한정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Config</th>
+              <td>기록되는 구성 항목과 규칙 평가 수에 비례</td>
+              <td>기록 대상 리소스 유형을 필요한 범위로 좁힌다</td>
+            </tr>
+            <tr>
+              <th scope="row">Object Lock 규정 준수 모드</th>
+              <td>보존 기간 동안 저장 요금이 <strong>고정된다</strong></td>
+              <td><span class="mark-no">기간을 줄일 수 없다.</span> 설정 전에 반드시 검토</td>
+            </tr>
+            <tr>
+              <th scope="row">고객 관리형 키</th>
+              <td>키와 API 호출이 항목이 된다</td>
+              <td>키 정책 관리, 삭제 시 대기 기간 고려</td>
+            </tr>
+            <tr>
+              <th scope="row">로그 보관</th>
+              <td>수명 주기로 아카이브 클래스로 내리면 줄어든다</td>
+              <td>보존 규정과 만료 규칙이 충돌하지 않게 맞춘다</td>
+            </tr>
+            <tr>
+              <th scope="row">SCP 가드레일</th>
+              <td>추가 항목 없음</td>
+              <td>예외 요청 처리 절차가 필요하다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          감사 로그의 비용은 <strong>보관 기간과 클래스</strong>로 조절합니다.
+          최근 로그는 즉시 조회 가능한 클래스에 두고,
+          오래된 로그는 아카이브 클래스로 내리는 수명 주기가 표준 처방입니다.
+          다만 <strong>규정이 요구하는 보존 기간보다 짧게 만료시키면 안 됩니다.</strong>
+          비용 절감이 규정 위반을 만들면 그 자체가 감사 지적 사항입니다.
+          수명 주기 설계는 <a href="case03.html">케이스 3</a>을 참고합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="checklist">
+      <h2 id="checklist">감사 대응 체크리스트</h2>
+
+      <h3 id="checklist-trail">기록</h3>
+      <ul>
+        <li><label><input type="checkbox"> 조직 추적이 있고 <strong>다중 리전</strong>으로 설정되어 있다</label></li>
+        <li><label><input type="checkbox"> 로그 파일 무결성 검증이 켜져 있다</label></li>
+        <li><label><input type="checkbox"> 로그가 <strong>별도의 로그 아카이브 계정</strong>에 저장된다</label></li>
+        <li><label><input type="checkbox"> 로그 버킷에 퍼블릭 액세스 차단이 켜져 있다</label></li>
+        <li><label><input type="checkbox"> 필요한 데이터 이벤트만 선별해 기록하고 있다</label></li>
+        <li><label><input type="checkbox"> 로그가 고객 관리형 키로 암호화된다</label></li>
+      </ul>
+
+      <h3 id="checklist-immutability">불변성</h3>
+      <ul>
+        <li><label><input type="checkbox"> 대상 버킷에 <strong>버전 관리</strong>가 켜져 있다 (Object Lock의 전제)</label></li>
+        <li><label><input type="checkbox"> 보존 모드를 요구에 맞게 골랐다 (내부 정책이면 거버넌스, 규제면 규정 준수)</label></li>
+        <li><label><input type="checkbox"> 보존 기간이 <strong>규정 문서의 값</strong>과 일치한다</label></li>
+        <li><label><input type="checkbox"> 기간이 정해지지 않은 보존이 필요한 대상에 법적 보존을 적용했다</label></li>
+        <li><label><input type="checkbox"> 백업 복구 지점에도 삭제 방지 장치가 있다</label></li>
+      </ul>
+
+      <h3 id="checklist-compliance">준수 판정</h3>
+      <ul>
+        <li><label><input type="checkbox"> 구성 기록기가 필요한 리소스 유형을 기록하고 있다</label></li>
+        <li><label><input type="checkbox"> 감사 항목마다 대응하는 규칙이 있다</label></li>
+        <li><label><input type="checkbox"> 위반이 발생했을 때 알림이 간다</label></li>
+        <li><label><input type="checkbox"> 위반 시작·해소 시각을 제시할 수 있다</label></li>
+      </ul>
+
+      <h3 id="checklist-data">데이터 보호</h3>
+      <ul>
+        <li><label><input type="checkbox"> 저장 데이터와 전송 중 데이터가 암호화된다</label></li>
+        <li><label><input type="checkbox"> 규제 대상 데이터에 고객 관리형 키를 쓴다</label></li>
+        <li><label><input type="checkbox"> 키 정책이 최소 권한으로 작성되어 있다</label></li>
+        <li><label><input type="checkbox"> 자동 교체 대상과 비대상 키를 구분해 문서화했다</label></li>
+        <li><label><input type="checkbox"> 승인되지 않은 리전에서 리소스를 만들 수 없다</label></li>
+        <li><label><input type="checkbox"> 리전 간 복제 설정이 데이터 레지던시 요구와 충돌하지 않는다</label></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">관련 시험 포인트</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>문제문의 신호와 정답 방향</caption>
+          <thead>
+            <tr>
+              <th scope="col">문제문의 신호</th>
+              <th scope="col">고르는 것</th>
+              <th scope="col">소거하는 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">누가 이 리소스를 변경했는지 찾아야 한다</th>
+              <td>AWS CloudTrail</td>
+              <td>AWS Config, CloudWatch</td>
+            </tr>
+            <tr>
+              <th scope="row">규칙을 위반한 리소스를 상시 찾아야 한다</th>
+              <td>AWS Config 규칙</td>
+              <td>CloudTrail</td>
+            </tr>
+            <tr>
+              <th scope="row">관리자도 지울 수 없어야 한다</th>
+              <td>S3 Object Lock 규정 준수 모드</td>
+              <td>버킷 정책, IAM 정책, 버전 관리만 켜는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">실수 삭제는 막되 예외는 허용</td>
+              <td>Object Lock 거버넌스 모드</td>
+              <td>규정 준수 모드(되돌릴 수 없다)</td>
+            </tr>
+            <tr>
+              <th scope="row">키 사용을 감사하고 교체를 통제해야 한다</th>
+              <td>고객 관리형 KMS 키</td>
+              <td>AWS 관리형 키, AWS 소유 키</td>
+            </tr>
+            <tr>
+              <th scope="row">모든 계정의 활동을 빠짐없이</th>
+              <td>조직 추적 + 다중 리전</td>
+              <td>계정마다 개별 추적을 만드는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터가 특정 리전을 벗어나면 안 된다</th>
+              <td>SCP로 <code>aws:RequestedRegion</code> 제한</td>
+              <td>IAM 정책만으로 통제하는 안(루트에 적용되지 않는다)</td>
+            </tr>
+            <tr>
+              <th scope="row">S3의 민감 데이터를 찾아내야 한다</th>
+              <td>Amazon Macie</td>
+              <td>Amazon GuardDuty, Amazon Inspector</td>
+            </tr>
+            <tr>
+              <th scope="row">여러 계정의 보안 결과를 한곳에서</th>
+              <td>AWS Security Hub</td>
+              <td>계정마다 콘솔을 확인하는 안</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          탐지 서비스를 고르는 기준은 <strong>무엇을 입력으로 읽는가</strong>입니다.
+        </p>
+        <ul>
+          <li><strong>Amazon GuardDuty</strong> — 로그와 네트워크 신호에서 위협 행위를 탐지</li>
+          <li><strong>Amazon Inspector</strong> — 워크로드의 취약점과 노출을 점검</li>
+          <li><strong>Amazon Macie</strong> — Amazon S3의 민감 데이터를 식별</li>
+          <li><strong>AWS Security Hub</strong> — 위 결과들을 모아 표준과 대조</li>
+        </ul>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch16.html">
+          <span class="card__title">16장 · 보안 · 암호화 · 거버넌스</span>
+          <span class="card__desc">KMS 키 종류와 키 정책, 봉투 암호화, 탐지 서비스의 역할 분담을 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 1</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch17.html">
+          <span class="card__title">17장 · 모니터링 · 운영 · 계정 관리</span>
+          <span class="card__desc">CloudTrail, Config, Organizations, Control Tower와 다중 계정 랜딩 존을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 1·2</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab11.html">
+          <span class="card__title">실습 11 · KMS 고객 관리형 키로 암호화</span>
+          <span class="card__desc">키 정책과 봉투 암호화, 교체를 직접 구성하고 사용 기록을 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="case01.html">
+          <span class="card__title">케이스 1 · EC2에 액세스 키를 심어 배포했다</span>
+          <span class="card__desc">이 케이스의 Config 규칙이 상시로 잡아내야 하는 사고의 원형입니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="case08.html">
+          <span class="card__title">케이스 8 · 리전 장애에 대비한 DR을 설계하라</span>
+          <span class="card__desc">데이터 레지던시 요구와 리전 간 복제가 충돌하는 지점을 함께 봅니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-secure.html">
+          <span class="card__title">보안 아키텍처 설계 (30%)</span>
+          <span class="card__desc">데이터 보안 제어를 포함한 과제 진술 3개의 출제 포인트를 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/awscloudtrail/latest/APIReference/API_CreateTrail.html">AWS CloudTrail API 레퍼런스 — CreateTrail</a>
+          — <code>IsMultiRegionTrail</code>·<code>IsOrganizationTrail</code>·
+          <code>EnableLogFileValidation</code>의 기본값이 모두 <code>false</code>라는 서술과 KMS 키 지정</li>
+        <li><a href="https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-concepts.html">AWS CloudTrail 사용 설명서 — 개념</a>
+          — 관리 이벤트와 데이터 이벤트의 구분</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html">Amazon S3 사용 설명서 — Object Lock으로 객체 잠그기</a>
+          — WORM 보호의 개념과 버전 관리 전제</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-overview.html">Amazon S3 사용 설명서 — Object Lock 개요</a>
+          — 거버넌스 모드와 규정 준수 모드의 차이, 법적 보존의 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObjectLockConfiguration.html">Amazon S3 API 레퍼런스 — PutObjectLockConfiguration</a>
+          — 기본 보존 설정에 모드와 기간이 함께 필요하고 <code>Days</code>와 <code>Years</code>를
+          동시에 지정할 수 없다는 제약</li>
+        <li><a href="https://docs.aws.amazon.com/config/latest/APIReference/API_GetResourceConfigHistory.html">AWS Config API 레퍼런스 — GetResourceConfigHistory</a>
+          — 리소스 구성 항목이 시간축으로 기록된다는 동작</li>
+        <li><a href="https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html">AWS KMS API 레퍼런스 — EnableKeyRotation</a>
+          — 자동 교체의 기본 주기, 대칭 암호화 키에만 적용된다는 제약, AWS 관리형 키의 매년 교체</li>
+        <li><a href="https://docs.aws.amazon.com/kms/latest/APIReference/API_PutKeyPolicy.html">AWS KMS API 레퍼런스 — PutKeyPolicy</a>
+          — 키 정책이 키 접근을 통제하는 방식</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html">AWS Organizations 사용 설명서 — SCP 전략</a>
+          — SCP가 권한을 부여하지 않고 상한만 정한다는 점, 허용 목록과 거부 목록 전략</li>
+        <li><a href="https://docs.aws.amazon.com/aws-backup/latest/devguide/vault-lock.html">AWS Backup 개발자 안내서 — 볼트 잠금</a>
+          — 백업 복구 지점의 삭제와 보존 기간 변경을 막는 설정</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

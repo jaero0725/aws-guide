@@ -2,7 +2,7 @@
   "generatedAt": "2026-07-29",
   "examCode": "SAA-C03",
   "total": 62,
-  "built": 47,
+  "built": 49,
   "sections": [
     {
       "id": "home",
@@ -466,9 +466,9 @@
           "id": "case09",
           "path": "cases/case09.html",
           "title": "온프레미스 파일 서버를 클라우드로",
-          "pageTitle": null,
+          "pageTitle": "케이스 9 · 온프레미스 파일 서버를 클라우드로",
           "num": "9",
-          "exists": false
+          "exists": true
         },
         {
           "id": "case10",
@@ -520,9 +520,9 @@
           "id": "security",
           "path": "cheatsheet/security.html",
           "title": "보안 · 암호화",
-          "pageTitle": null,
+          "pageTitle": "보안과 암호화",
           "num": null,
-          "exists": false
+          "exists": true
         },
         {
           "id": "network",
