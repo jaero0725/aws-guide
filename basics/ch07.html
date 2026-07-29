@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>7장 · 로드 밸런싱과 오토스케일링 — AWS SAA Guide</title>
+  <meta name="description" content="Application Load Balancer(L7)와 Network Load Balancer(L4, 고정 IP), Gateway Load Balancer(GENEVE)의 선택 기준. 타깃 그룹과 대상 유형, 헬스체크와 등록 취소 지연(연결 드레이닝), 고정 세션, 교차 영역 로드 밸런싱. Auto Scaling 그룹의 시작 템플릿과 최소/원하는/최대 용량, 스케일링 정책 4종, 워밍업과 쿨다운, 수명주기 훅. 다중 AZ와 상태 비저장 설계로 단일 장애점을 없애는 방법을 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch07"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch07">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">7장 · 로드 밸런싱과 오토스케일링</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 7장</p>
+      <h1>로드 밸런싱과 오토스케일링</h1>
+      <p class="page__lead">
+        고가용성은 인스턴스를 늘려서 얻는 것이 아니라
+        <strong>여러 가용 영역에 분산하고, 죽은 것을 자동으로 빼고, 부족하면 자동으로 채우는</strong>
+        세 가지 장치를 조합해서 얻습니다. 그 장치가 각각 Elastic Load Balancing의 헬스체크,
+        Amazon EC2 Auto Scaling의 용량 관리, 그리고 다중 가용 영역 배치입니다.
+        이 장은 그 조합을 어떤 순서로 판단하는지를 다룹니다.
+      </p>
+      <p class="page__meta">
+        이 장은 <strong>복원력 있는 아키텍처 설계(26%)</strong>의 중심이고,
+        로드 밸런서 선택 부분은 <strong>고성능 아키텍처 설계(24%)</strong>에도 걸칩니다.
+        도메인 2는 과제 진술이 2개뿐인데 26%라서 각 진술이 촘촘하게 출제됩니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>Application Load Balancer · Network Load Balancer · Gateway Load Balancer를 동작 계층과 프로토콜로 구분하고, 요구사항에서 하나를 지목할 수 있습니다.</li>
+        <li>타깃 그룹의 대상 유형 네 가지를 구분하고, 헬스체크 설정이 장애 감지 속도를 어떻게 바꾸는지 설명할 수 있습니다.</li>
+        <li>등록 취소 지연(연결 드레이닝)과 고정 세션이 각각 무엇을 해결하는지, 그리고 왜 고정 세션이 확장의 걸림돌이 되는지 설명할 수 있습니다.</li>
+        <li>Auto Scaling 그룹의 최소 · 원하는 · 최대 용량과 다중 가용 영역 배치를 설계하고, 상태 비저장 설계가 왜 전제인지 설명할 수 있습니다.</li>
+        <li>스케일링 정책 네 가지를 상황에 맞게 고르고, 워밍업 · 쿨다운 · 헬스체크 유예 기간이 왜 필요한지 설명할 수 있습니다.</li>
+        <li>수명주기 훅으로 인스턴스 시작 직후와 종료 직전에 작업을 끼워 넣을 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="load-balancer-types">
+      <h2 id="load-balancer-types">로드 밸런서 3종 — 계층이 선택을 결정한다 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        Elastic Load Balancing은 현재 세 가지 로드 밸런서를 제공합니다.
+        API의 타입 값도 정확히 세 개(<code>application</code>, <code>network</code>, <code>gateway</code>)입니다.
+        셋을 가르는 것은 이름이 아니라 <strong>어느 계층에서 트래픽을 보는가</strong>이고,
+        그 결과가 <strong>지원 프로토콜</strong>로 드러납니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-060">
+        <figcaption>
+          Application Load Balancer · Network Load Balancer · Gateway Load Balancer를 OSI 계층 축 위에 놓은 비교 —
+          지원 프로토콜과 고정 IP 가능 여부가 계층 차이에서 그대로 따라 나옵니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>로드 밸런서 3종의 계층 · 프로토콜 · 특성 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Application Load Balancer</th>
+              <th scope="col">Network Load Balancer</th>
+              <th scope="col">Gateway Load Balancer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">API 타입 값</th>
+              <td><code>application</code></td>
+              <td><code>network</code></td>
+              <td><code>gateway</code></td>
+            </tr>
+            <tr>
+              <th scope="row">동작 계층</th>
+              <td>L7 (애플리케이션)</td>
+              <td>L4 (전송)</td>
+              <td>L3 게이트웨이 + L4 로드 밸런서</td>
+            </tr>
+            <tr>
+              <th scope="row">지원 프로토콜</th>
+              <td><code>HTTP</code>, <code>HTTPS</code></td>
+              <td><code>TCP</code>, <code>TLS</code>, <code>UDP</code>, <code>TCP_UDP</code>, <code>QUIC</code>, <code>TCP_QUIC</code></td>
+              <td><code>GENEVE</code> (포트 <code>6081</code>)</td>
+            </tr>
+            <tr>
+              <th scope="row">라우팅 판단 근거</th>
+              <td>호스트 헤더 · URL 경로 · HTTP 헤더 · 쿼리 문자열 · HTTP 메서드 · 소스 IP</td>
+              <td>소스 IP (그리고 dual-stack NLB의 리스너 규칙)</td>
+              <td>대상 어플라이언스로의 흐름 유지</td>
+            </tr>
+            <tr>
+              <th scope="row">Elastic IP 지정</th>
+              <td><span class="mark-no">불가 — 서브넷에 EIP를 지정할 수 없다</span></td>
+              <td><span class="mark-ok">가능 — 서브넷당 EIP 1개</span></td>
+              <td><span class="mark-no">불가</span></td>
+            </tr>
+            <tr>
+              <th scope="row">보안 그룹 연결</th>
+              <td><span class="mark-ok">가능</span></td>
+              <td><span class="mark-ok">가능</span></td>
+              <td><span class="mark-no">API 파라미터에 없음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">서브넷 요구</th>
+              <td>서로 다른 <strong>가용 영역 2개 이상</strong>의 서브넷이 필수</td>
+              <td>가용 영역 1개 이상</td>
+              <td>가용 영역 1개 이상</td>
+            </tr>
+            <tr>
+              <th scope="row">스킴 지정</th>
+              <td><code>internet-facing</code> / <code>internal</code></td>
+              <td><code>internet-facing</code> / <code>internal</code></td>
+              <td><span class="mark-no">지정 불가</span></td>
+            </tr>
+            <tr>
+              <th scope="row">대표 용도</th>
+              <td>HTTP 마이크로서비스 라우팅, 인증 연동, 리디렉션</td>
+              <td>초고성능 TCP·UDP, 고정 IP 요구, 게임·IoT·VoIP</td>
+              <td>서드파티 방화벽 · IDS/IPS 어플라이언스 삽입</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="chart" data-chart="C-060">
+        <figcaption>
+          세 로드 밸런서의 특성 프로파일. <strong>계층이 높을수록 라우팅 판단은 정교해지고, 계층이 낮을수록 고정 IP와
+          프로토콜 자유도가 커집니다.</strong> 축의 값은 절대 수치가 아니라 특성을 등급화한 것이며,
+          등급 기준은 표 대체본에 적어 두었습니다
+        </figcaption>
+      </figure>
+
+      <h3 id="alb-l7">Application Load Balancer — 요청 내용을 보고 나눈다</h3>
+      <p>
+        ALB는 HTTP 요청을 열어 보고 라우팅합니다. 그래서 <strong>경로 기반</strong>(<code>/api/*</code>는 API 타깃 그룹,
+        <code>/static/*</code>은 정적 타깃 그룹)과 <strong>호스트 기반</strong>(<code>a.example.com</code>과
+        <code>b.example.com</code>을 한 로드 밸런서로) 분기가 가능합니다.
+        같은 이유로 TLS 종료, Amazon Cognito · OIDC 인증 연동, HTTP에서 HTTPS로의 리디렉션,
+        고정 응답 반환 같은 L7 기능이 여기에 붙습니다.
+      </p>
+      <p>
+        ALB의 로드 밸런싱 알고리즘은 기본이 <strong>라운드 로빈</strong>(<code>round_robin</code>)이고,
+        <code>least_outstanding_requests</code>(미처리 요청이 가장 적은 대상)와 <code>weighted_random</code>을 고를 수 있습니다.
+        요청마다 처리 시간이 크게 다른 애플리케이션에서는 미처리 요청 기준이 더 고르게 분산됩니다.
+        유휴 제한 시간(<code>idle_timeout.timeout_seconds</code>)은 기본 <strong>60초</strong>이고
+        1초에서 4000초 사이로 조정합니다.
+      </p>
+
+      <h3 id="nlb-l4">Network Load Balancer — 고정 IP가 필요하면 여기</h3>
+      <p>
+        NLB는 TCP · UDP · TLS 수준에서 동작하므로 HTTP가 아닌 프로토콜을 그대로 통과시킵니다.
+        시험에서 NLB를 지목하는 결정적 신호는 두 가지입니다.
+        <strong>(1) HTTP가 아닌 프로토콜</strong>, <strong>(2) 고정 IP 주소 요구</strong>입니다.
+        API 문서는 NLB에 대해 "인터넷 경계 로드 밸런서에 고정 IP 주소가 필요하면
+        서브넷당 Elastic IP 주소 1개를 지정할 수 있다"고 명시하는 반면,
+        ALB에 대해서는 "서브넷에 Elastic IP 주소를 지정할 수 없다"고 명시합니다.
+      </p>
+      <p>
+        "방화벽 허용 목록에 IP를 등록해야 한다", "클라이언트가 DNS 이름이 아니라 IP로 접속한다"는 제약이 붙으면
+        ALB 선택지는 그 자리에서 소거됩니다. ALB 앞에 굳이 고정 IP를 두고 싶다면
+        AWS Global Accelerator를 붙이는 별도 설계가 되며, 이는 <a href="ch14.html">14장 엣지와 DNS</a>에서 다룹니다.
+      </p>
+
+      <h3 id="gwlb">Gateway Load Balancer — GENEVE가 보이면 이것</h3>
+      <p>
+        GWLB는 서드파티 가상 어플라이언스(방화벽, 침입 탐지 · 방지 시스템, 심층 패킷 검사)를
+        트래픽 경로에 투명하게 끼워 넣기 위한 로드 밸런서입니다.
+        어플라이언스와는 <strong><code>GENEVE</code> 프로토콜, 포트 <code>6081</code></strong>로 통신하며,
+        이 프로토콜은 세 로드 밸런서 중 GWLB만 지원합니다.
+        따라서 문항에 <code>GENEVE</code>나 6081이 등장하면 다른 선택지를 볼 필요가 없습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          로드 밸런서 선택은 <strong>세 개의 질문으로 끝납니다.</strong>
+        </p>
+        <ul>
+          <li><strong>가상 어플라이언스를 경로에 삽입하는가</strong> → Gateway Load Balancer</li>
+          <li><strong>HTTP가 아니거나 고정 IP가 필요한가</strong> → Network Load Balancer</li>
+          <li><strong>그 밖의 HTTP · HTTPS 트래픽</strong> → Application Load Balancer</li>
+        </ul>
+        <p>
+          "가장 낮은 지연", "초고성능 TCP"라는 표현만 보고 무조건 NLB를 고르지는 않습니다.
+          경로 기반 라우팅이나 인증 연동이 함께 요구되면 그것은 L7 기능이므로 ALB만 답이 됩니다.
+          전체 비교표는 <a href="../cheatsheet/compare.html">헷갈리는 쌍 비교</a>에 모아 두었습니다.
+        </p>
+      </aside>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          Classic Load Balancer는 구세대 API에 속하는 별도 제품이며, 위 세 가지 타입 열거값에 포함되지 않습니다.
+          새로 설계할 때는 세 가지 중에서 고르고, 기존 Classic Load Balancer는 ALB 또는 NLB로 옮기는 것이 표준 경로입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="target-groups">
+      <h2 id="target-groups">타깃 그룹 — 로드 밸런서가 실제로 트래픽을 보내는 곳</h2>
+
+      <p>
+        로드 밸런서 자체는 대상을 직접 알지 않습니다. 리스너가 요청을 받고,
+        규칙이 조건을 평가해 <strong>타깃 그룹</strong>으로 넘기고, 타깃 그룹이 헬스체크를 통과한 대상에게 보냅니다.
+        이 세 단계를 분리해 두었기 때문에 대상을 바꿔도 리스너 설정을 건드리지 않습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-061">
+        <figcaption>
+          Application Load Balancer의 처리 순서 — 리스너가 요청을 받고, 우선순위가 낮은 번호부터 규칙을 평가하며,
+          조건에 맞는 규칙의 동작이 타깃 그룹으로 전달되고, 헬스체크를 통과한 대상만 트래픽을 받습니다
+        </figcaption>
+      </figure>
+
+      <h3 id="target-type">대상 유형 네 가지</h3>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>타깃 그룹의 대상 유형과 용도</caption>
+          <thead>
+            <tr>
+              <th scope="col">대상 유형</th>
+              <th scope="col">무엇을 등록하는가</th>
+              <th scope="col">언제 쓰는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>instance</code></th>
+              <td>인스턴스 ID. <strong>기본값</strong></td>
+              <td>Auto Scaling 그룹이 인스턴스를 자동으로 등록 · 해제하는 표준 구성</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>ip</code></th>
+              <td>IP 주소. VPC 서브넷의 주소, RFC 1918 사설 대역, RFC 6598 대역만 가능하며 <strong>공인 라우팅 가능한 주소는 등록할 수 없다</strong></td>
+              <td>컨테이너 태스크, 온프레미스 서버를 VPN이나 Direct Connect 너머로 대상에 넣을 때</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>lambda</code></th>
+              <td>Lambda 함수 <strong>1개</strong></td>
+              <td>HTTP 요청을 서버리스 함수로 직접 넘길 때. 헬스체크가 기본 비활성이며 켤 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>alb</code></th>
+              <td>Application Load Balancer <strong>1개</strong></td>
+              <td>NLB 뒤에 ALB를 두어 고정 IP와 L7 라우팅을 동시에 만족시킬 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        하나의 타깃 그룹에는 <strong>한 가지 대상 유형만</strong> 쓸 수 있습니다.
+        인스턴스와 IP를 한 그룹에 섞을 수 없으므로, 마이그레이션 중 두 형태가 공존한다면 타깃 그룹을 나누고
+        리스너 규칙으로 가중치를 나눠 보내는 구성이 됩니다.
+      </p>
+
+      <h3 id="listener-rules">리스너 규칙은 우선순위 순으로 평가된다</h3>
+      <p>
+        규칙은 <strong>우선순위 값이 낮은 것부터</strong> 평가되고, 조건이 맞는 첫 규칙의 동작이 수행됩니다.
+        어느 규칙에도 걸리지 않으면 기본 규칙의 동작이 수행됩니다.
+        같은 우선순위를 가진 규칙 두 개는 존재할 수 없습니다.
+        조건으로 쓸 수 있는 필드는 <code>host-header</code>, <code>path-pattern</code>, <code>http-header</code>,
+        <code>http-request-method</code>, <code>query-string</code>, <code>source-ip</code>이고,
+        동작에는 <code>forward</code>, <code>redirect</code>, <code>fixed-response</code>,
+        <code>authenticate-cognito</code>, <code>authenticate-oidc</code>가 있습니다.
+      </p>
+      <p>
+        여기서 자주 나오는 사고가 <strong>넓은 규칙을 낮은 번호에 두는 것</strong>입니다.
+        <code>/*</code>를 우선순위 1에 두면 그 뒤의 <code>/api/*</code> 규칙은 영원히 평가되지 않습니다.
+        규칙은 좁은 것부터 배치합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-target-group.sh</span> — 타깃 그룹 생성과 헬스체크 설정 (리소스 ID와 리전은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws elbv2 create-target-group \
+  --name app-tg \
+  --protocol HTTP \
+  --port 8080 \
+  --vpc-id vpc-0123456789abcdef0 \
+  --target-type instance \
+  --health-check-protocol HTTP \
+  --health-check-path /healthz \
+  --health-check-interval-seconds 10 \
+  --health-check-timeout-seconds 5 \
+  --healthy-threshold-count 2 \
+  --unhealthy-threshold-count 2 \
+  --matcher HttpCode=200 \
+  --region ap-northeast-2</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="health-check-and-draining">
+      <h2 id="health-check-and-draining">헬스체크 · 연결 드레이닝 · 고정 세션</h2>
+
+      <h3 id="health-check">헬스체크가 장애 감지 속도를 정한다</h3>
+      <p>
+        로드 밸런서는 대상마다 주기적으로 헬스체크를 보내고,
+        <strong>연속 실패 횟수</strong>가 임계치에 닿으면 대상을 <code>unhealthy</code>로 표시해 트래픽에서 뺍니다.
+        즉 장애가 트래픽에서 제거되기까지 걸리는 시간은
+        <strong>검사 간격과 비정상 임계치의 곱</strong>에 좌우되고, 이 두 값이 곧 설계 파라미터입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>타깃 그룹 헬스체크 설정의 범위와 기본값</caption>
+          <thead>
+            <tr>
+              <th scope="col">설정</th>
+              <th scope="col">범위</th>
+              <th scope="col">기본값</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">검사 간격 <code>HealthCheckIntervalSeconds</code></th>
+              <td>5 – 300초</td>
+              <td>30초 (GENEVE는 10초, 대상 유형이 <code>lambda</code>면 35초)</td>
+            </tr>
+            <tr>
+              <th scope="row">응답 제한 시간 <code>HealthCheckTimeoutSeconds</code></th>
+              <td>2 – 120초</td>
+              <td>HTTP 6초, TCP · TLS · HTTPS 10초, GENEVE 5초, <code>lambda</code> 30초</td>
+            </tr>
+            <tr>
+              <th scope="row">정상 임계치 <code>HealthyThresholdCount</code></th>
+              <td>2 – 10회</td>
+              <td>5회</td>
+            </tr>
+            <tr>
+              <th scope="row">비정상 임계치 <code>UnhealthyThresholdCount</code></th>
+              <td>2 – 10회</td>
+              <td>2회 (<code>lambda</code>는 5회)</td>
+            </tr>
+            <tr>
+              <th scope="row">성공 응답 코드 <code>Matcher</code></th>
+              <td>HTTP · HTTPS는 200–499, TCP 계열은 200–599, GENEVE는 200–399</td>
+              <td>프로토콜별 기본 코드</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        헬스체크 경로는 <strong>애플리케이션이 실제로 요청을 처리할 수 있는지</strong>를 반영해야 합니다.
+        정적 파일 하나를 반환하는 경로로 검사하면, 데이터베이스 연결이 끊긴 인스턴스가 계속 정상으로 표시되어
+        트래픽을 받아 오류를 냅니다. 반대로 헬스체크에서 하위 의존성까지 전부 확인하면
+        의존성 한 곳의 순간 지연이 전체 대상을 한꺼번에 비정상으로 만들 수 있으므로,
+        검사 범위는 의도적으로 정합니다.
+      </p>
+      <p>
+        대상 상태 값은 <code>initial</code>, <code>healthy</code>, <code>unhealthy</code>,
+        <code>unhealthy.draining</code>, <code>unused</code>, <code>draining</code>, <code>unavailable</code>입니다.
+        상태가 <code>unused</code>라면 대상이 등록은 되었지만 어떤 리스너에도 연결되지 않았거나
+        중지 상태라는 뜻이므로, 헬스체크 실패와는 원인이 다릅니다.
+      </p>
+
+      <h3 id="deregistration-delay">등록 취소 지연 — 흔히 연결 드레이닝이라 부르는 것</h3>
+      <p>
+        대상을 뺄 때 즉시 끊으면 처리 중이던 요청이 실패합니다.
+        그래서 로드 밸런서는 대상을 <code>draining</code> 상태로 두고
+        <strong>새 요청은 보내지 않되 진행 중인 요청은 끝나게</strong> 합니다.
+        이 대기 시간이 <code>deregistration_delay.timeout_seconds</code>이며
+        범위는 <strong>0 – 3600초</strong>, 기본값은 <strong>300초</strong>입니다.
+      </p>
+      <p>
+        이 값이 배포 속도와 직결됩니다. 요청이 짧은 웹 서비스라면 300초를 기다릴 이유가 없어 값을 낮추고,
+        업로드나 장시간 응답이 있는 서비스라면 값을 늘립니다.
+        Auto Scaling 그룹이 인스턴스를 축소할 때도 이 지연을 거치므로,
+        "스케일인이 왜 이렇게 느린가"의 답이 여기 있는 경우가 많습니다.
+      </p>
+
+      <h3 id="stickiness">고정 세션 — 필요악이라는 사실을 함께 가르친다</h3>
+      <p>
+        고정 세션(sticky session)은 같은 클라이언트를 같은 대상으로 계속 보내는 기능입니다.
+        기본값은 <strong>비활성</strong>(<code>stickiness.enabled</code>는 <code>false</code>)이고,
+        방식은 로드 밸런서마다 다릅니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>로드 밸런서별 고정 세션 방식</caption>
+          <thead>
+            <tr>
+              <th scope="col">로드 밸런서</th>
+              <th scope="col"><code>stickiness.type</code> 값</th>
+              <th scope="col">기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Application Load Balancer</th>
+              <td><code>lb_cookie</code> / <code>app_cookie</code></td>
+              <td>로드 밸런서가 발급한 쿠키, 또는 애플리케이션이 발급한 쿠키</td>
+            </tr>
+            <tr>
+              <th scope="row">Network Load Balancer</th>
+              <td><code>source_ip</code></td>
+              <td>클라이언트 소스 IP</td>
+            </tr>
+            <tr>
+              <th scope="row">Gateway Load Balancer</th>
+              <td><code>source_ip_dest_ip</code> / <code>source_ip_dest_ip_proto</code></td>
+              <td>소스와 목적지 IP 조합(그리고 프로토콜)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        ALB의 쿠키 기반 고정 세션 유지 기간은 1초에서 1주일 사이이고 기본값은 <strong>1일</strong>입니다.
+        문제는 고정 세션이 <strong>부하 분산을 망가뜨린다</strong>는 점입니다.
+        특정 대상에 세션이 몰리면 스케일아웃을 해도 새 인스턴스로 트래픽이 옮겨 가지 않고,
+        그 대상이 죽으면 거기에 묶여 있던 사용자만 세션을 잃습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          시나리오가 <strong>"애플리케이션 코드를 변경하지 않고"</strong> 세션 문제를 해결하라고 하면
+          고정 세션이 정답 후보가 됩니다. 그러나 <strong>"확장 가능한", "탄력적인"</strong> 한정어가 붙으면
+          정답은 반대 방향입니다 — <strong>세션 상태를 인스턴스 밖으로 빼는 것</strong>입니다.
+          Amazon ElastiCache나 Amazon DynamoDB에 세션을 저장하면 어느 인스턴스가 받아도 되고,
+          그때 비로소 인스턴스를 자유롭게 늘리고 줄일 수 있습니다.
+        </p>
+        <p>
+          정리하면 <strong>고정 세션은 상태 비저장으로 가지 못한 구조에 대한 임시 대응</strong>이고,
+          시험은 그 사실을 알고 있는지를 묻습니다.
+        </p>
+      </aside>
+
+      <h3 id="cross-zone">교차 영역 로드 밸런싱 — 기본값이 다르다</h3>
+      <p>
+        교차 영역 로드 밸런싱(cross-zone load balancing)이 켜져 있으면
+        각 가용 영역의 로드 밸런서 노드가 <strong>모든 가용 영역의 대상</strong>에 트래픽을 보냅니다.
+        꺼져 있으면 노드는 <strong>자기 가용 영역 안의 대상</strong>에만 보냅니다.
+      </p>
+      <p>
+        여기서 기본값이 갈립니다. API 문서는
+        <strong>Network Load Balancer와 Gateway Load Balancer의 기본값은 <code>false</code></strong>,
+        <strong>Application Load Balancer의 기본값은 <code>true</code>이며 변경할 수 없다</strong>고 명시합니다.
+        따라서 가용 영역마다 대상 수가 다른 상태로 NLB를 쓰면
+        <strong>대상이 적은 가용 영역의 인스턴스에 트래픽이 몰립니다.</strong>
+        NLB를 쓸 때 가용 영역별 대상 수를 맞추거나 교차 영역을 켜야 하는 이유입니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-064">
+        <figcaption>
+          가용 영역 하나가 장애를 겪을 때의 흐름 — 헬스체크 실패가 대상 제외로 이어지고 남은 가용 영역이 트래픽을 받으며,
+          교차 영역 로드 밸런싱 설정에 따라 실제 트래픽 분포가 달라집니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          교차 영역 로드 밸런싱을 켜면 가용 영역 경계를 넘는 트래픽이 늘어납니다.
+          가용 영역 간 데이터 전송은 과금 대상이므로, 균등 분산과 전송 비용 사이에 교환이 생깁니다.
+          방향별 과금 구조는 <a href="ch01.html#data-transfer">1장 데이터 전송 요금의 방향성</a>과
+          <a href="ch18.html">18장 비용 최적화·마이그레이션·재해 복구</a>에서 다룹니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="auto-scaling-group">
+      <h2 id="auto-scaling-group">Auto Scaling 그룹 — 용량을 선언하고 유지시킨다</h2>
+
+      <p>
+        Amazon EC2 Auto Scaling은 "인스턴스를 몇 대 유지할 것인가"를 선언하면
+        그 상태를 계속 맞춰 주는 서비스입니다. 인스턴스가 죽으면 새로 띄우고,
+        부하가 늘면 정책에 따라 더 띄우고, 줄면 종료합니다.
+        <strong>자동 복구와 자동 확장이 같은 장치에서 나온다</strong>는 점이 핵심입니다.
+      </p>
+
+      <h3 id="launch-template">시작 템플릿 — 무엇을 띄울지의 정의</h3>
+      <p>
+        Auto Scaling 그룹은 <strong>시작 템플릿(launch template)</strong> 또는 시작 구성(launch configuration)으로
+        인스턴스의 사양을 받습니다. AMI, 인스턴스 타입, 보안 그룹, IAM 인스턴스 프로파일,
+        사용자 데이터, 블록 디바이스 매핑, 인스턴스 메타데이터 옵션이 여기에 들어갑니다.
+        시작 템플릿은 <strong>버전을 가지므로</strong> 변경 이력을 남기고 되돌릴 수 있고,
+        온디맨드와 스팟을 섞는 혼합 인스턴스 정책도 시작 템플릿에서만 구성할 수 있습니다.
+        새로 만들 때는 시작 템플릿을 씁니다.
+      </p>
+
+      <h3 id="capacity-settings">최소 · 원하는 · 최대 용량</h3>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Auto Scaling 그룹의 용량 설정 세 가지</caption>
+          <thead>
+            <tr>
+              <th scope="col">설정</th>
+              <th scope="col">의미</th>
+              <th scope="col">주의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>MinSize</code></th>
+              <td>어떤 경우에도 이 아래로는 줄이지 않는 하한</td>
+              <td>가용성의 바닥. 다중 가용 영역이라면 최소 2 이상이어야 의미가 있다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>DesiredCapacity</code></th>
+              <td>지금 유지하려는 대수. 스케일링 정책이 이 값을 조정한다</td>
+              <td>지정하지 않으면 <strong><code>MinSize</code>가 기본값</strong>이 된다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>MaxSize</code></th>
+              <td>스케일아웃이 넘어설 수 없는 상한</td>
+              <td>비용 상한이자 <strong>사고 시 폭주를 막는 안전장치</strong>. 너무 낮으면 급증을 못 따라간다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        원하는 용량은 최소 이상, 최대 이하여야 합니다.
+        시험에서 "트래픽이 급증했는데 확장이 되지 않았다"는 시나리오의 원인 후보 1번이
+        <strong>최대 용량에 이미 도달한 상태</strong>입니다.
+      </p>
+
+      <h3 id="asg-multi-az">다중 가용 영역 배치 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        Auto Scaling 그룹에는 <code>VPCZoneIdentifier</code>로 <strong>여러 가용 영역의 서브넷</strong>을 지정합니다.
+        그러면 Auto Scaling이 가용 영역 사이에 인스턴스를 고르게 배치하려 시도하고,
+        한 가용 영역이 통째로 사라져도 남은 가용 영역에서 용량을 다시 채웁니다.
+        <strong>가용 영역 하나에 인스턴스를 여러 대 두는 것은 고가용성이 아닙니다</strong>
+        (<a href="ch01.html#availability-zone">1장 가용 영역</a>).
+      </p>
+      <p>
+        고가용성 웹 계층의 표준 조합은 결국 세 가지입니다 —
+        <strong>여러 가용 영역의 서브넷 + Auto Scaling 그룹 + 로드 밸런서</strong>.
+        이 조합이 성립하려면 <strong>인스턴스가 언제 죽어도 되는 상태 비저장 설계</strong>가 전제입니다.
+        세션과 업로드 파일이 인스턴스 로컬 디스크에 있으면 인스턴스 교체가 곧 데이터 손실이 됩니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">asg-multi-az.yaml</span> — 두 가용 영역에 걸친 Auto Scaling 그룹과 대상 추적 정책 (리소스 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-yaml">AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  WebAsg:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MinSize: '2'
+      MaxSize: '10'
+      DesiredCapacity: '2'
+      VPCZoneIdentifier:
+        - subnet-0123456789abcdef0   # 가용 영역 A 프라이빗 서브넷
+        - subnet-0abcdef1234567890   # 가용 영역 C 프라이빗 서브넷
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebLaunchTemplate
+        Version: !GetAtt WebLaunchTemplate.LatestVersionNumber
+      TargetGroupARNs:
+        - !Ref WebTargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 120
+      DefaultInstanceWarmup: 60
+
+  ScaleOnCpu:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref WebAsg
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 50</code></pre>
+      </figure>
+
+      <h3 id="asg-health-check">Auto Scaling 헬스체크 유형 — <code>ELB</code>를 켜야 하는 이유</h3>
+      <p>
+        Auto Scaling 그룹의 헬스체크 유형은 <code>EC2</code>, <code>ELB</code>, <code>EBS</code>,
+        <code>VPC_LATTICE</code>이며 <strong><code>EC2</code>가 기본이고 끌 수 없습니다.</strong>
+        문제는 <code>EC2</code> 헬스체크가 <strong>인스턴스와 시스템 상태 확인만</strong> 본다는 점입니다.
+        운영체제는 멀쩡한데 애플리케이션 프로세스만 죽은 경우,
+        <code>EC2</code> 헬스체크는 정상이라고 보고 인스턴스를 교체하지 않습니다.
+      </p>
+      <p>
+        <code>HealthCheckType</code>에 <code>ELB</code>를 추가하면
+        <strong>로드 밸런서의 헬스체크 실패가 곧 인스턴스 교체</strong>로 이어집니다.
+        로드 밸런서 뒤의 Auto Scaling 그룹에서는 사실상 항상 켜야 하는 설정입니다.
+      </p>
+      <p>
+        함께 보는 값이 <strong>헬스체크 유예 기간</strong>(<code>HealthCheckGracePeriod</code>)이고
+        <strong>기본값은 0초</strong>입니다. 부팅과 애플리케이션 기동에 시간이 걸리는데 유예가 0이면,
+        아직 준비되지 않은 인스턴스가 비정상으로 판정되어 종료되고 다시 시작되는
+        <strong>교체 루프</strong>에 빠집니다. 기동 시간을 재서 그보다 넉넉하게 잡습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          "인스턴스는 <code>running</code>인데 사용자에게는 오류가 나간다"는 시나리오의 정답은
+          거의 언제나 <strong>Auto Scaling 그룹의 헬스체크 유형을 <code>ELB</code>로 바꾸는 것</strong>입니다.
+          <code>EC2</code> 헬스체크만으로는 애플리케이션 계층의 실패를 볼 수 없습니다.
+        </p>
+        <p>
+          반대로 <strong>"인스턴스가 시작되자마자 계속 종료된다"</strong>면
+          헬스체크 유예 기간이 부팅 시간보다 짧은 것을 먼저 의심합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scaling-policies">
+      <h2 id="scaling-policies">스케일링 정책 — 언제, 얼마나 늘릴 것인가</h2>
+
+      <p>
+        정책이 하나도 없으면 Auto Scaling 그룹은 <strong>원하는 용량을 유지하기만</strong> 합니다.
+        자동으로 늘고 줄게 하려면 정책을 붙여야 하고, 정책 유형은 다음과 같습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>스케일링 정책 유형과 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">정책</th>
+              <th scope="col">동작</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">대상 추적 <code>TargetTrackingScaling</code></th>
+              <td>지표가 목표값에 머물도록 Auto Scaling이 알아서 용량을 조정한다. 필요한 알람을 스스로 만든다</td>
+              <td><strong>기본 선택.</strong> "평균 CPU를 50%로 유지"처럼 목표를 말할 수 있으면 이것</td>
+            </tr>
+            <tr>
+              <th scope="row">단계별 <code>StepScaling</code></th>
+              <td>알람 위반 폭에 따라 단계별로 다른 조정량을 적용한다</td>
+              <td>급증 크기에 비례해 다르게 대응해야 할 때. "80% 넘으면 2대, 90% 넘으면 4대"</td>
+            </tr>
+            <tr>
+              <th scope="row">단순 <code>SimpleScaling</code></th>
+              <td>알람 하나에 조정 하나. 조정 후 쿨다운이 끝날 때까지 다음 조정을 하지 않는다. <strong>API 기본값</strong></td>
+              <td>구세대 방식. 새 설계에서는 대상 추적이나 단계별을 쓴다</td>
+            </tr>
+            <tr>
+              <th scope="row">예약 <code>PutScheduledUpdateGroupAction</code></th>
+              <td>지정한 시각이나 반복 일정에 최소 · 최대 · 원하는 용량을 바꾼다</td>
+              <td><strong>부하 시점을 미리 아는 경우.</strong> 업무 시간, 정기 배치, 판매 개시 시각</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        조정량을 어떻게 해석할지는 <code>AdjustmentType</code>이 정합니다 —
+        <code>ChangeInCapacity</code>(증감), <code>ExactCapacity</code>(절대값),
+        <code>PercentChangeInCapacity</code>(비율). 단계별과 단순 정책에서만 씁니다.
+      </p>
+      <p>
+        대상 추적에서 바로 쓸 수 있는 사전 정의 지표는
+        <code>ASGAverageCPUUtilization</code>, <code>ASGAverageNetworkIn</code>,
+        <code>ASGAverageNetworkOut</code>, <code>ALBRequestCountPerTarget</code>입니다.
+        웹 계층에서는 CPU보다 <strong>대상당 요청 수</strong>가 부하를 더 정확히 반영하는 경우가 많습니다.
+      </p>
+      <p>
+        이 밖에 예측 스케일링(<code>PredictiveScaling</code>)이 있어 과거 패턴으로 미리 용량을 올려 둘 수 있습니다.
+        위 네 가지를 먼저 확실히 구분한 뒤에 보조 수단으로 이해하면 충분합니다.
+      </p>
+
+      <h3 id="warmup-cooldown">워밍업과 쿨다운 — 진동을 막는 두 장치</h3>
+
+      <figure class="diagram" data-diagram="D-062">
+        <figcaption>
+          부하 급증부터 새 인스턴스가 트래픽을 받기까지의 지연 구간 — 지표 수집, 알람 발생, 용량 계산,
+          인스턴스 시작, 워밍업이 차례로 시간을 먹기 때문에 스케일아웃은 트래픽보다 언제나 늦게 도착합니다
+        </figcaption>
+      </figure>
+
+      <p>
+        새로 시작한 인스턴스는 부팅과 애플리케이션 기동 동안 CPU가 높거나 요청을 받지 못합니다.
+        이 값을 그대로 그룹 평균에 넣으면 <strong>지표가 왜곡되어 필요 없는 인스턴스를 더 띄웁니다.</strong>
+        그래서 <strong>워밍업</strong>(<code>DefaultInstanceWarmup</code>)을 두어
+        새 인스턴스가 안정될 때까지 지표 집계에서 제외합니다.
+      </p>
+      <p>
+        <strong>쿨다운</strong>(<code>DefaultCooldown</code>)은 <strong>단순 스케일링 정책에만</strong> 적용되며
+        조정 하나가 끝나고 다음 조정이 시작되기까지의 간격입니다.
+        <strong>기본값은 300초</strong>입니다. 대상 추적과 단계별 정책은 쿨다운 대신 워밍업을 씁니다.
+        정책마다 워밍업을 따로 주고 싶으면 <code>EstimatedInstanceWarmup</code>으로 덮어쓸 수 있고,
+        그룹 기본 워밍업이 비어 있으면 이 값이 기본 쿨다운으로 대체됩니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          <strong>"스케일아웃이 트래픽 급증을 따라가지 못했다"</strong>는 시나리오에서 확인 순서는 이렇습니다.
+        </p>
+        <ul>
+          <li><strong>최대 용량에 걸렸는가</strong> — 가장 흔한 원인입니다.</li>
+          <li><strong>인스턴스가 준비되는 데 걸리는 시간</strong> — AMI를 미리 구워 두면 부팅 후 준비 시간이 짧아집니다.</li>
+          <li><strong>부하 시점을 아는가</strong> — 안다면 예약 스케일링으로 미리 올려 둡니다.</li>
+          <li><strong>급증을 버퍼로 흡수할 수 있는가</strong> — 요청을 Amazon SQS 큐로 받아 두면
+            처리 계층은 자기 속도로 소비하면 됩니다(<a href="ch12.html">12장 서버리스와 애플리케이션 통합</a>).</li>
+        </ul>
+        <p>
+          "인스턴스를 더 큰 타입으로 바꾼다"는 선택지는 <strong>탄력성 요구를 만족시키지 못하므로</strong>
+          이런 문항에서 대체로 오답입니다.
+        </p>
+      </aside>
+
+      <h3 id="lifecycle-hook">수명주기 훅 — 시작 직후와 종료 직전에 끼어들기</h3>
+
+      <figure class="diagram" data-diagram="D-063">
+        <figcaption>
+          Auto Scaling 인스턴스의 상태 전이와 수명주기 훅의 위치 — 시작 대기 상태에서 초기화를 마치고,
+          종료 대기 상태에서 로그를 회수한 뒤에야 다음 상태로 넘어갑니다
+        </figcaption>
+      </figure>
+
+      <p>
+        수명주기 훅은 인스턴스를 <strong>대기 상태에 붙잡아 두고</strong> 그동안 우리가 할 일을 하게 합니다.
+        전환 지점은 두 개입니다.
+      </p>
+      <ul>
+        <li><code>autoscaling:EC2_INSTANCE_LAUNCHING</code> — 스케일아웃 시.
+          설정 파일 내려받기, 캐시 예열, 등록 작업을 끝낸 뒤 트래픽을 받게 합니다.</li>
+        <li><code>autoscaling:EC2_INSTANCE_TERMINATING</code> — 스케일인 시.
+          로그 회수, 진행 중 작업 마무리, 외부 시스템에서 등록 해제를 합니다.</li>
+      </ul>
+      <p>
+        대기 시간은 <code>HeartbeatTimeout</code>으로 정하며 범위는 <strong>30 – 7200초</strong>,
+        기본값은 <strong>3600초</strong>입니다.
+        작업이 더 필요하면 <code>RecordLifecycleActionHeartbeat</code>로 시간을 연장하고,
+        끝나면 <code>CompleteLifecycleAction</code>으로 즉시 다음 단계로 넘깁니다.
+        시간이 다 지나면 <code>DefaultResult</code>가 적용되며 <strong>기본값은 <code>ABANDON</code></strong>입니다.
+        기본 한도는 Auto Scaling 그룹당 훅 50개입니다.
+      </p>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <code>ABANDON</code>은 그 인스턴스를 포기하고 종료한다는 뜻입니다.
+          시작 훅에서 콜백을 보내지 않아 시간이 초과되면 인스턴스가 계속 만들어졌다 버려지므로,
+          <strong>훅을 걸었으면 콜백을 반드시 보내야</strong> 합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scaling-direction">
+      <h2 id="scaling-direction">확장의 방향 — 수직인가 수평인가</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>수직 확장과 수평 확장의 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">수직 확장 (scale up)</th>
+              <th scope="col">수평 확장 (scale out)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">방법</th>
+              <td>인스턴스 타입을 더 큰 것으로 바꾼다</td>
+              <td>같은 인스턴스를 여러 대로 늘린다</td>
+            </tr>
+            <tr>
+              <th scope="row">중단</th>
+              <td>타입 변경은 인스턴스 중지가 필요하다</td>
+              <td>무중단으로 늘리고 줄일 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">상한</th>
+              <td>가장 큰 인스턴스 타입이 상한이다</td>
+              <td>실질적인 상한이 훨씬 높다</td>
+            </tr>
+            <tr>
+              <th scope="row">가용성 효과</th>
+              <td>여전히 인스턴스 한 대 — 단일 장애점이 남는다</td>
+              <td>여러 가용 영역에 분산하면 장애를 견딘다</td>
+            </tr>
+            <tr>
+              <th scope="row">전제</th>
+              <td>없음</td>
+              <td><strong>상태 비저장 설계</strong>와 로드 밸런서가 필요하다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        시험에서 <strong>탄력성 · 확장성 · 고가용성</strong>이 요구되면 답은 수평 확장입니다.
+        수직 확장이 정답이 되는 경우는 <strong>수평으로 나눌 수 없는 워크로드</strong>일 때입니다 —
+        단일 쓰기 노드인 관계형 데이터베이스, 라이선스가 노드 수에 묶인 소프트웨어 같은 경우입니다.
+        데이터베이스 계층의 확장 판단은 <a href="ch10.html">10장 RDS와 관계형 데이터베이스</a>에서 다룹니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="removing-spof">
+      <h2 id="removing-spof">단일 장애점을 남기지 않는 조립법</h2>
+
+      <p>
+        안정성(Reliability, 신뢰성으로도 번역됨)의 기준은 단순합니다.
+        <strong>어느 구성 요소 하나가 사라져도 서비스가 계속되는가</strong>입니다.
+        Auto Scaling 그룹과 로드 밸런서를 붙여 놓고도 서비스가 통째로 멈추는 구성이 흔한데,
+        원인은 대개 아래 다섯 가지 중 하나입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>웹 계층에서 자주 남는 단일 장애점과 해소 방법</caption>
+          <thead>
+            <tr>
+              <th scope="col">남아 있는 단일 장애점</th>
+              <th scope="col">증상</th>
+              <th scope="col">해소</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">서브넷이 한 가용 영역에만 있음</th>
+              <td>Auto Scaling 그룹이 있어도 그 가용 영역이 죽으면 전면 중단</td>
+              <td>가용 영역 2개 이상의 서브넷을 <code>VPCZoneIdentifier</code>에 넣는다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 게이트웨이가 한 개</th>
+              <td>프라이빗 서브넷 전체의 아웃바운드가 그 가용 영역과 함께 끊긴다</td>
+              <td>가용 영역마다 NAT 게이트웨이를 두고 라우팅 테이블을 분리한다 (<a href="ch03.html">3장</a>)</td>
+            </tr>
+            <tr>
+              <th scope="row">세션과 업로드 파일이 인스턴스 로컬에</th>
+              <td>인스턴스가 교체될 때마다 로그아웃과 파일 유실</td>
+              <td>세션은 ElastiCache나 DynamoDB, 파일은 Amazon S3나 Amazon EFS로 뺀다</td>
+            </tr>
+            <tr>
+              <th scope="row">헬스체크 유형이 <code>EC2</code>뿐</th>
+              <td>애플리케이션이 죽어도 교체되지 않고 계속 오류를 반환</td>
+              <td><code>HealthCheckType</code>에 <code>ELB</code>를 추가한다</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터베이스가 단일 인스턴스</th>
+              <td>웹 계층은 살아 있는데 서비스는 멈춘다</td>
+              <td>Multi-AZ 배포로 전환한다 (<a href="ch10.html">10장</a>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="diff">
+        <div class="diff__before">
+          <p>
+            가용 영역 하나의 서브넷만 지정하고, 헬스체크는 <code>EC2</code>만 쓰고,
+            세션을 인스턴스 로컬에 둡니다. 인스턴스는 여러 대지만 장애 도메인은 하나입니다.
+          </p>
+          <figure class="code">
+            <figcaption>안티패턴 — 단일 가용 영역 Auto Scaling 그룹</figcaption>
+            <pre><code class="lang-bash">aws autoscaling create-auto-scaling-group \
+  --auto-scaling-group-name web-asg \
+  --min-size 2 --max-size 6 --desired-capacity 2 \
+  --vpc-zone-identifier "subnet-0123456789abcdef0" \
+  --launch-template LaunchTemplateId=lt-0123456789abcdef0,Version='$Latest'</code></pre>
+          </figure>
+        </div>
+        <div class="diff__after">
+          <p>
+            두 가용 영역의 서브넷을 지정하고 타깃 그룹에 연결한 뒤,
+            헬스체크를 <code>ELB</code>로 두고 기동 시간만큼 유예를 줍니다.
+          </p>
+          <figure class="code">
+            <figcaption>권장 — 다중 가용 영역 + 로드 밸런서 헬스체크</figcaption>
+            <pre><code class="lang-bash">aws autoscaling create-auto-scaling-group \
+  --auto-scaling-group-name web-asg \
+  --min-size 2 --max-size 10 --desired-capacity 2 \
+  --vpc-zone-identifier "subnet-0123456789abcdef0,subnet-0abcdef1234567890" \
+  --target-group-arns "$TARGET_GROUP_ARN" \
+  --health-check-type ELB \
+  --health-check-grace-period 120 \
+  --default-instance-warmup 60 \
+  --launch-template LaunchTemplateId=lt-0123456789abcdef0,Version='$Latest'</code></pre>
+          </figure>
+        </div>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          <strong>"가장 가용성이 높은(MOST highly available)"</strong> 한정어가 붙으면
+          선택지에서 다음 세 가지를 순서대로 확인합니다 —
+          <strong>(1) 가용 영역이 2개 이상인가</strong>,
+          <strong>(2) 죽은 대상을 자동으로 빼고 채우는 장치가 있는가</strong>,
+          <strong>(3) 상태를 인스턴스 밖에 두었는가</strong>.
+        </p>
+        <p>
+          한 가지라도 어긋나는 선택지는 나머지가 아무리 좋아도 소거합니다.
+          이 판단은 <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a> 도메인의 중심이며,
+          <a href="../cases/case05.html">케이스 5 · 단일 AZ 설계가 장애로 전면 중단됐다</a>에서 실패 사례로 다시 봅니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"Auto Scaling 그룹을 붙였으니 고가용성이다"</strong> —
+          Auto Scaling 그룹은 <strong>용량을 유지</strong>할 뿐, 어디에 배치할지는 우리가 지정한 서브넷이 정합니다.
+          서브넷을 한 가용 영역에서만 골랐다면 그 가용 영역이 사라질 때 그룹도 함께 사라집니다.
+          게다가 헬스체크 유형이 기본값인 <code>EC2</code>뿐이면 애플리케이션 장애를 보지 못해
+          <strong>죽은 인스턴스를 교체하지도 않습니다.</strong>
+          고가용성은 <strong>다중 가용 영역 서브넷 + <code>ELB</code> 헬스체크 + 상태 비저장 설계</strong>가 모두 갖춰질 때 성립합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"교차 영역 로드 밸런싱은 항상 켜져 있다"</strong> —
+          Application Load Balancer는 기본이 켜짐이고 끌 수도 없지만,
+          <strong>Network Load Balancer와 Gateway Load Balancer는 기본이 꺼짐</strong>입니다.
+          이 차이를 모르고 가용 영역마다 대상 수가 다른 상태로 NLB를 두면,
+          대상이 적은 가용 영역의 인스턴스에 트래픽이 몰려 그쪽만 과부하가 됩니다.
+          균등 분산을 원하면 교차 영역을 켜거나 가용 영역별 대상 수를 맞춥니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"고정 세션을 켜면 세션 문제가 해결된다"</strong> —
+          고정 세션은 세션을 <strong>인스턴스에 묶어 두는</strong> 기능이지 안전하게 만드는 기능이 아닙니다.
+          그 인스턴스가 스케일인이나 장애로 사라지면 거기에 묶인 사용자의 세션도 함께 사라지고,
+          부하가 특정 대상에 쏠려 스케일아웃 효과도 떨어집니다.
+          <strong>근본 해결은 세션을 외부 저장소로 빼는 것</strong>이며,
+          고정 세션은 코드를 당장 바꿀 수 없을 때의 임시 대응입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>7장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">로드 밸런서 타입</th>
+                <td><code>application</code> · <code>network</code> · <code>gateway</code> <strong>세 가지</strong></td>
+                <td>Classic Load Balancer를 현행 선택지로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">지원 프로토콜</th>
+                <td>ALB는 HTTP · HTTPS, NLB는 TCP · TLS · UDP 계열, GWLB는 <strong><code>GENEVE</code></strong></td>
+                <td>UDP 요구에 ALB를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">GENEVE와 포트 6081</th>
+                <td>보이는 순간 <strong>Gateway Load Balancer</strong> 확정</td>
+                <td>어플라이언스 삽입 시나리오에 NLB를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">고정 IP</th>
+                <td>NLB만 서브넷당 Elastic IP 지정 가능. <strong>ALB는 지정 불가</strong></td>
+                <td>IP 허용 목록 요구에 ALB를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">ALB 서브넷 요구</th>
+                <td>서로 다른 <strong>가용 영역 2개 이상</strong>의 서브넷 필수</td>
+                <td>단일 가용 영역 구성으로 ALB를 만들려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">대상 유형</th>
+                <td><code>instance</code>(기본) · <code>ip</code> · <code>lambda</code> · <code>alb</code></td>
+                <td>한 타깃 그룹에 인스턴스와 IP를 섞으려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">리스너 규칙 평가</th>
+                <td><strong>우선순위가 낮은 번호부터</strong>, 맞는 첫 규칙의 동작 수행</td>
+                <td>넓은 규칙을 앞에 두어 뒤 규칙이 죽는 것을 못 봄</td>
+              </tr>
+              <tr>
+                <th scope="row">헬스체크 임계치</th>
+                <td>정상 · 비정상 임계치 모두 <strong>2–10회</strong>, 검사 간격 <strong>5–300초</strong></td>
+                <td>임계치를 늘리면 장애 감지가 느려진다는 점을 놓침</td>
+              </tr>
+              <tr>
+                <th scope="row">등록 취소 지연</th>
+                <td>기본 <strong>300초</strong>, 범위 0–3600초. 진행 중 요청을 끝내게 한다</td>
+                <td>연결 드레이닝을 0으로 두어 배포 중 요청이 끊김</td>
+              </tr>
+              <tr>
+                <th scope="row">고정 세션 기본값</th>
+                <td><strong>비활성</strong>. ALB는 쿠키, NLB는 소스 IP 기준</td>
+                <td>확장성 요구 문항에서 고정 세션을 정답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">교차 영역 로드 밸런싱</th>
+                <td><strong>ALB는 기본 켜짐(변경 불가), NLB · GWLB는 기본 꺼짐</strong></td>
+                <td>모든 로드 밸런서가 같다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">ASG 용량 3종</th>
+                <td>최소 · 원하는 · 최대. <strong>원하는 값을 생략하면 최소값이 기본</strong></td>
+                <td>최대 용량에 걸린 것을 스케일링 정책 문제로 오진</td>
+              </tr>
+              <tr>
+                <th scope="row">ASG 헬스체크 유형</th>
+                <td><code>EC2</code>가 기본이고 끌 수 없음. <strong><code>ELB</code>를 추가해야 애플리케이션 장애를 본다</strong></td>
+                <td>애플리케이션만 죽은 인스턴스가 교체되지 않는 이유를 못 찾음</td>
+              </tr>
+              <tr>
+                <th scope="row">헬스체크 유예 기간</th>
+                <td>기본 <strong>0초</strong>. 기동 시간보다 짧으면 교체 루프에 빠진다</td>
+                <td>인스턴스가 반복 종료되는 원인을 AMI 문제로 오진</td>
+              </tr>
+              <tr>
+                <th scope="row">스케일링 정책 4종</th>
+                <td>대상 추적 · 단계별 · 단순 · 예약. <strong>API 기본값은 단순</strong></td>
+                <td>목표값만 알면 되는 상황에 단계별을 복잡하게 구성</td>
+              </tr>
+              <tr>
+                <th scope="row">대상 추적 사전 정의 지표</th>
+                <td>CPU 사용률 · 네트워크 수신 · 네트워크 송신 · <strong>대상당 ALB 요청 수</strong></td>
+                <td>웹 계층인데 CPU만 보고 지표가 안 오르는 것을 방치</td>
+              </tr>
+              <tr>
+                <th scope="row">쿨다운</th>
+                <td><strong>단순 스케일링 정책에만</strong> 적용. 기본 300초</td>
+                <td>대상 추적에도 쿨다운이 적용된다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">워밍업</th>
+                <td>새 인스턴스를 지표 집계에서 제외해 <strong>과잉 확장을 막는다</strong></td>
+                <td>워밍업을 스케일링 지연 장치로만 이해</td>
+              </tr>
+              <tr>
+                <th scope="row">수명주기 훅</th>
+                <td>시작 · 종료 두 전환. 대기 시간 30–7200초, 기본 3600초, 기본 결과 <code>ABANDON</code></td>
+                <td>콜백을 보내지 않아 인스턴스가 계속 버려짐</td>
+              </tr>
+              <tr>
+                <th scope="row">확장 방향</th>
+                <td>탄력성 요구는 <strong>수평 확장</strong>. 수직은 중단이 필요하고 상한이 있다</td>
+                <td>"더 큰 인스턴스로 교체" 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">고가용성의 전제</th>
+                <td><strong>상태 비저장 설계</strong>가 없으면 다중 AZ와 ASG가 성립하지 않는다</td>
+                <td>세션·파일을 로컬에 둔 채 인스턴스만 늘림</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          이 장에서 얻는 비용 판단은 두 가지입니다.
+          첫째, <strong>교차 영역 로드 밸런싱은 가용 영역 간 트래픽을 늘립니다</strong> — 균등 분산과 전송 비용의 교환입니다.
+          둘째, <strong>최대 용량은 비용 상한 역할도 합니다</strong> — 사고나 잘못된 지표로 무한히 늘어나는 것을 막습니다.
+          Auto Scaling 그룹에 스팟 인스턴스를 섞어 기저 부하는 약정으로, 변동 부하는 스팟으로 처리하는 판단은
+          <a href="ch05.html#spot-vs-savings-plans">5장 스팟과 Savings Plans</a>에서 다룹니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch07" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch05.html">
+          <span class="card__title">5장 · EC2와 컴퓨트</span>
+          <span class="card__desc">Auto Scaling 그룹이 띄우는 인스턴스 자체의 이야기입니다. 구매 옵션과 배치 그룹, 시작 템플릿에 들어가는 사용자 데이터와 IMDSv2를 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch10.html">
+          <span class="card__title">10장 · RDS와 관계형 데이터베이스</span>
+          <span class="card__desc">웹 계층을 다중 AZ로 만들어도 데이터베이스가 단일 인스턴스면 소용이 없습니다. Multi-AZ와 읽기 전용 복제본의 차이를 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch12.html">
+          <span class="card__title">12장 · 서버리스와 애플리케이션 통합</span>
+          <span class="card__desc">스케일아웃이 못 따라가는 급증을 큐로 흡수하는 방법. 느슨한 결합이 왜 복원력의 다른 이름인지 이어서 봅니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab02.html">
+          <span class="card__title">실습 2 · ALB + ASG 웹 티어</span>
+          <span class="card__desc">이 장의 구성을 직접 만들어 헬스체크 실패와 스케일링 동작을 눈으로 확인합니다.</span>
+          <span class="card__meta">실습</span>
+        </a></li>
+        <li><a class="card" href="../cases/case07.html">
+          <span class="card__title">케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다</span>
+          <span class="card__desc">최대 용량, 워밍업, 예약 스케일링, 큐 완충 중 무엇이 답인지 시나리오로 판단합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">과제 진술 2개가 26%를 차지하는 도메인입니다. 이 장의 내용이 그 중심에 있습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 설정값 · 기본값 · 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateLoadBalancer.html">Elastic Load Balancing API 레퍼런스 — CreateLoadBalancer</a>
+          — 로드 밸런서 타입 세 가지, ALB가 가용 영역 2개 이상의 서브넷을 요구한다는 점, NLB만 서브넷당 Elastic IP를 지정할 수 있다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateTargetGroup.html">Elastic Load Balancing API 레퍼런스 — CreateTargetGroup</a>
+          — 대상 유형 네 가지, 헬스체크 간격 · 제한 시간 · 임계치의 범위와 기본값, 프로토콜별 성공 코드 범위</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_ModifyTargetGroupAttributes.html">Elastic Load Balancing API 레퍼런스 — ModifyTargetGroupAttributes</a>
+          — 등록 취소 지연 기본 300초, 고정 세션 기본 비활성과 로드 밸런서별 방식, 느린 시작 범위</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_ModifyLoadBalancerAttributes.html">Elastic Load Balancing API 레퍼런스 — ModifyLoadBalancerAttributes</a>
+          — 교차 영역 로드 밸런싱 기본값이 ALB는 켜짐(변경 불가), NLB · GWLB는 꺼짐이라는 서술과 ALB 유휴 제한 시간 기본 60초</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateRule.html">Elastic Load Balancing API 레퍼런스 — CreateRule</a>
+          — 규칙이 우선순위가 낮은 값부터 평가된다는 점과 조건 필드 목록</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html">Application Load Balancer 사용 설명서</a>
+          — 리스너 · 규칙 · 타깃 그룹의 관계와 L7 라우팅</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html">Network Load Balancer 사용 설명서</a>
+          — L4 동작과 고정 IP 구성</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/gateway/introduction.html">Gateway Load Balancer 사용 설명서</a>
+          — GENEVE 프로토콜과 가상 어플라이언스 삽입</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_CreateAutoScalingGroup.html">Amazon EC2 Auto Scaling API 레퍼런스 — CreateAutoScalingGroup</a>
+          — 원하는 용량을 생략하면 최소값이 기본이라는 점, 기본 쿨다운 300초, 헬스체크 유형과 유예 기간 기본 0초, 종료 정책 목록</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PutScalingPolicy.html">Amazon EC2 Auto Scaling API 레퍼런스 — PutScalingPolicy</a>
+          — 정책 유형 네 가지와 API 기본값, 조정 유형, 대상 추적 사전 정의 지표 목록, 워밍업이 쿨다운으로 대체되는 조건</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PutLifecycleHook.html">Amazon EC2 Auto Scaling API 레퍼런스 — PutLifecycleHook</a>
+          — 두 가지 수명주기 전환, 하트비트 제한 시간 30–7200초와 기본 3600초, 기본 결과 <code>ABANDON</code>, 그룹당 훅 50개</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PutScheduledUpdateGroupAction.html">Amazon EC2 Auto Scaling API 레퍼런스 — PutScheduledUpdateGroupAction</a>
+          — 예약 스케일링이 최소 · 최대 · 원하는 용량을 일정에 따라 바꾼다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html">Amazon EC2 Auto Scaling 사용 설명서</a>
+          — 그룹 · 시작 템플릿 · 스케일링 정책의 전체 구성</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

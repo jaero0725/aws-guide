@@ -1,0 +1,79 @@
+<svg viewBox="0 0 720 530" role="img" aria-labelledby="d020-title d020-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d020-title">VPC 서브넷과 라우팅 테이블 구조</title>
+  <desc id="d020-desc">두 개의 가용 영역에 퍼블릭 서브넷과 프라이빗 서브넷을 하나씩 배치한 VPC 구조와,
+    각 서브넷에 연결된 라우팅 테이블의 실제 엔트리를 함께 보여 줍니다.
+    라우팅 테이블 A 에는 VPC 내부용 local 경로와 0.0.0.0/0 을 인터넷 게이트웨이로 보내는 경로가 있고,
+    라우팅 테이블 B 에는 local 경로와 0.0.0.0/0 을 NAT 게이트웨이로 보내는 경로가 있습니다.
+    강조된 0.0.0.0/0 대 인터넷 게이트웨이 한 줄이 이 그림의 결론입니다.
+    퍼블릭 서브넷은 이름이나 위치가 아니라 연결된 라우팅 테이블에 인터넷 게이트웨이 경로가 있는 서브넷을 뜻합니다.</desc>
+
+  <defs>
+    <marker id="d020-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node dg-node--accent" x="300" y="18" width="120" height="32" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="39" text-anchor="middle">인터넷 게이트웨이</text>
+  <path class="dg-edge dg-edge--accent" d="M360 50 L360 64" marker-end="url(#d020-ar)"/>
+
+  <rect class="dg-panel" x="20" y="64" width="680" height="250" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="84">VPC · 10.0.0.0/16</text>
+
+  <!-- AZ a -->
+  <rect class="dg-panel" x="36" y="94" width="320" height="206" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="46" y="113">가용 영역 a</text>
+  <rect class="dg-node dg-node--accent" x="48" y="122" width="296" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="196" y="144" text-anchor="middle">퍼블릭 서브넷</text>
+  <text class="dg-fs-sm dg-mono" x="196" y="164" text-anchor="middle">10.0.1.0/24</text>
+  <text class="dg-fs-sm dg-muted" x="196" y="184" text-anchor="middle">라우팅 테이블 A 연결</text>
+  <rect class="dg-node" x="48" y="210" width="296" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="196" y="232" text-anchor="middle">프라이빗 서브넷</text>
+  <text class="dg-fs-sm dg-mono" x="196" y="252" text-anchor="middle">10.0.2.0/24</text>
+  <text class="dg-fs-sm dg-muted" x="196" y="272" text-anchor="middle">라우팅 테이블 B 연결</text>
+
+  <!-- AZ b -->
+  <rect class="dg-panel" x="364" y="94" width="320" height="206" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="374" y="113">가용 영역 b</text>
+  <rect class="dg-node dg-node--accent" x="376" y="122" width="296" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="524" y="144" text-anchor="middle">퍼블릭 서브넷</text>
+  <text class="dg-fs-sm dg-mono" x="524" y="164" text-anchor="middle">10.0.3.0/24</text>
+  <text class="dg-fs-sm dg-muted" x="524" y="184" text-anchor="middle">라우팅 테이블 A 연결</text>
+  <rect class="dg-node" x="376" y="210" width="296" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="524" y="232" text-anchor="middle">프라이빗 서브넷</text>
+  <text class="dg-fs-sm dg-mono" x="524" y="252" text-anchor="middle">10.0.4.0/24</text>
+  <text class="dg-fs-sm dg-muted" x="524" y="272" text-anchor="middle">라우팅 테이블 B 연결</text>
+
+  <!-- 라우팅 테이블 A -->
+  <rect class="dg-node dg-node--alt" x="20" y="330" width="340" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="348">라우팅 테이블 A — 퍼블릭 서브넷 연결</text>
+  <rect class="dg-node" x="20" y="356" width="340" height="76" rx="4"/>
+  <path class="dg-grid" d="M20 380 L360 380 M20 406 L360 406 M190 356 L190 432"/>
+  <text class="dg-fs-sm dg-muted" x="32" y="374">대상 (Destination)</text>
+  <text class="dg-fs-sm dg-muted" x="202" y="374">타깃 (Target)</text>
+  <text class="dg-fs-sm dg-mono" x="32" y="399">10.0.0.0/16</text>
+  <text class="dg-fs-sm dg-mono" x="202" y="399">local</text>
+  <rect x="22" y="407" width="336" height="24" rx="3"
+        fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-mono dg-bold" x="32" y="425">0.0.0.0/0</text>
+  <text class="dg-fs-sm dg-mono dg-bold" x="202" y="425">igw-0a1b2c3d</text>
+
+  <!-- 라우팅 테이블 B -->
+  <rect class="dg-node dg-node--alt" x="380" y="330" width="320" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="392" y="348">라우팅 테이블 B — 프라이빗 서브넷 연결</text>
+  <rect class="dg-node" x="380" y="356" width="320" height="76" rx="4"/>
+  <path class="dg-grid" d="M380 380 L700 380 M380 406 L700 406 M540 356 L540 432"/>
+  <text class="dg-fs-sm dg-muted" x="392" y="374">대상 (Destination)</text>
+  <text class="dg-fs-sm dg-muted" x="552" y="374">타깃 (Target)</text>
+  <text class="dg-fs-sm dg-mono" x="392" y="399">10.0.0.0/16</text>
+  <text class="dg-fs-sm dg-mono" x="552" y="399">local</text>
+  <text class="dg-fs-sm dg-mono" x="392" y="425">0.0.0.0/0</text>
+  <text class="dg-fs-sm dg-mono" x="552" y="425">nat-04e5f6a7</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="452" width="680" height="60" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="476" text-anchor="middle">퍼블릭 서브넷 = 라우팅 테이블에 0.0.0.0/0 → 인터넷 게이트웨이 경로가 있는 서브넷</text>
+  <text class="dg-fs-sm" x="360" y="498" text-anchor="middle">서브넷 이름이나 위치가 아니라 라우팅 테이블의 이 한 줄이 성격을 결정합니다</text>
+</svg>

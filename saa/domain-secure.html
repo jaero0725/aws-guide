@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>보안 아키텍처 설계 (30%) — AWS SAA Guide</title>
+  <meta name="description" content="SAA-C03 도메인 1 Design Secure Architectures의 과제 진술 1.1 · 1.2 · 1.3을 해설하고, 출제 포인트와 함정을 정리합니다. IAM 정책 평가, 보안 그룹과 네트워크 ACL, VPC 엔드포인트, 암호화 선택 기준을 포함한 판단 지점 18개를 담당 챕터에 연결했습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="saa" data-page="domain-secure"></div>
+
+  <main id="main" class="page" data-page-id="saa/domain-secure">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="index.html">시험 대비</a></li>
+        <li><span aria-current="page">보안 아키텍처 설계 (30%)</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">시험 대비 · 도메인 1</p>
+      <h1>보안 아키텍처 설계 (30%)</h1>
+      <p class="page__lead">
+        Design Secure Architectures는 <strong>가중치가 가장 큰 도메인인데 과제 진술은 셋뿐</strong>입니다.
+        범위가 좁고 깊다는 뜻이고, 같은 판단 지점이 시나리오를 바꿔 가며 반복된다는 뜻입니다.
+        여기서 실점하면 다른 도메인으로 만회하기가 가장 어렵습니다.
+        반대로 <strong>투입 대비 회수가 가장 큰 구간</strong>이기도 합니다.
+      </p>
+      <p class="page__meta">
+        이 페이지는 <strong>무엇을 판단해야 하는지</strong>를 정리합니다.
+        판단에 필요한 지식은 <a href="../basics/ch02.html">2장 IAM</a>,
+        <a href="../basics/ch03.html">3장 VPC 네트워킹 기초</a>,
+        <a href="../basics/ch16.html">16장 보안·암호화·거버넌스</a>가 담당합니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>과제 진술 1.1 · 1.2 · 1.3이 각각 무엇을 묻는지 구분하고 담당 챕터를 지목할 수 있습니다.</li>
+        <li>IAM 정책 평가 순서와 정책 유형별 결합 규칙으로 접근 허용 여부를 판정할 수 있습니다.</li>
+        <li>보안 그룹과 네트워크 ACL의 차이를 근거로 잘못된 선택지를 소거할 수 있습니다.</li>
+        <li>인터넷을 거치지 않는 접근 요구에 게이트웨이 엔드포인트와 인터페이스 엔드포인트 중 무엇을 쓸지 결정할 수 있습니다.</li>
+        <li>저장 데이터 암호화 방식을 키 관리 주체와 감사 요구를 기준으로 선택할 수 있습니다.</li>
+        <li>이 도메인의 판단 지점 18개를 점검표로 삼아 자기 취약 지점을 찾을 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="domain-overview">
+      <h2 id="domain-overview">이 도메인의 성격</h2>
+
+      <figure class="chart" data-chart="C-001">
+        <figcaption>
+          SAA-C03 도메인별 출제 비중 가운데 <strong>보안 아키텍처 설계가 30%로 가장 큰 조각</strong>입니다.
+          과제 진술이 3개뿐이므로 진술 하나가 감당하는 비중이 다른 도메인보다 큽니다.
+          학습 시간을 여기에 먼저 배정하는 근거입니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 1의 과제 진술 세 개와 중심 질문</caption>
+          <thead>
+            <tr>
+              <th scope="col">과제 진술</th>
+              <th scope="col">중심 질문</th>
+              <th scope="col">주 담당 챕터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1.1 AWS 리소스에 대한 보안 액세스 설계</th>
+              <td><strong>누가 무엇을 호출할 수 있는가.</strong> 자격 증명의 종류와 수명, 권한의 결합 방식</td>
+              <td><a href="../basics/ch02.html">2장 IAM과 자격 증명</a></td>
+            </tr>
+            <tr>
+              <th scope="row">1.2 보안 워크로드와 애플리케이션 설계</th>
+              <td><strong>패킷이 어디를 지나는가.</strong> 서브넷 배치, 접근 제어 계층, 경로 통제</td>
+              <td><a href="../basics/ch03.html">3장 VPC 네트워킹 기초</a> · <a href="../basics/ch04.html">4장 VPC 연결과 하이브리드</a></td>
+            </tr>
+            <tr>
+              <th scope="row">1.3 적절한 데이터 보안 제어 결정</th>
+              <td><strong>키를 누가 쥐는가.</strong> 저장·전송 암호화, 비밀 관리, 증적과 불변성</td>
+              <td><a href="../basics/ch16.html">16장 보안·암호화·거버넌스</a> · <a href="../basics/ch08.html">8장 S3</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        세 진술은 <strong>계층이 다릅니다.</strong>
+        1.1은 자격 증명 계층, 1.2는 네트워크 계층, 1.3은 데이터 계층입니다.
+        시나리오 하나에 세 계층이 함께 나오는 경우도 많으므로,
+        문항을 읽을 때 <strong>어느 계층에서 답을 요구하는지</strong> 먼저 정하면 선택지가 빠르게 갈립니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-1-1">
+      <h2 id="task-1-1">과제 진술 1.1 · AWS 리소스에 대한 보안 액세스 설계</h2>
+
+      <p>
+        이 진술의 문항은 대부분 <strong>"이 주체가 이 리소스를 호출할 수 있게 하려면"</strong> 또는
+        <strong>"이 접근이 왜 거부되는가"</strong> 형태입니다.
+        서비스 이름을 아는 것보다 <strong>정책이 어떻게 결합되는지</strong>가 훨씬 자주 결정적입니다.
+      </p>
+
+      <h3 id="iam-role-over-access-key">액세스 키가 아니라 IAM 역할 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        이 도메인에서 가장 자주 재활용되는 판단입니다.
+        <strong>EC2 인스턴스·컨테이너·Lambda 함수가 AWS API를 호출해야 한다면 답은 IAM 역할</strong>입니다.
+        역할이 전달하는 자격 증명은 임시이고 자동으로 교체되므로,
+        유출된 키를 찾아 회수하는 문제 자체가 생기지 않습니다.
+      </p>
+      <p>
+        선택지에 "IAM 사용자를 만들어 액세스 키를 발급하고 인스턴스에 저장한다"가 보이면
+        <strong>거의 항상 오답</strong>입니다. 실행 주체별로 역할의 이름이 다를 뿐 결론은 같습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>실행 주체별로 자격 증명을 전달하는 방식</caption>
+          <thead>
+            <tr>
+              <th scope="col">실행 주체</th>
+              <th scope="col">정답 방식</th>
+              <th scope="col">오답 방식</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon EC2 인스턴스</th>
+              <td>인스턴스 프로파일로 IAM 역할 연결</td>
+              <td>액세스 키를 자격 증명 파일이나 환경 변수에 저장</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon ECS 태스크</th>
+              <td>태스크 역할(실행 역할과 구분)</td>
+              <td>컨테이너 이미지에 키를 굽는 방식</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Lambda 함수</th>
+              <td>실행 역할</td>
+              <td>환경 변수에 키를 넣는 방식</td>
+            </tr>
+            <tr>
+              <th scope="row">다른 AWS 계정의 주체</th>
+              <td>역할을 만들고 신뢰 정책으로 상대 계정을 허용한 뒤 <code>sts:AssumeRole</code></td>
+              <td>상대 계정용 IAM 사용자를 만들어 키를 전달</td>
+            </tr>
+            <tr>
+              <th scope="row">사내 디렉터리 사용자</th>
+              <td>AWS IAM Identity Center로 페더레이션</td>
+              <td>사람마다 IAM 사용자를 만들어 관리</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="policy-evaluation">정책 평가 순서와 결합 규칙</h3>
+      <p>
+        접근 허용 여부는 세 줄로 정리됩니다.
+        <strong>기본은 암묵적 거부</strong>이고,
+        <strong>어느 정책에서든 명시적 Deny가 하나라도 있으면 즉시 거부</strong>이며,
+        명시적 Allow가 있고 거부가 없으면 허용됩니다.
+        우선순위는 <strong>명시적 Deny 우선, 그다음 명시적 Allow, 마지막이 암묵적 거부</strong>입니다.
+      </p>
+      <p>
+        더 자주 틀리는 것은 순서가 아니라 <strong>결합 규칙</strong>입니다.
+        같은 계정 안에서 자격 증명 기반 정책과 리소스 기반 정책은 합집합으로 동작하지만,
+        권한 경계·SCP·세션 정책은 교집합으로 동작합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>정책 유형별 결합 규칙</caption>
+          <thead>
+            <tr>
+              <th scope="col">조합</th>
+              <th scope="col">결과</th>
+              <th scope="col">시험에서의 의미</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">자격 증명 기반 + 리소스 기반 (동일 계정)</th>
+              <td><span class="mark-ok">합집합</span></td>
+              <td>둘 중 하나만 허용해도 통과합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + 권한 경계</th>
+              <td><span class="mark-no">교집합</span></td>
+              <td>양쪽이 모두 허용해야 통과합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + SCP</th>
+              <td><span class="mark-no">교집합</span></td>
+              <td>SCP가 허용하지 않으면 IAM 정책이 아무리 넓어도 거부됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + 세션 정책</th>
+              <td><span class="mark-no">교집합</span></td>
+              <td>역할을 맡을 때 전달한 세션 정책이 상한이 됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">권한 경계 + SCP + 자격 증명 기반</th>
+              <td><span class="mark-no">셋 다 허용해야 통과</span></td>
+              <td>교차 계정 문항에서 원인을 찾을 때 순서대로 확인합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <strong>교차 계정 접근</strong>은 이 규칙의 대표 응용입니다.
+        다른 계정의 리소스에 접근하려면 <strong>호출자 쪽 자격 증명 기반 정책과
+        리소스 쪽 리소스 기반 정책이 둘 다 허용</strong>해야 합니다.
+        한쪽만 고친 선택지는 오답입니다.
+      </p>
+
+      <h3 id="scp-and-boundary">SCP와 권한 경계</h3>
+      <p>
+        서비스 제어 정책(Service Control Policy, SCP)은 조직 전체에 <strong>상한</strong>을 겁니다.
+        두 가지 성질만 기억하면 관련 문항이 대부분 풀립니다 —
+        <strong>SCP는 권한을 부여하지 않고</strong>, <strong>멤버 계정의 루트 사용자에게도 적용</strong>됩니다.
+        루트를 통제할 수 있는 사실상 유일한 수단이라는 점이 자주 출제됩니다.
+      </p>
+      <p>
+        권한 경계는 <strong>개별 IAM 주체</strong>에 거는 상한입니다.
+        적용 범위가 조직이 아니라 주체라는 점이 SCP와의 결정적 차이이며,
+        "개발자에게 IAM 역할을 만들 권한을 주되 자기보다 큰 권한은 못 만들게 한다"는
+        요구가 나오면 권한 경계가 답입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          접근 거부 원인을 찾는 문항은 <strong>확인 순서가 정해져 있습니다.</strong>
+          명시적 Deny가 어딘가에 있는가 → SCP가 그 작업을 허용하는가 →
+          권한 경계 안에 있는가 → 자격 증명 기반 정책이 허용하는가 →
+          (교차 계정이면) 리소스 기반 정책이 허용하는가.
+          이 순서대로 선택지를 대조하면 대부분 하나만 남습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-1-2">
+      <h2 id="task-1-2">과제 진술 1.2 · 보안 워크로드와 애플리케이션 설계</h2>
+
+      <p>
+        이 진술은 <strong>네트워크 경계</strong>를 묻습니다.
+        무엇을 퍼블릭 서브넷에 두고 무엇을 프라이빗 서브넷에 두는가,
+        어떤 계층에서 트래픽을 막는가, 그리고 트래픽이 인터넷을 지나는가가 중심입니다.
+      </p>
+
+      <h3 id="sg-vs-nacl">보안 그룹과 네트워크 ACL <span class="badge badge--saa">SAA 빈출</span></h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>보안 그룹과 네트워크 ACL 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">보안 그룹</th>
+              <th scope="col">네트워크 ACL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">적용 계층</th>
+              <td>인스턴스(네트워크 인터페이스) 수준</td>
+              <td>서브넷 수준 — 서브넷의 모든 인스턴스에 적용</td>
+            </tr>
+            <tr>
+              <th scope="row">규칙 종류</th>
+              <td><span class="mark-ok">허용 규칙만</span></td>
+              <td><span class="mark-ok">허용과 거부 모두</span></td>
+            </tr>
+            <tr>
+              <th scope="row">평가 방식</th>
+              <td>모든 규칙을 평가</td>
+              <td>가장 낮은 번호부터 순서대로 평가</td>
+            </tr>
+            <tr>
+              <th scope="row">상태</th>
+              <td><span class="mark-ok">상태 저장(stateful)</span> — 반환 트래픽이 자동 허용</td>
+              <td><span class="mark-no">상태 비저장(stateless)</span> — 반환 트래픽을 규칙으로 명시 허용</td>
+            </tr>
+            <tr>
+              <th scope="row">전형적 용도</th>
+              <td>계층 간 접근 허용(웹에서 앱, 앱에서 데이터베이스)</td>
+              <td>서브넷 단위의 광범위한 차단, 특정 대역 거부</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>"보안 그룹으로 특정 IP를 차단한다"는 선택지는 항상 오답입니다.</strong>
+          보안 그룹에는 거부 규칙이 없습니다. 차단은 네트워크 ACL이나 상위 계층(AWS WAF)의 일입니다.
+        </p>
+        <p>
+          반대로 네트워크 ACL은 상태 비저장이므로
+          <strong>아웃바운드만 열고 인바운드 반환 트래픽을 허용하지 않으면 응답이 돌아오지 않습니다.</strong>
+          "연결은 나가는데 응답이 오지 않는다"는 시나리오는 대개 여기가 원인입니다.
+        </p>
+      </aside>
+
+      <h3 id="private-path">인터넷을 거치지 않는 경로</h3>
+      <p>
+        "트래픽이 퍼블릭 인터넷을 지나면 안 된다"는 제약이 붙으면
+        <strong>암호화 여부가 아니라 경로</strong>가 판단 기준이 됩니다.
+        NAT 게이트웨이를 통해 서비스의 퍼블릭 엔드포인트로 나가는 구성은 이 제약을 만족하지 못합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>비공개 경로를 만드는 선택지</caption>
+          <thead>
+            <tr>
+              <th scope="col">요구</th>
+              <th scope="col">선택</th>
+              <th scope="col">판단 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">VPC에서 Amazon S3 · Amazon DynamoDB에 접근</th>
+              <td>게이트웨이 VPC 엔드포인트</td>
+              <td>이 두 서비스 전용입니다. 라우팅 테이블에 경로가 추가되는 방식이라 네트워크 인터페이스를 만들지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">그 밖의 AWS 서비스에 비공개 접근</th>
+              <td>인터페이스 VPC 엔드포인트(AWS PrivateLink)</td>
+              <td>서브넷에 네트워크 인터페이스가 생기고 보안 그룹을 연결할 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">다른 VPC의 서비스에 비공개 접근</th>
+              <td>AWS PrivateLink 또는 VPC 피어링</td>
+              <td>특정 서비스만 노출하려면 PrivateLink, 네트워크를 잇는 것이 목적이면 피어링</td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스와 전용 연결</th>
+              <td>AWS Direct Connect</td>
+              <td>인터넷 회선 위의 VPN은 암호화는 되지만 경로가 공용망입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">다수 VPC와 온프레미스를 한 번에</th>
+              <td>AWS Transit Gateway</td>
+              <td>피어링을 여러 개 만들어 연결 수가 급증하는 구성의 대안입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        게이트웨이 엔드포인트를 쓰면 NAT 게이트웨이를 지나는 트래픽이 줄기 때문에
+        <strong>보안 요구와 비용 요구가 같은 답을 가리키는</strong> 경우가 많습니다.
+        비용 도메인에서도 같은 판단이 나옵니다.
+      </p>
+
+      <h3 id="edge-protection">웹 계층 보호</h3>
+      <p>
+        AWS WAF는 <strong>HTTP 요청의 내용</strong>을 보고 규칙으로 차단합니다.
+        SQL 삽입이나 특정 경로·헤더 패턴을 막는 요구가 나오면 WAF입니다.
+        AWS Shield는 <strong>디도스(DDoS) 공격</strong>에 대응하며,
+        표준 보호는 기본 제공되고 상위 보호는 별도 구독입니다.
+      </p>
+      <p>
+        붙이는 위치도 함께 묻습니다.
+        WAF는 Amazon CloudFront 배포, Application Load Balancer, Amazon API Gateway 같은
+        <strong>요청을 받는 지점</strong>에 연결합니다.
+        네트워크 계층의 광범위한 트래픽 검사가 필요하면 AWS Network Firewall이 답입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 복원력 있는 아키텍처 설계">
+        <p>
+          NAT 게이트웨이는 <strong>지정한 서브넷의 가용 영역 안에서만</strong> 동작합니다.
+          고가용성이 필요하면 <strong>가용 영역마다 하나씩</strong> 만들고
+          각 가용 영역의 프라이빗 라우팅 테이블이 자기 가용 영역의 NAT를 가리키게 해야 합니다.
+          단일 NAT에 다중 가용 영역 프라이빗 서브넷을 붙인 구성은
+          가용 영역 장애 시 전면 중단과 가용 영역 간 데이터 전송 요금을 동시에 부릅니다.
+          또한 <strong>NAT 게이트웨이에는 보안 그룹을 연결할 수 없습니다.</strong>
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-1-3">
+      <h2 id="task-1-3">과제 진술 1.3 · 적절한 데이터 보안 제어 결정</h2>
+
+      <p>
+        이 진술의 판단 축은 <strong>키를 누가 쥐는가</strong>와 <strong>증적이 남는가</strong>입니다.
+        "암호화한다"는 선택지가 여러 개 있을 때, 문제문이 요구한 키 관리 수준으로 갈립니다.
+      </p>
+
+      <h3 id="s3-encryption-choice">Amazon S3 저장 데이터 암호화 선택</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>S3 서버 측 암호화 방식과 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">방식</th>
+              <th scope="col">키 관리 주체</th>
+              <th scope="col">이 방식을 고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">SSE-S3</th>
+              <td>Amazon S3가 관리</td>
+              <td>암호화 요구는 있지만 <strong>키 관리 요구는 없는</strong> 경우. 신규 객체에 자동 적용되는 기본값입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">SSE-KMS</th>
+              <td>AWS KMS 키(고객 관리형 키 선택 가능)</td>
+              <td><strong>키 사용 감사</strong>가 필요하거나 키 정책으로 접근을 따로 통제해야 하는 경우. KMS 호출이 CloudTrail에 남습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">DSSE-KMS</th>
+              <td>AWS KMS 키 — 이중 계층</td>
+              <td>규정이 <strong>이중 암호화</strong>를 요구하는 경우</td>
+            </tr>
+            <tr>
+              <th scope="row">SSE-C</th>
+              <td>고객이 요청마다 키를 제공</td>
+              <td>키를 <strong>AWS에 맡길 수 없는</strong> 경우. AWS는 키를 저장하지 않으므로 키를 잃으면 데이터를 복구할 수 없습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          신규 S3 버킷의 기본값은 2023년에 크게 바뀌었습니다.
+          <strong>퍼블릭 액세스 차단이 켜진 상태</strong>로 생성되고,
+          <strong>ACL이 비활성</strong>(객체 소유권이 버킷 소유자로 강제)이며,
+          <strong>모든 신규 객체가 SSE-S3로 자동 암호화</strong>됩니다.
+          그래서 "암호화를 켜야 한다"거나 "ACL로 권한을 준다"는 서술은 더 이상 기본 구성이 아닙니다.
+        </p>
+        <p>
+          다만 <strong>버킷 버전 관리는 여전히 기본 비활성화</strong>입니다.
+          "기본값이 전부 안전해졌다"고 뭉뚱그리면 이 지점에서 틀립니다.
+        </p>
+      </aside>
+
+      <h3 id="kms-envelope">KMS와 봉투 암호화</h3>
+      <p>
+        AWS KMS는 데이터를 직접 암호화하지 않고 <strong>데이터 키</strong>를 만들어 줍니다.
+        서비스는 그 데이터 키로 데이터를 암호화하고,
+        데이터 키 자체는 KMS 키로 암호화해 함께 저장합니다.
+        이 구조를 <strong>봉투 암호화(envelope encryption)</strong>라고 합니다.
+        큰 데이터를 KMS로 왕복시키지 않으면서도 키 통제를 KMS에 남기는 것이 목적입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>KMS 키 종류와 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">키 종류</th>
+              <th scope="col">특징</th>
+              <th scope="col">고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS 관리형 키</th>
+              <td>서비스가 계정 안에 자동으로 만들어 쓰는 키. 키 정책을 직접 편집하지 않습니다</td>
+              <td>암호화만 필요하고 키 통제 요구가 없는 경우</td>
+            </tr>
+            <tr>
+              <th scope="row">고객 관리형 키</th>
+              <td>키 정책·별칭·자동 교체·비활성화·삭제 일정을 직접 통제합니다</td>
+              <td><strong>키 정책으로 접근을 제한</strong>하거나 <strong>교차 계정 공유</strong>가 필요한 경우, 키 교체를 직접 관리해야 하는 경우</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CloudHSM</th>
+              <td>전용 하드웨어 보안 모듈에서 키를 관리합니다</td>
+              <td>규정이 <strong>전용 HSM에서의 키 보관</strong>을 요구하는 경우</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        키 접근은 <strong>키 정책과 IAM 정책이 함께</strong> 작동합니다.
+        IAM 정책만 넓게 열어 두고 키 정책이 그 주체를 허용하지 않으면 복호화가 거부됩니다.
+        "권한은 줬는데 복호화가 안 된다"는 시나리오의 원인이 대개 여기입니다.
+      </p>
+
+      <h3 id="secrets-vs-parameter-store">Secrets Manager와 Parameter Store</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>AWS Secrets Manager와 AWS Systems Manager Parameter Store 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">AWS Secrets Manager</th>
+              <th scope="col">Parameter Store</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">주 용도</th>
+              <td>데이터베이스 자격 증명 같은 <strong>비밀</strong></td>
+              <td>설정값과 파라미터. <code>SecureString</code>으로 비밀도 저장 가능</td>
+            </tr>
+            <tr>
+              <th scope="row">자동 교체</th>
+              <td><span class="mark-ok">내장 — 교체를 자동화할 수 있습니다</span></td>
+              <td><span class="mark-no">내장 기능 없음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"자격 증명을 <strong>주기적으로 교체</strong>해야 한다"</td>
+              <td>"설정값을 계층 구조로 관리한다", 교체 요구가 없다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        선택 기준은 사실상 하나입니다.
+        <strong>자동 교체 요구가 문제문에 있으면 Secrets Manager</strong>이고, 없으면 Parameter Store가 후보에 남습니다.
+      </p>
+
+      <h3 id="audit-and-immutability">증적과 불변성</h3>
+      <p>
+        규정 준수 문항은 <strong>기록이 남는가</strong>와 <strong>지워지지 않는가</strong>를 묻습니다.
+        AWS CloudTrail은 <strong>누가 어떤 API를 호출했는지</strong>를 남기고,
+        AWS Config는 <strong>리소스 구성이 규칙에 맞는지</strong>를 지속적으로 평가합니다.
+        둘은 대체 관계가 아니라 질문이 다릅니다.
+      </p>
+      <p>
+        보관 자체가 요구일 때는 S3 버전 관리와 <strong>S3 Object Lock</strong>을 씁니다.
+        Object Lock은 지정한 기간 동안 객체 삭제와 덮어쓰기를 막습니다.
+        민감 데이터가 어디에 있는지 찾아야 한다면 Amazon Macie가 답입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          위협 탐지 서비스는 <strong>질문이 서로 다릅니다.</strong>
+          Amazon GuardDuty는 <strong>이상 행위와 위협</strong>을,
+          Amazon Inspector는 <strong>워크로드의 취약점</strong>을,
+          Amazon Macie는 <strong>민감 데이터의 위치</strong>를,
+          AWS Security Hub는 <strong>여러 서비스의 결과를 모아 보는 것</strong>을 담당합니다.
+          문제문의 동사를 보고 고릅니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision-points">
+      <h2 id="decision-points">판단 지점 점검표 18개</h2>
+
+      <p>
+        아래는 이 도메인에서 <strong>반드시 판단할 수 있어야 하는 지점</strong>입니다.
+        서비스를 아는 것과 판단하는 것은 다릅니다.
+        각 행을 읽고 <strong>기준을 한 문장으로 말할 수 없다면</strong> 담당 챕터로 돌아갑니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 1 보안 아키텍처 설계의 판단 지점과 담당 챕터</caption>
+          <thead>
+            <tr>
+              <th scope="col">번호</th>
+              <th scope="col">판단 지점</th>
+              <th scope="col">기준</th>
+              <th scope="col">담당 챕터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1</th>
+              <td>EC2에서 AWS API를 호출한다 — 액세스 키인가 IAM 역할인가</td>
+              <td>거의 항상 역할. 임시 자격 증명이 자동 교체됩니다</td>
+              <td><a href="../basics/ch02.html">2장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">2</th>
+              <td>IAM 정책 평가 순위</td>
+              <td>명시적 거부 우선, 그다음 명시적 허용, 기본은 암묵적 거부</td>
+              <td><a href="../basics/ch02.html">2장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3</th>
+              <td>자격 증명 기반 정책과 리소스 기반 정책</td>
+              <td>동일 계정에서는 합집합. 교차 계정에서는 양쪽 모두 필요</td>
+              <td><a href="../basics/ch02.html">2장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4</th>
+              <td>역할 위임과 신뢰 정책</td>
+              <td>누가 이 역할을 맡을 수 있는지는 신뢰 정책이 정합니다</td>
+              <td><a href="../basics/ch02.html">2장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">5</th>
+              <td>SCP의 성질</td>
+              <td>권한을 부여하지 않고 상한만 정하며 멤버 계정 루트에도 적용됩니다</td>
+              <td><a href="../basics/ch02.html">2장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">6</th>
+              <td>권한 경계와 SCP의 차이</td>
+              <td>적용 범위가 개별 주체인가 조직·계정인가</td>
+              <td><a href="../basics/ch02.html">2장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">7</th>
+              <td>외부 사용자에게 접근을 준다 — Identity Center인가 Cognito인가 Directory Service인가</td>
+              <td>직원의 AWS 접근은 Identity Center, 앱 사용자 인증은 Cognito, Active Directory 연동은 Directory Service</td>
+              <td><a href="../basics/ch02.html">2장</a> · <a href="../basics/ch16.html">16장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">8</th>
+              <td>보안 그룹과 네트워크 ACL</td>
+              <td>상태 저장 여부와 거부 규칙 지원 여부. 보안 그룹에는 거부가 없습니다</td>
+              <td><a href="../basics/ch03.html">3장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">9</th>
+              <td>프라이빗 서브넷의 아웃바운드</td>
+              <td>NAT 게이트웨이. 이중화하려면 가용 영역마다 하나씩</td>
+              <td><a href="../basics/ch03.html">3장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">10</th>
+              <td>인터넷을 거치지 않는 서비스 접근</td>
+              <td>S3와 DynamoDB는 게이트웨이 엔드포인트, 나머지는 인터페이스 엔드포인트</td>
+              <td><a href="../basics/ch04.html">4장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">11</th>
+              <td>저장 데이터 암호화 방식 선택</td>
+              <td>키 관리 주체와 감사 요구가 기준</td>
+              <td><a href="../basics/ch08.html">8장</a> · <a href="../basics/ch16.html">16장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">12</th>
+              <td>KMS 봉투 암호화와 고객 관리형 키</td>
+              <td>키 정책 통제나 교차 계정 공유가 필요하면 고객 관리형 키</td>
+              <td><a href="../basics/ch16.html">16장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">13</th>
+              <td>Secrets Manager와 Parameter Store</td>
+              <td>자동 교체 요구가 있으면 Secrets Manager</td>
+              <td><a href="../basics/ch16.html">16장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">14</th>
+              <td>전송 중 암호화 — 인증서를 어디에 붙이는가</td>
+              <td>요청을 받는 지점(CloudFront · ALB · API Gateway)에서 종료합니다</td>
+              <td><a href="../basics/ch14.html">14장</a> · <a href="../basics/ch16.html">16장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">15</th>
+              <td>위협 탐지 서비스 선택</td>
+              <td>위협은 GuardDuty, 취약점은 Inspector, 민감 데이터는 Macie, 집계는 Security Hub</td>
+              <td><a href="../basics/ch16.html">16장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">16</th>
+              <td>웹 계층 보호 — WAF와 Shield</td>
+              <td>요청 내용 기반 규칙은 WAF, 디도스 대응은 Shield</td>
+              <td><a href="../basics/ch14.html">14장</a> · <a href="../basics/ch16.html">16장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">17</th>
+              <td>S3 신규 버킷의 현행 기본값</td>
+              <td>퍼블릭 액세스 차단 켜짐, ACL 비활성, SSE-S3 자동. 버전 관리는 여전히 꺼짐</td>
+              <td><a href="../basics/ch08.html">8장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">18</th>
+              <td>감사 추적 — CloudTrail과 Config</td>
+              <td>누가 무엇을 호출했나는 CloudTrail, 구성이 규칙에 맞나는 Config</td>
+              <td><a href="../basics/ch17.html">17장</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="common-traps">
+      <h2 id="common-traps">이 도메인의 함정</h2>
+
+      <aside class="note note--danger" data-label="함정 1">
+        <p>
+          <strong>"보안 그룹으로 특정 IP를 차단한다"</strong> —
+          보안 그룹은 허용 규칙만 지원합니다. 차단은 네트워크 ACL이나 AWS WAF의 일입니다.
+          이 선택지는 보이는 즉시 소거합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정 2">
+        <p>
+          <strong>"SCP로 개발 팀에 권한을 부여한다"</strong> —
+          SCP는 권한을 부여하지 않습니다. 상한만 정합니다.
+          실제 허용은 여전히 IAM 정책이 해야 하므로,
+          "SCP만 고치면 된다"는 선택지는 요구를 절반만 충족합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정 3">
+        <p>
+          <strong>"암호화했으니 인터넷을 지나도 된다"</strong> —
+          "인터넷을 경유하면 안 된다"는 제약은 <strong>경로</strong>에 대한 것입니다.
+          TLS로 암호화한 채 NAT 게이트웨이를 지나 퍼블릭 엔드포인트로 나가는 구성은
+          이 제약을 만족하지 못합니다. 답은 VPC 엔드포인트 계열입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정 4">
+        <p>
+          <strong>"버킷 ACL로 접근을 제어한다"</strong> —
+          신규 버킷은 ACL이 비활성 상태로 만들어집니다.
+          접근 제어는 버킷 정책과 IAM 정책으로 합니다.
+          ACL을 기본 수단으로 서술하는 선택지는 현행 기본 구성과 어긋납니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="함정 5">
+        <p>
+          <strong>"IAM 정책만 열면 KMS로 암호화된 객체를 읽을 수 있다"</strong> —
+          KMS 키에는 키 정책이 따로 있습니다.
+          IAM 정책과 키 정책이 함께 허용해야 복호화가 됩니다.
+          교차 계정 접근에서는 이 지점이 특히 자주 원인이 됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">도메인 미니 퀴즈</h2>
+      <p>
+        이 도메인의 판단 지점을 확인하는 10문항입니다.
+        키보드만으로 완주할 수 있습니다 — 숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고
+        <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <div class="quiz-embed" data-set="saa-secure" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch02.html">
+          <span class="card__title">2장 · IAM과 자격 증명</span>
+          <span class="card__desc">과제 진술 1.1의 본체입니다. 정책 문서 구조, 평가 로직, STS, 권한 경계와 SCP를 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch16.html">
+          <span class="card__title">16장 · 보안·암호화·거버넌스</span>
+          <span class="card__desc">과제 진술 1.3의 본체입니다. KMS, ACM, Secrets Manager, 탐지 서비스 네 종을 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">MOST secure가 무엇을 가리키고 무엇을 배제하는지, 액세스 키 패턴이 왜 항상 오답인지 정리했습니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">가중치 순서상 다음 도메인입니다. NAT 이중화처럼 보안과 겹치는 판단도 있습니다.</span>
+          <span class="card__meta">시험 대비 · 도메인</span>
+        </a></li>
+        <li><a class="card" href="../cases/case01.html">
+          <span class="card__title">케이스 1 · EC2에 액세스 키를 심어 배포했다</span>
+          <span class="card__desc">이 도메인에서 가장 자주 나오는 오답 패턴을 실제 사고 사례로 따라갑니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/security.html">
+          <span class="card__title">보안 빠른참조</span>
+          <span class="card__desc">IAM 정책 패턴과 암호화 옵션 매트릭스를 표로 모았습니다. 막힐 때 여는 용도입니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03-domain1.html">SAA-C03 시험 가이드 — 도메인 1 Design Secure Architectures</a>
+          — 과제 진술 1.1 · 1.2 · 1.3의 원문과 세부 항목</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">SAA-C03 시험 가이드</a>
+          — 도메인 가중치 30%</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html">IAM 사용 설명서 — 정책 평가 로직</a>
+          — 암묵적 거부가 기본이고 명시적 거부가 모든 허용을 이긴다는 서술, 정책 유형별 결합 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">IAM 사용 설명서 — 보안 모범 사례</a>
+          — 장기 액세스 키 대신 임시 자격 증명과 역할을 사용하라는 권고</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html">AWS Organizations 사용 설명서 — SCP 전략</a>
+          — SCP가 최대 권한만 정하고 멤버 계정 루트에도 적용된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html">Amazon VPC 사용 설명서 — 보안</a>
+          — 보안 그룹과 네트워크 ACL의 공식 비교표(적용 계층, 허용·거부, 평가 방식, 상태 저장 여부)</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">Amazon S3 API 레퍼런스 — CreateBucket</a>
+          — 신규 버킷에 퍼블릭 액세스 차단이 켜진 상태로 생성된다는 서술과 객체 소유권 기본값</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html">Amazon S3 사용 설명서 — 기본 암호화 FAQ</a>
+          — 모든 신규 객체가 SSE-S3로 자동 암호화된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 데이터 보관 요구와 클래스 선택의 관계</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

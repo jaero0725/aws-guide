@@ -1,0 +1,91 @@
+<svg viewBox="0 0 720 500" role="img" aria-labelledby="d010-title d010-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d010-title">IAM 구성요소 관계도 — 정책이 붙는 네 자리와 역할의 두 축</title>
+  <desc id="d010-desc">위쪽 절반은 하나의 요청이 평가될 때 모이는 정책 네 종류를 보여 줍니다.
+    자격 증명 기반 정책은 사용자·그룹·역할에 붙고, 리소스 기반 정책은 리소스 자체에 붙으며 Principal 요소를 반드시 가집니다.
+    권한 경계는 사용자와 역할의 상한을, 세션 정책은 AssumeRole 호출 시 전달되어 그 세션만의 상한을 정합니다.
+    아래쪽 절반은 IAM 역할이 두 개의 정책으로 이루어진다는 사실을 보여 줍니다.
+    신뢰 정책은 누가 이 역할을 맡을 수 있는가를, 권한 정책은 이 역할이 무엇을 할 수 있는가를 정합니다.
+    사용자와 그룹만 그린 관계도로는 이 네 자리와 두 축을 설명할 수 없습니다.</desc>
+
+  <defs>
+    <marker id="d010-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d010-ar-plain" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- ===== 섹션 A: 정책이 붙는 네 자리 ===== -->
+  <text class="dg-fs-md dg-bold" x="20" y="28">평가 시 모이는 정책 네 자리</text>
+
+  <!-- 주체 -->
+  <rect class="dg-panel" x="20" y="56" width="170" height="196" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="76">주체와 자격 증명</text>
+  <rect class="dg-node" x="34" y="88" width="142" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="105" y="106" text-anchor="middle">IAM 사용자</text>
+  <text class="dg-fs-sm dg-muted" x="105" y="123" text-anchor="middle">장기 자격 증명</text>
+  <rect class="dg-node" x="34" y="142" width="142" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="105" y="160" text-anchor="middle">IAM 그룹</text>
+  <text class="dg-fs-sm dg-muted" x="105" y="177" text-anchor="middle">정책 그릇 · 주체 아님</text>
+  <rect class="dg-node dg-node--accent" x="34" y="196" width="142" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="105" y="214" text-anchor="middle">IAM 역할</text>
+  <text class="dg-fs-sm dg-muted" x="105" y="231" text-anchor="middle">임시 자격 증명</text>
+
+  <!-- 네 자리 -->
+  <rect class="dg-panel" x="220" y="48" width="280" height="296" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="234" y="68">요청 하나에 함께 평가됩니다</text>
+  <rect class="dg-node" x="232" y="76" width="256" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="98" text-anchor="middle">1. 자격 증명 기반 정책</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="118" text-anchor="middle">사용자 · 그룹 · 역할에 부착</text>
+  <rect class="dg-node dg-node--accent" x="232" y="142" width="256" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="164" text-anchor="middle">2. 리소스 기반 정책</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="184" text-anchor="middle">리소스에 부착 · Principal 필수</text>
+  <rect class="dg-node" x="232" y="208" width="256" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="230" text-anchor="middle">3. 권한 경계</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="250" text-anchor="middle">사용자 · 역할의 상한 (교집합)</text>
+  <rect class="dg-node" x="232" y="274" width="256" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="296" text-anchor="middle">4. 세션 정책</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="316" text-anchor="middle">AssumeRole 시 전달 · 그 세션만</text>
+
+  <!-- 리소스 -->
+  <rect class="dg-panel" x="530" y="56" width="170" height="196" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="544" y="76">리소스</text>
+  <rect class="dg-node" x="544" y="88" width="142" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="615" y="106" text-anchor="middle">Amazon S3 버킷</text>
+  <text class="dg-fs-sm dg-muted" x="615" y="123" text-anchor="middle">버킷 정책</text>
+  <rect class="dg-node" x="544" y="142" width="142" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="615" y="160" text-anchor="middle">AWS KMS 키</text>
+  <text class="dg-fs-sm dg-muted" x="615" y="177" text-anchor="middle">키 정책</text>
+  <rect class="dg-node" x="544" y="196" width="142" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="615" y="214" text-anchor="middle">Amazon SQS 큐</text>
+  <text class="dg-fs-sm dg-muted" x="615" y="231" text-anchor="middle">큐 정책</text>
+
+  <path class="dg-edge dg-edge--accent" d="M190 154 L216 154" marker-end="url(#d010-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M500 154 L526 154" marker-end="url(#d010-ar)"/>
+  <text class="dg-fs-sm" x="203" y="145" text-anchor="middle">요청</text>
+  <text class="dg-fs-sm" x="513" y="145" text-anchor="middle">접근</text>
+
+  <!-- ===== 섹션 B: 역할의 두 축 ===== -->
+  <path class="dg-grid" d="M20 364 L700 364"/>
+  <text class="dg-fs-md dg-bold" x="20" y="388">IAM 역할은 정책 두 개로 이루어집니다</text>
+
+  <rect class="dg-node" x="20" y="404" width="240" height="72" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="140" y="428" text-anchor="middle">신뢰 정책</text>
+  <text class="dg-fs-sm dg-muted" x="140" y="448" text-anchor="middle">누가 이 역할을 맡을 수 있는가</text>
+  <text class="dg-fs-sm dg-muted" x="140" y="466" text-anchor="middle">Principal 을 적는 유일한 자리</text>
+
+  <rect class="dg-node dg-node--accent" x="290" y="416" width="140" height="48" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="446" text-anchor="middle">IAM 역할</text>
+
+  <rect class="dg-node" x="460" y="404" width="240" height="72" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="580" y="428" text-anchor="middle">권한 정책</text>
+  <text class="dg-fs-sm dg-muted" x="580" y="448" text-anchor="middle">이 역할이 무엇을 할 수 있는가</text>
+  <text class="dg-fs-sm dg-muted" x="580" y="466" text-anchor="middle">Action 과 Resource 를 적음</text>
+
+  <path class="dg-edge" d="M260 440 L286 440" marker-end="url(#d010-ar-plain)"/>
+  <path class="dg-edge" d="M460 440 L434 440" marker-end="url(#d010-ar-plain)"/>
+</svg>

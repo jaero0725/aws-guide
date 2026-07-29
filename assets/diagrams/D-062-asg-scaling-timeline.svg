@@ -1,0 +1,100 @@
+<svg viewBox="0 0 720 440" role="img" aria-labelledby="d062-title d062-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d062-title">Auto Scaling 그룹의 스케일링 반응 타임라인</title>
+  <desc id="d062-desc">가로축은 시간, 세로축은 부하와 수용 용량입니다.
+    실선은 실제 수요이고 파선은 그룹이 실제로 트래픽을 받아 낼 수 있는 용량입니다.
+    수요가 먼저 급격히 오른 뒤 용량이 따라 오르기까지 여섯 단계의 지연이 쌓입니다.
+    지표가 집계되기를 기다리는 시간, 알람이 평가 기간을 채워 ALARM 으로 바뀌는 시간,
+    용량을 계산하고 인스턴스 시작을 요청하는 시간, 인스턴스가 부팅되는 시간,
+    그리고 워밍업을 지나 헬스체크를 통과할 때까지의 시간입니다.
+    그 사이 붉게 칠해진 구간이 요청이 대기하거나 실패하는 서비스 부족 구간이며,
+    스케일아웃이 트래픽을 따라가지 못했다는 말은 정확히 이 구간의 길이를 가리킵니다.</desc>
+
+  <defs>
+    <marker id="d062-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 부족 구간 -->
+  <rect data-dg="gap-region" x="170" y="76" width="400" height="108" rx="2"
+        fill="var(--dg-danger-soft)" stroke="var(--dg-danger)"
+        stroke-width="var(--dg-sw-1)" stroke-dasharray="var(--dg-dash-2)"/>
+  <text data-dg="gap-label" class="dg-fs-md dg-bold" x="370" y="124" text-anchor="middle">서비스가 부족한 구간</text>
+  <text class="dg-fs-sm" x="370" y="146" text-anchor="middle">요청이 대기하거나 실패합니다</text>
+
+  <!-- 축 -->
+  <path class="dg-grid" d="M60 50 L60 210 M60 210 L700 210"/>
+  <text class="dg-fs-sm dg-muted" x="20" y="44">부하 · 용량</text>
+  <text class="dg-fs-sm dg-muted" x="54" y="80" text-anchor="end">높음</text>
+  <text class="dg-fs-sm dg-muted" x="54" y="190" text-anchor="end">낮음</text>
+  <text class="dg-fs-sm dg-muted" x="700" y="230" text-anchor="end">시간 →</text>
+
+  <!-- 단계 구분선 -->
+  <path class="dg-grid dg-edge--dotted" d="M170 50 L170 218"/>
+  <path class="dg-grid dg-edge--dotted" d="M240 50 L240 218"/>
+  <path data-dg="t-alarm" class="dg-grid dg-edge--dotted" d="M310 50 L310 218"/>
+  <path class="dg-grid dg-edge--dotted" d="M370 50 L370 218"/>
+  <path data-dg="t-launch" class="dg-grid dg-edge--dotted" d="M490 50 L490 218"/>
+  <path data-dg="t-warm" class="dg-grid dg-edge--dotted" d="M570 50 L570 218"/>
+
+  <!-- 곡선 -->
+  <path data-dg="load-line" class="dg-edge dg-edge--accent" d="M60 178 L170 178 L170 76 L700 76"/>
+  <path data-dg="capacity-line" class="dg-edge dg-edge--dashed" d="M60 184 L570 184 L570 96 L700 96"/>
+  <text class="dg-fs-sm dg-bold" x="694" y="68" text-anchor="end">부하 (수요)</text>
+  <text class="dg-fs-sm" x="694" y="116" text-anchor="end">용량 (수용 가능)</text>
+
+  <!-- 단계 번호 -->
+  <g data-dg="marker-1">
+    <circle cx="170" cy="232" r="10" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+    <text class="dg-fs-sm dg-bold" x="170" y="237" text-anchor="middle">1</text>
+  </g>
+  <g data-dg="marker-2">
+    <circle cx="240" cy="232" r="10" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+    <text class="dg-fs-sm dg-bold" x="240" y="237" text-anchor="middle">2</text>
+  </g>
+  <g data-dg="marker-3">
+    <circle cx="310" cy="232" r="10" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+    <text class="dg-fs-sm dg-bold" x="310" y="237" text-anchor="middle">3</text>
+  </g>
+  <g data-dg="marker-4">
+    <circle cx="370" cy="232" r="10" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+    <text class="dg-fs-sm dg-bold" x="370" y="237" text-anchor="middle">4</text>
+  </g>
+  <g data-dg="marker-5">
+    <circle cx="490" cy="232" r="10" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+    <text class="dg-fs-sm dg-bold" x="490" y="237" text-anchor="middle">5</text>
+  </g>
+  <g data-dg="marker-6">
+    <circle cx="570" cy="232" r="10" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+    <text class="dg-fs-sm dg-bold" x="570" y="237" text-anchor="middle">6</text>
+  </g>
+
+  <!-- 범례 -->
+  <circle cx="30" cy="267" r="9" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="30" y="272" text-anchor="middle">1</text>
+  <text class="dg-fs-sm" x="46" y="272">부하 급증 — 실제 수요가 먼저 오릅니다</text>
+  <circle cx="30" cy="293" r="9" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="30" y="298" text-anchor="middle">2</text>
+  <text class="dg-fs-sm" x="46" y="298">지표 수집 — 집계 주기만큼 지연</text>
+  <circle cx="30" cy="319" r="9" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="30" y="324" text-anchor="middle">3</text>
+  <text class="dg-fs-sm" x="46" y="324">알람 전환 — 평가 기간을 채워야 ALARM</text>
+
+  <circle cx="380" cy="267" r="9" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="380" y="272" text-anchor="middle">4</text>
+  <text class="dg-fs-sm" x="396" y="272">용량 계산 — 시작할 인스턴스 수 결정</text>
+  <circle cx="380" cy="293" r="9" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="380" y="298" text-anchor="middle">5</text>
+  <text class="dg-fs-sm" x="396" y="298">부팅 완료 — 아직 트래픽을 받지 않음</text>
+  <circle cx="380" cy="319" r="9" fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-bold" x="380" y="324" text-anchor="middle">6</text>
+  <text class="dg-fs-sm" x="396" y="324">워밍업 통과 — 이제 트래픽을 받습니다</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="352">쿨다운이 끝나기 전에는 다음 스케일링 동작이 억제됩니다</text>
+
+  <rect class="dg-node dg-node--danger" x="20" y="364" width="680" height="62" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="388" text-anchor="middle">부족 구간 = 지표 지연 + 알람 지연 + 부팅 시간 + 워밍업 시간</text>
+  <text class="dg-fs-sm" x="360" y="410" text-anchor="middle">스케일아웃이 트래픽을 못 따라갔다는 말의 정체가 이 합계입니다</text>
+</svg>

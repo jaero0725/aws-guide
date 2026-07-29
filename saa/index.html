@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>시험 개요와 8주 학습 플랜 — AWS SAA Guide</title>
+  <meta name="description" content="SAA-C03의 문항 수와 시간, 합격 점수와 채점 방식, 응시료와 유효 기간을 정리하고, 4개 도메인과 과제 진술 14개를 담당 챕터에 연결합니다. 도메인 가중치를 반영한 8주 학습 플랜과 도메인 대 챕터 매핑표를 함께 담았습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="saa" data-page="index"></div>
+
+  <main id="main" class="page" data-page-id="saa/index">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">시험 대비</a></li>
+        <li><span aria-current="page">시험 개요와 8주 학습 플랜</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">시험 대비 · 개요</p>
+      <h1>시험 개요와 8주 학습 플랜</h1>
+      <p class="page__lead">
+        AWS Certified Solutions Architect – Associate(SAA-C03)는
+        <strong>65문항을 130분 안에 풀고 720점 이상</strong>이면 합격합니다.
+        도메인별 과락은 없고 오답 감점도 없습니다.
+        이 페이지는 그 규칙을 정리하고, 도메인 가중치에 맞춰
+        <strong>무엇을 언제 읽고 무엇을 풀지</strong> 8주 단위로 배치합니다.
+      </p>
+      <p class="page__meta">
+        시험 규칙과 도메인 가중치는 공식 시험 가이드의 값입니다.
+        반면 <strong>8주 플랜은 이 사이트가 제안하는 학습 순서</strong>이며 공식 권장 일정이 아닙니다.
+        진단 결과에 따라 주차를 옮겨도 됩니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>SAA-C03의 문항 수, 시간, 합격 점수, 채점 방식을 정확히 말할 수 있습니다.</li>
+        <li>720점이 스케일 점수라는 사실과 정답률로 환산할 수 없는 이유를 설명할 수 있습니다.</li>
+        <li>4개 도메인의 가중치와 과제 진술 14개를 나열하고 담당 챕터로 연결할 수 있습니다.</li>
+        <li>도메인 가중치를 근거로 자기 학습 시간을 배분할 수 있습니다.</li>
+        <li>8주 플랜에 따라 매주 읽을 챕터와 풀 문항 세트를 정할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-facts">
+      <h2 id="exam-facts">시험 기준</h2>
+
+      <p>
+        아래 표가 이 사이트 전체의 기준입니다.
+        본문·문항·결과 페이지의 모든 서술이 이 값을 따릅니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>AWS Certified Solutions Architect – Associate (SAA-C03) 시험 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">학습에 주는 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">시험 코드</th>
+              <td>SAA-C03</td>
+              <td>2022년 8월 30일부터 시행 중이며, 은퇴 일정은 발표되지 않았습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">문항 수</th>
+              <td>65문항 (채점 50 + 비채점 15)</td>
+              <td>비채점 문항은 표시되지 않습니다. 낯선 문항이 나와도 흔들릴 이유가 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">시험 시간</th>
+              <td>130분</td>
+              <td>문항당 2분입니다. 시간 배분은 <a href="exam-tips.html#time-management">시험 당일 전략</a>에서 다룹니다</td>
+            </tr>
+            <tr>
+              <th scope="row">합격 점수</th>
+              <td>720점 / 100–1000 스케일</td>
+              <td><strong>스케일 점수</strong>이므로 정답률 백분율과 1:1로 대응하지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">채점 방식</th>
+              <td>보상형(compensatory)</td>
+              <td>도메인별 과락이 없습니다. 총점만 봅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">오답 감점</th>
+              <td><span class="mark-ok">없음</span></td>
+              <td>모르는 문항도 반드시 고릅니다. 비워 두면 손해만 봅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">문항 유형</th>
+              <td>객관식(단일 정답) · 복수 응답 — 두 가지</td>
+              <td>복수 응답은 부분 점수가 없습니다. 문제문의 선택 개수를 확인합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">응시료</th>
+              <td>USD 150</td>
+              <td>원화 결제액은 결제 시점 환율에 따라 달라지므로 이 사이트에는 적지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">유효 기간</th>
+              <td>3년</td>
+              <td>재인증 정책은 AWS 공식 페이지에서 확인합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">응시 방식</th>
+              <td>Pearson VUE 시험장 또는 온라인 프록터링</td>
+              <td>온라인 응시에는 별도 환경 요건이 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">언어</th>
+              <td>한국어를 포함한 12개 언어</td>
+              <td>한국어로 응시해도 <strong>한정어는 같은 자리에 나옵니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">권장 경험</th>
+              <td>AWS 설계 실무 1년 이상</td>
+              <td>선행 자격증 요구는 없습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="scaled-score">720점은 스케일 점수입니다</h3>
+      <p>
+        가장 자주 퍼지는 오해가 <strong>"정답률 72%면 합격"</strong>입니다.
+        720은 100–1000 범위로 변환된 <strong>스케일 점수</strong>이고,
+        원점수 백분율과 직접 대응하지 않습니다.
+        문항 난이도에 따른 보정이 들어가기 때문에 <strong>몇 문제를 맞혀야 720인지는 정해져 있지 않습니다.</strong>
+      </p>
+      <p>
+        그래서 이 사이트의 모의고사 결과 페이지는 백분율을 보여 주되
+        <strong>720점으로 환산해 주지 않습니다.</strong>
+        환산표를 만드는 순간 근거 없는 숫자가 되기 때문입니다.
+        백분율은 <strong>도메인별 강약을 보는 지표</strong>로만 쓰는 것이 맞습니다.
+      </p>
+
+      <h3 id="unscored-items">비채점 15문항이 섞여 있습니다</h3>
+      <p>
+        65문항 중 15문항은 채점되지 않습니다.
+        AWS가 향후 문항의 통계를 얻기 위해 넣는 것이며,
+        <strong>어느 문항이 비채점인지는 응시자에게 표시되지 않습니다.</strong>
+      </p>
+      <p>
+        이 사실이 실전에서 갖는 의미는 하나입니다.
+        <strong>처음 보는 낯선 문항이 나와도 시험 전체를 의심하지 않는 것</strong>입니다.
+        낯선 문항 하나에 시간을 쏟다 뒤쪽 문항을 못 읽는 것이 훨씬 큰 손해입니다.
+        표시하고 넘어간 뒤 남는 시간에 돌아옵니다.
+      </p>
+
+      <figure class="chart" data-chart="C-004">
+        <figcaption>
+          65문항의 구성 — <strong>채점 50문항과 비채점 15문항</strong>이 섞여 있고 응시자는 둘을 구분할 수 없습니다.
+          그래서 낯선 문항 하나를 붙잡고 시간을 쓰는 것은 어느 쪽이든 손해입니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 복원력 있는 아키텍처 설계">
+        <p>
+          이 사이트의 모의고사는 실제 시험과 같은 65문항이지만
+          <strong>65문항을 전부 채점</strong>합니다.
+          응시자가 비채점 문항을 구분할 수 없으므로, 연습에서도 구분하지 않는 것이
+          실전과 같은 조건을 만듭니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="domains">
+      <h2 id="domains">4개 도메인과 과제 진술 14개</h2>
+
+      <p>
+        시험 가이드는 출제 범위를 4개 도메인으로 나누고,
+        각 도메인 아래에 <strong>과제 진술(task statement)</strong>을 둡니다.
+        문항은 이 과제 진술 단위로 만들어지므로, 과제 진술이 사실상 출제 목차입니다.
+      </p>
+
+      <figure class="chart" data-chart="C-001">
+        <figcaption>
+          SAA-C03 도메인별 출제 비중. <strong>보안 아키텍처 설계가 30%로 가장 크면서 과제 진술은 3개뿐</strong>이라
+          범위가 좁고 깊게 출제됩니다. 반대로 고성능 아키텍처 설계는 24%에 과제 진술이 5개여서 넓고 얕게 나옵니다.
+          학습 시간을 이 비율에 맞추는 것이 가장 효율적입니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>도메인별 가중치와 과제 진술 수</caption>
+          <thead>
+            <tr>
+              <th scope="col">도메인</th>
+              <th scope="col">가중치</th>
+              <th scope="col">과제 진술</th>
+              <th scope="col">출제 성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><a href="domain-secure.html">Design Secure Architectures</a><br>보안 아키텍처 설계</th>
+              <td class="t-center">30%</td>
+              <td class="t-center">3개</td>
+              <td><span class="mark-ok">좁고 깊다</span> — 같은 판단 지점이 형태를 바꿔 반복됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="domain-resilient.html">Design Resilient Architectures</a><br>복원력 있는 아키텍처 설계</th>
+              <td class="t-center">26%</td>
+              <td class="t-center">2개</td>
+              <td><span class="mark-ok">가장 촘촘하다</span> — 진술 하나당 문항 밀도가 가장 높습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="domain-performance.html">Design High-Performing Architectures</a><br>고성능 아키텍처 설계</th>
+              <td class="t-center">24%</td>
+              <td class="t-center">5개</td>
+              <td><span class="mark-no">넓고 얕다</span> — 서비스 종류가 많아 누락이 생기기 쉽습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="domain-cost.html">Design Cost-Optimized Architectures</a><br>비용 최적화 아키텍처 설계</th>
+              <td class="t-center">20%</td>
+              <td class="t-center">4개</td>
+              <td>다른 도메인 지식 위에 <strong>비용 축</strong>을 얹는 형태가 많습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="task-statements">과제 진술 전체 목록</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>SAA-C03 과제 진술 14개와 담당 챕터</caption>
+          <thead>
+            <tr>
+              <th scope="col">번호</th>
+              <th scope="col">과제 진술</th>
+              <th scope="col">담당 챕터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1.1</th>
+              <td>AWS 리소스에 대한 보안 액세스 설계</td>
+              <td><a href="../basics/ch02.html">2장 IAM과 자격 증명</a></td>
+            </tr>
+            <tr>
+              <th scope="row">1.2</th>
+              <td>보안 워크로드와 애플리케이션 설계</td>
+              <td><a href="../basics/ch03.html">3장 VPC 네트워킹 기초</a> · <a href="../basics/ch04.html">4장 VPC 연결과 하이브리드</a></td>
+            </tr>
+            <tr>
+              <th scope="row">1.3</th>
+              <td>적절한 데이터 보안 제어 결정</td>
+              <td><a href="../basics/ch16.html">16장 보안·암호화·거버넌스</a> · <a href="../basics/ch08.html">8장 S3와 오브젝트 스토리지</a></td>
+            </tr>
+            <tr>
+              <th scope="row">2.1</th>
+              <td>확장 가능하고 느슨하게 결합된 아키텍처 설계</td>
+              <td><a href="../basics/ch12.html">12장 서버리스와 애플리케이션 통합</a> · <a href="../basics/ch07.html">7장 로드 밸런싱과 오토스케일링</a></td>
+            </tr>
+            <tr>
+              <th scope="row">2.2</th>
+              <td>고가용성 및 내결함성 아키텍처 설계</td>
+              <td><a href="../basics/ch10.html">10장 RDS와 관계형 데이터베이스</a> · <a href="../basics/ch18.html">18장 비용 최적화·마이그레이션·재해 복구</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3.1</th>
+              <td>고성능이고 확장 가능한 스토리지 솔루션 결정</td>
+              <td><a href="../basics/ch08.html">8장 S3</a> · <a href="../basics/ch09.html">9장 파일 스토리지와 데이터 전송</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3.2</th>
+              <td>고성능이고 탄력적인 컴퓨팅 솔루션 설계</td>
+              <td><a href="../basics/ch05.html">5장 EC2와 컴퓨트</a> · <a href="../basics/ch13.html">13장 컨테이너</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3.3</th>
+              <td>고성능 데이터베이스 솔루션 결정</td>
+              <td><a href="../basics/ch11.html">11장 NoSQL·캐시·분석 DB</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3.4</th>
+              <td>고성능이고 확장 가능한 네트워크 아키텍처 결정</td>
+              <td><a href="../basics/ch14.html">14장 엣지와 DNS</a> · <a href="../basics/ch04.html">4장 VPC 연결과 하이브리드</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3.5</th>
+              <td>고성능 데이터 수집 및 변환 솔루션 결정</td>
+              <td><a href="../basics/ch15.html">15장 데이터 분석 파이프라인</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4.1</th>
+              <td>비용 최적화 스토리지 솔루션 설계</td>
+              <td><a href="../basics/ch08.html">8장 S3</a> · <a href="../basics/ch18.html">18장 비용·DR</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4.2</th>
+              <td>비용 최적화 컴퓨팅 솔루션 설계</td>
+              <td><a href="../basics/ch05.html">5장 EC2와 컴퓨트</a> · <a href="../basics/ch12.html">12장 서버리스</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4.3</th>
+              <td>비용 최적화 데이터베이스 솔루션 설계</td>
+              <td><a href="../basics/ch10.html">10장 RDS</a> · <a href="../basics/ch11.html">11장 NoSQL·캐시</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4.4</th>
+              <td>비용 최적화 네트워크 아키텍처 설계</td>
+              <td><a href="../basics/ch18.html">18장 비용·DR</a> · <a href="../basics/ch14.html">14장 엣지와 DNS</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          보상형 채점이라 도메인별 과락은 없지만, <strong>가중치가 큰 도메인을 버리면 총점에서 그만큼 잃습니다.</strong>
+          보안 도메인을 절반만 맞히면 그 자체로 총점의 15%가 날아갑니다.
+          약한 도메인이 어디인지는 <a href="../quiz/diagnostic.html">진단 테스트</a>로 먼저 확인하고,
+          <code>가중치 × (100 − 정답률)</code> 순으로 학습 순서를 정합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="domain-chapter-map">
+      <h2 id="domain-chapter-map">도메인과 챕터 매핑</h2>
+
+      <p>
+        도메인 페이지는 <strong>무엇을 판단해야 하는지</strong>를 정리하고,
+        챕터는 <strong>그 판단에 필요한 지식</strong>을 설명합니다.
+        도메인 페이지에서 막히면 해당 챕터로 내려가고, 챕터를 읽었으면 도메인 페이지로 돌아와 점검합니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인별 주 담당 챕터와 보조 챕터</caption>
+          <thead>
+            <tr>
+              <th scope="col">도메인</th>
+              <th scope="col">주 담당 챕터</th>
+              <th scope="col">보조 챕터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">보안 아키텍처 설계 (30%)</th>
+              <td><a href="../basics/ch02.html">2장 IAM</a> · <a href="../basics/ch03.html">3장 VPC 기초</a> · <a href="../basics/ch16.html">16장 보안·암호화</a></td>
+              <td><a href="../basics/ch04.html">4장 VPC 연결</a> · <a href="../basics/ch08.html">8장 S3</a> · <a href="../basics/ch17.html">17장 모니터링·운영</a></td>
+            </tr>
+            <tr>
+              <th scope="row">복원력 있는 아키텍처 설계 (26%)</th>
+              <td><a href="../basics/ch07.html">7장 ELB·ASG</a> · <a href="../basics/ch10.html">10장 RDS</a> · <a href="../basics/ch12.html">12장 서버리스·통합</a> · <a href="../basics/ch18.html">18장 DR</a></td>
+              <td><a href="../basics/ch03.html">3장 VPC 기초</a> · <a href="../basics/ch13.html">13장 컨테이너</a> · <a href="../basics/ch14.html">14장 DNS</a></td>
+            </tr>
+            <tr>
+              <th scope="row">고성능 아키텍처 설계 (24%)</th>
+              <td><a href="../basics/ch05.html">5장 EC2</a> · <a href="../basics/ch08.html">8장 S3</a> · <a href="../basics/ch11.html">11장 NoSQL·캐시</a> · <a href="../basics/ch14.html">14장 엣지·DNS</a> · <a href="../basics/ch15.html">15장 분석</a></td>
+              <td><a href="../basics/ch06.html">6장 EBS</a> · <a href="../basics/ch09.html">9장 파일 스토리지</a> · <a href="../basics/ch13.html">13장 컨테이너</a></td>
+            </tr>
+            <tr>
+              <th scope="row">비용 최적화 아키텍처 설계 (20%)</th>
+              <td><a href="../basics/ch05.html">5장 EC2 구매 옵션</a> · <a href="../basics/ch08.html">8장 스토리지 클래스</a> · <a href="../basics/ch18.html">18장 비용·전송 요금</a></td>
+              <td><a href="../basics/ch04.html">4장 VPC 엔드포인트</a> · <a href="../basics/ch10.html">10장 RDS</a> · <a href="../basics/ch12.html">12장 서버리스</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <a href="../basics/ch01.html">1장 AWS 글로벌 인프라와 계정 기초</a>는 특정 도메인에 속하지 않고
+        <strong>네 도메인 전체의 어휘</strong>를 깔아 둡니다. 순서상 가장 먼저 읽습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="study-plan">
+      <h2 id="study-plan">8주 학습 플랜</h2>
+
+      <p>
+        도메인 가중치를 그대로 시간 배분에 반영했습니다.
+        <strong>보안 도메인에 8주 중 3주를 배정</strong>하고, 그다음이 복원력입니다.
+        가중치가 30%인 도메인의 과제 진술이 3개뿐이라 같은 판단이 반복되므로,
+        여기에 시간을 쓰면 투입 대비 회수가 가장 큽니다.
+      </p>
+
+      <figure class="chart" data-chart="C-002">
+        <figcaption>
+          8주 학습 플랜의 주차별 구간. <strong>보안 도메인이 1주차부터 3주차까지 이어지는 가장 긴 구간</strong>이고,
+          마지막 8주차는 새 지식을 넣지 않고 모의고사와 오답 복습에만 씁니다.
+          이 일정은 이 사이트가 제안하는 계획값이며 공식 권장 일정이 아닙니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>8주 학습 플랜 — 주차별 읽을 것과 풀 것</caption>
+          <thead>
+            <tr>
+              <th scope="col">주차</th>
+              <th scope="col">주제와 주 도메인</th>
+              <th scope="col">읽을 것</th>
+              <th scope="col">풀 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1주차</th>
+              <td>현재 위치 확인과 기반 · 전 도메인</td>
+              <td><a href="../basics/ch01.html">1장 글로벌 인프라와 계정 기초</a> · <a href="../basics/ch02.html">2장 IAM과 자격 증명</a> · 이 페이지 · <a href="keywords.html">한정어 키워드 사전</a></td>
+              <td><a href="../quiz/diagnostic.html">진단 테스트 40문항을 먼저</a> · 1장과 2장 확인 문제</td>
+            </tr>
+            <tr>
+              <th scope="row">2주차</th>
+              <td>네트워크 접근 제어 · <strong>보안(30%)</strong></td>
+              <td><a href="../basics/ch03.html">3장 VPC 네트워킹 기초</a> · <a href="../basics/ch04.html">4장 VPC 연결과 하이브리드</a></td>
+              <td>3장·4장 확인 문제 · 보안 도메인 연습 1회차 · <a href="../labs/lab01.html">실습 1 3계층 VPC</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3주차</th>
+              <td>암호화와 거버넌스 · <strong>보안(30%)</strong></td>
+              <td><a href="../basics/ch16.html">16장 보안·암호화·거버넌스</a> · <a href="../basics/ch17.html">17장 모니터링·운영·계정 관리</a> · <a href="domain-secure.html">보안 도메인 페이지</a></td>
+              <td>16장·17장 확인 문제 · 보안 도메인 연습 마무리 · <a href="../cases/case01.html">케이스 1 액세스 키</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4주차</th>
+              <td>컴퓨팅과 확장 · <strong>복원력(26%)</strong>, 고성능</td>
+              <td><a href="../basics/ch05.html">5장 EC2와 컴퓨트</a> · <a href="../basics/ch06.html">6장 EBS와 블록 스토리지</a> · <a href="../basics/ch07.html">7장 로드 밸런싱과 오토스케일링</a></td>
+              <td>5장~7장 확인 문제 · 복원력 도메인 연습 1회차 · <a href="../labs/lab02.html">실습 2 ALB와 ASG</a></td>
+            </tr>
+            <tr>
+              <th scope="row">5주차</th>
+              <td>데이터베이스와 느슨한 결합 · <strong>복원력(26%)</strong></td>
+              <td><a href="../basics/ch10.html">10장 RDS</a> · <a href="../basics/ch11.html">11장 NoSQL·캐시·분석 DB</a> · <a href="../basics/ch12.html">12장 서버리스와 통합</a></td>
+              <td>10장~12장 확인 문제 · 복원력 도메인 연습 마무리 · <a href="../cases/case02.html">케이스 2 읽기 부하</a></td>
+            </tr>
+            <tr>
+              <th scope="row">6주차</th>
+              <td>스토리지와 컨테이너 · <strong>고성능(24%)</strong></td>
+              <td><a href="../basics/ch08.html">8장 S3</a> · <a href="../basics/ch09.html">9장 파일 스토리지와 데이터 전송</a> · <a href="../basics/ch13.html">13장 컨테이너</a></td>
+              <td>8장·9장·13장 확인 문제 · 고성능 도메인 연습 1회차</td>
+            </tr>
+            <tr>
+              <th scope="row">7주차</th>
+              <td>엣지·분석과 비용 · 고성능, <strong>비용(20%)</strong></td>
+              <td><a href="../basics/ch14.html">14장 엣지와 DNS</a> · <a href="../basics/ch15.html">15장 데이터 분석 파이프라인</a> · <a href="../basics/ch18.html">18장 비용·마이그레이션·DR</a></td>
+              <td>14장·15장·18장 확인 문제 · 고성능 마무리 · 비용 도메인 연습 전량</td>
+            </tr>
+            <tr>
+              <th scope="row">8주차</th>
+              <td>실전 전환 · 전 도메인</td>
+              <td><a href="traps.html">함정 사전</a> · <a href="keywords.html">한정어 키워드 사전 재독</a> · <a href="cram.html">벼락치기 요약</a> · <a href="exam-tips.html">시험 당일 전략</a></td>
+              <td>모의고사 4세트를 시간 재고 · <a href="../quiz/review.html">오답 노트 졸업까지</a> · <a href="flashcards.html">플래시카드</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="plan-rules">플랜을 쓰는 네 가지 규칙</h3>
+      <ul>
+        <li><strong>진단을 먼저 봅니다.</strong> 아무것도 읽지 않은 상태에서 40문항을 풀어야
+          약한 도메인이 드러납니다. 다 읽고 나서 보면 진단으로서의 값이 사라집니다.</li>
+        <li><strong>주차는 옮겨도 되지만 순서는 지킵니다.</strong> 1장과 2장은 뒤에 나오는 모든 설명의 어휘를 깔고,
+          3장 없이는 보안 도메인 문항의 절반이 읽히지 않습니다.</li>
+        <li><strong>챕터를 읽은 주에 그 챕터의 확인 문제를 풉니다.</strong> 미뤄 두면 무엇을 놓쳤는지 알 수 없습니다.</li>
+        <li><strong>마지막 주에 새 지식을 넣지 않습니다.</strong> 8주차는 모의고사와 오답 정리에만 씁니다.
+          이 시점의 새 서비스 학습은 이미 아는 것을 흔듭니다.</li>
+      </ul>
+
+      <h3 id="plan-adjustment">진단 결과에 따른 조정</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>진단 도메인 정답률에 따른 처방</caption>
+          <thead>
+            <tr>
+              <th scope="col">도메인 정답률</th>
+              <th scope="col">처방</th>
+              <th scope="col">무엇을 하는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">60% 미만</th>
+              <td><span class="mark-no">집중 학습</span></td>
+              <td>해당 챕터를 전부 읽고 도메인 연습을 전량 풉니다. 가중치가 큰 도메인이면 최우선입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">60% 이상 80% 미만</th>
+              <td>보강</td>
+              <td><a href="traps.html">함정 사전</a>과 도메인 페이지를 읽고 도메인 연습을 절반 풉니다</td>
+            </tr>
+            <tr>
+              <th scope="row">80% 이상</th>
+              <td><span class="mark-ok">유지</span></td>
+              <td>새로 읽지 않고 모의고사에서만 점검합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        학습 순서는 <code>가중치 × (100 − 정답률) / 100</code>이 큰 도메인부터입니다.
+        가중치가 30%인 보안이 약하면 거의 언제나 최상단에 옵니다.
+        이 계산은 <a href="../quiz/diagnostic.html">진단 테스트</a>가 자동으로 해 줍니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="how-to-use">
+      <h2 id="how-to-use">이 사이트를 쓰는 순서</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>페이지 종류별 역할과 사용 시점</caption>
+          <thead>
+            <tr>
+              <th scope="col">페이지</th>
+              <th scope="col">역할</th>
+              <th scope="col">언제 씁니까</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">기본개념 18장</th>
+              <td>판단에 필요한 지식과 실무 맥락</td>
+              <td>주차 계획대로 순서대로</td>
+            </tr>
+            <tr>
+              <th scope="row">도메인 페이지 4개</th>
+              <td>과제 진술별 출제 포인트와 판단 지점 점검표</td>
+              <td>해당 챕터를 읽은 직후</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="keywords.html">한정어 키워드 사전</a></th>
+              <td>문제문을 읽는 규칙</td>
+              <td>1주차에 한 번, 8주차에 다시</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="traps.html">함정 사전</a></th>
+              <td>헷갈리는 쌍의 비교와 오답 패턴</td>
+              <td>도메인 연습에서 틀린 직후</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="flashcards.html">플래시카드</a></th>
+              <td>서비스와 용도, 한도와 값의 암기</td>
+              <td>매일 짧게</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="cram.html">벼락치기 요약</a></th>
+              <td>전체를 한 페이지로 압축</td>
+              <td>시험 전날</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="exam-tips.html">시험 당일 전략</a></th>
+              <td>시간 배분과 소거법, 범위 밖 서비스</td>
+              <td>모의고사를 시작하기 전과 시험 전날</td>
+            </tr>
+            <tr>
+              <th scope="row"><a href="../cheatsheet/compare.html">빠른참조</a></th>
+              <td>비교표와 한도 모음</td>
+              <td>막힐 때마다 수시로</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          8주는 <strong>이 사이트가 제안하는 배치</strong>이며 공식 권장 기간이 아닙니다.
+          AWS가 안내하는 것은 <strong>설계 실무 1년 이상의 경험</strong>이고,
+          필요한 학습 기간은 그 경험의 정도에 따라 달라집니다.
+          진단 결과가 전 도메인 80% 이상이면 이 플랜을 그대로 따를 이유가 없습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../quiz/diagnostic.html">
+          <span class="card__title">진단 테스트 40문항</span>
+          <span class="card__desc">플랜의 1주차 첫 작업입니다. 4개 도메인 각 10문항으로 약한 곳을 재고 학습 순서를 만들어 줍니다.</span>
+          <span class="card__meta">문제 풀이</span>
+        </a></li>
+        <li><a class="card" href="keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">같은 시나리오에서 한정어만 바뀌면 정답이 어떻게 이동하는지 연습 네 세트로 보여 줍니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="domain-secure.html">
+          <span class="card__title">보안 아키텍처 설계 (30%)</span>
+          <span class="card__desc">가중치가 가장 큰 도메인. 과제 진술 세 개와 판단 지점 18개를 챕터에 연결했습니다.</span>
+          <span class="card__meta">시험 대비 · 도메인</span>
+        </a></li>
+        <li><a class="card" href="domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">과제 진술 두 개에 26%가 실린 도메인. 확장과 고가용성의 판단 지점을 정리했습니다.</span>
+          <span class="card__meta">시험 대비 · 도메인</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch01.html">
+          <span class="card__title">1장 · AWS 글로벌 인프라와 계정 기초</span>
+          <span class="card__desc">플랜 1주차의 첫 챕터입니다. 나머지 17장이 쓰는 어휘를 여기서 정합니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="exam-tips.html">
+          <span class="card__title">시험 당일 전략</span>
+          <span class="card__desc">130분을 어떻게 나누고, 언제 표시하고 넘어가며, 무엇을 공부하지 않아도 되는지.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>시험 기준과 도메인 가중치는 아래 문서에서 확인했습니다. 8주 플랜은 이 사이트의 제안입니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">AWS Certified Solutions Architect – Associate 시험 가이드 (SAA-C03)</a>
+          — 65문항, 130분, 720점, 보상형 채점, 도메인 가중치 30/26/24/20, 과제 진술 14개</li>
+        <li><a href="https://docs.aws.amazon.com/ko_kr/aws-certification/latest/userguide/solutions-architect-associate-03.html">SAA-C03 시험 가이드 (한국어)</a>
+          — 도메인과 과제 진술의 한국어 표기</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03-domain1.html">SAA-C03 시험 가이드 — 도메인 1 Design Secure Architectures</a>
+          — 과제 진술 1.1 · 1.2 · 1.3의 원문</li>
+        <li><a href="https://aws.amazon.com/ko/certification/certified-solutions-architect-associate/">AWS Certified Solutions Architect – Associate 공식 페이지</a>
+          — 응시료, 응시 방식, 제공 언어, 권장 경험</li>
+        <li><a href="https://aws.amazon.com/certification/policies/recertification/">AWS Certification 재인증 정책</a>
+          — 자격 유효 기간 3년</li>
+        <li><a href="https://aws.amazon.com/blogs/training-and-certification/updated-aws-certified-solutions-architect-associate-registration-now-open/">SAA-C03 등록 개시 발표</a>
+          — 2022년 8월 30일 시행 시작</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/saa-03-in-scope-services.html">SAA-C03 시험 가이드 — 범위 안 서비스</a>
+          — 학습 범위의 근거</li>
+        <li><a href="https://docs.aws.amazon.com/ko_kr/wellarchitected/latest/framework/welcome.html">AWS Well-Architected Framework (한국어)</a>
+          — 도메인이 대응하는 설계 기둥</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

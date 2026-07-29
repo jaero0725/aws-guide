@@ -1,0 +1,113 @@
+<svg viewBox="0 0 720 520" role="img" aria-labelledby="d023-title d023-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d023-title">보안 그룹과 네트워크 ACL의 상태 저장 차이</title>
+  <desc id="d023-desc">하나의 요청 패킷과 그에 대한 응답 패킷이 네 개의 검문소를 지나는 경로입니다.
+    위쪽 요청 레인에서 패킷은 서브넷 경계의 네트워크 ACL 인바운드 규칙과 인스턴스 경계의 보안 그룹 인바운드 규칙을 차례로 통과합니다.
+    아래쪽 응답 레인에서 보안 그룹은 상태 저장이므로 아웃바운드 규칙이 없어도 응답이 그대로 나갑니다.
+    반면 네트워크 ACL 은 상태 비저장이므로 응답 트래픽이 쓰는 임시 포트 범위를 아웃바운드 규칙으로 명시 허용하지 않으면
+    바로 그 지점에서 응답이 막힙니다. 초기 상태가 그 막힌 상황이며 네 번째 검문소에 가위표로 표시되어 있습니다.
+    아래 두 카드는 보안 그룹이 인스턴스 수준에서 허용 규칙만 가지고 모든 규칙을 함께 평가하는 데 비해,
+    네트워크 ACL 은 서브넷 수준에서 허용과 거부를 모두 가지고 가장 낮은 번호부터 순서대로 평가한다는 차이를 정리합니다.</desc>
+
+  <defs>
+    <marker id="d023-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d023-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d023-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 서브넷 · 경계 -->
+  <rect class="dg-panel" x="250" y="68" width="450" height="232" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="262" y="88">서브넷</text>
+
+  <rect class="dg-node dg-node--alt" x="186" y="76" width="64" height="212" rx="4"/>
+  <rect class="dg-node dg-node--alt" x="440" y="88" width="64" height="192" rx="4"/>
+
+  <rect class="dg-node" x="20" y="110" width="96" height="140" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="68" y="174" text-anchor="middle">인터넷</text>
+  <text class="dg-fs-sm dg-muted" x="68" y="196" text-anchor="middle">클라이언트</text>
+
+  <rect class="dg-node" x="580" y="110" width="108" height="140" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="634" y="174" text-anchor="middle">EC2</text>
+  <text class="dg-fs-sm dg-muted" x="634" y="196" text-anchor="middle">인스턴스</text>
+
+  <!-- 요청 레인 -->
+  <path data-dg="req-a" class="dg-edge" d="M116 140 L182 140" marker-end="url(#d023-ar)"/>
+  <path data-dg="req-b" class="dg-edge" d="M252 140 L436 140" marker-end="url(#d023-ar)"/>
+  <path data-dg="req-c" class="dg-edge" d="M506 140 L576 140" marker-end="url(#d023-ar)"/>
+  <text class="dg-fs-sm dg-bold" x="149" y="132" text-anchor="middle">요청</text>
+  <text class="dg-fs-sm" x="344" y="132" text-anchor="middle">HTTPS 443 요청</text>
+
+  <!-- 응답 레인 -->
+  <path data-dg="resp-a" class="dg-edge dg-edge--accent" d="M576 222 L508 222" marker-end="url(#d023-ar-accent)"/>
+  <path data-dg="resp-b" class="dg-edge dg-edge--accent" d="M438 222 L254 222" marker-end="url(#d023-ar-accent)"/>
+  <path data-dg="resp-c" class="dg-edge dg-edge--danger dg-edge--dashed" d="M184 222 L120 222" marker-end="url(#d023-ar-danger)"/>
+  <text class="dg-fs-sm dg-bold" x="150" y="202" text-anchor="middle">응답</text>
+  <text class="dg-fs-sm" x="344" y="212" text-anchor="middle">응답 트래픽</text>
+  <text class="dg-fs-sm dg-muted" x="344" y="248" text-anchor="middle">임시 포트 32768–65535</text>
+
+  <!-- 검문소 1: NACL 인바운드 -->
+  <g data-dg="gate-nacl-in">
+    <rect class="dg-node" x="188" y="120" width="60" height="40" rx="4"/>
+    <text data-dg="label-nacl-in" class="dg-fs-sm dg-bold" x="218" y="145" text-anchor="middle">허용</text>
+  </g>
+  <g data-dg="x-nacl-in" data-state="hidden">
+    <path class="dg-x" d="M281 131 L299 149 M299 131 L281 149"/>
+  </g>
+
+  <!-- 검문소 2: SG 인바운드 -->
+  <g data-dg="gate-sg-in">
+    <rect class="dg-node" x="442" y="120" width="60" height="40" rx="4"/>
+    <text data-dg="label-sg-in" class="dg-fs-sm dg-bold" x="472" y="145" text-anchor="middle">허용</text>
+  </g>
+  <g data-dg="x-sg-in" data-state="hidden">
+    <path class="dg-x" d="M532 131 L550 149 M550 131 L532 149"/>
+  </g>
+
+  <!-- 검문소 3: SG 아웃바운드 (상태 저장) -->
+  <g data-dg="gate-sg-out" data-state="done">
+    <rect class="dg-node" x="442" y="202" width="60" height="40" rx="4"/>
+    <text data-dg="label-sg-out" class="dg-fs-sm dg-bold" x="472" y="227" text-anchor="middle">통과</text>
+  </g>
+  <text class="dg-fs-sm dg-muted" x="520" y="268">규칙 없이도 돌아갑니다</text>
+
+  <!-- 검문소 4: NACL 아웃바운드 (상태 비저장) -->
+  <g data-dg="gate-nacl-out" data-state="error">
+    <rect class="dg-node" x="188" y="202" width="60" height="40" rx="4"/>
+    <text data-dg="label-nacl-out" class="dg-fs-sm dg-bold" x="218" y="227" text-anchor="middle">차단</text>
+  </g>
+  <g data-dg="x-nacl-out">
+    <path class="dg-x" d="M143 213 L161 231 M161 213 L143 231"/>
+  </g>
+
+  <!-- 경계 이름 -->
+  <text class="dg-fs-sm dg-bold" x="218" y="316" text-anchor="middle">네트워크 ACL</text>
+  <text class="dg-fs-sm dg-muted" x="218" y="334" text-anchor="middle">서브넷 경계 · 상태 비저장</text>
+  <text class="dg-fs-sm dg-bold" x="472" y="316" text-anchor="middle">보안 그룹</text>
+  <text class="dg-fs-sm dg-muted" x="472" y="334" text-anchor="middle">인스턴스 경계 · 상태 저장</text>
+
+  <text data-dg="verdict" class="dg-fs-md dg-bold" x="360" y="364" text-anchor="middle">NACL 아웃바운드에 임시 포트 허용이 없어 응답이 서브넷을 나가지 못합니다</text>
+
+  <!-- 요약 카드 -->
+  <rect class="dg-node" x="20" y="376" width="330" height="124" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="400">보안 그룹</text>
+  <text class="dg-fs-sm" x="34" y="422">인스턴스(ENI) 수준에서 동작</text>
+  <text class="dg-fs-sm" x="34" y="444">허용 규칙만 있음 — 거부 규칙 없음</text>
+  <text class="dg-fs-sm" x="34" y="466">모든 규칙을 함께 평가</text>
+  <text class="dg-fs-sm dg-bold" x="34" y="488">상태 저장 — 응답은 규칙 없이 통과</text>
+
+  <rect class="dg-node" x="370" y="376" width="330" height="124" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="384" y="400">네트워크 ACL</text>
+  <text class="dg-fs-sm" x="384" y="422">서브넷 수준에서 동작</text>
+  <text class="dg-fs-sm" x="384" y="444">허용과 거부 규칙 모두 지원</text>
+  <text class="dg-fs-sm" x="384" y="466">가장 낮은 번호부터 순서대로 평가</text>
+  <text class="dg-fs-sm dg-bold" x="384" y="488">상태 비저장 — 응답도 명시 허용 필요</text>
+</svg>

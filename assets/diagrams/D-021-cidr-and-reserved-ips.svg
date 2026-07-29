@@ -1,0 +1,77 @@
+<svg viewBox="0 0 720 430" role="img" aria-labelledby="d021-title d021-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d021-title">VPC CIDR 분할과 서브넷 예약 IP</title>
+  <desc id="d021-desc">위쪽 막대는 10.0.0.0/16 VPC 를 여러 개의 /24 서브넷으로 자르는 과정을 보여 줍니다.
+    강조된 10.0.1.0/24 를 아래에서 확대하면 주소 256개 가운데 앞의 네 개와 마지막 한 개, 합쳐 다섯 개를
+    AWS 가 예약하고 있어 실제로 인스턴스에 붙일 수 있는 주소는 251개뿐입니다.
+    예약 주소는 네트워크 주소, VPC 라우터, Amazon 제공 DNS, 향후 사용 예약, 네트워크 브로드캐스트입니다.
+    서브넷 블록 크기는 /28 에서 /16 사이여야 하고, 서브넷 하나는 반드시 가용 영역 하나 안에만 존재합니다.
+    이 두 제약과 다섯 개 예약 주소가 IP 소진 사고의 흔한 원인입니다.</desc>
+
+  <defs>
+    <marker id="d021-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="28">10.0.0.0/16 VPC 를 /24 서브넷으로 자릅니다</text>
+
+  <rect class="dg-node" x="20" y="42" width="113" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-mono" x="76" y="70" text-anchor="middle">10.0.0.0/24</text>
+  <rect class="dg-node dg-node--accent" x="133" y="42" width="113" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-mono dg-bold" x="189" y="70" text-anchor="middle">10.0.1.0/24</text>
+  <rect class="dg-node" x="246" y="42" width="113" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-mono" x="302" y="70" text-anchor="middle">10.0.2.0/24</text>
+  <rect class="dg-node" x="359" y="42" width="113" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-mono" x="415" y="70" text-anchor="middle">10.0.3.0/24</text>
+  <rect class="dg-node dg-node--empty" x="472" y="42" width="113" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="528" y="70" text-anchor="middle">…</text>
+  <rect class="dg-node" x="585" y="42" width="115" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-mono" x="642" y="70" text-anchor="middle">10.0.255.0/24</text>
+
+  <path class="dg-edge dg-edge--accent" d="M189 86 L189 108" marker-end="url(#d021-ar)"/>
+  <text class="dg-fs-sm dg-bold" x="204" y="104">확대</text>
+
+  <!-- 확대: 하나의 /24 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="130">10.0.1.0/24 — 주소 256개</text>
+  <rect class="dg-node" x="20" y="140" width="680" height="42" rx="4"/>
+  <rect class="dg-node dg-node--danger" x="26" y="146" width="24" height="30" rx="3"/>
+  <rect class="dg-node dg-node--danger" x="52" y="146" width="24" height="30" rx="3"/>
+  <rect class="dg-node dg-node--danger" x="78" y="146" width="24" height="30" rx="3"/>
+  <rect class="dg-node dg-node--danger" x="104" y="146" width="24" height="30" rx="3"/>
+  <rect class="dg-node dg-node--danger" x="670" y="146" width="24" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="399" y="166" text-anchor="middle">사용 가능한 251개 주소</text>
+  <text class="dg-fs-sm dg-muted" x="26" y="198">앞 4개 예약</text>
+  <text class="dg-fs-sm dg-muted" x="694" y="198" text-anchor="end">끝 1개 예약</text>
+
+  <!-- 예약 주소 표 -->
+  <rect class="dg-node dg-node--alt" x="20" y="216" width="400" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="234">예약 주소</text>
+  <text class="dg-fs-sm dg-bold" x="172" y="234">용도</text>
+  <rect class="dg-node" x="20" y="242" width="400" height="130" rx="4"/>
+  <path class="dg-grid" d="M20 268 L420 268 M20 294 L420 294 M20 320 L420 320 M20 346 L420 346 M160 242 L160 372"/>
+  <text class="dg-fs-sm dg-mono" x="32" y="260">10.0.1.0</text>
+  <text class="dg-fs-sm" x="172" y="260">네트워크 주소</text>
+  <text class="dg-fs-sm dg-mono" x="32" y="286">10.0.1.1</text>
+  <text class="dg-fs-sm" x="172" y="286">VPC 라우터</text>
+  <text class="dg-fs-sm dg-mono" x="32" y="312">10.0.1.2</text>
+  <text class="dg-fs-sm" x="172" y="312">Amazon 제공 DNS</text>
+  <text class="dg-fs-sm dg-mono" x="32" y="338">10.0.1.3</text>
+  <text class="dg-fs-sm" x="172" y="338">향후 사용 예약</text>
+  <text class="dg-fs-sm dg-mono" x="32" y="364">10.0.1.255</text>
+  <text class="dg-fs-sm" x="172" y="364">네트워크 브로드캐스트</text>
+
+  <!-- 제약 카드 -->
+  <rect class="dg-node" x="440" y="216" width="260" height="72" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="454" y="240">블록 크기는 /28 ~ /16</text>
+  <text class="dg-fs-sm dg-muted" x="454" y="260">가장 작은 /28 은 주소 16개 중</text>
+  <text class="dg-fs-sm dg-muted" x="454" y="278">11개만 쓸 수 있습니다</text>
+
+  <rect class="dg-node" x="440" y="300" width="260" height="72" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="454" y="324">서브넷은 AZ 하나에만</text>
+  <text class="dg-fs-sm dg-muted" x="454" y="344">가용 영역을 걸칠 수 없으므로</text>
+  <text class="dg-fs-sm dg-muted" x="454" y="362">AZ 마다 따로 만듭니다</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="400">서브넷 CIDR 은 만든 뒤에 넓힐 수 없습니다 — 처음부터 여유를 두고 자릅니다</text>
+</svg>

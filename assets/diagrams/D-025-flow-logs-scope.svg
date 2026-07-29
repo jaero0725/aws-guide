@@ -1,0 +1,72 @@
+<svg viewBox="0 0 720 420" role="img" aria-labelledby="d025-title d025-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d025-title">VPC Flow Logs가 잡는 것과 못 잡는 것</title>
+  <desc id="d025-desc">Flow Logs 의 캡처 지점은 네트워크 인터페이스(ENI)입니다.
+    VPC, 서브넷, 개별 네트워크 인터페이스 중 어느 수준에서 설정해도 실제 기록은 각 ENI 를 지나는 흐름 단위로 남습니다.
+    레코드에는 출발지 주소와 포트, 목적지 주소와 포트, 프로토콜로 이루어진 5-튜플과 ACCEPT 또는 REJECT 판정,
+    패킷 수와 바이트 수, 시작과 끝 시각이 담깁니다.
+    오른쪽 위험 카드가 이 그림의 결론입니다. 패킷 본문인 페이로드는 기록되지 않으므로
+    HTTP 요청 본문이나 쿼리 문자열 같은 통신 내용을 감사하라는 요구에는 Flow Logs 가 답이 되지 못합니다.
+    수집된 레코드는 Amazon CloudWatch Logs, Amazon S3, Amazon Data Firehose 중 한 곳으로 게시됩니다.</desc>
+
+  <defs>
+    <marker id="d025-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d025-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node" x="20" y="42" width="150" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="95" y="68" text-anchor="middle">EC2 인스턴스</text>
+  <text class="dg-fs-sm dg-muted" x="95" y="88" text-anchor="middle">보내는 쪽</text>
+
+  <rect class="dg-node dg-node--accent" x="215" y="42" width="150" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="290" y="68" text-anchor="middle">ENI</text>
+  <text class="dg-fs-sm" x="290" y="88" text-anchor="middle">캡처 지점</text>
+
+  <rect class="dg-node" x="410" y="42" width="150" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="485" y="68" text-anchor="middle">상대 호스트</text>
+  <text class="dg-fs-sm dg-muted" x="485" y="88" text-anchor="middle">받는 쪽</text>
+
+  <path class="dg-edge" d="M170 72 L211 72" marker-end="url(#d025-ar)"/>
+  <path class="dg-edge" d="M365 72 L406 72" marker-end="url(#d025-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M290 102 L290 138" marker-end="url(#d025-ar-accent)"/>
+  <text class="dg-fs-sm dg-muted" x="300" y="126">흐름 단위로 기록</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="126">VPC · 서브넷 · ENI 어느 수준에서 켜도 기록은 ENI 단위</text>
+
+  <!-- 남는 것 -->
+  <rect class="dg-node" x="20" y="146" width="420" height="176" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="170">Flow Log 레코드에 남는 것</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="196">srcaddr · srcport</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="218">dstaddr · dstport</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="240">protocol</text>
+  <text class="dg-fs-sm dg-muted" x="240" y="196">출발지 주소와 포트</text>
+  <text class="dg-fs-sm dg-muted" x="240" y="218">목적지 주소와 포트</text>
+  <text class="dg-fs-sm dg-muted" x="240" y="240">프로토콜 — 여기까지가 5-튜플</text>
+  <path class="dg-grid" d="M34 252 L426 252"/>
+  <text class="dg-fs-sm dg-mono dg-bold" x="34" y="274">action</text>
+  <text class="dg-fs-sm dg-bold" x="240" y="274">ACCEPT 또는 REJECT</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="296">packets · bytes</text>
+  <text class="dg-fs-sm dg-muted" x="240" y="296">패킷 수와 바이트 수</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="316">start · end</text>
+  <text class="dg-fs-sm dg-muted" x="240" y="316">집계 구간의 시작과 끝</text>
+
+  <!-- 안 남는 것 -->
+  <rect class="dg-node dg-node--danger" x="460" y="146" width="240" height="176" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="474" y="170">남지 않는 것</text>
+  <text class="dg-fs-sm" x="474" y="196">패킷 본문 (페이로드)</text>
+  <text class="dg-fs-sm" x="474" y="218">HTTP 헤더와 요청 본문</text>
+  <text class="dg-fs-sm" x="474" y="240">URL 경로와 쿼리 문자열</text>
+  <path class="dg-grid" d="M474 254 L686 254"/>
+  <text class="dg-fs-sm dg-bold" x="474" y="278">"통신 내용을 감사하라"는</text>
+  <text class="dg-fs-sm dg-bold" x="474" y="298">요구에 Flow Logs 는</text>
+  <text class="dg-fs-sm dg-bold" x="474" y="318">답이 되지 못합니다</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="352">게시 대상: Amazon CloudWatch Logs · Amazon S3 · Amazon Data Firehose</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="376">실시간 스트림이 아니라 집계 구간 단위로 모아 전달됩니다</text>
+</svg>

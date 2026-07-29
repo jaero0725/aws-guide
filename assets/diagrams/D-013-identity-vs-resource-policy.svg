@@ -1,0 +1,101 @@
+<svg viewBox="0 0 720 460" role="img" aria-labelledby="d013-title d013-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d013-title">자격 증명 기반 정책과 리소스 기반 정책의 결합 규칙</title>
+  <desc id="d013-desc">같은 두 정책이 동일 계정과 교차 계정에서 서로 다르게 결합한다는 것을 진리표로 증명합니다.
+    왼쪽 동일 계정에서는 자격 증명 기반 정책과 리소스 기반 정책이 합집합으로 작동하므로 둘 중 하나만 허용해도 요청이 통과합니다.
+    오른쪽 교차 계정에서는 호출자 계정의 자격 증명 기반 정책과 리소스 소유 계정의 리소스 기반 정책이
+    양쪽 모두 허용해야만 통과하고, 한쪽만 허용하면 거부됩니다.
+    단 어느 쪽 구성이든 어느 정책에든 명시적 거부가 하나라도 있으면 그것이 모든 허용을 이깁니다.</desc>
+
+  <defs>
+    <marker id="d013-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-lg dg-bold" x="185" y="30" text-anchor="middle">동일 계정</text>
+  <text class="dg-fs-lg dg-bold" x="537" y="30" text-anchor="middle">교차 계정</text>
+
+  <!-- ===== 왼쪽: 동일 계정 토폴로지 ===== -->
+  <rect class="dg-panel" x="24" y="54" width="322" height="130" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="36" y="74">계정 A</text>
+  <rect class="dg-node" x="36" y="90" width="130" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="101" y="118" text-anchor="middle">IAM 사용자</text>
+  <rect class="dg-node" x="206" y="90" width="130" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="271" y="118" text-anchor="middle">S3 버킷</text>
+  <path class="dg-edge dg-edge--accent" d="M166 113 L202 113" marker-end="url(#d013-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="101" y="160" text-anchor="middle">자격 증명 기반 정책</text>
+  <text class="dg-fs-sm dg-muted" x="271" y="160" text-anchor="middle">버킷 정책</text>
+
+  <!-- ===== 오른쪽: 교차 계정 토폴로지 ===== -->
+  <rect class="dg-panel" x="374" y="54" width="150" height="130" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="74">계정 A</text>
+  <rect class="dg-node" x="386" y="90" width="126" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="449" y="118" text-anchor="middle">IAM 사용자</text>
+  <text class="dg-fs-sm dg-muted" x="449" y="160" text-anchor="middle">자격 증명 기반 정책</text>
+
+  <rect class="dg-panel" x="550" y="54" width="150" height="130" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="560" y="74">계정 B</text>
+  <rect class="dg-node" x="562" y="90" width="126" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="625" y="118" text-anchor="middle">S3 버킷</text>
+  <text class="dg-fs-sm dg-muted" x="625" y="160" text-anchor="middle">버킷 정책</text>
+  <path class="dg-edge dg-edge--accent" d="M524 113 L546 113" marker-end="url(#d013-ar)"/>
+
+  <!-- ===== 진리표: 동일 계정 ===== -->
+  <rect class="dg-node dg-node--alt" x="24" y="210" width="322" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="79" y="228" text-anchor="middle">자격 증명 기반</text>
+  <text class="dg-fs-sm dg-bold" x="189" y="228" text-anchor="middle">리소스 기반</text>
+  <text class="dg-fs-sm dg-bold" x="295" y="228" text-anchor="middle">결과</text>
+  <rect class="dg-node" x="24" y="236" width="322" height="90" rx="4"/>
+  <path class="dg-grid" d="M24 266 L346 266 M24 296 L346 296 M134 236 L134 326 M244 236 L244 326"/>
+
+  <text class="dg-fs-sm" x="79" y="256" text-anchor="middle">Allow</text>
+  <text class="dg-fs-sm dg-muted" x="189" y="256" text-anchor="middle">없음</text>
+  <rect class="dg-node dg-node--ok" x="250" y="240" width="90" height="22" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="256" text-anchor="middle">허용</text>
+
+  <text class="dg-fs-sm dg-muted" x="79" y="286" text-anchor="middle">없음</text>
+  <text class="dg-fs-sm" x="189" y="286" text-anchor="middle">Allow</text>
+  <rect class="dg-node dg-node--ok" x="250" y="270" width="90" height="22" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="286" text-anchor="middle">허용</text>
+
+  <text class="dg-fs-sm" x="79" y="316" text-anchor="middle">Deny</text>
+  <text class="dg-fs-sm" x="189" y="316" text-anchor="middle">Allow</text>
+  <rect class="dg-node dg-node--danger" x="250" y="300" width="90" height="22" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="295" y="316" text-anchor="middle">거부</text>
+
+  <!-- ===== 진리표: 교차 계정 ===== -->
+  <rect class="dg-node dg-node--alt" x="374" y="210" width="326" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="429" y="228" text-anchor="middle">계정 A 자격 증명</text>
+  <text class="dg-fs-sm dg-bold" x="539" y="228" text-anchor="middle">계정 B 버킷 정책</text>
+  <text class="dg-fs-sm dg-bold" x="647" y="228" text-anchor="middle">결과</text>
+  <rect class="dg-node" x="374" y="236" width="326" height="90" rx="4"/>
+  <path class="dg-grid" d="M374 266 L700 266 M374 296 L700 296 M484 236 L484 326 M594 236 L594 326"/>
+
+  <text class="dg-fs-sm" x="429" y="256" text-anchor="middle">Allow</text>
+  <text class="dg-fs-sm dg-muted" x="539" y="256" text-anchor="middle">없음</text>
+  <rect class="dg-node dg-node--danger" x="602" y="240" width="90" height="22" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="647" y="256" text-anchor="middle">거부</text>
+
+  <text class="dg-fs-sm dg-muted" x="429" y="286" text-anchor="middle">없음</text>
+  <text class="dg-fs-sm" x="539" y="286" text-anchor="middle">Allow</text>
+  <rect class="dg-node dg-node--danger" x="602" y="270" width="90" height="22" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="647" y="286" text-anchor="middle">거부</text>
+
+  <text class="dg-fs-sm" x="429" y="316" text-anchor="middle">Allow</text>
+  <text class="dg-fs-sm" x="539" y="316" text-anchor="middle">Allow</text>
+  <rect class="dg-node dg-node--ok" x="602" y="300" width="90" height="22" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="647" y="316" text-anchor="middle">허용</text>
+
+  <!-- ===== 결론 ===== -->
+  <rect class="dg-node dg-node--accent" x="24" y="352" width="322" height="56" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="185" y="376" text-anchor="middle">합집합 (union)</text>
+  <text class="dg-fs-sm" x="185" y="396" text-anchor="middle">둘 중 하나만 Allow 여도 통과</text>
+
+  <rect class="dg-node dg-node--accent" x="374" y="352" width="326" height="56" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="537" y="376" text-anchor="middle">양쪽 모두 필요</text>
+  <text class="dg-fs-sm" x="537" y="396" text-anchor="middle">두 정책이 모두 Allow 여야 통과</text>
+
+  <text class="dg-fs-sm dg-muted" x="360" y="440" text-anchor="middle">어느 구성이든 어느 정책에든 명시적 Deny 가 하나 있으면 그것이 이깁니다</text>
+</svg>

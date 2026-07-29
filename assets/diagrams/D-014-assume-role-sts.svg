@@ -1,0 +1,75 @@
+<svg viewBox="0 0 720 430" role="img" aria-labelledby="d014-title d014-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d014-title">역할 수임과 STS 임시 자격 증명</title>
+  <desc id="d014-desc">위쪽은 안티패턴입니다. EC2 인스턴스 안에 장기 액세스 키를 심어 두면 만료가 없기 때문에
+    유출되었을 때 사람이 직접 키를 찾아 회수하고 교체해야 합니다.
+    아래쪽은 권장 구성입니다. EC2 인스턴스 프로파일, 다른 계정의 주체, SAML 2.0 이나 OIDC 로 연결된 페더레이션 ID —
+    세 경로가 모두 AWS STS 의 AssumeRole 계열 호출로 수렴하고, 그 결과로 AccessKeyId, SecretAccessKey,
+    SessionToken, 만료 시각을 가진 임시 자격 증명을 받습니다.
+    역할의 신뢰 정책이 이 주체들을 허용해야 수임이 성공하며, 임시 자격 증명은 만료되면 자동으로 무효가 되므로
+    회수 절차 자체가 필요 없다는 점이 두 구성을 가르는 핵심입니다.</desc>
+
+  <defs>
+    <marker id="d014-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d014-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- ===== 안티패턴 ===== -->
+  <text class="dg-fs-md dg-bold" x="24" y="30">안티패턴 — 장기 액세스 키를 심는다</text>
+
+  <rect class="dg-node dg-node--danger" x="24" y="44" width="170" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="109" y="66" text-anchor="middle">EC2 인스턴스</text>
+  <text class="dg-fs-sm" x="109" y="86" text-anchor="middle">액세스 키 파일로 저장</text>
+
+  <rect class="dg-node" x="254" y="44" width="140" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="324" y="78" text-anchor="middle">AWS 서비스</text>
+
+  <path class="dg-edge dg-edge--danger" d="M194 72 L250 72" marker-end="url(#d014-ar-danger)"/>
+
+  <rect class="dg-node dg-node--danger" x="440" y="44" width="270" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="575" y="66" text-anchor="middle">만료가 없습니다</text>
+  <text class="dg-fs-sm" x="575" y="86" text-anchor="middle">유출되면 사람이 직접 회수·교체</text>
+
+  <path class="dg-grid" d="M24 122 L710 122"/>
+
+  <!-- ===== 권장 구성 ===== -->
+  <text class="dg-fs-md dg-bold" x="24" y="150">권장 — 세 경로가 모두 AssumeRole 로 수렴한다</text>
+
+  <rect class="dg-node" x="24" y="166" width="190" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="119" y="186" text-anchor="middle">EC2 인스턴스 프로파일</text>
+  <text class="dg-fs-sm dg-muted" x="119" y="206" text-anchor="middle">인스턴스 메타데이터로 수령</text>
+
+  <rect class="dg-node" x="24" y="230" width="190" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="119" y="250" text-anchor="middle">교차 계정 주체</text>
+  <text class="dg-fs-sm dg-muted" x="119" y="270" text-anchor="middle">다른 계정의 사용자·역할</text>
+
+  <rect class="dg-node" x="24" y="294" width="190" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="119" y="314" text-anchor="middle">페더레이션 ID</text>
+  <text class="dg-fs-sm dg-muted" x="119" y="334" text-anchor="middle">SAML 2.0 · OIDC</text>
+
+  <rect class="dg-node dg-node--accent" x="280" y="228" width="140" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="350" y="250" text-anchor="middle">AWS STS</text>
+  <text class="dg-fs-sm" x="350" y="270" text-anchor="middle">AssumeRole</text>
+
+  <path class="dg-edge dg-edge--accent" d="M214 192 L276 240" marker-end="url(#d014-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M214 256 L276 256" marker-end="url(#d014-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M214 320 L276 272" marker-end="url(#d014-ar)"/>
+
+  <rect class="dg-node dg-node--ok" x="470" y="192" width="240" height="128" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="590" y="216" text-anchor="middle">임시 자격 증명</text>
+  <text class="dg-fs-sm dg-mono" x="490" y="240">AccessKeyId</text>
+  <text class="dg-fs-sm dg-mono" x="490" y="262">SecretAccessKey</text>
+  <text class="dg-fs-sm dg-mono" x="490" y="284">SessionToken</text>
+  <text class="dg-fs-sm dg-mono dg-bold" x="490" y="306">Expiration (만료 시각)</text>
+
+  <path class="dg-edge dg-edge--accent" d="M420 256 L466 256" marker-end="url(#d014-ar)"/>
+
+  <text class="dg-fs-sm dg-muted" x="24" y="378">역할의 신뢰 정책이 위 세 주체를 허용해야 AssumeRole 이 성공합니다</text>
+  <text class="dg-fs-sm dg-muted" x="24" y="402">임시 자격 증명은 만료되면 자동으로 무효 — 회수 절차 자체가 필요 없습니다</text>
+</svg>

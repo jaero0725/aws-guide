@@ -1,0 +1,57 @@
+<svg viewBox="0 0 720 450" role="img" aria-labelledby="d060-title d060-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d060-title">ALB · NLB · GWLB의 계층 비교</title>
+  <desc id="d060-desc">세 종류의 Elastic Load Balancing 로드 밸런서를 OSI 계층 축 위에 세운 비교표입니다.
+    Application Load Balancer 는 L7 애플리케이션 계층에서 HTTP 와 HTTPS 를 다루고 경로·호스트 조건으로 라우팅합니다.
+    Network Load Balancer 는 L4 전송 계층에서 TCP, UDP, TLS 를 다루고 가용 영역마다 고정 IP 를 가질 수 있습니다.
+    Gateway Load Balancer 는 L3 네트워크 계층에서 동작하며 GENEVE 프로토콜로 서드파티 가상 어플라이언스에 트래픽을 넘깁니다.
+    아래 표의 강조된 칸이 결론입니다. 문제 지문에 GENEVE 나 방화벽·IDS 어플라이언스 배포가 보이면 Gateway Load Balancer 입니다.</desc>
+
+  <path class="dg-grid" d="M20 60 L700 60 M20 130 L700 130 M20 200 L700 200 M20 270 L700 270"/>
+  <text class="dg-fs-sm dg-bold" x="24" y="96">L7</text>
+  <text class="dg-fs-sm dg-muted" x="24" y="114">애플리케이션</text>
+  <text class="dg-fs-sm dg-bold" x="24" y="166">L4</text>
+  <text class="dg-fs-sm dg-muted" x="24" y="184">전송</text>
+  <text class="dg-fs-sm dg-bold" x="24" y="236">L3</text>
+  <text class="dg-fs-sm dg-muted" x="24" y="254">네트워크</text>
+  <text class="dg-fs-sm dg-muted" x="24" y="40">OSI 계층</text>
+
+  <rect class="dg-node" x="120" y="70" width="180" height="50" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="210" y="92" text-anchor="middle">ALB</text>
+  <text class="dg-fs-sm dg-muted" x="210" y="111" text-anchor="middle">Application Load Balancer</text>
+
+  <rect class="dg-node" x="310" y="140" width="180" height="50" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="400" y="162" text-anchor="middle">NLB</text>
+  <text class="dg-fs-sm dg-muted" x="400" y="181" text-anchor="middle">Network Load Balancer</text>
+
+  <rect class="dg-node dg-node--accent" x="500" y="210" width="180" height="50" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="590" y="232" text-anchor="middle">GWLB</text>
+  <text class="dg-fs-sm dg-muted" x="590" y="251" text-anchor="middle">Gateway Load Balancer</text>
+
+  <!-- 속성 표 -->
+  <path class="dg-grid" d="M20 326 L700 326 M20 362 L700 362 M20 398 L700 398
+                            M115 290 L115 434 M305 290 L305 434 M495 290 L495 434"/>
+  <rect class="dg-node dg-node--empty" x="20" y="290" width="680" height="144" rx="4"/>
+
+  <text class="dg-fs-sm dg-muted" x="26" y="313">프로토콜</text>
+  <text class="dg-fs-sm dg-mono" x="122" y="313">HTTP, HTTPS</text>
+  <text class="dg-fs-sm dg-mono" x="312" y="313">TCP, UDP, TLS</text>
+  <rect x="497" y="292" width="201" height="32" rx="3"
+        fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <text class="dg-fs-sm dg-mono dg-bold" x="504" y="313">GENEVE (6081)</text>
+
+  <text class="dg-fs-sm dg-muted" x="26" y="349">대상 유형</text>
+  <text class="dg-fs-sm" x="122" y="349">인스턴스 · IP · Lambda</text>
+  <text class="dg-fs-sm" x="312" y="349">인스턴스 · IP</text>
+  <text class="dg-fs-sm" x="504" y="349">가상 어플라이언스</text>
+
+  <text class="dg-fs-sm dg-muted" x="26" y="385">고정 IP</text>
+  <text class="dg-fs-sm" x="122" y="385">없음 — DNS 이름만</text>
+  <text class="dg-fs-sm dg-bold" x="312" y="385">AZ 마다 고정 IP 가능</text>
+  <text class="dg-fs-sm" x="504" y="385">엔드포인트로 연결</text>
+
+  <text class="dg-fs-sm dg-muted" x="26" y="421">판별 단서</text>
+  <text class="dg-fs-sm" x="122" y="421">경로·호스트 기반 라우팅</text>
+  <text class="dg-fs-sm" x="312" y="421">초고성능 · 고정 IP 요구</text>
+  <text class="dg-fs-sm dg-bold" x="504" y="421">방화벽 · IDS/IPS 배포</text>
+</svg>

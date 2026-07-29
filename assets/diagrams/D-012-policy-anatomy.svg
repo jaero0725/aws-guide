@@ -1,0 +1,59 @@
+<svg viewBox="0 0 720 490" role="img" aria-labelledby="d012-title d012-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d012-title">IAM 정책 문서 구조 해부</title>
+  <desc id="d012-desc">실제 JSON 정책 문서를 왼쪽에 놓고 오른쪽에 각 요소의 역할을 붙인 해부도입니다.
+    Version 은 정책 언어 버전이고, Statement 는 명령문 배열이며, 그 안에서 Effect 가 Allow 또는 Deny 를,
+    Action 이 어떤 API 작업을, Resource 가 어떤 리소스 ARN 을, Condition 이 언제 적용되는지를 정합니다.
+    강조된 Principal 행이 이 그림의 결론입니다. Principal 은 누구에게 허용하는가를 적는 요소이며
+    리소스 기반 정책에만 존재합니다. 자격 증명 기반 정책은 이미 붙어 있는 사용자·그룹·역할이 곧 주체이므로
+    Principal 을 적지 않습니다. 아래 두 카드가 이 비대칭을 나란히 대비시킵니다.</desc>
+
+  <!-- 행 배경 (짝수 줄 얼룩) -->
+  <rect x="20" y="68" width="690" height="22" rx="2" fill="var(--dg-muted-soft)"/>
+  <rect x="20" y="116" width="690" height="22" rx="2" fill="var(--dg-muted-soft)"/>
+  <rect x="20" y="164" width="690" height="22" rx="2" fill="var(--dg-accent-soft)"
+        stroke="var(--dg-accent)" stroke-width="var(--dg-sw-1)"/>
+  <rect x="20" y="212" width="690" height="22" rx="2" fill="var(--dg-muted-soft)"/>
+
+  <path class="dg-grid" d="M502 44 L502 360"/>
+  <text class="dg-fs-sm dg-bold" x="30" y="38">정책 문서 (JSON)</text>
+  <text class="dg-fs-sm dg-bold" x="514" y="38">각 요소가 답하는 질문</text>
+
+  <!-- JSON 본문 -->
+  <text class="dg-fs-sm dg-mono" x="30" y="60">{</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="84">&#160;&#160;"Version": "2012-10-17",</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="108">&#160;&#160;"Statement": [{</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="132">&#160;&#160;&#160;&#160;"Sid": "AllowRead",</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="156">&#160;&#160;&#160;&#160;"Effect": "Allow",</text>
+  <text class="dg-fs-sm dg-mono dg-bold" x="30" y="180">&#160;&#160;&#160;&#160;"Principal": {"AWS": "arn:aws:iam::111122223333:root"},</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="204">&#160;&#160;&#160;&#160;"Action": ["s3:GetObject"],</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="228">&#160;&#160;&#160;&#160;"Resource": "arn:aws:s3:::my-bucket/*",</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="252">&#160;&#160;&#160;&#160;"Condition": {</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="276">&#160;&#160;&#160;&#160;&#160;&#160;"StringEquals": {"aws:PrincipalOrgID": "o-ab12cd34"}</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="300">&#160;&#160;&#160;&#160;}</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="324">&#160;&#160;}]</text>
+  <text class="dg-fs-sm dg-mono" x="30" y="348">}</text>
+
+  <!-- 주석 -->
+  <text class="dg-fs-sm" x="514" y="84">정책 언어 버전 (고정값)</text>
+  <text class="dg-fs-sm" x="514" y="108">명령문 배열 · 여러 개 가능</text>
+  <text class="dg-fs-sm" x="514" y="132">선택 · 사람이 읽는 식별자</text>
+  <text class="dg-fs-sm" x="514" y="156">Allow 인가 Deny 인가</text>
+  <text class="dg-fs-sm dg-bold" x="514" y="180">누구에게 — 여기가 핵심</text>
+  <text class="dg-fs-sm" x="514" y="204">어떤 API 작업을</text>
+  <text class="dg-fs-sm" x="514" y="228">어떤 리소스 ARN 에</text>
+  <text class="dg-fs-sm" x="514" y="252">언제 — 조건 키</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node" x="20" y="382" width="330" height="72" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="185" y="406" text-anchor="middle">자격 증명 기반 정책</text>
+  <text class="dg-fs-sm" x="185" y="426" text-anchor="middle">Principal 없음</text>
+  <text class="dg-fs-sm dg-muted" x="185" y="444" text-anchor="middle">주체는 정책이 붙은 대상 자신</text>
+
+  <rect class="dg-node dg-node--accent" x="370" y="382" width="330" height="72" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="535" y="406" text-anchor="middle">리소스 기반 정책</text>
+  <text class="dg-fs-sm" x="535" y="426" text-anchor="middle">Principal 필수</text>
+  <text class="dg-fs-sm dg-muted" x="535" y="444" text-anchor="middle">누구에게 허용할지 적어야 함</text>
+
+  <text class="dg-fs-sm dg-muted" x="360" y="476" text-anchor="middle">이 비대칭이 두 정책 유형을 구분하는 가장 빠른 표식입니다</text>
+</svg>

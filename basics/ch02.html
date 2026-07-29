@@ -1,0 +1,1468 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2장 · IAM과 자격 증명 — AWS SAA Guide</title>
+  <meta name="description" content="IAM 사용자와 그룹과 역할, 정책 문서의 구조, 명시적 거부가 모든 허용을 이기는 정책 평가 로직, 자격 증명 기반 정책과 리소스 기반 정책의 결합 규칙, AWS STS와 AssumeRole을 이용한 교차 계정 접근, SCP와 권한 경계가 만드는 권한 상한, AWS IAM Identity Center와 페더레이션 선택 기준을 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch02"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch02">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">2장 · IAM과 자격 증명</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 2장</p>
+      <h1>IAM과 자격 증명</h1>
+      <p class="page__lead">
+        AWS에서 일어나는 모든 API 호출은 <strong>누가 호출했는가</strong>와
+        <strong>그 호출이 허용되는가</strong> 두 질문을 통과합니다.
+        IAM은 그 두 질문에 답하는 시스템이고, SAA에서 가장 배점이 큰 도메인의 중심입니다.
+        이 장은 정책 문서의 문법부터 시작해 <strong>여러 종류의 정책이 하나의 결정으로 합쳐지는 규칙</strong>까지
+        내려갑니다. 이 규칙을 모르면 IAM 문항은 찍는 문제가 됩니다.
+      </p>
+      <p class="page__meta">
+        이 장은 <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a>의 과제 진술
+        1.1 "AWS 리소스에 대한 보안 액세스 설계"를 정면으로 다룹니다.
+        18장 가운데 시험 문항 밀도가 가장 높은 장입니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>IAM 사용자 · 그룹 · 역할의 차이를 자격 증명의 수명 관점에서 설명할 수 있습니다.</li>
+        <li>정책 문서의 <code>Effect</code> · <code>Action</code> · <code>Resource</code> · <code>Condition</code> · <code>Principal</code> 요소를 읽고, 자격 증명 기반 정책과 리소스 기반 정책을 구분할 수 있습니다.</li>
+        <li>명시적 거부 &gt; 명시적 허용 &gt; 암묵적 거부 순서로 최종 결정이 나오는 과정을 설명할 수 있습니다.</li>
+        <li>합집합으로 합쳐지는 정책 조합과 교집합으로 합쳐지는 정책 조합을 구분할 수 있습니다.</li>
+        <li>EC2 인스턴스에서 AWS API를 호출할 때 액세스 키가 아니라 IAM 역할을 써야 하는 이유를 근거를 들어 설명할 수 있습니다.</li>
+        <li>SCP와 권한 경계가 각각 무엇의 상한을 정하는지 구분하고, 페더레이션 방식을 요구사항에 맞게 고를 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="iam-building-blocks">
+      <h2 id="iam-building-blocks">IAM의 구성요소 — 자격 증명과 정책</h2>
+
+      <p>
+        IAM은 두 종류의 대상을 다룹니다. 요청을 보내는 주체인 <strong>자격 증명(identity)</strong>과,
+        그 주체가 무엇을 할 수 있는지 적어 둔 <strong>정책(policy)</strong>입니다.
+        자격 증명에는 사용자 · 그룹 · 역할이 있고, 정책은 <strong>네 자리</strong>에 붙을 수 있습니다 —
+        자격 증명에, 리소스에, 권한 경계로, 그리고 세션에.
+        시험 문항이 어려워지는 지점은 언제나 <strong>이 네 자리에 붙은 정책이 하나의 결정으로 합쳐지는 규칙</strong>입니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-010">
+        <figcaption>
+          IAM 구성요소의 관계 — 사용자와 그룹과 역할이 자격 증명이고, 정책은 자격 증명 · 리소스 ·
+          권한 경계 · 세션 네 자리에 붙습니다. 역할은 신뢰 정책(누가 맡을 수 있는가)과
+          권한 정책(무엇을 할 수 있는가) 두 축으로 이루어집니다
+        </figcaption>
+      </figure>
+
+      <h3 id="users-and-groups">사용자와 그룹 — 장기 자격 증명이 있는 쪽</h3>
+      <p>
+        IAM 사용자는 사람이나 애플리케이션에 대응하는 자격 증명이며,
+        콘솔 비밀번호와 액세스 키 같은 <strong>장기 자격 증명</strong>을 가질 수 있습니다.
+        장기라는 말은 <strong>만료되지 않는다</strong>는 뜻이고, 만료되지 않는 자격 증명은
+        유출되었을 때 우리가 직접 회수하기 전까지 계속 유효합니다.
+        이 한 문장이 이 장 전체의 방향을 결정합니다.
+      </p>
+      <p>
+        사용자 그룹은 <strong>권한을 묶어 관리하기 위한 장치</strong>입니다.
+        그룹에 자격 증명 기반 정책을 붙이면 그 그룹의 모든 사용자가 권한을 받습니다.
+        다만 그룹에는 시험이 노리는 제약이 세 개 있습니다.
+      </p>
+      <ul>
+        <li>그룹은 <strong>중첩할 수 없습니다.</strong> 그룹 안에는 사용자만 넣을 수 있고 다른 그룹은 넣을 수 없습니다.</li>
+        <li>그룹은 정책의 <code>Principal</code>이 될 수 없습니다.
+          IAM 사용 설명서는 "그룹은 인증이 아니라 권한에 관한 것이고 <code>Principal</code>은
+          인증된 IAM 엔터티"이기 때문이라고 설명합니다.
+          따라서 <strong>S3 버킷 정책에서 그룹을 지정할 수 없습니다.</strong></li>
+        <li>계정의 모든 사용자를 자동으로 포함하는 기본 그룹은 없습니다. 필요하면 직접 만들어야 합니다.</li>
+      </ul>
+
+      <h3 id="iam-roles">역할 — 장기 자격 증명이 없는 쪽</h3>
+      <p>
+        IAM 역할도 권한 정책을 가진 자격 증명이지만, 사용자와 결정적으로 다른 점이 있습니다.
+        IAM 사용 설명서는 역할에 대해 "한 사람에게 고유하게 묶이는 대신
+        <strong>필요한 누구든 맡을 수 있도록</strong> 만들어졌고,
+        <strong>비밀번호나 액세스 키 같은 표준 장기 자격 증명이 없다</strong>"고 정의합니다.
+        역할을 맡으면 그 자리에서 <strong>만료 시각이 있는 임시 자격 증명</strong>이 발급됩니다.
+      </p>
+      <p>
+        역할은 <strong>두 개의 정책</strong>으로 이루어집니다. 이 이원 구조가 역할 문항의 핵심입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>역할을 구성하는 두 정책</caption>
+          <thead>
+            <tr>
+              <th scope="col">정책</th>
+              <th scope="col">무엇을 정하는가</th>
+              <th scope="col">성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">신뢰 정책(trust policy)</th>
+              <td><strong>누가 이 역할을 맡을 수 있는가.</strong> <code>Principal</code>에 계정 · 사용자 · 역할 · AWS 서비스를 적는다</td>
+              <td>역할에 붙는 <strong>필수 리소스 기반 정책</strong>. 신뢰 정책에는 <strong><code>Principal</code>에 와일드카드(<code>*</code>)를 쓸 수 없다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">권한 정책(permissions policy)</th>
+              <td><strong>이 역할이 무엇을 할 수 있는가.</strong> <code>Action</code>과 <code>Resource</code>를 적는다</td>
+              <td>자격 증명 기반 정책. 관리형 또는 인라인</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        "역할을 만들었는데 접근이 안 된다"는 상황은 대부분 <strong>둘 중 하나만 고친 경우</strong>입니다.
+        권한 정책만 넓히면 맡을 수 없고, 신뢰 정책만 넓히면 맡은 뒤에 아무것도 못 합니다.
+      </p>
+
+      <aside class="note" data-label="용어 정리">
+        <p>
+          <strong>서비스 역할</strong>은 AWS 서비스가 우리를 대신해 행동하려고 맡는 역할이고,
+          <strong>서비스 연결 역할(service-linked role)</strong>은 특정 서비스에 묶여 그 서비스가 소유하는 역할입니다.
+          서비스 연결 역할은 관리자도 권한을 <strong>볼 수는 있지만 편집할 수 없습니다.</strong>
+          계정에 낯선 역할이 생겼다면 서비스 연결 역할일 가능성이 높고, 임의로 지우면 안 됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="iam-role-vs-access-key">
+      <h2 id="iam-role-vs-access-key">EC2에서 API를 호출한다 — 액세스 키인가 역할인가 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        이 절은 이 장에서 가장 자주 출제되는 판단 하나만 다룹니다.
+        <strong>EC2 인스턴스 위의 애플리케이션이 Amazon S3나 Amazon DynamoDB를 호출해야 할 때
+        무엇을 쓰는가.</strong>
+        정답은 거의 언제나 <strong>IAM 역할</strong>이고, 액세스 키를 인스턴스에 심는 선택지는
+        오답 유도로 가장 많이 쓰이는 패턴입니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-014">
+        <figcaption>
+          역할 수임과 임시 자격 증명 — EC2 인스턴스 프로파일 · 교차 계정 · 페더레이션 세 경로가
+          모두 AssumeRole 계열 호출을 거쳐 만료 시각이 있는 임시 자격 증명으로 수렴합니다.
+          왼쪽의 액세스 키를 인스턴스에 심는 방식만 유출 시 회수 작업이 필요합니다
+        </figcaption>
+      </figure>
+
+      <h3 id="why-not-access-keys">액세스 키가 오답인 이유</h3>
+      <p>
+        이유를 "보안상 좋지 않아서"로 외우면 응용이 안 됩니다.
+        IAM 사용 설명서가 임시 자격 증명의 장점으로 드는 항목이 그대로 근거입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>인스턴스에 심은 액세스 키와 IAM 역할의 임시 자격 증명 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">액세스 키를 인스턴스에 심는다</th>
+              <th scope="col">인스턴스 프로파일로 IAM 역할을 연결한다</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">배포물에 들어가는 것</th>
+              <td><span class="mark-no">장기 자격 증명이 AMI · 사용자 데이터 · 환경 변수 · 소스 저장소에 남는다</span></td>
+              <td><span class="mark-ok">아무 자격 증명도 배포물에 넣지 않는다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">만료</th>
+              <td><span class="mark-no">없음 — 지울 때까지 유효</span></td>
+              <td><span class="mark-ok">있음 — 만료되면 재사용 불가</span></td>
+            </tr>
+            <tr>
+              <th scope="row">교체(rotation)</th>
+              <td>사람이 주기적으로 수행해야 한다</td>
+              <td><span class="mark-ok">AWS가 자동으로 갱신한다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">유출 시 대응</th>
+              <td><span class="mark-no">전 인스턴스에서 키를 찾아 회수·재배포</span></td>
+              <td><span class="mark-ok">역할 정책만 고치면 되고, 이미 나간 자격 증명도 곧 만료된다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">감사</th>
+              <td>여러 인스턴스가 같은 키를 쓰면 CloudTrail에서 구분되지 않는다</td>
+              <td><span class="mark-ok">역할 세션 단위로 기록된다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">권한 변경</th>
+              <td>키를 다시 발급하거나 사용자 정책을 고쳐야 한다</td>
+              <td><span class="mark-ok">역할 정책을 고치면 재배포 없이 즉시 반영된다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="diff">
+        <div class="diff__before">
+          <p>
+            IAM 사용자를 만들어 액세스 키를 발급하고, 그 값을 인스턴스의 환경 변수나
+            자격 증명 파일에 써 둡니다. 이 키는 만료되지 않으므로, 인스턴스 이미지나
+            로그에 한 번이라도 새어 나가면 우리가 회수할 때까지 계속 쓸 수 있습니다.
+          </p>
+          <figure class="code">
+            <figcaption>안티패턴 — 인스턴스에 장기 자격 증명을 심는다</figcaption>
+            <pre><code class="lang-bash">aws configure set aws_access_key_id "$APP_KEY_ID"
+aws configure set aws_secret_access_key "$APP_SECRET"
+aws s3 cp ./report.csv s3://example-app-reports/</code></pre>
+          </figure>
+        </div>
+        <div class="diff__after">
+          <p>
+            역할을 만들어 인스턴스 프로파일로 연결하면 자격 증명을 코드에 넣지 않습니다.
+            SDK와 CLI가 기본 자격 증명 체인으로 임시 자격 증명을 알아서 찾아 씁니다.
+          </p>
+          <figure class="code">
+            <figcaption>권장 — 인스턴스 프로파일로 역할을 연결한다 (리소스 ID는 예시입니다)</figcaption>
+            <pre><code class="lang-bash">aws ec2 associate-iam-instance-profile \
+  --instance-id i-0123456789abcdef0 \
+  --iam-instance-profile Name=AppServerProfile
+
+# 애플리케이션 쪽에는 아무 설정도 하지 않습니다.
+aws s3 cp ./report.csv s3://example-app-reports/</code></pre>
+          </figure>
+        </div>
+      </div>
+
+      <h3 id="instance-profile">인스턴스 프로파일 — 역할을 인스턴스에 붙이는 그릇</h3>
+      <p>
+        EC2 인스턴스에는 역할을 직접 붙이지 않고 <strong>인스턴스 프로파일(instance profile)</strong>이라는
+        그릇을 통해 붙입니다. 인스턴스 프로파일 하나에는 역할 하나가 들어갑니다.
+        콘솔에서 역할을 만들면 같은 이름의 인스턴스 프로파일이 함께 만들어져서
+        이 계층이 잘 보이지 않지만, CLI나 CloudFormation으로 만들 때는 직접 만들어야 합니다.
+      </p>
+      <figure class="code">
+        <figcaption><span class="code__name">app-server-role.json</span> — EC2 서비스가 맡을 수 있게 하는 신뢰 정책</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEc2ToAssumeThisRole",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}</code></pre>
+      </figure>
+      <p>
+        <code>Principal</code>이 사람이나 계정이 아니라 <strong>서비스</strong>라는 점을 눈여겨봅니다.
+        "이 역할은 EC2 서비스가 맡을 수 있다"는 선언이며,
+        이 문장이 없으면 인스턴스 프로파일에 넣어도 자격 증명이 나오지 않습니다.
+      </p>
+
+      <h3 id="credential-provider-chain">애플리케이션은 어떻게 자격 증명을 찾는가</h3>
+      <p>
+        SDK와 AWS CLI는 정해진 순서로 자격 증명을 탐색합니다.
+        환경 변수와 자격 증명 파일이 앞쪽에 있고, 인스턴스 메타데이터가 뒤쪽에 있습니다.
+        <strong>그래서 액세스 키를 환경 변수에 남겨 두면 역할을 붙여도 그 키가 먼저 쓰입니다.</strong>
+        역할로 전환할 때는 옛 키를 지우는 것까지가 한 작업입니다.
+      </p>
+      <figure class="code">
+        <figcaption><span class="code__name">verify-identity.sh</span> — 지금 어떤 자격 증명으로 호출되고 있는지 확인</figcaption>
+        <pre><code class="lang-bash"># 역할이 제대로 붙었다면 Arn 이 assumed-role/... 형태로 나옵니다.
+aws sts get-caller-identity \
+  --query '[Account,Arn]' \
+  --output text</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          문항에 <strong>"EC2 인스턴스의 애플리케이션이 S3에 접근해야 한다"</strong>가 나오고
+          선택지에 <strong>IAM 사용자를 만들어 액세스 키를 인스턴스에 저장한다</strong>가 있으면
+          그 자리에서 소거합니다. <strong>액세스 키를 AWS Secrets Manager에 넣어 인스턴스가 꺼내 쓴다</strong>도
+          같은 이유로 오답입니다 — 장기 자격 증명이 여전히 존재하기 때문입니다.
+        </p>
+        <p>
+          같은 판단이 Lambda 함수(실행 역할), ECS 태스크(태스크 역할), EKS 파드에도 그대로 적용됩니다.
+          <strong>AWS 안에서 실행되는 컴퓨팅은 전부 역할로 권한을 받습니다.</strong>
+          컨테이너의 역할 분리는 <a href="ch13.html">13장 컨테이너</a>에서 다룹니다.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          인스턴스에 역할을 붙였다고 해서 인스턴스 안의 <strong>모든 프로세스가 안전해지는 것은 아닙니다.</strong>
+          역할의 임시 자격 증명은 인스턴스 메타데이터 서비스에서 꺼내 오므로,
+          서버 측 요청 위조(SSRF) 취약점이 있으면 외부에서 그 자격 증명을 훔칠 수 있습니다.
+          그래서 메타데이터 접근을 토큰 기반으로 강제하는 <strong>IMDSv2</strong>가 함께 나옵니다.
+          IMDSv2의 동작과 홉 제한은 <a href="ch05.html">5장 EC2와 컴퓨트</a>에서 다룹니다.
+        </p>
+        <p>
+          실제로 이 구성을 잘못 만든 사고의 전개는
+          <a href="../cases/case01.html">케이스 1 · EC2에 액세스 키를 심어 배포했다</a>에서 따라갑니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="policy-document">
+      <h2 id="policy-document">정책 문서의 구조</h2>
+
+      <p>
+        IAM 정책은 JSON 문서입니다.
+        요소의 순서는 의미가 없지만 <strong>어떤 요소가 있고 없느냐</strong>가 정책의 종류를 결정합니다.
+        특히 <code>Principal</code>의 유무가 자격 증명 기반 정책과 리소스 기반 정책을 가릅니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-012">
+        <figcaption>
+          정책 문서의 요소 해부 — Version과 Statement 아래에 Sid, Effect, Action, Resource,
+          Condition이 놓이고, Principal은 리소스 기반 정책에만 나타납니다.
+          Action과 NotAction, Resource와 NotResource, Principal과 NotPrincipal은 각각 함께 쓸 수 없습니다
+        </figcaption>
+      </figure>
+
+      <h3 id="policy-elements">요소별 역할</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>IAM JSON 정책의 주요 요소</caption>
+          <thead>
+            <tr>
+              <th scope="col">요소</th>
+              <th scope="col">역할</th>
+              <th scope="col">주의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>Version</code></th>
+              <td>정책 언어 버전. 현행 값은 <code>2012-10-17</code></td>
+              <td>날짜처럼 보이지만 <strong>버전 식별자</strong>다. 정책을 만든 날짜가 아니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Statement</code></th>
+              <td>실제 규칙을 담는 블록. 배열로 여러 개를 넣는다</td>
+              <td>문장 하나하나가 독립적으로 평가된다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Sid</code></th>
+              <td>문장 식별자. 사람이 읽기 위한 이름표</td>
+              <td>선택 사항이지만 붙여 두면 감사와 디버깅이 쉬워진다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Effect</code></th>
+              <td><code>Allow</code> 또는 <code>Deny</code></td>
+              <td><strong><code>Deny</code>는 다른 모든 <code>Allow</code>를 이긴다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Principal</code></th>
+              <td>누구에게 적용되는가. 계정 · 사용자 · 역할 · AWS 서비스를 지정한다</td>
+              <td><strong>리소스 기반 정책(역할 신뢰 정책 포함)에만 있다.</strong> 자격 증명 기반 정책에는 쓰지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Action</code></th>
+              <td>대상 API 작업. <code>s3:GetObject</code>처럼 <code>서비스:작업</code> 형식</td>
+              <td><code>NotAction</code>과 <strong>같은 문장에 함께 쓸 수 없다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Resource</code></th>
+              <td>대상 리소스의 ARN</td>
+              <td><code>NotResource</code>와 함께 쓸 수 없다. 버킷과 객체는 <strong>서로 다른 ARN</strong>이다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Condition</code></th>
+              <td>추가 조건. 조건 키와 연산자로 적용 범위를 좁힌다</td>
+              <td>없으면 항상 적용된다. 조건이 <strong>거짓이면 그 문장은 적용되지 않는다</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">read-reports-bucket.json</span> — 자격 증명 기반 정책. <code>Principal</code>이 없다</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListTheBucket",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::example-app-reports"
+    },
+    {
+      "Sid": "ReadObjectsUnderPrefix",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::example-app-reports/daily/*"
+    }
+  ]
+}</code></pre>
+      </figure>
+      <p>
+        두 문장이 나뉜 이유가 곧 시험 포인트입니다.
+        <code>s3:ListBucket</code>은 <strong>버킷</strong>에 대한 작업이라 대상이
+        <code>arn:aws:s3:::버킷이름</code>이고, <code>s3:GetObject</code>는 <strong>객체</strong>에 대한 작업이라
+        대상이 <code>arn:aws:s3:::버킷이름/키</code>입니다.
+        하나의 ARN으로 둘 다 처리하려다 "목록은 되는데 읽기가 안 된다"가 나옵니다.
+      </p>
+
+      <h3 id="condition-element">Condition — 최소 권한을 만드는 도구</h3>
+      <p>
+        조건은 "누가 무엇을"에 "어떤 상황에서"를 더합니다.
+        전역 조건 키는 어느 서비스에서나 쓸 수 있고, 서비스별 조건 키도 있습니다.
+      </p>
+      <figure class="code">
+        <figcaption><span class="code__name">require-mfa-and-tls.json</span> — MFA와 전송 중 암호화를 요구하는 조건</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyWhenNotUsingTls",
+      "Effect": "Deny",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::example-app-reports",
+        "arn:aws:s3:::example-app-reports/*"
+      ],
+      "Condition": {
+        "Bool": { "aws:SecureTransport": "false" }
+      }
+    },
+    {
+      "Sid": "RequireMfaForDeletes",
+      "Effect": "Deny",
+      "Action": "s3:DeleteObject",
+      "Resource": "arn:aws:s3:::example-app-reports/*",
+      "Condition": {
+        "BoolIfExists": { "aws:MultiFactorAuthPresent": "false" }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+      <p>
+        두 문장 모두 <code>Effect</code>가 <code>Deny</code>라는 점이 중요합니다.
+        "TLS를 쓸 때만 허용"을 <code>Allow</code> + 조건으로 쓰면
+        <strong>다른 정책의 <code>Allow</code>를 막지 못합니다.</strong>
+        강제하고 싶은 규칙은 조건부 <code>Deny</code>로 씁니다.
+      </p>
+
+      <h3 id="managed-vs-inline-policy">관리형 정책과 인라인 정책</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>관리형 정책과 인라인 정책의 차이</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">성격</th>
+              <th scope="col">언제 쓰는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS 관리형 정책</th>
+              <td>AWS가 만들고 유지한다. 여러 계정에서 같은 이름으로 쓸 수 있다</td>
+              <td>표준적인 역할을 빠르게 세울 때. 다만 대체로 <strong>필요보다 넓다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">고객 관리형 정책</th>
+              <td>우리가 만들고 버전을 관리한다. 여러 자격 증명에 재사용된다</td>
+              <td><strong>기본 선택.</strong> 최소 권한을 직접 설계할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">인라인 정책</th>
+              <td>자격 증명 하나에 파묻힌다. 그 자격 증명이 지워지면 함께 사라진다</td>
+              <td>정책과 자격 증명의 <strong>일대일 관계를 강제</strong>하고 싶을 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        리소스 기반 정책은 관리형이 될 수 없고 <strong>항상 인라인</strong>입니다.
+        S3 버킷 정책이나 KMS 키 정책을 "관리형 정책으로 만들어 여러 버킷에 붙인다"는 서술은 성립하지 않습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="iam-policy-evaluation">
+      <h2 id="iam-policy-evaluation">정책 평가 로직 — 최종 결정이 나오는 순서 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        여러 정책이 동시에 적용될 때 AWS가 결정을 내리는 절차는 정해져 있습니다.
+        IAM 사용 설명서의 서술을 그대로 옮기면 <strong>기본은 암묵적 거부</strong>이고,
+        <strong>어떤 정책에서든 명시적 거부가 하나라도 있으면 즉시 거부</strong>이며,
+        명시적 허용만이 기본 거부를 뒤집습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-011">
+        <figcaption>
+          IAM 정책 평가 흐름 — 요청이 들어오면 먼저 모든 정책에서 명시적 거부를 찾고,
+          하나라도 있으면 그 자리에서 거부로 확정됩니다. 거부가 없으면 SCP · 권한 경계 · 세션 정책이
+          만드는 상한을 통과해야 하고, 마지막으로 자격 증명 기반 또는 리소스 기반 정책의
+          명시적 허용이 있어야 요청이 통과합니다
+        </figcaption>
+      </figure>
+
+      <h3 id="evaluation-order">세 단계로 요약한 우선순위</h3>
+      <ol>
+        <li><strong>암묵적 거부(implicit deny)</strong> — 아무 정책도 언급하지 않은 작업은 거부됩니다.
+          이것이 기본값이며, 계정 루트 사용자만 예외입니다.</li>
+        <li><strong>명시적 허용(explicit allow)</strong> — 자격 증명 기반 정책이나 리소스 기반 정책에
+          <code>Allow</code>가 있으면 기본 거부를 덮습니다.</li>
+        <li><strong>명시적 거부(explicit deny)</strong> — 어느 정책에 있든 <code>Deny</code>가 하나라도 있으면
+          앞의 모든 허용을 이깁니다. <strong>거부는 되돌릴 수 없습니다.</strong></li>
+      </ol>
+      <p>
+        따라서 우선순위는 <strong>명시적 거부 &gt; 명시적 허용 &gt; 암묵적 거부</strong>입니다.
+        실무에서 이 성질이 유용한 이유는, "무슨 일이 있어도 막아야 하는 것"을
+        <strong>딱 한 군데에 <code>Deny</code>로 적으면 아래쪽에서 실수로 허용해도 뚫리지 않기</strong> 때문입니다.
+      </p>
+
+      <h3 id="policy-combination">합집합인가 교집합인가</h3>
+      <p>
+        평가 순서보다 자주 틀리는 것이 <strong>결합 규칙</strong>입니다.
+        조합에 따라 "둘 중 하나만 허용해도 통과"와 "둘 다 허용해야 통과"가 갈립니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>정책 유형별 결합 규칙</caption>
+          <thead>
+            <tr>
+              <th scope="col">조합</th>
+              <th scope="col">결합</th>
+              <th scope="col">의미</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">자격 증명 기반 + 리소스 기반 (같은 계정)</th>
+              <td><span class="mark-ok">합집합</span></td>
+              <td>둘 중 <strong>하나만</strong> 허용해도 통과한다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + 리소스 기반 (교차 계정)</th>
+              <td><span class="mark-no">양쪽 모두 필요</span></td>
+              <td>호출자 계정과 리소스 계정이 <strong>둘 다</strong> 허용해야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + 권한 경계</th>
+              <td><span class="mark-no">교집합</span></td>
+              <td>경계가 허용하지 않는 작업은 정책이 허용해도 못 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + SCP</th>
+              <td><span class="mark-no">교집합</span></td>
+              <td>SCP가 상한이며 <strong>SCP만으로는 권한이 생기지 않는다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + 세션 정책</th>
+              <td><span class="mark-no">교집합</span></td>
+              <td>세션 정책은 역할의 권한을 <strong>줄이기만</strong> 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">SCP + 권한 경계 + 자격 증명 기반</th>
+              <td><span class="mark-no">셋 다 허용해야 함</span></td>
+              <td>하나라도 빠지면 거부된다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        규칙을 하나로 압축하면 이렇습니다.
+        <strong>권한을 주는 정책끼리는 합쳐지고, 상한을 정하는 정책은 곱해집니다.</strong>
+        여기에 "명시적 거부는 어느 정책에 있든 전부를 이긴다"를 얹으면 평가 로직이 끝납니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          "사용자에게 <code>AdministratorAccess</code>가 붙어 있는데 특정 작업이 실패한다"는 시나리오는
+          거의 언제나 <strong>상한 쪽</strong>을 묻습니다. 확인 순서는
+          <strong>(1) 어딘가에 명시적 <code>Deny</code>가 있는가 → (2) SCP가 막고 있는가 →
+          (3) 권한 경계가 좁은가 → (4) 세션 정책이 좁은가</strong>입니다.
+        </p>
+        <p>
+          반대로 "권한을 넓혀야 한다"는 시나리오에서
+          <strong>"SCP에 <code>Allow</code>를 추가한다"</strong>는 선택지는 오답입니다.
+          SCP는 권한을 부여하지 않습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="identity-vs-resource-policy">
+      <h2 id="identity-vs-resource-policy">자격 증명 기반 정책과 리소스 기반 정책</h2>
+
+      <p>
+        같은 접근을 허용하는 방법이 두 가지 있습니다.
+        <strong>주체 쪽에 "너는 저기에 갈 수 있다"고 적거나</strong>,
+        <strong>리소스 쪽에 "저 사람은 들어와도 된다"고 적는 것</strong>입니다.
+        어느 쪽에 적느냐가 관리 방식과 교차 계정 동작을 바꿉니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-013">
+        <figcaption>
+          두 정책 유형의 결합 — 같은 계정 안에서는 자격 증명 기반과 리소스 기반 중
+          하나만 허용해도 통과하지만, 계정 경계를 넘으면 호출자 계정의 자격 증명 기반 정책과
+          리소스 계정의 리소스 기반 정책이 모두 허용해야 통과합니다
+        </figcaption>
+      </figure>
+
+      <h3 id="resource-based-policy-services">리소스 기반 정책을 지원하는 대표 리소스</h3>
+      <p>
+        모든 서비스가 리소스 기반 정책을 지원하지는 않습니다.
+        IAM 사용 설명서는 예로 <strong>Amazon S3 버킷, Amazon SQS 큐, VPC 엔드포인트,
+        AWS KMS 키</strong>를 듭니다. 여기에 IAM 역할의 <strong>신뢰 정책</strong>도
+        리소스 기반 정책이라는 사실을 더하면 시험 범위가 거의 덮입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자격 증명 기반 정책과 리소스 기반 정책 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">자격 증명 기반 정책</th>
+              <th scope="col">리소스 기반 정책</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">붙는 곳</th>
+              <td>IAM 사용자 · 그룹 · 역할</td>
+              <td>리소스 자체 (버킷 · 큐 · 키 · 역할)</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Principal</code> 요소</th>
+              <td><span class="mark-no">없다</span> — 붙은 대상이 곧 주체</td>
+              <td><span class="mark-ok">있다</span> — 누구인지 명시해야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">관리형 여부</th>
+              <td>관리형 또는 인라인</td>
+              <td><span class="mark-no">인라인만</span></td>
+            </tr>
+            <tr>
+              <th scope="row">교차 계정</th>
+              <td>단독으로는 불가</td>
+              <td>다른 계정의 주체를 직접 지정할 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">관리 관점</th>
+              <td>"이 사람이 어디에 갈 수 있나"를 한곳에서 본다</td>
+              <td>"이 리소스에 누가 올 수 있나"를 한곳에서 본다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="cross-account-access">교차 계정 접근 — 양쪽이 모두 허용해야 한다</h3>
+      <p>
+        계정 경계를 넘는 순간 규칙이 바뀝니다.
+        IAM 사용 설명서는 이 점을 명시적으로 강조합니다 —
+        <strong>계정 A의 호출자는 계정 B의 리소스를 부를 수 있는 자격 증명 기반 정책을 가져야 하고,
+        동시에 계정 B의 리소스 기반 정책이 계정 A의 호출자를 허용해야 합니다.
+        양쪽에 정책이 없으면 요청은 실패합니다.</strong>
+      </p>
+      <p>
+        구현 방법은 두 갈래이고, 무엇을 공유하느냐로 갈립니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>교차 계정 접근의 두 가지 구현</caption>
+          <thead>
+            <tr>
+              <th scope="col">방식</th>
+              <th scope="col">동작</th>
+              <th scope="col">고르는 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">역할 수임(AssumeRole)</th>
+              <td>리소스 계정에 역할을 만들고 신뢰 정책에 상대 계정을 적는다. 호출자는 역할을 맡아 <strong>리소스 계정의 주체가 되어</strong> 행동한다</td>
+              <td><strong>기본 선택.</strong> 여러 서비스에 접근해야 하거나, 리소스 기반 정책을 지원하지 않는 서비스가 섞여 있을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">리소스 기반 정책 직접 허용</th>
+              <td>버킷 정책이나 큐 정책의 <code>Principal</code>에 상대 계정 주체를 적는다. 호출자는 <strong>자기 계정의 주체인 채로</strong> 접근한다</td>
+              <td>대상이 <strong>리소스 한 종류</strong>일 때. 역할 전환 없이 자기 자격 증명으로 접근시키고 싶을 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <figure class="code">
+        <figcaption><span class="code__name">reports-bucket-policy.json</span> — 다른 계정의 역할에 읽기를 허용하는 버킷 정책 (계정 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowPartnerAccountRoleToRead",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789012:role/AnalyticsReader"
+      },
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::example-app-reports",
+        "arn:aws:s3:::example-app-reports/*"
+      ]
+    }
+  ]
+}</code></pre>
+      </figure>
+      <p>
+        이 정책만으로는 부족합니다. 계정 <code>123456789012</code> 쪽에서도
+        <code>AnalyticsReader</code> 역할에 <code>s3:GetObject</code>를 허용하는
+        자격 증명 기반 정책이 붙어 있어야 합니다.
+        S3 접근 제어의 나머지 절반(퍼블릭 액세스 차단, 객체 소유권)은
+        <a href="ch08.html">8장 S3와 오브젝트 스토리지</a>에서 다룹니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>"다른 계정의 팀에게 우리 버킷 접근을 준다"</strong>는 문항에서
+          한쪽만 고친 선택지는 오답입니다. 선택지에 "버킷 정책만 수정한다"와
+          "양쪽 계정에 정책을 구성한다"가 함께 있으면 후자입니다.
+        </p>
+        <p>
+          그리고 <strong>계정 간 접근에 IAM 사용자와 액세스 키를 상대에게 준다</strong>는 선택지는
+          언제나 오답입니다. 정답은 <strong>역할과 신뢰 정책</strong>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sts-assume-role">
+      <h2 id="sts-assume-role">AWS STS와 역할 수임</h2>
+
+      <p>
+        AWS Security Token Service(STS)는 <strong>임시 보안 자격 증명을 발급하는 서비스</strong>입니다.
+        발급된 자격 증명은 액세스 키 ID · 비밀 액세스 키 · <strong>세션 토큰</strong> 세 값으로 이루어지고,
+        만료 시각이 있습니다. IAM 사용 설명서는 임시 자격 증명의 장점으로
+        "장기 자격 증명을 애플리케이션에 배포하거나 심을 필요가 없다"와
+        "수명이 제한되어 있으므로 교체하거나 명시적으로 폐기할 필요가 없다"를 듭니다.
+      </p>
+
+      <h3 id="assume-role-apis">상황에 따라 다른 API</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>임시 자격 증명을 발급하는 STS 작업</caption>
+          <thead>
+            <tr>
+              <th scope="col">작업</th>
+              <th scope="col">언제 쓰는가</th>
+              <th scope="col">특징</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>AssumeRole</code></th>
+              <td>같은 계정 안의 권한 전환, <strong>교차 계정 접근</strong></td>
+              <td>호출자가 이미 AWS 자격 증명을 가지고 있어야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>AssumeRoleWithSAML</code></th>
+              <td><strong>기업 디렉터리 페더레이션</strong> (SAML 2.0 기반)</td>
+              <td>기업 ID 저장소를 AWS 역할에 연결한다. 사용자별 AWS 자격 증명이 필요 없다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>AssumeRoleWithWebIdentity</code></th>
+              <td>웹 · 모바일 앱의 <strong>외부 IdP 로그인</strong> (OIDC 호환)</td>
+              <td>호출에 AWS 자격 증명이 필요 없다. 모바일 앱에는 Amazon Cognito가 권장된다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>GetSessionToken</code></th>
+              <td>IAM 사용자가 <strong>MFA로 보호된 API 호출</strong>을 해야 할 때</td>
+              <td>IAM 사용자의 장기 자격 증명으로 호출한다. 역할 전환이 아니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <figure class="code">
+        <figcaption><span class="code__name">assume-cross-account-role.sh</span> — 교차 계정 역할 수임 (계정 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws sts assume-role \
+  --role-arn arn:aws:iam::123456789012:role/AnalyticsReader \
+  --role-session-name analytics-batch \
+  --external-id example-external-id \
+  --duration-seconds 3600 \
+  --query 'Credentials.Expiration'</code></pre>
+      </figure>
+
+      <h3 id="trust-policy-and-external-id">신뢰 정책과 외부 ID</h3>
+      <p>
+        역할을 만드는 쪽(<strong>신뢰하는 계정</strong>, 리소스 소유자)이 신뢰 정책에
+        상대 계정(<strong>신뢰받는 계정</strong>)을 적습니다.
+        문제는 상대 계정이 우리와 같은 조직이 아닐 때입니다.
+        상대 계정 전체를 신뢰하면 그 계정의 모든 주체가 역할을 맡을 수 있게 됩니다.
+      </p>
+      <p>
+        <strong>외부 ID(external ID)</strong>는 이때 쓰는 장치입니다.
+        STS API 문서는 "교차 계정 역할은 보통 한 계정 전체를 신뢰하도록 설정되므로,
+        신뢰하는 계정의 관리자가 외부 ID를 발급해 <strong>그 ID를 아는 사람만</strong>
+        역할을 맡게 한다"고 설명합니다. 서드파티 서비스에 우리 계정 접근을 위임할 때의 표준 구성입니다.
+      </p>
+      <figure class="code">
+        <figcaption><span class="code__name">third-party-trust-policy.json</span> — 외부 ID와 MFA를 요구하는 신뢰 정책</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowPartnerWithExternalId",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789012:root"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "example-external-id"
+        },
+        "Bool": {
+          "aws:MultiFactorAuthPresent": "true"
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <h3 id="session-duration-and-chaining">세션 길이와 역할 연쇄</h3>
+      <p>
+        세션 길이는 무한정 늘릴 수 없습니다. STS API 문서에서 확인되는 값은 다음과 같습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>STS 세션 길이 관련 확인된 값</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>AssumeRole</code>의 <code>DurationSeconds</code></th>
+              <td>최소 <strong>900초(15분)</strong>부터 <strong>역할에 설정된 최대 세션 길이</strong>까지</td>
+              <td>역할의 최대 세션 길이는 <strong>1시간에서 12시간</strong> 사이로 설정할 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">역할 연쇄(role chaining)</th>
+              <td>세션이 <strong>최대 1시간</strong>으로 제한된다</td>
+              <td>1시간을 넘는 <code>DurationSeconds</code>를 주면 <strong>작업이 실패</strong>한다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>GetSessionToken</code></th>
+              <td>IAM 사용자 기준 <strong>900초(15분)–129,600초(36시간)</strong>, 기본 <strong>43,200초(12시간)</strong></td>
+              <td>STS API 문서 본문에 명시</td>
+            </tr>
+            <tr>
+              <th scope="row">세션 정책 길이</th>
+              <td>인라인과 관리형 정책 ARN을 합쳐 평문 <strong>2,048자</strong>까지, 관리형 정책 ARN은 <strong>최대 10개</strong></td>
+              <td>STS API 문서 본문에 명시</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        역할 연쇄란 역할로 받은 임시 자격 증명으로 또 다른 역할을 맡는 것입니다.
+        여기서 자주 나오는 함정이 하나 있습니다 —
+        <strong>EC2 인스턴스가 인스턴스 프로파일의 역할로 API를 호출하는 것은 역할 연쇄가 아닙니다.</strong>
+        따라서 1시간 제한도 적용되지 않습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          페더레이션 문항에서 API 이름을 고르는 기준은 <strong>ID가 어디에 있는가</strong>입니다.
+          <strong>기업 Active Directory나 SAML IdP</strong>면 <code>AssumeRoleWithSAML</code>,
+          <strong>소셜 로그인이나 OIDC 제공자</strong>면 <code>AssumeRoleWithWebIdentity</code>,
+          <strong>이미 AWS 자격 증명이 있는 주체</strong>면 <code>AssumeRole</code>입니다.
+        </p>
+        <p>
+          서드파티에 우리 계정 접근을 준다는 문항에서
+          <strong>외부 ID</strong>가 선택지에 있으면 그것이 정답 신호입니다.
+          IAM 사용자를 만들어 키를 넘기는 선택지는 언제나 소거합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="guardrails">
+      <h2 id="guardrails">상한을 정하는 정책 — SCP와 권한 경계</h2>
+
+      <p>
+        지금까지의 정책은 권한을 <strong>주는</strong> 쪽이었습니다.
+        여기서 다루는 두 가지는 권한을 <strong>주지 않고 상한만 정합니다.</strong>
+        둘을 구분하는 것이 도메인 1에서 반복적으로 요구됩니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-015">
+        <figcaption>
+          실효 권한은 교집합입니다 — SCP가 정한 계정 상한, 권한 경계가 정한 엔터티 상한,
+          세션 정책이 정한 세션 상한, 그리고 자격 증명 기반 정책의 허용이
+          모두 겹치는 영역만 실제로 수행됩니다
+        </figcaption>
+      </figure>
+
+      <h3 id="scp-guardrail">서비스 제어 정책(SCP) — 계정 전체의 상한</h3>
+      <p>
+        SCP는 AWS Organizations의 정책이며, 조직 루트 · OU · 개별 계정 중 어디에나 붙습니다.
+        성질은 두 문장으로 요약됩니다.
+      </p>
+      <ul>
+        <li><strong>SCP는 권한을 부여하지 않습니다.</strong> 조직이나 OU의 <strong>최대 권한</strong>만 정합니다.
+          실제 허용은 여전히 IAM 정책이 해야 하고, SCP는 그 위에 씌우는 뚜껑입니다.</li>
+        <li><strong>SCP는 멤버 계정의 루트 사용자에게도 적용됩니다.</strong>
+          IAM 정책으로는 루트를 제한할 수 없으므로, 루트를 통제하는 유일한 수단이 SCP입니다.</li>
+      </ul>
+      <p>
+        조직을 <strong>전체 기능</strong>으로 만들어야 SCP를 쓸 수 있습니다.
+        통합 결제 전용으로 만든 조직에서는 어떤 정책 유형도 활성화되지 않습니다
+        (<a href="ch01.html#organizations">1장 AWS Organizations</a>).
+      </p>
+      <figure class="code">
+        <figcaption><span class="code__name">deny-leaving-organization.json</span> — 멤버 계정이 조직을 이탈하지 못하게 막는 SCP</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyLeaveOrganization",
+      "Effect": "Deny",
+      "Action": [
+        "organizations:LeaveOrganization",
+        "account:CloseAccount"
+      ],
+      "Resource": "*"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <h3 id="permissions-boundary">권한 경계 — 엔터티 하나의 상한</h3>
+      <p>
+        권한 경계는 <strong>관리형 정책을 IAM 사용자나 역할 하나에 상한으로 붙이는 기능</strong>입니다.
+        IAM 사용 설명서의 표현으로는 "자격 증명 기반 정책이 그 엔터티에 부여할 수 있는
+        <strong>최대 권한</strong>을 설정"하며,
+        "권한을 제한할 뿐 그 자체로는 권한을 주지 않습니다."
+        실효 권한은 자격 증명 기반 정책과 권한 경계의 <strong>교집합</strong>입니다.
+      </p>
+      <p>
+        가장 중요한 용도는 <strong>권한 관리 업무의 위임</strong>입니다.
+        개발팀장에게 "사용자와 역할을 만들 수 있는 권한"을 주고 싶은데
+        그대로 주면 관리자 권한을 가진 사용자를 만들어 버릴 수 있습니다.
+        <strong>새로 만드는 엔터티에 특정 권한 경계를 반드시 붙이도록 조건을 걸면</strong>
+        위임하면서도 상한을 유지할 수 있습니다.
+      </p>
+      <figure class="code">
+        <figcaption><span class="code__name">delegated-user-creation.json</span> — 지정한 권한 경계를 붙일 때만 사용자 생성을 허용</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CreateUsersOnlyWithBoundary",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateUser",
+        "iam:AttachUserPolicy"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::123456789012:policy/TeamBoundary"
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <h3 id="scp-vs-permissions-boundary">SCP와 권한 경계는 무엇이 다른가</h3>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>SCP와 권한 경계 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">서비스 제어 정책(SCP)</th>
+              <th scope="col">권한 경계</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">적용 범위</th>
+              <td><strong>계정 전체</strong> (조직 루트 · OU · 계정에 부착)</td>
+              <td><strong>IAM 사용자 또는 역할 하나</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">소속 서비스</th>
+              <td>AWS Organizations</td>
+              <td>IAM</td>
+            </tr>
+            <tr>
+              <th scope="row">루트 사용자에 적용</th>
+              <td><span class="mark-ok">적용된다</span></td>
+              <td><span class="mark-no">적용되지 않는다</span> — 루트는 IAM 엔터티가 아니다</td>
+            </tr>
+            <tr>
+              <th scope="row">그룹에 붙일 수 있나</th>
+              <td>해당 없음</td>
+              <td><span class="mark-no">불가</span> — 사용자와 역할에만 붙는다</td>
+            </tr>
+            <tr>
+              <th scope="row">권한 부여</th>
+              <td><span class="mark-no">하지 않는다</span></td>
+              <td><span class="mark-no">하지 않는다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">대표 용도</th>
+              <td>조직 차원 가드레일 — 리전 제한, 특정 서비스 차단, 조직 이탈 방지</td>
+              <td>권한 관리 위임 — 개발자가 만드는 역할의 최대치를 고정</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          문항이 <strong>"조직의 모든 계정에서"</strong>로 시작하면 SCP,
+          <strong>"이 개발자가 만드는 역할이 넘지 않도록"</strong>이면 권한 경계입니다.
+          범위의 단위가 <strong>계정</strong>인지 <strong>엔터티</strong>인지가 유일한 구분 기준입니다.
+        </p>
+        <p>
+          <strong>"루트 사용자도 특정 작업을 못 하게 하라"</strong>는 요구가 나오면 답은 SCP뿐입니다.
+          IAM 정책이나 권한 경계로 루트를 막는 선택지는 전부 오답입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="identity-center-and-federation">
+      <h2 id="identity-center-and-federation">AWS IAM Identity Center와 페더레이션 선택</h2>
+
+      <p>
+        계정이 늘어나면 계정마다 IAM 사용자를 만드는 방식이 무너집니다.
+        입사자가 오면 계정 수만큼 사용자를 만들어야 하고, 퇴사자가 나가면
+        <strong>계정 수만큼 지워야 하며, 하나라도 빠뜨리면 접근이 남습니다.</strong>
+        이 문제를 푸는 것이 페더레이션이고, AWS의 표준 답이
+        <strong>AWS IAM Identity Center</strong>입니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-016">
+        <figcaption>
+          IAM Identity Center의 로그인 경로 — 외부 ID 소스나 내장 디렉터리에서 인증한 뒤,
+          권한 집합이 각 계정의 역할로 변환되어 역할 수임으로 이어집니다.
+          자격 증명은 한 곳에만 존재하고 계정 쪽에는 IAM 사용자가 만들어지지 않습니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          이 서비스는 2022년에 <strong>AWS IAM Identity Center</strong>로 이름이 바뀌었습니다.
+          예전 자료에 나오는 옛 이름은 같은 서비스를 가리키며,
+          시험과 이 사이트에서는 현재 이름을 씁니다.
+        </p>
+      </aside>
+
+      <h3 id="iam-identity-center">권한 집합이 하는 일</h3>
+      <p>
+        IAM Identity Center는 사용자와 그룹을 한 곳에서 관리하고,
+        <strong>권한 집합(permission set)</strong>을 만들어 "어느 그룹이 어느 계정에서
+        무엇을 할 수 있는가"를 정의합니다.
+        권한 집합을 계정에 할당하면 그 계정 안에 대응하는 역할이 자동으로 만들어지고,
+        사용자는 로그인 포털에서 <strong>계정과 역할을 골라 임시 자격 증명을 받습니다.</strong>
+      </p>
+      <p>
+        결과적으로 얻는 것은 세 가지입니다.
+      </p>
+      <ul>
+        <li>자격 증명이 <strong>한 곳에만</strong> 존재하므로 퇴사 처리가 한 번이면 끝납니다.</li>
+        <li>계정마다 IAM 사용자를 만들지 않으므로 <strong>장기 자격 증명이 생기지 않습니다.</strong></li>
+        <li>권한 집합을 고치면 <strong>할당된 모든 계정에 반영</strong>됩니다.</li>
+      </ul>
+
+      <h3 id="federation-choice">무엇을 고를 것인가 — 페더레이션 판단 기준</h3>
+      <p>
+        시험은 서비스를 설명하게 하지 않고 <strong>고르게</strong> 합니다.
+        기준은 <strong>누구에게 접근을 주는가</strong> 하나입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>대상별 페더레이션 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">누구에게</th>
+              <th scope="col">무엇을 고르는가</th>
+              <th scope="col">신호가 되는 표현</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">사내 직원에게 <strong>여러 AWS 계정</strong> 접근을 준다</th>
+              <td><strong>AWS IAM Identity Center</strong></td>
+              <td>"여러 계정", "중앙에서 관리", "직원이 입퇴사한다", "단일 로그인"</td>
+            </tr>
+            <tr>
+              <th scope="row">기존 SAML IdP를 계정 <strong>하나</strong>에 직접 연결한다</th>
+              <td>IAM의 SAML 2.0 자격 증명 공급자 + 역할</td>
+              <td>"기존 IdP를 그대로", "계정이 하나뿐"</td>
+            </tr>
+            <tr>
+              <th scope="row">모바일 · 웹 앱의 <strong>최종 사용자</strong>에게 준다</th>
+              <td><strong>Amazon Cognito</strong> (자격 증명 풀)</td>
+              <td>"모바일 앱 사용자 수백만", "소셜 로그인", "게스트 접근"</td>
+            </tr>
+            <tr>
+              <th scope="row">EC2 인스턴스에 <strong>Active Directory 도메인 참여</strong>가 필요하다</th>
+              <td>AWS Directory Service</td>
+              <td>"도메인 조인", "Windows 파일 서버", "그룹 정책"</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS 안에서 실행되는 <strong>워크로드</strong>에 준다</th>
+              <td>IAM 역할 (사람이 개입하지 않는다)</td>
+              <td>"인스턴스에서", "Lambda 함수가", "태스크가"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Amazon Cognito와 AWS Directory Service의 세부 동작은
+        <a href="ch16.html">16장 보안·암호화·거버넌스</a>에서 다룹니다.
+        여기서는 <strong>사람 대 직원이면 Identity Center, 사람 대 앱 사용자면 Cognito,
+        사람이 아니면 역할</strong>이라는 세 갈래만 확실히 해 둡니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>"수백 개 계정의 직원 접근을 중앙에서 관리"</strong>는 IAM Identity Center이고,
+          <strong>"모바일 앱의 익명 사용자에게 S3 업로드를 허용"</strong>은 Amazon Cognito입니다.
+          이 둘을 바꿔 놓는 것이 전형적인 오답 배치입니다.
+        </p>
+        <p>
+          어느 쪽이든 <strong>"IAM 사용자를 계정마다 만든다"</strong>는 선택지는
+          운영 부담 한정어와 보안 한정어 양쪽에서 동시에 밀립니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"SCP를 붙이면 그 계정에 권한이 생긴다"</strong> —
+          SCP는 <strong>상한만 정하고 권한을 부여하지 않습니다.</strong>
+          SCP에 <code>Allow</code>를 써도 IAM 정책이 허용하지 않으면 아무 일도 일어나지 않습니다.
+          SCP의 <code>Allow</code>는 "여기까지는 허용해도 된다"는 <strong>필터</strong>이지 부여가 아닙니다.
+          반대 방향은 강력합니다 — SCP의 <code>Deny</code>는 계정 안의 어떤 IAM 정책도 뚫을 수 없고,
+          <strong>멤버 계정의 루트 사용자에게까지 적용됩니다.</strong>
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"AdministratorAccess가 붙어 있으면 뭐든 할 수 있다"</strong> —
+          자격 증명 기반 정책은 <strong>여러 관문 중 하나</strong>일 뿐입니다.
+          어딘가에 명시적 <code>Deny</code>가 있거나, SCP가 그 작업을 상한 밖에 두었거나,
+          권한 경계가 좁거나, 세션 정책이 좁으면 관리자 정책을 가지고도 거부됩니다.
+          <strong>권한을 주는 정책끼리는 합쳐지고, 상한을 정하는 정책은 곱해집니다.</strong>
+          곱셈에서는 0이 하나만 있어도 결과가 0입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"교차 계정 접근은 버킷 정책만 고치면 된다"</strong> —
+          계정 경계를 넘는 요청은 <strong>양쪽이 모두 허용해야</strong> 통과합니다.
+          호출자 계정에는 그 리소스를 부를 수 있는 자격 증명 기반 정책이 있어야 하고,
+          리소스 계정에는 그 호출자를 허용하는 리소스 기반 정책이 있어야 합니다.
+          같은 계정 안에서는 둘 중 하나만 있어도 통과하기 때문에,
+          <strong>같은 계정에서 되던 구성이 계정을 나누는 순간 깨집니다.</strong>
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <p>
+        이 장의 주제는 전부 <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a>에 속합니다.
+        아래 표의 <strong>함정</strong> 열이 실제 오답 선택지가 만들어지는 자리입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>2장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">EC2에서의 API 호출</th>
+                <td><strong>IAM 역할</strong>을 인스턴스 프로파일로 연결한다</td>
+                <td>액세스 키를 인스턴스나 비밀 저장소에 두는 선택지 — 장기 자격 증명이 남는다</td>
+              </tr>
+              <tr>
+                <th scope="row">정책 평가 우선순위</th>
+                <td><strong>명시적 거부 &gt; 명시적 허용 &gt; 암묵적 거부</strong></td>
+                <td>"허용이 더 많으니 허용된다"고 세는 계산</td>
+              </tr>
+              <tr>
+                <th scope="row">기본 상태</th>
+                <td>모든 요청은 <strong>암묵적으로 거부</strong>된다 (루트 사용자 제외)</td>
+                <td>정책이 없으면 열려 있다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">권한을 주는 정책끼리</th>
+                <td>자격 증명 기반 + 리소스 기반(같은 계정) = <strong>합집합</strong></td>
+                <td>양쪽 모두 필요하다고 생각해 불필요한 정책을 추가</td>
+              </tr>
+              <tr>
+                <th scope="row">상한을 정하는 정책</th>
+                <td>권한 경계 · SCP · 세션 정책은 <strong>교집합</strong></td>
+                <td>SCP나 권한 경계로 권한을 부여할 수 있다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">교차 계정</th>
+                <td>호출자 계정과 리소스 계정이 <strong>둘 다</strong> 허용해야 한다</td>
+                <td>버킷 정책만 고치는 선택지</td>
+              </tr>
+              <tr>
+                <th scope="row">SCP의 성질</th>
+                <td>권한을 <strong>부여하지 않고</strong> 상한만 정한다. <strong>멤버 계정 루트에도 적용</strong></td>
+                <td>"SCP로 권한을 준다", "루트는 SCP도 못 막는다"</td>
+              </tr>
+              <tr>
+                <th scope="row">SCP 전제 조건</th>
+                <td>조직이 <strong>전체 기능</strong>이어야 정책을 쓸 수 있다</td>
+                <td>통합 결제 전용 조직에서 SCP를 쓰려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">권한 경계</th>
+                <td>IAM <strong>사용자와 역할</strong>의 최대 권한. 권한 관리 <strong>위임</strong>에 쓴다</td>
+                <td>그룹에 붙일 수 있다고 생각. 루트에도 적용된다고 생각</td>
+              </tr>
+              <tr>
+                <th scope="row">역할의 두 정책</th>
+                <td><strong>신뢰 정책</strong>(누가 맡는가) + <strong>권한 정책</strong>(무엇을 하는가)</td>
+                <td>한쪽만 고치고 "역할이 동작하지 않는다"고 판단</td>
+              </tr>
+              <tr>
+                <th scope="row">신뢰 정책의 제약</th>
+                <td>역할에 붙는 <strong>리소스 기반 정책</strong>이며 <code>Principal</code>에 와일드카드를 쓸 수 없다</td>
+                <td>신뢰 정책을 자격 증명 기반 정책으로 취급</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>Principal</code>의 위치</th>
+                <td><strong>리소스 기반 정책에만</strong> 있다</td>
+                <td>자격 증명 기반 정책에 <code>Principal</code>을 넣어 문법 오류</td>
+              </tr>
+              <tr>
+                <th scope="row">그룹의 제약</th>
+                <td>중첩 불가, <strong><code>Principal</code>이 될 수 없다</strong></td>
+                <td>버킷 정책에서 IAM 그룹을 지정하려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">S3 정책의 ARN</th>
+                <td>버킷 작업은 <code>arn:aws:s3:::버킷</code>, 객체 작업은 <code>arn:aws:s3:::버킷/*</code></td>
+                <td>하나만 써서 목록은 되는데 읽기가 안 되는 구성</td>
+              </tr>
+              <tr>
+                <th scope="row">강제 규칙의 작성법</th>
+                <td>반드시 막아야 하는 규칙은 <strong>조건부 <code>Deny</code></strong>로 쓴다</td>
+                <td>조건부 <code>Allow</code>로 써서 다른 정책의 허용을 막지 못함</td>
+              </tr>
+              <tr>
+                <th scope="row">리소스 기반 정책의 형태</th>
+                <td><strong>항상 인라인</strong>이다. 관리형이 될 수 없다</td>
+                <td>버킷 정책을 관리형 정책으로 재사용하려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">STS API 선택</th>
+                <td>SAML IdP는 <code>AssumeRoleWithSAML</code>, OIDC는 <code>AssumeRoleWithWebIdentity</code></td>
+                <td>모든 페더레이션에 <code>AssumeRole</code>을 답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">외부 ID</th>
+                <td>서드파티에 계정 접근을 위임할 때 신뢰 정책 조건으로 쓴다</td>
+                <td>서드파티에 IAM 사용자와 액세스 키를 발급</td>
+              </tr>
+              <tr>
+                <th scope="row">역할 연쇄</th>
+                <td>세션이 <strong>최대 1시간</strong>. EC2 인스턴스 역할 사용은 <strong>연쇄가 아니다</strong></td>
+                <td>인스턴스 역할에도 1시간 제한이 있다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">페더레이션 선택</th>
+                <td>직원·다중 계정은 <strong>IAM Identity Center</strong>, 앱 사용자는 <strong>Amazon Cognito</strong></td>
+                <td>둘을 바꿔 고르거나 계정마다 IAM 사용자를 만드는 안을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">루트 사용자 제한</th>
+                <td>IAM 정책으로는 못 줄인다. <strong>SCP만</strong> 멤버 계정 루트에 상한을 건다</td>
+                <td>루트에 거부 정책을 붙이는 선택지</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          한정어 <strong><code>MOST secure</code></strong>가 붙으면 판단 순서는
+          <strong>(1) 장기 자격 증명을 없애는 선택지 → (2) 권한 범위를 좁히는 선택지 →
+          (3) 네트워크 경로를 비공개로 만드는 선택지</strong>입니다.
+          IAM 역할, 최소 권한 정책, VPC 엔드포인트가 각 단계의 대표 답입니다.
+        </p>
+        <p>
+          한편 <strong><code>LEAST operational overhead</code></strong>가 함께 붙으면
+          <strong>자동으로 교체되는 자격 증명</strong>이 결정적 근거가 됩니다.
+          역할과 IAM Identity Center가 여기서도 앞섭니다 — 사람이 키를 돌릴 일이 없기 때문입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <p>
+        <span class="badge badge--study">학습용 유형</span>
+        연결형과 순서 배열 문항이 섞여 있을 수 있습니다.
+        이 두 유형은 암기 확인에 효율이 좋아서 기본개념 확인 문제에만 넣었으며,
+        실제 SAA-C03 시험에는 출제되지 않습니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch02" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch03.html">
+          <span class="card__title">3장 · VPC 네트워킹 기초</span>
+          <span class="card__desc">IAM이 "누가 무엇을"이라면 VPC는 "어디서 어디로"입니다. 보안 그룹과 네트워크 ACL이 만드는 두 번째 통제 계층을 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch16.html">
+          <span class="card__title">16장 · 보안·암호화·거버넌스</span>
+          <span class="card__desc">KMS 키 정책은 리소스 기반 정책의 대표 사례입니다. Amazon Cognito와 AWS Directory Service의 세부 동작도 여기서 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../cases/case01.html">
+          <span class="card__title">케이스 1 · EC2에 액세스 키를 심어 배포했다</span>
+          <span class="card__desc">이 장에서 소거 대상으로 배운 구성이 실제로 어떤 사고로 이어지는지, 그리고 역할로 전환하는 순서를 따라갑니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/security.html">
+          <span class="card__title">보안 빠른참조</span>
+          <span class="card__desc">자주 쓰는 IAM 정책 패턴, 암호화 옵션 매트릭스, 정책 유형별 결합 규칙을 한 화면에 모았습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-secure.html">
+          <span class="card__title">도메인 1 · 보안 아키텍처 설계 (30%)</span>
+          <span class="card__desc">과제 진술 세 개의 해설과 출제 포인트, 그리고 이 장과의 매핑을 정리했습니다. 가중치가 가장 큰 도메인입니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab11.html">
+          <span class="card__title">실습 11 · KMS 고객 관리형 키로 암호화</span>
+          <span class="card__desc">키 정책이라는 리소스 기반 정책을 직접 써 보면서 IAM 정책과의 결합 규칙을 손으로 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 개념 서술과 API 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction_access-management.html">IAM 사용 설명서 — 액세스 관리 개요</a>
+          — 자격 증명 · 정책 · 요청 평가의 기본 구조</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups.html">IAM 사용 설명서 — IAM 사용자 그룹</a>
+          — 그룹을 중첩할 수 없다는 점, 그룹을 <code>Principal</code>로 지정할 수 없다는 점, 기본 그룹이 없다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html">IAM 사용 설명서 — IAM 역할</a>
+          — 역할의 정의와 사용 주체</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html">IAM 사용 설명서 — 역할 용어와 개념</a>
+          — 역할에 장기 자격 증명이 없다는 정의, 서비스 역할과 서비스 연결 역할의 구분, 신뢰 정책이 필수 리소스 기반 정책이며 <code>Principal</code>에 와일드카드를 쓸 수 없다는 점, 역할 연쇄가 세션을 1시간으로 제한하며 EC2 인스턴스 역할 사용은 연쇄가 아니라는 점, 위임에서 신뢰하는 계정과 신뢰받는 계정의 관계</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html">IAM 사용 설명서 — JSON 정책 요소 레퍼런스</a>
+          — 요소 목록과 <code>Action</code>/<code>NotAction</code>, <code>Principal</code>/<code>NotPrincipal</code>, <code>Resource</code>/<code>NotResource</code>가 상호 배타적이라는 점</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html">IAM 사용 설명서 — IAM의 정책과 권한</a>
+          — 정책 유형 구분과 관리형·인라인 정책</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html">IAM 사용 설명서 — 자격 증명 기반 정책과 리소스 기반 정책</a>
+          — 리소스 기반 정책이 인라인만 가능하다는 점, 같은 계정에서는 둘 중 하나만 허용해도 통과한다는 점, 계정 간 요청은 양쪽 계정에 정책이 있어야 한다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html">IAM 사용 설명서 — 정책 평가 로직</a>
+          — 기본이 암묵적 거부라는 점, 명시적 거부가 모든 허용을 이긴다는 점, 정책 유형별 평가 순서</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">IAM 사용 설명서 — IAM 엔터티의 권한 경계</a>
+          — 권한 경계가 최대 권한만 정하고 권한을 부여하지 않는다는 점, 자격 증명 기반 정책과의 교집합, SCP·권한 경계·자격 증명 기반 정책 세 가지가 모두 허용해야 한다는 점, 권한 관리 위임 시나리오</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html">IAM 사용 설명서 — 임시 보안 자격 증명</a>
+          — 임시 자격 증명의 수명과 장점, 기업 페더레이션과 웹 자격 증명 페더레이션의 구분</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_sts-comparison.html">IAM 사용 설명서 — STS 자격 증명 비교</a>
+          — <code>AssumeRole</code> 계열 작업과 <code>GetSessionToken</code>의 용도 구분</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html">IAM 사용 설명서 — 서드파티에 접근을 부여할 때의 외부 ID</a>
+          — 외부 ID가 필요한 이유와 사용 방법</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html">IAM 사용 설명서 — 역할 사용</a>
+          — 역할의 최대 세션 길이 설정</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">IAM 사용 설명서 — 보안 모범 사례</a>
+          — 장기 자격 증명 대신 임시 자격 증명을 쓰라는 권고</li>
+        <li><a href="https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html">AWS STS API 레퍼런스 — AssumeRole</a>
+          — <code>DurationSeconds</code>의 하한 900초와 역할 최대 세션 길이(1–12시간), 역할 연쇄 시 1시간 제한, 세션 정책이 교집합이라는 점, 인라인·관리형 세션 정책의 평문 2,048자 제한과 관리형 정책 ARN 10개 제한, <code>ExternalId</code>와 MFA 조건</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html">IAM 사용 설명서 — 임시 보안 자격 증명 요청</a>
+          — <code>GetSessionToken</code>의 세션 길이 범위(900초–129,600초, 기본 43,200초)와 각 STS 작업의 호출 조건</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html">Amazon EC2 사용 설명서 — Amazon EC2의 IAM 역할</a>
+          — 인스턴스 프로파일로 역할을 연결하고 애플리케이션이 임시 자격 증명을 받는 구조</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies.html">AWS Organizations 사용 설명서 — 정책 관리</a>
+          — 정책 유형의 활성화와 부착 위치</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html">AWS Organizations 사용 설명서 — SCP 전략</a>
+          — SCP가 최대 권한만 정하며 멤버 계정 루트 사용자에게도 적용된다는 점, 허용 목록과 거부 목록 전략</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_getting-started_concepts.html">AWS Organizations 사용 설명서 — 용어와 개념</a>
+          — 전체 기능과 통합 결제 전용 기능 집합의 차이</li>
+        <li><a href="https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html">AWS IAM Identity Center 사용 설명서 — 서비스 개요</a>
+          — 중앙 집중식 자격 증명 관리와 권한 집합을 통한 다중 계정 접근</li>
+        <li><a href="https://docs.aws.amazon.com/singlesignon/latest/userguide/manage-your-accounts.html">AWS IAM Identity Center 사용 설명서 — 계정 관리</a>
+          — 권한 집합을 계정에 할당하는 방식</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

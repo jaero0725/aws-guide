@@ -1,0 +1,75 @@
+<svg viewBox="0 0 720 420" role="img" aria-labelledby="d016-title d016-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d016-title">AWS IAM Identity Center 로그인 흐름과 구식 구성 비교</title>
+  <desc id="d016-desc">위쪽은 권장 구성입니다. Active Directory 나 외부 IdP 같은 외부 ID 소스가
+    AWS IAM Identity Center 한 곳에 연결되고, 권한 집합이 정책 묶음을 정의하며,
+    Identity Center 가 계정마다 그 권한 집합에 대응하는 역할을 만들어 두고 사용자는 로그인 후 그 역할을 수임합니다.
+    자격 증명은 외부 ID 소스 한 곳에만 존재하고 각 계정에는 임시 자격 증명만 흘러갑니다.
+    아래쪽은 구식 구성입니다. 계정마다 IAM 사용자와 비밀번호, 액세스 키를 따로 만들면
+    사람 수와 계정 수의 곱만큼 장기 자격 증명이 늘어나고 퇴사자 회수 지점도 그만큼 늘어납니다.</desc>
+
+  <defs>
+    <marker id="d016-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="28">권장 — 자격 증명이 한 곳에만 존재한다</text>
+
+  <rect class="dg-node" x="20" y="48" width="140" height="96" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="90" y="74" text-anchor="middle">외부 ID 소스</text>
+  <text class="dg-fs-sm dg-muted" x="90" y="98" text-anchor="middle">Active Directory</text>
+  <text class="dg-fs-sm dg-muted" x="90" y="118" text-anchor="middle">외부 IdP (SAML)</text>
+  <text class="dg-fs-sm dg-muted" x="90" y="138" text-anchor="middle">또는 내장 디렉터리</text>
+
+  <rect class="dg-node dg-node--accent" x="196" y="48" width="150" height="96" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="271" y="74" text-anchor="middle">IAM Identity Center</text>
+  <text class="dg-fs-sm" x="271" y="98" text-anchor="middle">단일 로그인 포털</text>
+  <text class="dg-fs-sm dg-muted" x="271" y="118" text-anchor="middle">사용자·그룹을 여기서</text>
+  <text class="dg-fs-sm dg-muted" x="271" y="138" text-anchor="middle">한 번만 관리</text>
+
+  <rect class="dg-node" x="382" y="48" width="140" height="96" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="452" y="74" text-anchor="middle">권한 집합</text>
+  <text class="dg-fs-sm dg-muted" x="452" y="98" text-anchor="middle">Permission Set</text>
+  <text class="dg-fs-sm dg-muted" x="452" y="118" text-anchor="middle">재사용 가능한</text>
+  <text class="dg-fs-sm dg-muted" x="452" y="138" text-anchor="middle">정책 묶음</text>
+
+  <rect class="dg-node" x="558" y="46" width="152" height="30" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="634" y="66" text-anchor="middle">계정 A — 역할 수임</text>
+  <rect class="dg-node" x="558" y="81" width="152" height="30" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="634" y="101" text-anchor="middle">계정 B — 역할 수임</text>
+  <rect class="dg-node" x="558" y="116" width="152" height="30" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="634" y="136" text-anchor="middle">계정 C — 역할 수임</text>
+
+  <path class="dg-edge dg-edge--accent" d="M160 96 L192 96" marker-end="url(#d016-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M346 96 L378 96" marker-end="url(#d016-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M522 96 L542 96 L542 61 L554 61" marker-end="url(#d016-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M542 96 L554 96" marker-end="url(#d016-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M542 96 L542 131 L554 131" marker-end="url(#d016-ar)"/>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="172">계정에는 임시 자격 증명만 흘러갑니다 — 계정 안에 IAM 사용자를 만들지 않습니다</text>
+
+  <path class="dg-grid" d="M20 192 L700 192"/>
+
+  <!-- 구식 구성 -->
+  <text class="dg-fs-md dg-bold" x="20" y="220">구식 — 계정마다 IAM 사용자를 만든다</text>
+
+  <rect class="dg-node dg-node--danger" x="20" y="238" width="210" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="125" y="262" text-anchor="middle">계정 A</text>
+  <text class="dg-fs-sm" x="125" y="284" text-anchor="middle">IAM 사용자 · 비밀번호</text>
+  <text class="dg-fs-sm" x="125" y="306" text-anchor="middle">장기 액세스 키</text>
+
+  <rect class="dg-node dg-node--danger" x="255" y="238" width="210" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="262" text-anchor="middle">계정 B</text>
+  <text class="dg-fs-sm" x="360" y="284" text-anchor="middle">IAM 사용자 · 비밀번호</text>
+  <text class="dg-fs-sm" x="360" y="306" text-anchor="middle">장기 액세스 키</text>
+
+  <rect class="dg-node dg-node--danger" x="490" y="238" width="210" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="595" y="262" text-anchor="middle">계정 C</text>
+  <text class="dg-fs-sm" x="595" y="284" text-anchor="middle">IAM 사용자 · 비밀번호</text>
+  <text class="dg-fs-sm" x="595" y="306" text-anchor="middle">장기 액세스 키</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="352">같은 사람이 계정마다 별도 자격 증명을 갖습니다</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="376">사람 수 × 계정 수만큼 자격 증명이 늘고, 퇴사 시 회수 지점도 그만큼 늘어납니다</text>
+</svg>
