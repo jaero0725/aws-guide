@@ -1,0 +1,5466 @@
+{
+  "setId": "saa-secure",
+  "title": "도메인 1 · 보안 아키텍처 설계 (30%) — 연습문제 102문항",
+  "exam": "SAA",
+  "domain": "Design Secure Architectures",
+  "examCode": "SAA-C03",
+  "questions": [
+    {
+      "id": "saa-secure-001",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 기업이 EC2 인스턴스에서 주문 처리 애플리케이션을 운영합니다. 이 애플리케이션은 Amazon S3 버킷의 객체를 읽어야 하며, 현재는 IAM 사용자의 장기 액세스 키를 인스턴스의 설정 파일에 저장해 사용합니다. 자격 증명 유출 위험을 없애면서 요구사항을 충족하는 가장 안전한(MOST secure) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "IAM 사용자의 액세스 키를 90일마다 교체하고 설정 파일의 읽기 권한을 소유자로 제한한다."
+        },
+        {
+          "id": "B",
+          "text": "필요한 S3 읽기 권한만 가진 IAM 역할을 만들어 인스턴스 프로필로 연결하고 설정 파일의 키를 삭제한다."
+        },
+        {
+          "id": "C",
+          "text": "액세스 키를 AWS Secrets Manager에 저장하고 애플리케이션이 시작할 때 조회하도록 변경한다."
+        },
+        {
+          "id": "D",
+          "text": "버킷 정책에서 인스턴스의 퍼블릭 IP 주소를 허용 소스로 지정하고 애플리케이션의 자격 증명을 제거한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "EC2에서 실행되는 코드에 권한을 주는 표준 방법은 IAM 역할을 인스턴스 프로필로 연결하는 것입니다. 역할을 연결하면 인스턴스 메타데이터 서비스가 자동으로 교체되는 임시 자격 증명을 발급하므로, 디스크에 남아 유출될 수 있는 장기 자격 증명 자체가 사라집니다. 장기 액세스 키는 교체 주기를 짧게 잡거나 보관 위치를 옮겨도 유출될 수 있는 비밀이 존재한다는 근본 문제가 그대로 남습니다. 한정어가 MOST secure이므로 위험을 줄이는 선택지가 아니라 위험의 원인을 제거하는 선택지를 고릅니다.",
+      "distractorNotes": {
+        "A": "교체 주기를 줄이면 노출 창이 좁아질 뿐 디스크에 장기 자격 증명이 남는다는 사실은 바뀌지 않습니다. 파일 권한 제한도 인스턴스가 침해되면 무력화됩니다.",
+        "C": "Secrets Manager는 비밀을 안전하게 보관하고 교체해 주지만 보관 대상이 여전히 장기 액세스 키입니다. 또한 Secrets Manager를 호출할 자격 증명이 다시 필요해져 문제가 한 단계 뒤로 밀릴 뿐입니다.",
+        "D": "소스 IP 조건은 인증이 아니라 추가 제약입니다. 요청에는 여전히 서명할 자격 증명이 필요하고, 퍼블릭 IP는 인스턴스를 중지·시작하면 바뀌므로 운영도 깨집니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html",
+          "title": "Amazon EC2에 대한 IAM 역할"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html",
+          "title": "IAM 역할"
+        }
+      ],
+      "tags": [
+        "iam-role-vs-access-key",
+        "iam-role",
+        "ec2",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-002",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 미디어 회사의 AWS Lambda 함수가 Amazon S3와 Amazon DynamoDB를 호출합니다. 현재 IAM 사용자의 액세스 키를 함수 환경 변수에 넣어 두었고, 보안 검토에서 지적을 받았습니다. 애플리케이션 로직을 거의 바꾸지 않으면서 가장 안전한(MOST secure) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "환경 변수를 고객 관리형 KMS 키로 암호화하고 키 정책으로 복호화 주체를 제한한다."
+        },
+        {
+          "id": "B",
+          "text": "액세스 키를 AWS Secrets Manager에 옮기고 함수가 호출 시점에 조회하도록 바꾼다."
+        },
+        {
+          "id": "C",
+          "text": "함수의 실행 역할에 필요한 S3·DynamoDB 권한을 부여하고 환경 변수의 키를 삭제한다."
+        },
+        {
+          "id": "D",
+          "text": "액세스 키를 30일마다 교체하는 절차를 만들고 CloudTrail로 키 사용을 감시한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "Lambda 함수는 호출될 때마다 실행 역할의 임시 자격 증명을 자동으로 받으며, AWS SDK는 별도 설정 없이 그 자격 증명을 사용합니다. 그래서 역할에 권한을 주는 것만으로 코드 변경 없이 인증이 끝나고, 함수 정의 어디에도 장기 비밀이 남지 않습니다. 환경 변수 암호화나 비밀 보관소 이전은 비밀의 위치를 옮길 뿐 비밀 자체를 없애지 못합니다. 실행 주체가 AWS 서비스라면 답은 거의 언제나 그 서비스의 역할입니다.",
+      "distractorNotes": {
+        "A": "환경 변수 암호화는 저장 시점의 노출을 줄이지만 함수 런타임에는 평문으로 복호화됩니다. 유출 가능한 장기 키가 계속 존재한다는 점이 바뀌지 않습니다.",
+        "B": "Secrets Manager는 데이터베이스 암호처럼 AWS가 대신 발급할 수 없는 비밀에 적합합니다. AWS API 호출 자격 증명은 역할이 무료로 대신해 주므로 비밀로 보관할 이유가 없습니다.",
+        "D": "교체와 감시는 사고를 빨리 발견하게 할 뿐 사고 가능성 자체를 없애지 못합니다. 운영 부담도 늘어나 두 한정어 모두에서 불리합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html",
+          "title": "AWS Lambda 권한 모델"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html",
+          "title": "IAM 역할"
+        }
+      ],
+      "tags": [
+        "iam-role-vs-access-key",
+        "lambda",
+        "iam-role"
+      ]
+    },
+    {
+      "id": "saa-secure-003",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 AWS Fargate에서 컨테이너 애플리케이션을 실행합니다. 컨테이너 이미지에 액세스 키를 구워 넣어 Amazon S3를 호출하고 있으며, 이미지를 Amazon ECR에서 가져오고 로그를 CloudWatch Logs로 보냅니다. 애플리케이션 코드의 S3 호출 권한을 부여하는 방법으로 가장 적절한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "S3 권한을 가진 태스크 역할을 만들어 태스크 정의에 지정하고 이미지에서 키를 제거한다."
+        },
+        {
+          "id": "B",
+          "text": "태스크 실행 역할에 S3 권한을 추가하고 이미지의 키를 제거한다."
+        },
+        {
+          "id": "C",
+          "text": "클러스터의 컨테이너 인스턴스 프로필에 S3 권한을 추가하고 이미지의 키를 제거한다."
+        },
+        {
+          "id": "D",
+          "text": "액세스 키를 Parameter Store에 넣고 컨테이너가 시작할 때 조회하도록 변경한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "Amazon ECS에는 역할이 두 종류 있고 담당이 다릅니다. 태스크 실행 역할은 ECS 에이전트가 이미지를 가져오고 로그를 보내는 등 태스크를 띄우는 데 쓰이며, 태스크 역할은 컨테이너 안의 애플리케이션 코드가 AWS API를 호출할 때 쓰입니다. 따라서 애플리케이션이 S3를 호출한다면 권한은 태스크 역할에 붙여야 합니다. Fargate에는 사용자가 관리하는 컨테이너 인스턴스가 없으므로 인스턴스 프로필이라는 개념 자체가 적용되지 않습니다.",
+      "distractorNotes": {
+        "B": "실행 역할은 태스크를 시작하는 ECS 서비스가 사용하는 역할입니다. 여기에 S3 권한을 넣어도 컨테이너 안의 애플리케이션에는 전달되지 않아 호출이 계속 실패합니다.",
+        "C": "Fargate 시작 유형은 인프라를 AWS가 관리하므로 사용자가 접근할 EC2 인스턴스나 인스턴스 프로필이 없습니다. ECS on EC2였다면 동작은 하지만 같은 인스턴스의 모든 태스크에 권한이 새어 최소 권한에 어긋납니다.",
+        "D": "Parameter Store로 옮겨도 보관 대상은 여전히 장기 액세스 키입니다. 게다가 Parameter Store를 호출할 자격 증명이 다시 필요해 문제가 순환합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html",
+          "title": "태스크에 대한 IAM 역할"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html",
+          "title": "Amazon ECS 태스크 실행 IAM 역할"
+        }
+      ],
+      "tags": [
+        "iam-role-vs-access-key",
+        "ecs",
+        "fargate",
+        "iam-role"
+      ]
+    },
+    {
+      "id": "saa-secure-004",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "계정 A의 분석 팀이 계정 B가 소유한 Amazon S3 버킷의 객체를 읽어야 합니다. 두 계정은 같은 AWS Organizations 조직에 속합니다. 접근이 성립하도록 하려면 어떤 구성이 필요합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "계정 B에 역할을 만들고 신뢰 정책에서 계정 A의 주체가 역할을 맡도록 허용한다."
+        },
+        {
+          "id": "B",
+          "text": "계정 B의 버킷에서 퍼블릭 액세스 차단을 해제해 외부 계정의 읽기를 허용한다."
+        },
+        {
+          "id": "C",
+          "text": "계정 A의 IAM 역할에 계정 B의 역할에 대한 sts:AssumeRole 권한을 부여한다."
+        },
+        {
+          "id": "D",
+          "text": "계정 B의 버킷에 ACL을 추가해 계정 A의 정식 사용자 ID에 읽기를 허용한다."
+        },
+        {
+          "id": "E",
+          "text": "두 계정을 같은 조직 단위로 옮기고 SCP에서 s3:GetObject를 허용한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "교차 계정 접근은 호출하는 쪽과 소유한 쪽이 모두 허용해야 성립합니다. 소유 계정은 신뢰 정책으로 누가 역할을 맡을 수 있는지 정하고, 호출 계정은 자격 증명 기반 정책으로 그 역할을 맡을 권한을 자기 주체에게 줍니다. 어느 한쪽만 고친 구성은 항상 AccessDenied로 끝나며, 시험은 이 절반짜리 선택지를 즐겨 배치합니다. 조직에 속해 있다는 사실은 SCP 상한이 적용된다는 뜻일 뿐 권한을 부여하지 않습니다.",
+      "distractorNotes": {
+        "B": "퍼블릭 액세스 차단은 익명·퍼블릭 접근을 막는 기능이며, 특정 계정에 부여한 교차 계정 권한과는 별개입니다. 이를 해제하면 보안만 약해지고 문제는 해결되지 않습니다.",
+        "D": "현행 신규 버킷은 객체 소유권이 버킷 소유자로 강제되어 ACL이 비활성 상태입니다. 접근 제어는 버킷 정책과 IAM 정책으로 하는 것이 현재 권장 구성입니다.",
+        "E": "SCP는 권한을 부여하지 않고 상한만 정합니다. SCP에 허용을 적어도 실제 허용은 IAM 정책과 리소스 정책이 해야 합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html",
+          "title": "자격 증명 기반 정책과 리소스 기반 정책"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html",
+          "title": "AWS STS AssumeRole"
+        }
+      ],
+      "tags": [
+        "sts-assume-role",
+        "identity-vs-resource-policy",
+        "cross-account",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-005",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "계정 A의 EC2 인스턴스가 계정 B의 S3 버킷을 읽어야 합니다. 계정 B는 버킷 정책에 계정 A의 인스턴스 역할 ARN을 주체로 넣어 s3:GetObject를 허용했지만 요청이 계속 AccessDenied로 실패합니다. 원인으로 가장 가능성이 높은 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "버킷에 퍼블릭 액세스 차단이 켜져 있어 다른 계정의 읽기 요청이 차단되고 있다."
+        },
+        {
+          "id": "B",
+          "text": "버킷 기본 암호화가 SSE-S3라 외부 계정 주체는 객체를 복호화할 수 없다."
+        },
+        {
+          "id": "C",
+          "text": "두 계정이 같은 조직에 있지 않으면 버킷 정책으로 교차 계정 접근을 허용할 수 없다."
+        },
+        {
+          "id": "D",
+          "text": "계정 A의 인스턴스 역할에 해당 버킷에 대한 s3:GetObject 허용이 없어 요청이 거부된다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "같은 계정 안에서는 자격 증명 기반 정책과 리소스 기반 정책이 합집합으로 동작해 한쪽만 허용해도 통과합니다. 그러나 계정 경계를 넘으면 규칙이 달라져 호출자 계정의 정책과 리소스 계정의 정책이 모두 허용해야 합니다. 그래서 버킷 정책만 고친 구성은 항상 거부로 끝납니다. 접근 거부 원인을 찾을 때는 명시적 거부, 조직 상한, 호출자 정책, 리소스 정책 순으로 확인하면 대개 하나만 남습니다.",
+      "distractorNotes": {
+        "A": "퍼블릭 액세스 차단은 익명 접근과 퍼블릭 정책을 막는 기능이며, 특정 계정 주체를 명시한 정책은 퍼블릭으로 간주되지 않습니다.",
+        "B": "SSE-S3는 S3가 키를 관리하므로 읽기 권한만 있으면 별도의 복호화 권한이 필요 없습니다. 이 구분이 필요한 것은 KMS 키를 쓰는 SSE-KMS입니다.",
+        "C": "조직 소속은 교차 계정 접근의 전제 조건이 아닙니다. 조직은 SCP로 상한을 거는 단위일 뿐이며 서로 다른 조직의 계정 사이에도 역할과 리소스 정책으로 접근을 줄 수 있습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html",
+          "title": "자격 증명 기반 정책과 리소스 기반 정책"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html",
+          "title": "정책 평가 로직"
+        }
+      ],
+      "tags": [
+        "identity-vs-resource-policy",
+        "cross-account",
+        "s3",
+        "iam"
+      ]
+    },
+    {
+      "id": "saa-secure-006",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 조직이 아래 서비스 제어 정책을 멤버 계정이 속한 조직 단위에 연결했습니다. 이 계정의 IAM 사용자는 AdministratorAccess 정책을 가지고 있습니다. 이 사용자가 us-east-1에서 EC2 인스턴스를 시작하려 하면 어떤 결과가 나옵니까?",
+      "code": {
+        "lang": "json",
+        "caption": "조직 단위에 연결된 SCP 일부",
+        "body": "{\n  \"Version\": \"2012-10-17\",\n  \"Statement\": [{\n    \"Effect\": \"Deny\",\n    \"Action\": \"ec2:*\",\n    \"Resource\": \"*\",\n    \"Condition\": {\n      \"StringNotEquals\": { \"aws:RequestedRegion\": \"ap-northeast-2\" }\n    }\n  }]\n}"
+      },
+      "choices": [
+        {
+          "id": "A",
+          "text": "SCP는 상한만 정하므로 관리자 권한을 가진 사용자에게는 적용되지 않고 요청이 허용된다."
+        },
+        {
+          "id": "B",
+          "text": "어떤 정책의 명시적 거부든 모든 허용을 이기므로 요청이 거부된다."
+        },
+        {
+          "id": "C",
+          "text": "권한 경계가 설정되어 있지 않으므로 SCP 조건이 평가되지 않고 요청이 허용된다."
+        },
+        {
+          "id": "D",
+          "text": "계정의 루트 사용자로 다시 로그인하면 SCP가 적용되지 않아 요청이 허용된다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "정책 평가는 적용 가능한 모든 정책을 훑어 명시적 거부를 먼저 찾고, 하나라도 발견되면 나머지를 보지 않고 거부로 확정합니다. SCP도 이 평가에 참여하므로 SCP의 Deny는 IAM 관리자 권한을 그대로 무력화합니다. 우선순위는 명시적 거부, 명시적 허용, 암묵적 거부 순이며 이 순서는 정책 유형과 무관합니다. 또한 SCP는 멤버 계정의 루트 사용자에게도 적용되므로 루트로 우회할 수 없습니다.",
+      "distractorNotes": {
+        "A": "SCP가 권한을 부여하지 않는다는 성질과 거부가 적용되지 않는다는 서술은 다릅니다. 상한을 정한다는 말 자체가 그 밖의 요청을 막는다는 뜻입니다.",
+        "C": "권한 경계는 개별 주체에 거는 별도의 상한이며 SCP의 전제 조건이 아닙니다. 둘은 각각 독립적으로 교집합을 만듭니다.",
+        "D": "SCP가 다른 통제 수단과 결정적으로 다른 점이 바로 멤버 계정 루트 사용자에게도 적용된다는 것입니다. 루트를 제약할 수 있는 사실상 유일한 수단이라 시험에 자주 나옵니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html",
+          "title": "정책 평가 로직"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies.html",
+          "title": "AWS Organizations 정책 관리"
+        }
+      ],
+      "tags": [
+        "iam-policy-evaluation",
+        "scp-guardrail",
+        "organizations"
+      ]
+    },
+    {
+      "id": "saa-secure-007",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 기업이 AWS Organizations로 40개 계정을 운영합니다. 감사팀은 어떤 계정에서도 CloudTrail 추적을 중지할 수 없도록 보장해야 하며, 계정 루트 사용자도 예외가 아니어야 합니다. 운영 부담이 가장 적은(LEAST operational overhead) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "각 계정의 루트 사용자에게 cloudtrail:StopLogging을 거부하는 IAM 정책을 연결한다."
+        },
+        {
+          "id": "B",
+          "text": "각 계정의 모든 IAM 역할에 권한 경계를 적용해 CloudTrail 중지를 제외한다."
+        },
+        {
+          "id": "C",
+          "text": "조직 루트에 cloudtrail:StopLogging을 거부하는 SCP를 연결한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Config 규칙으로 추적 중지를 탐지해 자동 교정 작업이 다시 켜게 한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "SCP는 조직·조직 단위·계정 단위로 걸리는 상한이며, 멤버 계정의 루트 사용자를 포함한 모든 주체에 적용됩니다. 루트 사용자에게는 IAM 정책을 연결할 수 없으므로 루트까지 막아야 한다는 요구가 나오면 사실상 SCP가 유일한 답입니다. 한 번 연결하면 계정이 늘어도 상속되므로 계정마다 반복 작업이 생기지 않습니다. 탐지 후 되돌리는 방식은 이미 발생한 공백 구간을 없애지 못하고 계정 수만큼 규칙을 유지해야 합니다.",
+      "distractorNotes": {
+        "A": "루트 사용자는 IAM 자격 증명 기반 정책의 연결 대상이 아닙니다. 이 구성 자체가 성립하지 않습니다.",
+        "B": "권한 경계는 IAM 사용자와 역할에만 적용되며 루트 사용자에는 적용되지 않습니다. 계정 40개의 모든 주체에 붙여야 하므로 운영 부담도 큽니다.",
+        "D": "Config 규칙은 예방이 아니라 탐지와 교정입니다. 중지된 시점부터 교정될 때까지 기록 공백이 생기고, 감사 요구는 대개 이 공백을 허용하지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html",
+          "title": "서비스 제어 정책 전략"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies.html",
+          "title": "AWS Organizations 정책 관리"
+        }
+      ],
+      "tags": [
+        "scp-guardrail",
+        "organizations",
+        "cloudtrail"
+      ]
+    },
+    {
+      "id": "saa-secure-008",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 회사가 개발자들이 직접 Lambda 실행 역할을 만들어 쓰도록 허용하려 합니다. 다만 개발자가 자기 권한보다 넓은 역할을 만들어 권한을 상승시키는 일은 막아야 합니다. 보안 팀의 개입을 최소화하면서 이 요구를 충족하는 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "개발자에게 역할 생성을 허용하되 지정한 권한 경계를 붙일 때만 생성되도록 조건을 건다."
+        },
+        {
+          "id": "B",
+          "text": "개발자에게 관리자 권한을 부여하고 CloudTrail 로그로 역할 생성 이벤트를 사후 검토한다."
+        },
+        {
+          "id": "C",
+          "text": "조직 SCP로 개발 계정의 iam 관련 작업을 전부 거부하고 예외를 두지 않는다."
+        },
+        {
+          "id": "D",
+          "text": "보안 팀이 모든 실행 역할을 대신 생성하고 개발자에게는 역할 사용 권한만 준다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "권한 경계는 개별 IAM 주체가 가질 수 있는 최대 권한을 정하는 상한이며, 자격 증명 기반 정책과 교집합으로 동작합니다. 역할 생성 권한을 주면서 특정 경계를 반드시 붙이도록 조건을 걸면, 개발자가 만든 역할은 그 경계를 넘는 권한을 실제로 행사할 수 없습니다. 이렇게 하면 위임과 통제를 동시에 얻어 보안 팀이 매번 개입할 필요가 없습니다. 적용 범위가 조직이 아니라 개별 주체라는 점이 SCP와의 결정적 차이입니다.",
+      "distractorNotes": {
+        "B": "사후 검토는 이미 만들어진 넓은 역할이 사용된 뒤에야 문제를 발견합니다. 예방 통제가 요구된 상황에서 탐지 통제로 답하는 전형적인 오답입니다.",
+        "C": "역할 생성을 전부 막으면 개발자가 스스로 역할을 만든다는 요구 자체가 무너집니다. 요구사항의 절반을 버리는 선택지입니다.",
+        "D": "동작은 하지만 역할이 필요할 때마다 보안 팀이 개입해야 하므로 운영 부담이 가장 큽니다. 문제문이 개입 최소화를 요구했으므로 배제됩니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html",
+          "title": "IAM 엔터티에 대한 권한 경계"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html",
+          "title": "IAM의 정책과 권한"
+        }
+      ],
+      "tags": [
+        "permissions-boundary",
+        "iam",
+        "delegation"
+      ]
+    },
+    {
+      "id": "saa-secure-009",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 기업의 직원 800명이 사내 디렉터리로 인증합니다. 이들이 여러 AWS 계정의 콘솔에 각자 다른 권한으로 접근해야 하며, 퇴사자는 사내 디렉터리에서만 삭제해도 접근이 끊겨야 합니다. 운영 부담이 가장 적은(LEAST operational overhead) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "계정마다 IAM 사용자를 만들고 그룹으로 권한을 관리하며 퇴사 시 일괄 삭제한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS IAM Identity Center를 조직에 활성화하고 사내 디렉터리를 연결해 권한 집합을 할당한다."
+        },
+        {
+          "id": "C",
+          "text": "Amazon Cognito 사용자 풀에 직원을 등록하고 콘솔 접근용 자격 증명을 발급한다."
+        },
+        {
+          "id": "D",
+          "text": "계정마다 SAML 자격 증명 공급자와 역할을 개별로 만들어 직접 관리한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "직원이 AWS에 접근하는 시나리오의 표준 답은 AWS IAM Identity Center입니다. 조직 전체에 한 번 연결하면 계정과 권한 집합을 중앙에서 할당할 수 있고, 사용자는 기존 사내 자격 증명으로 로그인해 임시 자격 증명을 받습니다. 사람마다 IAM 사용자를 만들면 계정 수와 인원 수를 곱한 만큼 관리 대상이 늘고 퇴사 처리 누락이 생깁니다. 사용자의 종류가 직원인지 앱 이용자인지를 먼저 구분하면 이 계열 문항이 빠르게 갈립니다.",
+      "distractorNotes": {
+        "A": "동작은 하지만 계정마다 사용자를 만들고 지워야 하므로 관리 대상이 곱셈으로 늘어납니다. 장기 자격 증명이 사람 수만큼 생긴다는 점도 불리합니다.",
+        "C": "Amazon Cognito는 애플리케이션 최종 사용자의 인증을 담당합니다. 직원의 AWS 콘솔 접근을 관리하는 용도가 아닙니다.",
+        "D": "계정마다 자격 증명 공급자와 역할을 따로 만들고 신뢰 관계를 유지해야 합니다. 기술적으로 가능하지만 Identity Center가 대신해 주는 일을 수작업으로 하는 셈입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html",
+          "title": "AWS IAM Identity Center란 무엇입니까"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/singlesignon/latest/userguide/manage-your-accounts.html",
+          "title": "IAM Identity Center로 계정 관리"
+        }
+      ],
+      "tags": [
+        "federation-choice",
+        "iam-identity-center",
+        "organizations"
+      ]
+    },
+    {
+      "id": "saa-secure-010",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 모바일 게임이 소셜 로그인으로 수백만 명의 사용자를 인증하고, 인증된 사용자만 자기 폴더에 한해 Amazon S3에 파일을 올릴 수 있어야 합니다. 사용자 인증과 AWS 접근 권한 부여를 처리하는 가장 적절한 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "사용자마다 IAM 사용자를 만들고 액세스 키를 발급해 앱이 사용하게 한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS IAM Identity Center에 게임 사용자를 등록하고 권한 집합을 할당한다."
+        },
+        {
+          "id": "C",
+          "text": "앱에 공용 IAM 액세스 키를 내장하고 버킷 정책으로 접두사별 접근을 나눈다."
+        },
+        {
+          "id": "D",
+          "text": "Amazon Cognito 사용자 풀로 인증하고 자격 증명 풀로 임시 AWS 자격 증명을 발급한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "애플리케이션 최종 사용자의 인증과 AWS 리소스 접근은 Amazon Cognito의 영역입니다. 사용자 풀이 로그인과 토큰 발급을 담당하고, 자격 증명 풀이 그 토큰을 임시 AWS 자격 증명으로 바꿔 줍니다. 이렇게 받은 세션에는 사용자 식별자를 조건으로 쓰는 정책을 붙여 자기 접두사만 쓰게 제한할 수 있습니다. 사용자 수가 수백만 명 규모라면 IAM 사용자로 관리한다는 발상 자체가 성립하지 않습니다.",
+      "distractorNotes": {
+        "A": "IAM 사용자는 조직 내부 주체를 위한 자격 증명이며 계정당 개수 제한도 있습니다. 최종 사용자 규모를 감당하도록 설계된 구조가 아닙니다.",
+        "B": "IAM Identity Center는 직원의 AWS 계정 접근을 관리합니다. 애플리케이션 이용자 인증에 쓰는 서비스가 아닙니다.",
+        "C": "클라이언트 앱에 넣은 키는 배포된 순간 공개된 것과 같습니다. 버킷 정책으로 접두사를 나누더라도 요청 주체가 모두 같아 사용자별 격리가 되지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html",
+          "title": "Amazon Cognito란 무엇입니까"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html",
+          "title": "IAM의 임시 보안 자격 증명"
+        }
+      ],
+      "tags": [
+        "federation-choice",
+        "cognito",
+        "s3",
+        "temporary-credentials"
+      ]
+    },
+    {
+      "id": "saa-secure-011",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "보안 감사에서 한 AWS 계정의 루트 사용자에게 활성 액세스 키가 있고 MFA가 설정되어 있지 않다는 사실이 확인되었습니다. 루트 사용자 관련 위험을 줄이기 위해 취해야 할 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "루트 사용자에게 최소 권한 IAM 정책을 연결해 사용 가능한 작업을 제한한다."
+        },
+        {
+          "id": "B",
+          "text": "루트 사용자의 액세스 키를 삭제하고 일상 작업은 IAM 역할로 수행한다."
+        },
+        {
+          "id": "C",
+          "text": "루트 사용자의 액세스 키를 30일마다 교체하는 자동화를 구성한다."
+        },
+        {
+          "id": "D",
+          "text": "루트 사용자에 MFA를 활성화하고 자격 증명을 안전하게 보관한다."
+        },
+        {
+          "id": "E",
+          "text": "루트 사용자의 이메일 주소를 담당자 개인 주소로 변경해 알림을 빨리 받게 한다."
+        }
+      ],
+      "answer": [
+        "B",
+        "D"
+      ],
+      "explanation": "루트 사용자는 계정의 모든 작업을 수행할 수 있고 IAM 정책으로 권한을 줄일 수 없는 특별한 주체입니다. 그래서 통제 방법은 권한을 깎는 것이 아니라 사용 자체를 없애고 탈취를 어렵게 만드는 두 갈래입니다. 프로그래밍 방식 접근에 루트 키를 쓸 이유가 없으므로 키는 삭제하고, 콘솔 로그인에는 MFA를 걸어 비밀번호만으로는 접근하지 못하게 합니다. 일상 작업은 역할로 전환하면 루트에 손댈 일이 사실상 사라집니다.",
+      "distractorNotes": {
+        "A": "루트 사용자에게는 자격 증명 기반 정책을 연결할 수 없습니다. 루트를 제약할 수 있는 수단은 조직의 SCP 정도입니다.",
+        "C": "교체는 존재해서는 안 되는 자격 증명을 유지하겠다는 전제를 깔고 있습니다. 루트 액세스 키는 교체가 아니라 삭제가 정답입니다.",
+        "E": "루트 이메일은 계정 소유권과 직결되므로 개인 주소보다 조직이 관리하는 배포용 주소가 적절합니다. 이 조치는 위험을 줄이지 않고 오히려 늘립니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html",
+          "title": "AWS 계정 루트 사용자"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+          "title": "IAM 보안 모범 사례"
+        }
+      ],
+      "tags": [
+        "iam",
+        "root-user",
+        "mfa"
+      ]
+    },
+    {
+      "id": "saa-secure-012",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 회사가 외부 SaaS 모니터링 업체에 자사 CloudWatch 지표 읽기 권한을 주려 합니다. 업체는 자사 AWS 계정에서 API를 호출하며, 다른 고객과 권한이 섞이지 않도록 고유 식별자를 제공했습니다. 가장 안전한(MOST secure) 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "업체 전용 IAM 사용자를 만들어 읽기 정책을 붙이고 액세스 키를 전달한다."
+        },
+        {
+          "id": "B",
+          "text": "업체 계정을 신뢰하는 역할을 만들고 신뢰 정책에 업체가 준 외부 ID 조건을 넣는다."
+        },
+        {
+          "id": "C",
+          "text": "업체 계정 번호를 조건으로 하는 리소스 기반 정책을 CloudWatch에 직접 연결한다."
+        },
+        {
+          "id": "D",
+          "text": "읽기 권한을 가진 역할을 만들고 신뢰 정책에서 모든 AWS 계정의 위임을 허용한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "제3자에게 접근을 줄 때의 표준은 역할 위임이며, 여기에 외부 ID 조건을 더하는 것이 권장 구성입니다. 외부 ID는 SaaS 업체가 고객마다 다르게 발급하는 값으로, 다른 고객의 역할 ARN을 알아낸 공격자가 그 업체를 통해 접근하는 혼동된 대리인 문제를 막습니다. 역할 위임을 쓰면 업체는 매번 만료되는 임시 자격 증명을 받으며, 접근을 끊을 때는 신뢰 정책만 지우면 됩니다. 장기 액세스 키를 외부에 넘기는 순간 회수와 감사가 모두 어려워집니다.",
+      "distractorNotes": {
+        "A": "외부 조직에 장기 자격 증명을 넘기면 그 키의 보관 상태를 통제할 수 없습니다. 유출 시 회수는 키 삭제뿐이며 그때까지 사용 흔적을 구분하기도 어렵습니다.",
+        "C": "Amazon CloudWatch 지표 읽기는 리소스 기반 정책을 붙이는 방식으로 교차 계정 접근을 구성하지 않습니다. 이 계열의 접근은 역할 위임으로 처리합니다.",
+        "D": "신뢰 정책을 모든 계정에 여는 것은 사실상 누구나 역할을 맡을 수 있게 만드는 구성입니다. 권한 범위가 읽기라 해도 노출 범위가 통제되지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html",
+          "title": "제3자에게 부여한 역할과 외부 ID"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html",
+          "title": "AWS STS AssumeRole"
+        }
+      ],
+      "tags": [
+        "sts-assume-role",
+        "cross-account",
+        "iam-role"
+      ]
+    },
+    {
+      "id": "saa-secure-013",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 서비스가 특정 국가의 IP 대역에서 오는 스캔 트래픽 때문에 로그가 오염되고 있습니다. 운영팀은 해당 대역만 서브넷 수준에서 차단하고 나머지 트래픽은 그대로 두려 합니다. 요구를 충족하는 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "서브넷의 네트워크 ACL에 해당 대역을 거부하는 규칙을 낮은 번호로 추가한다."
+        },
+        {
+          "id": "B",
+          "text": "인스턴스의 보안 그룹에 해당 대역을 거부하는 인바운드 규칙을 추가한다."
+        },
+        {
+          "id": "C",
+          "text": "보안 그룹에서 기존 허용 규칙을 지우고 필요한 대역만 남기는 규칙으로 교체한다."
+        },
+        {
+          "id": "D",
+          "text": "라우팅 테이블에 해당 대역을 대상으로 하는 블랙홀 경로를 추가한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "보안 그룹에는 허용 규칙만 있고 거부 규칙이라는 개념이 없습니다. 따라서 특정 출발지를 명시적으로 막으라는 요구가 나오면 답은 네트워크 ACL이거나 상위 계층의 AWS WAF입니다. 네트워크 ACL은 서브넷 수준에서 동작하고 번호가 낮은 규칙부터 순서대로 평가하므로, 허용 규칙보다 앞 번호에 거부 규칙을 두어야 의도대로 작동합니다. 선택지에 보안 그룹으로 차단한다는 문장이 보이면 즉시 소거하는 것이 이 도메인의 기본 요령입니다.",
+      "distractorNotes": {
+        "B": "보안 그룹은 거부 규칙을 지원하지 않습니다. 콘솔에서 거부를 입력할 항목 자체가 없습니다.",
+        "C": "허용 목록을 좁히는 방식은 전 세계 공개 서비스에는 쓸 수 없습니다. 나머지 트래픽은 그대로 두라는 요구도 위반합니다.",
+        "D": "라우팅 테이블은 목적지 기준으로 경로를 정하며 출발지 기반 필터링 도구가 아닙니다. 인바운드 요청 자체를 막는 수단이 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html",
+          "title": "네트워크 ACL로 서브넷 트래픽 제어"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html",
+          "title": "Amazon VPC의 보안"
+        }
+      ],
+      "tags": [
+        "sg-vs-nacl",
+        "vpc",
+        "network-acl"
+      ]
+    },
+    {
+      "id": "saa-secure-014",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "프라이빗 서브넷의 애플리케이션 인스턴스가 외부 API로 아웃바운드 HTTPS 요청을 보냅니다. 보안 그룹은 아웃바운드를 모두 허용하고 네트워크 ACL은 아웃바운드 443만 허용하도록 최근 수정되었습니다. 이후 요청이 나가기는 하지만 응답을 받지 못합니다. 원인은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "보안 그룹이 상태 비저장이라 반환 트래픽에 대한 인바운드 규칙이 따로 필요하다."
+        },
+        {
+          "id": "B",
+          "text": "네트워크 ACL이 상태 저장이라 아웃바운드 규칙만으로는 세션이 유지되지 않는다."
+        },
+        {
+          "id": "C",
+          "text": "NAT 게이트웨이에 보안 그룹을 연결하지 않아 반환 트래픽이 폐기되고 있다."
+        },
+        {
+          "id": "D",
+          "text": "네트워크 ACL이 상태 비저장이라 반환 트래픽용 인바운드 임시 포트 허용이 없다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "보안 그룹은 상태 저장이라 허용된 요청의 응답이 규칙과 무관하게 돌아오지만, 네트워크 ACL은 상태 비저장이라 왕복 두 방향을 각각 허용해야 합니다. 외부로 나간 TCP 연결의 응답은 클라이언트가 사용한 임시 포트 범위로 돌아오므로 인바운드에 그 범위를 허용해야 합니다. 나가기는 하는데 응답이 오지 않는다는 증상은 이 도메인에서 거의 언제나 네트워크 ACL의 상태 비저장 특성을 가리킵니다. 두 계층 중 어느 쪽을 최근에 바꿨는지도 함께 확인하면 원인이 빠르게 좁혀집니다.",
+      "distractorNotes": {
+        "A": "보안 그룹은 상태 저장입니다. 아웃바운드를 허용했다면 그 응답은 인바운드 규칙 없이도 돌아옵니다.",
+        "B": "상태 저장과 상태 비저장이 뒤바뀐 서술입니다. 네트워크 ACL 쪽이 상태 비저장입니다.",
+        "C": "NAT 게이트웨이는 보안 그룹을 연결하는 구성 요소가 아니며, 연결 여부로 반환 트래픽이 갈리지도 않습니다. 증상의 원인은 서브넷 계층의 규칙입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html",
+          "title": "Amazon VPC의 보안"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html",
+          "title": "네트워크 ACL로 서브넷 트래픽 제어"
+        }
+      ],
+      "tags": [
+        "sg-vs-nacl",
+        "vpc",
+        "network-acl"
+      ]
+    },
+    {
+      "id": "saa-secure-015",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "3계층 애플리케이션에서 웹 계층은 인터넷 접속을 받고, 앱 계층은 웹 계층에서만, 데이터베이스는 앱 계층에서만 접근되어야 합니다. 인스턴스 IP가 자주 바뀌는 환경에서 이 요구를 가장 견고하게 구현하는 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "각 계층 인스턴스의 프라이빗 IP를 보안 그룹 규칙의 소스로 지정한다."
+        },
+        {
+          "id": "B",
+          "text": "앱 계층 보안 그룹의 인바운드 소스를 웹 계층 보안 그룹으로 지정한다."
+        },
+        {
+          "id": "C",
+          "text": "데이터베이스 서브넷의 네트워크 ACL에서 앱 계층 외 모든 대역을 거부한다."
+        },
+        {
+          "id": "D",
+          "text": "데이터베이스 보안 그룹의 인바운드 소스를 앱 계층 보안 그룹으로 지정한다."
+        },
+        {
+          "id": "E",
+          "text": "세 계층을 같은 보안 그룹에 넣고 그룹 내부 통신을 모두 허용한다."
+        }
+      ],
+      "answer": [
+        "B",
+        "D"
+      ],
+      "explanation": "보안 그룹 규칙의 소스에는 CIDR뿐 아니라 다른 보안 그룹을 지정할 수 있습니다. 이렇게 참조하면 인스턴스가 교체되거나 오토 스케일링으로 늘어나도 규칙을 고칠 필요가 없어 계층 간 경계가 그대로 유지됩니다. IP를 직접 적는 방식은 주소가 바뀌는 순간 통신이 끊기거나 반대로 낡은 허용이 남습니다. 계층 분리 요구가 나오면 서브넷 계층의 광범위한 차단보다 보안 그룹 참조가 먼저 떠올라야 합니다.",
+      "distractorNotes": {
+        "A": "인스턴스가 재시작되거나 오토 스케일링으로 교체되면 프라이빗 IP가 바뀝니다. 규칙을 계속 손봐야 하므로 견고하지 않습니다.",
+        "C": "네트워크 ACL은 서브넷 단위의 광범위한 통제에 적합하며 계층 간 세밀한 경계를 표현하기 어렵습니다. 상태 비저장이라 반환 트래픽 규칙도 함께 관리해야 합니다.",
+        "E": "하나의 보안 그룹에 세 계층을 넣으면 계층 간 경계가 사라집니다. 요구사항인 접근 제한이 무너집니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html",
+          "title": "보안 그룹 규칙"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateSecurityGroup.html",
+          "title": "Amazon EC2 CreateSecurityGroup"
+        }
+      ],
+      "tags": [
+        "sg-vs-nacl",
+        "vpc",
+        "security-group"
+      ]
+    },
+    {
+      "id": "saa-secure-016",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "두 가용 영역의 프라이빗 서브넷에 있는 인스턴스들이 외부 저장소에서 패치를 내려받아야 하고, 인터넷에서 들어오는 연결은 허용되지 않아야 합니다. 한 가용 영역에 장애가 나도 다른 가용 영역의 아웃바운드는 유지되어야 합니다. 어떤 구성을 사용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "퍼블릭 서브넷 한 곳에 NAT 게이트웨이를 만들고 두 프라이빗 서브넷이 함께 사용하게 한다."
+        },
+        {
+          "id": "B",
+          "text": "각 프라이빗 서브넷에 인터넷 게이트웨이 경로를 추가하고 인바운드는 보안 그룹으로 막는다."
+        },
+        {
+          "id": "C",
+          "text": "가용 영역마다 퍼블릭 서브넷에 NAT 게이트웨이를 두고 각 프라이빗 라우팅 테이블이 자기 영역의 것을 가리키게 한다."
+        },
+        {
+          "id": "D",
+          "text": "프라이빗 서브넷에 NAT 게이트웨이를 만들고 인터넷 게이트웨이로 향하는 경로를 추가한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "NAT 게이트웨이는 자신이 배치된 가용 영역 안에서만 동작하는 영역 리소스입니다. 그래서 이중화를 요구하면 가용 영역마다 하나씩 만들고 각 영역의 프라이빗 라우팅 테이블이 자기 영역의 게이트웨이를 가리켜야 합니다. 하나만 두고 여러 영역이 공유하면 그 영역이 장애가 났을 때 모든 아웃바운드가 끊기고, 평상시에도 가용 영역 경계를 한 번 더 넘게 됩니다. NAT는 아웃바운드로 시작한 연결만 통과시키므로 인터넷에서 시작하는 인바운드는 자연히 차단됩니다.",
+      "distractorNotes": {
+        "A": "동작은 하지만 그 가용 영역이 실패하면 다른 영역의 인스턴스까지 인터넷으로 나가지 못합니다. 문제문의 이중화 요구를 정면으로 위반합니다.",
+        "B": "인터넷 게이트웨이 경로를 넣는 순간 그 서브넷은 퍼블릭 서브넷이 됩니다. 요구사항인 프라이빗 배치가 깨집니다.",
+        "D": "NAT 게이트웨이는 퍼블릭 서브넷에 두어야 인터넷 게이트웨이를 통해 나갈 수 있습니다. 프라이빗 서브넷에 둔 퍼블릭 NAT는 경로가 성립하지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html",
+          "title": "NAT 게이트웨이"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateNatGateway.html",
+          "title": "Amazon EC2 CreateNatGateway"
+        }
+      ],
+      "tags": [
+        "nat-gateway",
+        "vpc",
+        "high-availability"
+      ]
+    },
+    {
+      "id": "saa-secure-017",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 데이터 처리 인스턴스를 프라이빗 서브넷에 두었습니다. 이 인스턴스는 외부 오픈소스 저장소에서 라이브러리를 내려받아야 하지만 인터넷에서 접속받아서는 안 됩니다. 운영 부담이 가장 적은(LEAST operational overhead) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "인스턴스에 탄력적 IP를 붙이고 보안 그룹으로 인바운드를 모두 거부한다."
+        },
+        {
+          "id": "B",
+          "text": "퍼블릭 서브넷에 NAT 게이트웨이를 만들고 프라이빗 라우팅 테이블이 이를 가리키게 한다."
+        },
+        {
+          "id": "C",
+          "text": "퍼블릭 서브넷에 NAT 인스턴스를 직접 만들어 운영하고 소스·대상 확인을 끈다."
+        },
+        {
+          "id": "D",
+          "text": "인터페이스 VPC 엔드포인트를 만들어 외부 저장소로 나가는 트래픽을 보낸다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "프라이빗 서브넷에서 인터넷으로 나가는 표준 경로는 NAT 게이트웨이입니다. NAT는 안쪽에서 시작한 연결만 통과시키므로 아웃바운드는 되고 인터넷에서 시작하는 인바운드는 성립하지 않습니다. AWS가 관리하는 리소스라 패치와 확장을 직접 신경 쓸 필요가 없어 운영 부담 한정어에서 유리합니다. 인스턴스에 퍼블릭 주소를 붙이는 방식은 아예 프라이빗 배치를 포기하는 것과 같습니다.",
+      "distractorNotes": {
+        "A": "탄력적 IP를 붙이려면 인터넷 게이트웨이 경로가 있어야 하고, 그 순간 서브넷이 퍼블릭이 됩니다. 인바운드를 막더라도 노출 면이 늘어납니다.",
+        "C": "NAT 인스턴스도 동작하지만 패치, 크기 조정, 장애 조치를 직접 관리해야 합니다. 운영 부담이 가장 적은 방법을 묻고 있으므로 관리형이 앞섭니다.",
+        "D": "인터페이스 VPC 엔드포인트는 AWS 서비스와 PrivateLink로 노출된 서비스에 비공개로 접근하는 수단입니다. 임의의 인터넷 저장소로 나가는 통로가 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html",
+          "title": "NAT 게이트웨이"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html",
+          "title": "인터넷 게이트웨이"
+        }
+      ],
+      "tags": [
+        "nat-gateway",
+        "vpc",
+        "private-subnet"
+      ]
+    },
+    {
+      "id": "saa-secure-018",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "세 가용 영역의 프라이빗 서브넷이 단일 NAT 게이트웨이를 공유합니다. 감사에서 가용 영역 장애 시 전면 중단 위험과 불필요한 가용 영역 간 전송이 지적되었습니다. 두 문제를 동시에 해결하는 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "가용 영역마다 NAT 게이트웨이를 만들고 라우팅 테이블을 영역별로 분리한다."
+        },
+        {
+          "id": "B",
+          "text": "NAT 게이트웨이를 더 큰 크기로 변경하고 탄력적 IP를 두 개 연결한다."
+        },
+        {
+          "id": "C",
+          "text": "프라이빗 서브넷을 모두 NAT 게이트웨이와 같은 가용 영역으로 옮긴다."
+        },
+        {
+          "id": "D",
+          "text": "NAT 게이트웨이 앞에 Network Load Balancer를 두어 트래픽을 분산한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "NAT 게이트웨이는 특정 가용 영역에 속하므로 그 영역이 실패하면 이를 가리키는 모든 서브넷의 아웃바운드가 끊깁니다. 또한 다른 영역의 인스턴스가 이 게이트웨이를 쓰면 트래픽이 영역 경계를 한 번 더 넘어 전송 요금이 붙습니다. 영역마다 게이트웨이를 두고 라우팅 테이블을 분리하면 단일 장애점과 불필요한 경계 통과가 함께 사라집니다. 가용성 요구와 비용 요구가 같은 답을 가리키는 대표적인 사례입니다.",
+      "distractorNotes": {
+        "B": "NAT 게이트웨이는 크기를 골라 확장하는 리소스가 아니며 탄력적 IP를 늘려도 영역 종속성은 그대로입니다. 장애 격리 문제는 전혀 해결되지 않습니다.",
+        "C": "모든 워크로드를 한 영역에 모으면 가용 영역 장애에 더 취약해집니다. 전송 비용은 줄지만 복원력 요구를 정면으로 위반합니다.",
+        "D": "로드 밸런서는 들어오는 요청을 대상에 분산하는 구성 요소이며 NAT 게이트웨이를 대상으로 삼는 구조가 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html",
+          "title": "NAT 게이트웨이"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html",
+          "title": "라우팅 테이블 구성"
+        }
+      ],
+      "tags": [
+        "nat-gateway",
+        "single-point-of-failure",
+        "vpc"
+      ]
+    },
+    {
+      "id": "saa-secure-019",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "규정에 따라 프라이빗 서브넷의 인스턴스가 Amazon S3에 접근할 때 트래픽이 퍼블릭 인터넷을 지나서는 안 됩니다. 현재는 NAT 게이트웨이를 통해 S3 퍼블릭 엔드포인트로 나갑니다. 요구를 충족하는 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "NAT 게이트웨이로 나가는 트래픽을 TLS로 암호화하고 버킷 정책에 소스 IP 조건을 건다."
+        },
+        {
+          "id": "B",
+          "text": "S3용 인터페이스 엔드포인트를 만들고 NAT 게이트웨이는 그대로 유지한다."
+        },
+        {
+          "id": "C",
+          "text": "S3용 게이트웨이 VPC 엔드포인트를 만들고 프라이빗 라우팅 테이블에 경로를 추가한다."
+        },
+        {
+          "id": "D",
+          "text": "S3 버킷을 같은 VPC 안에 배치하고 프라이빗 IP로 직접 접근하게 한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "인터넷을 경유하면 안 된다는 제약은 암호화가 아니라 경로에 대한 요구입니다. Amazon S3와 Amazon DynamoDB는 게이트웨이 엔드포인트를 지원하며, 이 방식은 라우팅 테이블에 경로를 추가해 AWS 네트워크 안에서 요청이 처리되게 합니다. NAT 게이트웨이를 통해 서비스의 퍼블릭 엔드포인트로 나가는 구성은 TLS로 감싸도 경로 요구를 만족하지 못합니다. 게이트웨이 엔드포인트는 네트워크 인터페이스를 만들지 않고 경로만 추가한다는 점에서 인터페이스 엔드포인트와 구조가 다릅니다.",
+      "distractorNotes": {
+        "A": "암호화는 내용 보호일 뿐 경로를 바꾸지 않습니다. 소스 IP 조건도 접근 제어를 더할 뿐 트래픽이 인터넷을 지난다는 사실은 그대로입니다.",
+        "B": "S3에도 인터페이스 엔드포인트를 만들 수 있지만 라우팅을 바꾸지 않으면 기존 요청은 계속 NAT를 통해 나갑니다. 이 시나리오에서 요구를 만족시키는 최소 구성은 게이트웨이 엔드포인트입니다.",
+        "D": "S3는 리전 단위 서비스이며 VPC 안에 배치하는 리소스가 아닙니다. 버킷에 프라이빗 IP를 부여한다는 개념 자체가 없습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html",
+          "title": "Amazon S3용 게이트웨이 엔드포인트"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html",
+          "title": "게이트웨이 엔드포인트"
+        }
+      ],
+      "tags": [
+        "vpc-endpoint-choice",
+        "s3",
+        "vpc"
+      ]
+    },
+    {
+      "id": "saa-secure-020",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "인터넷 경로가 전혀 없는 격리된 서브넷의 애플리케이션이 AWS Secrets Manager와 Amazon SQS를 호출해야 합니다. 인터넷 게이트웨이와 NAT 게이트웨이는 추가할 수 없습니다. 어떤 구성을 사용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "두 서비스에 대한 게이트웨이 VPC 엔드포인트를 만들고 라우팅 테이블에 경로를 추가한다."
+        },
+        {
+          "id": "B",
+          "text": "두 서비스에 대한 인터페이스 VPC 엔드포인트를 만들고 보안 그룹으로 접근을 제한한다."
+        },
+        {
+          "id": "C",
+          "text": "다른 VPC와 피어링을 맺고 그 VPC의 NAT 게이트웨이를 경유해 호출한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Direct Connect 퍼블릭 가상 인터페이스를 만들어 서비스 엔드포인트에 연결한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "게이트웨이 엔드포인트는 Amazon S3와 Amazon DynamoDB 두 서비스에만 제공됩니다. 그 밖의 AWS 서비스에 VPC 안에서 비공개로 접근하려면 AWS PrivateLink 기반의 인터페이스 엔드포인트를 만들어야 합니다. 인터페이스 엔드포인트는 서브넷에 네트워크 인터페이스를 만들고 프라이빗 IP를 부여하므로 보안 그룹으로 접근을 통제할 수 있습니다. 어떤 서비스인지에 따라 두 종류를 가르는 것이 이 판단 지점의 핵심입니다.",
+      "distractorNotes": {
+        "A": "게이트웨이 엔드포인트를 만들 수 있는 서비스는 S3와 DynamoDB뿐입니다. Secrets Manager나 SQS에는 이 유형이 없습니다.",
+        "C": "피어링 상대의 NAT 게이트웨이를 경유하는 구성은 전이적 라우팅이 필요해 성립하지 않으며, 성립하더라도 인터넷을 지나게 됩니다.",
+        "D": "Direct Connect는 온프레미스와 AWS를 잇는 전용 연결입니다. VPC 안의 인스턴스가 서비스 엔드포인트를 부르는 문제와 층위가 다릅니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html",
+          "title": "인터페이스 VPC 엔드포인트"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints.html",
+          "title": "AWS PrivateLink와 VPC 엔드포인트"
+        }
+      ],
+      "tags": [
+        "vpc-endpoint-choice",
+        "privatelink",
+        "vpc"
+      ]
+    },
+    {
+      "id": "saa-secure-021",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "한 금융사가 VPC 안의 워크로드에서 Amazon DynamoDB와 AWS KMS를 호출하며, 두 호출 모두 퍼블릭 인터넷을 지나지 않아야 합니다. 이 요구를 충족하는 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "DynamoDB용 게이트웨이 VPC 엔드포인트를 만들고 라우팅 테이블에 경로를 추가한다."
+        },
+        {
+          "id": "B",
+          "text": "DynamoDB용 인터페이스 엔드포인트를 만들고 NAT 게이트웨이 경로를 유지한다."
+        },
+        {
+          "id": "C",
+          "text": "KMS 호출을 NAT 게이트웨이로 내보내되 TLS 1.2 이상만 허용하도록 설정한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS KMS용 인터페이스 VPC 엔드포인트를 만들고 엔드포인트 정책으로 사용을 제한한다."
+        },
+        {
+          "id": "E",
+          "text": "VPC 피어링으로 KMS가 있는 AWS 관리 VPC에 직접 연결한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "D"
+      ],
+      "explanation": "비공개 경로를 만드는 판단은 대상 서비스가 게이트웨이 엔드포인트를 지원하는지로 갈립니다. Amazon DynamoDB는 S3와 함께 게이트웨이 엔드포인트를 지원하므로 라우팅 경로만 추가하면 되고, AWS KMS를 포함한 나머지 서비스는 인터페이스 엔드포인트를 만들어야 합니다. 인터페이스 엔드포인트에는 엔드포인트 정책과 보안 그룹을 붙일 수 있어 어떤 키와 작업을 허용할지까지 좁힐 수 있습니다. 암호화 수준을 높이는 조치는 경로 제약과 무관하다는 점을 함께 기억해야 합니다.",
+      "distractorNotes": {
+        "B": "인터페이스 엔드포인트를 만들 수는 있지만 NAT 경로를 남겨 두면 인터넷 경유 가능성이 남습니다. DynamoDB는 게이트웨이 엔드포인트로 처리하는 것이 표준입니다.",
+        "C": "TLS 버전을 올려도 트래픽이 지나는 경로는 바뀌지 않습니다. 인터넷을 지나면 안 된다는 제약을 만족하지 못합니다.",
+        "E": "AWS 관리형 서비스가 동작하는 네트워크와 고객 VPC를 피어링할 수는 없습니다. 그 역할을 하는 것이 PrivateLink입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-ddb.html",
+          "title": "Amazon DynamoDB용 게이트웨이 엔드포인트"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html",
+          "title": "인터페이스 엔드포인트 생성"
+        }
+      ],
+      "tags": [
+        "vpc-endpoint-choice",
+        "kms-envelope",
+        "dynamodb",
+        "privatelink"
+      ]
+    },
+    {
+      "id": "saa-secure-022",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "운영팀이 프라이빗 서브넷의 EC2 인스턴스에 접속하려고 퍼블릭 서브넷에 배스천 호스트를 두고 SSH 키를 공유합니다. 감사에서 인바운드 포트 개방과 키 공유가 지적되었습니다. 접속 경로를 유지하면서 가장 안전한(MOST secure) 대안은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "배스천 호스트의 보안 그룹에서 회사 사무실 IP 대역만 허용하고 키를 분기마다 교체한다."
+        },
+        {
+          "id": "B",
+          "text": "배스천 호스트를 Auto Scaling 그룹에 넣고 접속 로그를 CloudWatch Logs로 보낸다."
+        },
+        {
+          "id": "C",
+          "text": "인스턴스에 탄력적 IP를 붙여 배스천을 없애고 보안 그룹으로 SSH를 제한한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Systems Manager Session Manager로 접속하고 배스천과 인바운드 SSH 규칙을 제거한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "Session Manager는 인스턴스의 에이전트가 아웃바운드로 연결을 맺는 방식이라 인바운드 포트를 열 필요가 없습니다. 인증은 IAM으로 하고 세션 기록은 CloudTrail과 로그로 남으므로 공유 SSH 키라는 개념 자체가 사라집니다. 배스천을 남긴 채 접근 대역을 좁히거나 로그를 붙이는 방안은 위험을 줄일 뿐 열린 포트와 공유 키를 없애지 못합니다. 인터페이스 엔드포인트를 함께 만들면 인터넷 경로 없이도 이 접속을 구성할 수 있습니다.",
+      "distractorNotes": {
+        "A": "출발지 대역을 좁히면 노출은 줄지만 인바운드 포트와 공유 키는 그대로 남습니다. 지적된 두 가지 중 어느 것도 제거되지 않습니다.",
+        "B": "가용성과 감사 기록은 개선되지만 접속 방식 자체는 바뀌지 않습니다. 배스천 호스트를 유지하는 한 관리 대상과 노출 면이 남습니다.",
+        "C": "프라이빗 인스턴스에 퍼블릭 주소를 붙이는 것은 노출을 늘리는 방향입니다. 배스천을 없앤 대신 모든 인스턴스가 직접 노출됩니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html",
+          "title": "AWS Systems Manager Session Manager"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_StartSession.html",
+          "title": "Systems Manager StartSession"
+        }
+      ],
+      "tags": [
+        "session-manager",
+        "bastion",
+        "vpc",
+        "least-privilege"
+      ]
+    },
+    {
+      "id": "saa-secure-023",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 인터넷에 공개되는 웹 계층과 내부 전용 데이터베이스로 이루어진 애플리케이션을 VPC에 배치합니다. 데이터베이스는 인터넷에서 어떤 경로로도 도달할 수 없어야 합니다. 가장 적절한 배치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "웹 계층은 퍼블릭 서브넷의 로드 밸런서 뒤에 두고 데이터베이스는 프라이빗 서브넷에 둔다."
+        },
+        {
+          "id": "B",
+          "text": "웹 계층과 데이터베이스를 모두 퍼블릭 서브넷에 두고 데이터베이스는 보안 그룹으로만 제한한다."
+        },
+        {
+          "id": "C",
+          "text": "웹 계층과 데이터베이스를 모두 프라이빗 서브넷에 두고 인스턴스에 탄력적 IP를 붙인다."
+        },
+        {
+          "id": "D",
+          "text": "데이터베이스를 프라이빗 서브넷에 두되 라우팅 테이블에 인터넷 게이트웨이 경로를 추가한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "서브넷이 퍼블릭인지 프라이빗인지는 라우팅 테이블에 인터넷 게이트웨이로 향하는 경로가 있는지로 결정됩니다. 경로가 없으면 퍼블릭 IP를 부여할 수단 자체가 의미를 잃으므로 인터넷에서 시작하는 연결이 도달할 수 없습니다. 공개가 필요한 계층만 퍼블릭 서브넷에 두고 나머지를 프라이빗에 두는 것이 기본 형태이며, 보안 그룹은 그 위에 얹는 두 번째 계층입니다. 접근 제어만으로 배치를 대신하려는 선택지는 설정 실수 한 번에 노출로 이어집니다.",
+      "distractorNotes": {
+        "B": "동작은 하지만 데이터베이스가 인터넷 경로를 가진 서브넷에 놓입니다. 보안 그룹 규칙 하나만 잘못 열려도 즉시 노출되므로 계층 방어가 아닙니다.",
+        "C": "프라이빗 서브넷에는 인터넷 게이트웨이 경로가 없어 탄력적 IP를 붙여도 통신이 성립하지 않습니다. 웹 계층 공개 요구도 충족하지 못합니다.",
+        "D": "인터넷 게이트웨이 경로를 추가하는 순간 그 서브넷은 더 이상 프라이빗이 아닙니다. 이름만 프라이빗이고 실제로는 공개된 구성이 됩니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html",
+          "title": "VPC의 서브넷 구성"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html",
+          "title": "라우팅 테이블 구성"
+        }
+      ],
+      "tags": [
+        "vpc",
+        "private-subnet",
+        "sg-vs-nacl"
+      ]
+    },
+    {
+      "id": "saa-secure-024",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "새 VPC에서 인스턴스를 시작할 때 보안 그룹을 지정하지 않았습니다. 이 인스턴스의 초기 네트워크 접근 상태에 대한 설명으로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "보안 그룹이 없으므로 모든 인바운드와 아웃바운드 트래픽이 차단된다."
+        },
+        {
+          "id": "B",
+          "text": "네트워크 ACL이 대신 적용되어 서브넷 규칙이 인스턴스 규칙 역할을 한다."
+        },
+        {
+          "id": "C",
+          "text": "VPC의 기본 보안 그룹이 적용되며, 같은 그룹의 인스턴스끼리는 통신할 수 있다."
+        },
+        {
+          "id": "D",
+          "text": "인스턴스 시작이 실패하며 보안 그룹을 지정해야 한다는 오류가 반환된다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "인스턴스를 시작할 때 보안 그룹을 지정하지 않으면 해당 VPC의 기본 보안 그룹이 적용됩니다. 기본 보안 그룹에는 같은 보안 그룹에 속한 인스턴스끼리의 통신을 허용하는 규칙이 들어 있습니다. 보안 그룹은 허용 규칙만 담으므로 명시되지 않은 인바운드는 자동으로 차단되지만, 그렇다고 인스턴스가 아무 통신도 못 하는 상태가 되지는 않습니다. 기본값에 의존하기보다 계층별 보안 그룹을 만들어 붙이는 것이 권장 구성입니다.",
+      "distractorNotes": {
+        "A": "보안 그룹이 없는 상태로 인스턴스가 시작되는 일은 없습니다. 기본 보안 그룹이 자동으로 적용됩니다.",
+        "B": "네트워크 ACL과 보안 그룹은 서로를 대체하지 않고 서브넷 계층과 인스턴스 계층에서 각각 동작합니다. 둘은 함께 평가됩니다.",
+        "D": "보안 그룹 미지정은 오류가 아니라 기본값 적용 조건입니다. 시작 자체는 정상적으로 완료됩니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateSecurityGroup.html",
+          "title": "Amazon EC2 CreateSecurityGroup"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html",
+          "title": "기본 VPC와 기본 서브넷"
+        }
+      ],
+      "tags": [
+        "sg-vs-nacl",
+        "vpc",
+        "security-group"
+      ]
+    },
+    {
+      "id": "saa-secure-025",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 병원이 진료 기록을 Amazon S3에 저장합니다. 규정상 암호화 키에 대한 접근을 별도 정책으로 통제하고, 누가 언제 키를 사용해 복호화했는지 감사 기록으로 남겨야 합니다. 가장 적절한 서버 측 암호화 방식은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "SSE-S3를 사용하고 버킷 정책으로 객체 접근 주체를 제한한다."
+        },
+        {
+          "id": "B",
+          "text": "고객 관리형 KMS 키로 SSE-KMS를 사용하고 키 정책으로 사용 주체를 제한한다."
+        },
+        {
+          "id": "C",
+          "text": "SSE-C를 사용하고 애플리케이션이 요청마다 키를 전달하게 한다."
+        },
+        {
+          "id": "D",
+          "text": "클라이언트에서 자체 라이브러리로 암호화한 뒤 객체를 업로드한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "저장 데이터 암호화 방식 선택의 축은 키를 누가 관리하는가와 키 사용에 감사가 필요한가입니다. SSE-KMS는 KMS 키로 데이터 키를 보호하므로 키 정책이라는 별도의 통제 지점이 생기고, 복호화를 위한 KMS 호출이 CloudTrail에 남아 감사 요구를 충족합니다. 고객 관리형 키를 쓰면 키 정책 편집, 별칭, 교체, 비활성화를 직접 통제할 수 있습니다. 반대로 감사나 키 통제 요구가 없다면 기본으로 적용되는 SSE-S3로 충분합니다.",
+      "distractorNotes": {
+        "A": "SSE-S3는 S3가 키를 관리하므로 사용자가 편집할 키 정책이 없고 키 사용 이벤트도 따로 남지 않습니다. 암호화 요구는 충족하지만 감사와 키 통제 요구는 충족하지 못합니다.",
+        "C": "SSE-C는 요청마다 고객이 키를 보내는 방식이며 AWS는 키를 보관하지 않습니다. 키 분실이 곧 데이터 손실이고 키 관리 부담이 애플리케이션으로 전가됩니다.",
+        "D": "클라이언트 측 암호화도 규정을 만족시킬 수 있지만 키 배포와 교체를 직접 구현해야 합니다. 관리형 방식으로 같은 요구를 채울 수 있으므로 과도한 설계입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+          "title": "서버 측 암호화로 데이터 보호"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html",
+          "title": "AWS KMS 개요"
+        }
+      ],
+      "tags": [
+        "s3-encryption-choice",
+        "sse-kms",
+        "s3",
+        "kms-envelope"
+      ]
+    },
+    {
+      "id": "saa-secure-026",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 방위 산업체는 계약상 데이터 암호화 키를 어떤 형태로도 클라우드 사업자에게 보관시킬 수 없습니다. 객체는 Amazon S3에 두되 서버 측 암호화를 사용해야 합니다. 이 제약을 충족하는 방식은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "SSE-KMS에서 가져온 키 재료를 사용하는 고객 관리형 키를 만든다."
+        },
+        {
+          "id": "B",
+          "text": "SSE-S3를 사용하고 버킷 정책으로 접근 주체를 회사 계정으로 제한한다."
+        },
+        {
+          "id": "C",
+          "text": "DSSE-KMS를 사용해 이중 계층 암호화를 적용한다."
+        },
+        {
+          "id": "D",
+          "text": "SSE-C를 사용해 업로드와 다운로드 요청마다 회사가 키를 제공한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "SSE-C는 고객이 요청마다 암호화 키를 함께 보내고 S3가 그 키로 암호화·복호화한 뒤 키를 저장하지 않는 방식입니다. 그래서 사업자에게 키를 맡길 수 없다는 계약 제약을 서버 측 암호화를 유지한 채 충족할 수 있는 유일한 서버 측 옵션입니다. 대신 키 보관과 배포, 분실 시 데이터 복구 불가라는 부담을 전부 고객이 집니다. 요구가 키 사용 감사였다면 답은 SSE-KMS로 달라집니다.",
+      "distractorNotes": {
+        "A": "가져온 키 재료를 쓰더라도 키는 AWS KMS 안에서 관리되고 보관됩니다. 사업자에게 키를 보관시키지 않는다는 제약을 만족하지 못합니다.",
+        "B": "SSE-S3는 S3가 키를 생성하고 보관합니다. 제약을 정면으로 위반합니다.",
+        "C": "DSSE-KMS는 이중 계층 암호화를 요구하는 규정에 대응하는 방식이며 키는 여전히 KMS가 관리합니다. 요구의 축이 다릅니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+          "title": "서버 측 암호화로 데이터 보호"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html",
+          "title": "Amazon S3 PutObject"
+        }
+      ],
+      "tags": [
+        "s3-encryption-choice",
+        "sse-c",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-027",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 오늘 새 리전에 Amazon S3 버킷을 만들고 아무 설정도 바꾸지 않았습니다. 이 버킷과 앞으로 업로드될 객체의 현행 기본 상태를 가장 정확하게 설명한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "퍼블릭 액세스가 차단되고 ACL이 비활성이며 새 객체는 SSE-S3로 자동 암호화되고 버전 관리는 꺼져 있다."
+        },
+        {
+          "id": "B",
+          "text": "퍼블릭 액세스가 차단되고 버전 관리가 켜져 있으며 암호화는 직접 활성화해야 한다."
+        },
+        {
+          "id": "C",
+          "text": "ACL로 접근을 제어하도록 설정되어 있고 암호화와 버전 관리는 모두 꺼져 있다."
+        },
+        {
+          "id": "D",
+          "text": "퍼블릭 액세스 차단이 꺼져 있어 버킷 정책으로 공개 여부를 직접 정해야 한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "S3의 기본값은 2023년에 크게 바뀌었습니다. 신규 버킷은 퍼블릭 액세스 차단이 켜진 상태로 생성되고, 객체 소유권이 버킷 소유자로 강제되어 ACL이 비활성이며, 새 객체는 추가 비용 없이 SSE-S3로 자동 암호화됩니다. 반면 버전 관리는 예나 지금이나 기본 비활성화이며 이 점이 자주 혼동됩니다. 오래된 자료가 말하는 암호화를 켜야 한다거나 ACL로 권한을 준다는 서술은 현행 기본 구성과 어긋납니다.",
+      "distractorNotes": {
+        "B": "버전 관리는 자동으로 켜지지 않습니다. 실수 삭제 방어가 필요하면 명시적으로 활성화해야 합니다.",
+        "C": "현행 신규 버킷은 ACL이 비활성 상태이며 암호화도 기본 적용됩니다. 두 서술 모두 옛 기본값입니다.",
+        "D": "퍼블릭 액세스 차단은 기본으로 켜져 있습니다. 공개가 필요하면 오히려 명시적으로 해제해야 합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html",
+          "title": "Amazon S3 CreateBucket"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html",
+          "title": "S3 기본 암호화 FAQ"
+        }
+      ],
+      "tags": [
+        "s3-secure-defaults",
+        "s3",
+        "encryption"
+      ]
+    },
+    {
+      "id": "saa-secure-028",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "한 기업이 수백 개 계정에서 만들어지는 S3 버킷이 실수로 공개되는 사고를 막으려 합니다. 개별 팀의 버킷 생성 권한은 유지해야 합니다. 예방 효과가 있는 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "Amazon Macie를 켜서 공개된 버킷에 민감 데이터가 있는지 주기적으로 검사한다."
+        },
+        {
+          "id": "B",
+          "text": "계정 수준에서 S3 퍼블릭 액세스 차단을 적용해 버킷별 설정을 덮어쓰게 한다."
+        },
+        {
+          "id": "C",
+          "text": "SCP로 s3:PutBucketPublicAccessBlock 해제와 퍼블릭 정책 설정 작업을 거부한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Config 규칙으로 공개 버킷을 탐지해 보안팀에 알림을 보낸다."
+        },
+        {
+          "id": "E",
+          "text": "버킷마다 객체 소유권을 ACL 사용 모드로 바꿔 소유권을 명확히 한다."
+        }
+      ],
+      "answer": [
+        "B",
+        "C"
+      ],
+      "explanation": "요구가 사고를 막는 것이라면 탐지 통제가 아니라 예방 통제를 골라야 합니다. 계정 수준 퍼블릭 액세스 차단은 그 계정의 모든 버킷에 우선 적용되므로 개별 버킷 설정 실수가 공개로 이어지지 않습니다. 조직 SCP로 차단 해제 작업 자체를 거부하면 계정 관리자라도 이 가드레일을 풀 수 없습니다. 탐지 도구는 이미 일어난 노출을 알려 줄 뿐이므로 예방을 요구한 문항에서는 보조 수단에 머뭅니다.",
+      "distractorNotes": {
+        "A": "Macie는 데이터에 민감 정보가 있는지 찾아내는 서비스입니다. 공개 자체를 막지 못하며 노출 이후에 작동합니다.",
+        "D": "Config 규칙은 구성이 규칙에 맞는지 지속 평가하는 탐지 통제입니다. 알림이 도착하기 전까지 공개 상태가 유지됩니다.",
+        "E": "ACL 사용 모드로 되돌리는 것은 현행 권장과 반대 방향입니다. 오히려 객체 단위 공개 경로를 다시 여는 셈입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketOwnershipControls.html",
+          "title": "Amazon S3 PutBucketOwnershipControls"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html",
+          "title": "서비스 제어 정책 전략"
+        }
+      ],
+      "tags": [
+        "s3-secure-defaults",
+        "scp-guardrail",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-029",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 아키텍트가 대용량 파일을 AWS KMS 키로 암호화하려 합니다. 파일 전체를 KMS로 보내지 않으면서도 키 통제는 KMS에 남기고 싶습니다. AWS 서비스들이 사용하는 표준 방식은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "KMS 키를 내보내 애플리케이션 메모리에 캐시한 뒤 파일을 직접 암호화한다."
+        },
+        {
+          "id": "B",
+          "text": "파일을 여러 조각으로 나눠 조각마다 KMS Encrypt 호출로 암호화한다."
+        },
+        {
+          "id": "C",
+          "text": "KMS에서 데이터 키를 생성해 평문 데이터 키로 파일을 암호화하고 암호화된 데이터 키를 함께 저장한다."
+        },
+        {
+          "id": "D",
+          "text": "KMS 키의 별칭을 파일 메타데이터에 기록하고 파일은 평문으로 저장한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "이 구조를 봉투 암호화라고 부릅니다. KMS는 데이터 키를 만들어 평문본과 암호문본을 함께 돌려주고, 애플리케이션은 평문 데이터 키로 데이터를 암호화한 뒤 그 키를 메모리에서 지웁니다. 암호화된 데이터 키는 데이터 옆에 저장했다가 복호화 시점에 KMS에 보내 다시 풀며, 이때 키 정책과 IAM 정책이 함께 평가되고 호출이 CloudTrail에 남습니다. 큰 데이터를 KMS로 왕복시키지 않으면서 통제 지점을 KMS에 유지하는 것이 목적입니다.",
+      "distractorNotes": {
+        "A": "KMS 키의 키 재료는 서비스 밖으로 내보낼 수 없습니다. 내보낼 수 있다면 KMS로 통제를 남긴다는 전제가 무너집니다.",
+        "B": "조각마다 KMS를 호출하면 호출 수와 지연이 급증하고 API 요청 한도에 걸립니다. 이 문제를 피하려고 만든 것이 봉투 암호화입니다.",
+        "D": "별칭 기록은 어떤 키를 썼는지 표시할 뿐 암호화가 아닙니다. 데이터는 여전히 평문으로 남습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKey.html",
+          "title": "AWS KMS GenerateDataKey"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html",
+          "title": "AWS KMS 개요"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "kms",
+        "encryption"
+      ]
+    },
+    {
+      "id": "saa-secure-030",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "계정 B의 역할이 계정 A의 S3 버킷 객체를 읽습니다. 객체는 계정 A의 고객 관리형 KMS 키로 암호화되어 있고, 버킷 정책과 계정 B 역할의 IAM 정책 모두 s3:GetObject를 허용합니다. 그런데 다운로드가 계속 실패합니다. 가장 가능성이 높은 원인은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "교차 계정에서는 SSE-KMS로 암호화된 객체를 읽을 수 없으므로 SSE-S3로 다시 암호화해야 한다."
+        },
+        {
+          "id": "B",
+          "text": "계정 B의 역할이 KMS 키와 같은 리전에 있지 않아 복호화가 거부되고 있다."
+        },
+        {
+          "id": "C",
+          "text": "버킷의 퍼블릭 액세스 차단이 켜져 있어 다른 계정의 복호화 요청이 막히고 있다."
+        },
+        {
+          "id": "D",
+          "text": "KMS 키 정책이 계정 B의 역할에 kms:Decrypt를 허용하지 않아 복호화가 거부되고 있다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "SSE-KMS로 암호화된 객체를 읽으려면 S3 권한과 별개로 KMS 키에 대한 복호화 권한이 필요합니다. KMS 키에는 키 정책이라는 리소스 기반 정책이 따로 있고, 교차 계정에서는 키 정책과 호출자 계정의 IAM 정책이 모두 허용해야 합니다. 권한은 줬는데 복호화가 안 된다는 증상은 대개 이 키 정책 누락이 원인입니다. 조건이 바뀌어 객체가 SSE-S3였다면 S3 권한만으로 읽혔을 것입니다.",
+      "distractorNotes": {
+        "A": "교차 계정에서도 SSE-KMS 객체를 읽을 수 있습니다. 필요한 것은 암호화 방식 변경이 아니라 키 정책에서의 허용입니다.",
+        "B": "KMS 키는 리전 리소스이므로 버킷과 같은 리전에 있어야 하지만, 호출하는 역할이 어느 리전에 있는지는 제약이 아닙니다. IAM 주체는 리전에 묶이지 않습니다.",
+        "C": "퍼블릭 액세스 차단은 익명·퍼블릭 접근을 막는 기능이며 명시적으로 허가된 계정 주체와 무관합니다. 복호화 단계에는 관여하지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html",
+          "title": "AWS KMS CreateKey와 키 정책"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+          "title": "서버 측 암호화로 데이터 보호"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "s3-encryption-choice",
+        "cross-account",
+        "kms"
+      ]
+    },
+    {
+      "id": "saa-secure-031",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 Amazon EBS 볼륨을 암호화하려 합니다. 보안팀은 키를 특정 역할만 사용하도록 키 정책으로 제한하고, 필요하면 키를 비활성화해 즉시 복호화를 막을 수 있어야 한다고 요구했습니다. 어떤 키를 사용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "고객 관리형 KMS 키를 만들고 키 정책으로 사용 주체를 제한한다."
+        },
+        {
+          "id": "B",
+          "text": "EBS 서비스의 AWS 관리형 키를 사용하고 IAM 정책으로만 제한한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS 소유 키를 사용하고 볼륨 태그로 접근 범위를 구분한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS CloudHSM 클러스터를 만들어 볼륨 암호화 키를 직접 보관한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "키 정책을 직접 편집하고 비활성화·교체·삭제 일정을 통제할 수 있는 것은 고객 관리형 키입니다. AWS 관리형 키는 서비스가 계정 안에 자동으로 만들어 쓰는 키라 키 정책을 사용자가 바꿀 수 없습니다. 그래서 키 정책으로 접근을 제한하라거나 교차 계정으로 키를 공유하라는 요구가 나오면 답은 고객 관리형 키입니다. 반대로 암호화만 필요하고 키 통제 요구가 없다면 관리형 키로 충분합니다.",
+      "distractorNotes": {
+        "B": "AWS 관리형 키는 키 정책을 사용자가 편집할 수 없습니다. 비활성화 같은 수명 주기 조작도 불가능합니다.",
+        "C": "AWS 소유 키는 여러 계정이 공유하는 키 모음이라 계정 안에서 보이지도 통제되지도 않습니다. 태그로 키 사용을 나눌 수 없습니다.",
+        "D": "CloudHSM은 전용 하드웨어 보안 모듈에서 키를 보관해야 한다는 규정이 있을 때 선택합니다. 이 요구에는 과도한 설계이며 운영 부담이 큽니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html",
+          "title": "Amazon EBS 암호화"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html",
+          "title": "AWS KMS CreateKey와 키 정책"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "ebs",
+        "kms"
+      ]
+    },
+    {
+      "id": "saa-secure-032",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 회사가 RDS 데이터베이스 자격 증명을 애플리케이션 설정 파일에 두고 있습니다. 규정상 이 자격 증명은 30일마다 교체되어야 하고, 교체 과정에 사람이 개입해서는 안 됩니다. 운영 부담이 가장 적은(LEAST operational overhead) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "자격 증명을 Parameter Store의 SecureString으로 저장하고 교체 스크립트를 예약 실행한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Secrets Manager에 자격 증명을 저장하고 자동 교체를 설정한다."
+        },
+        {
+          "id": "C",
+          "text": "자격 증명을 KMS로 암호화해 S3에 두고 애플리케이션이 시작할 때 내려받게 한다."
+        },
+        {
+          "id": "D",
+          "text": "자격 증명을 컨테이너 이미지에 넣고 30일마다 이미지를 다시 빌드해 배포한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "Secrets Manager와 Parameter Store를 가르는 기준은 사실상 하나, 자동 교체가 필요한가입니다. Secrets Manager는 교체 기능을 내장해 데이터베이스의 암호 변경까지 함께 처리하므로 사람이 개입하지 않아도 됩니다. Parameter Store는 값을 안전하게 저장하고 계층 구조로 관리하는 데 강하지만 교체를 스스로 하지 않습니다. 문제문에 주기적 교체가 있으면 Secrets Manager, 없으면 Parameter Store가 후보로 남는다고 정리하면 됩니다.",
+      "distractorNotes": {
+        "A": "동작은 하지만 교체 로직과 실패 처리, 데이터베이스 반영까지 직접 만들고 유지해야 합니다. 운영 부담이 가장 적은 방법을 묻고 있으므로 내장 기능이 앞섭니다.",
+        "C": "저장 위치를 옮기고 암호화한 것일 뿐 교체 요구는 그대로 남습니다. 조회 경로만 복잡해집니다.",
+        "D": "이미지에 비밀을 굽는 방식은 이미지에 접근할 수 있는 누구에게나 비밀이 노출됩니다. 교체 때마다 재배포가 필요해 부담도 큽니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/secretsmanager/latest/APIReference/API_RotateSecret.html",
+          "title": "AWS Secrets Manager RotateSecret"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_PutParameter.html",
+          "title": "Systems Manager PutParameter"
+        }
+      ],
+      "tags": [
+        "secrets-vs-parameter-store",
+        "secrets-manager",
+        "rds"
+      ]
+    },
+    {
+      "id": "saa-secure-033",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "여러 환경의 애플리케이션이 엔드포인트 URL, 기능 플래그, 로그 수준 같은 설정값 수백 개를 공유합니다. 값은 환경별 경로로 구분하고 일부만 암호화하면 되며 교체 요구는 없습니다. 가장 비용 효율적인(MOST cost-effective) 선택은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "값마다 AWS Secrets Manager 비밀을 만들고 교체는 비활성화한다."
+        },
+        {
+          "id": "B",
+          "text": "값을 DynamoDB 테이블에 저장하고 애플리케이션이 조회하도록 구현한다."
+        },
+        {
+          "id": "C",
+          "text": "Systems Manager Parameter Store에 계층 경로로 저장하고 민감한 값만 SecureString으로 둔다."
+        },
+        {
+          "id": "D",
+          "text": "값을 S3 객체로 저장하고 버킷 정책으로 환경별 접근을 나눈다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "설정값 관리에는 Parameter Store가 표준 선택입니다. 슬래시로 구분한 계층 경로를 지원해 환경별로 값을 묶어 조회할 수 있고, 민감한 값만 SecureString으로 두어 KMS로 보호할 수 있습니다. Secrets Manager는 교체 기능을 제공하는 대신 비밀 단위로 비용이 발생하므로 교체가 필요 없는 설정값 수백 개에는 과한 선택입니다. 저장소를 직접 만드는 방안은 접근 제어와 감사, 버전 관리를 스스로 구현해야 합니다.",
+      "distractorNotes": {
+        "A": "교체가 필요 없는 설정값까지 비밀로 관리하면 관리 대상과 비용이 함께 늘어납니다. 두 서비스를 가르는 기준이 교체 요구라는 점을 놓친 선택입니다.",
+        "B": "동작은 하지만 테이블 설계, 접근 제어, 암호화, 버전 관리를 직접 만들어야 합니다. 관리형 도구가 있는 영역을 직접 구현하는 셈입니다.",
+        "D": "S3에 설정 파일을 두는 방식은 값 단위 조회와 변경 이력 추적이 불편합니다. 애플리케이션이 파일 파싱과 캐싱을 직접 처리해야 합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_PutParameter.html",
+          "title": "Systems Manager PutParameter"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/secretsmanager/latest/APIReference/API_RotateSecret.html",
+          "title": "AWS Secrets Manager RotateSecret"
+        }
+      ],
+      "tags": [
+        "secrets-vs-parameter-store",
+        "parameter-store",
+        "configuration"
+      ]
+    },
+    {
+      "id": "saa-secure-034",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "감사팀이 S3에 저장된 거래 기록을 누구도 지우거나 덮어쓸 수 없게 하고, 실수로 삭제된 객체는 복구할 수 있어야 한다고 요구했습니다. 이 요구를 충족하는 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "버킷에 버전 관리를 활성화해 덮어쓰기와 삭제 시 이전 버전을 남긴다."
+        },
+        {
+          "id": "B",
+          "text": "버킷의 수명 주기 규칙으로 90일 후 객체를 Glacier Deep Archive로 전환한다."
+        },
+        {
+          "id": "C",
+          "text": "버킷 정책에서 s3:DeleteObject를 모든 주체에 대해 거부한다."
+        },
+        {
+          "id": "D",
+          "text": "S3 Object Lock을 활성화하고 보존 기간을 설정해 객체를 불변으로 만든다."
+        },
+        {
+          "id": "E",
+          "text": "객체를 SSE-KMS로 암호화하고 키 정책에서 삭제 권한을 제거한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "D"
+      ],
+      "explanation": "불변성 요구에는 S3 Object Lock이 정답이며, Object Lock은 버전 관리가 켜져 있어야 사용할 수 있습니다. 보존 기간 동안에는 객체 버전을 덮어쓰거나 삭제할 수 없으므로 규정이 요구하는 쓰기 후 읽기 전용 상태가 만들어집니다. 버전 관리는 그 전제이면서 동시에 실수 삭제 복구 수단이기도 해 두 요구를 함께 충족합니다. 정책으로 삭제를 막는 방식은 정책을 바꿀 수 있는 주체가 있으면 무력화된다는 점에서 불변성과 다릅니다.",
+      "distractorNotes": {
+        "B": "스토리지 클래스 전환은 비용 최적화 수단이며 삭제나 덮어쓰기를 막지 않습니다. 보관 기간 요구와 불변성 요구는 별개입니다.",
+        "C": "정책 기반 거부는 정책 편집 권한을 가진 주체가 되돌릴 수 있습니다. 규정 준수 문항에서 요구하는 불변성 수준에 미치지 못합니다.",
+        "E": "암호화는 기밀성을 지키는 수단이며 삭제를 막지 못합니다. 키 정책은 암호화 작업 권한을 다루지 객체 삭제 권한을 다루지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-overview.html",
+          "title": "S3 Object Lock 개요"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html",
+          "title": "MFA 삭제로 버전 보호"
+        }
+      ],
+      "tags": [
+        "s3-object-lock",
+        "s3",
+        "compliance",
+        "versioning"
+      ]
+    },
+    {
+      "id": "saa-secure-035",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "금융 규제에 따라 거래 로그는 7년 동안 어떤 사용자도 삭제할 수 없어야 하며, 계정 루트 사용자나 보안 관리자도 예외가 아닙니다. 이 요구에 맞는 S3 Object Lock 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "거버넌스 모드로 7년 보존을 설정하고 우회 권한은 보안 관리자에게만 부여한다."
+        },
+        {
+          "id": "B",
+          "text": "규정 준수 모드로 7년 보존을 설정해 보존 기간 동안 누구도 해제할 수 없게 한다."
+        },
+        {
+          "id": "C",
+          "text": "법적 보존을 적용하고 7년 뒤 해제하는 일정 작업을 만들어 둔다."
+        },
+        {
+          "id": "D",
+          "text": "버전 관리와 MFA 삭제를 켜고 삭제 시 다중 인증을 요구한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "Object Lock의 두 보존 모드는 예외 허용 여부로 갈립니다. 거버넌스 모드는 특별한 권한을 가진 주체가 보존을 우회하거나 짧게 줄일 수 있어 내부 실수 방지용에 가깝습니다. 규정 준수 모드는 설정한 보존 기간이 끝날 때까지 어떤 사용자도, 계정 루트 사용자조차 객체 버전을 삭제하거나 기간을 줄일 수 없습니다. 규제가 예외 없는 불변성을 요구하면 답은 언제나 규정 준수 모드입니다.",
+      "distractorNotes": {
+        "A": "거버넌스 모드는 우회 권한을 가진 주체가 존재한다는 전제를 깔고 있습니다. 예외가 없어야 한다는 요구를 정면으로 위반합니다.",
+        "C": "법적 보존은 기간 없이 적용하고 명시적으로 해제할 수 있는 보류입니다. 해제 권한을 가진 사람이 있으므로 이 요구에는 부족합니다.",
+        "D": "MFA 삭제는 삭제를 어렵게 만들 뿐 금지하지 않습니다. 인증을 통과하면 삭제가 가능하므로 불변성이 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-overview.html",
+          "title": "S3 Object Lock 개요"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html",
+          "title": "MFA 삭제로 버전 보호"
+        }
+      ],
+      "tags": [
+        "s3-object-lock",
+        "compliance",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-036",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "내부 규정이 저장 데이터 암호화 키를 최소 연 1회 교체하고 그 사실을 증빙하도록 요구합니다. 데이터는 고객 관리형 KMS 키로 암호화된 S3 객체와 EBS 볼륨입니다. 운영 부담이 가장 적은(LEAST operational overhead) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "매년 새 KMS 키를 만들고 기존 데이터를 모두 새 키로 다시 암호화한다."
+        },
+        {
+          "id": "B",
+          "text": "키를 매년 삭제 예약하고 같은 별칭으로 새 키를 만들어 연결한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS 관리형 키로 전환해 서비스가 알아서 교체하도록 맡긴다."
+        },
+        {
+          "id": "D",
+          "text": "고객 관리형 키에서 자동 키 교체를 활성화하고 교체 이력을 확인한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "AWS KMS는 대칭 암호화 키에 대해 자동 교체를 제공하며, 활성화하면 정해진 주기마다 새 키 재료가 생성되고 이전 재료는 옛 데이터 복호화를 위해 보존됩니다. 키 ID와 별칭이 그대로이므로 애플리케이션이나 리소스 설정을 고칠 필요가 없고 데이터를 다시 암호화할 필요도 없습니다. 그래서 교체 요구를 가장 적은 작업으로 만족시킬 수 있습니다. 다만 자동 교체는 가져온 키 재료나 비대칭 키에는 적용되지 않으므로 키 종류를 함께 확인해야 합니다.",
+      "distractorNotes": {
+        "A": "전체 재암호화는 대용량 데이터에서 시간과 비용이 크게 들고 실패 시 복구도 번거롭습니다. 자동 교체가 있는데 수작업을 선택하는 셈입니다.",
+        "B": "키를 삭제하면 그 키로 암호화된 데이터를 영구히 복호화할 수 없습니다. 별칭만 옮겨도 옛 데이터는 살아나지 않습니다.",
+        "C": "AWS 관리형 키도 자동 교체되지만 키 정책을 편집할 수 없어 접근 통제 요구를 잃게 됩니다. 규정 증빙 요건 때문에 고객 관리형 키를 쓰는 상황과 어긋납니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html",
+          "title": "AWS KMS EnableKeyRotation"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html",
+          "title": "AWS KMS 개요"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "kms",
+        "compliance"
+      ]
+    },
+    {
+      "id": "saa-secure-037",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 Application Load Balancer 뒤의 웹 애플리케이션에 HTTPS를 적용하려 합니다. 인증서 갱신을 사람이 챙기지 않아도 되어야 합니다. 운영 부담이 가장 적은(LEAST operational overhead) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "인스턴스마다 외부 기관 인증서를 설치하고 만료 전에 교체하는 절차를 만든다."
+        },
+        {
+          "id": "B",
+          "text": "인증서 파일을 Secrets Manager에 저장하고 인스턴스가 부팅 시 내려받게 한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS Certificate Manager에서 인증서를 발급받아 로드 밸런서 HTTPS 리스너에 연결한다."
+        },
+        {
+          "id": "D",
+          "text": "자체 서명 인증서를 만들어 로드 밸런서에 올리고 브라우저 경고를 무시하도록 안내한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "전송 중 암호화 문항의 판단 축은 인증서를 어디에 붙이느냐입니다. 요청을 처음 받는 지점인 Application Load Balancer, Amazon CloudFront, Amazon API Gateway에 붙이는 것이 표준이며, 여기에 AWS Certificate Manager로 발급한 인증서를 연결하면 갱신이 자동으로 처리됩니다. 인스턴스마다 인증서를 두면 대수가 늘어날수록 만료 관리 부담이 곱으로 늘고 교체 중 장애 위험도 커집니다. 어디에서 TLS를 종료할지를 먼저 정하면 이 계열 문항이 빠르게 정리됩니다.",
+      "distractorNotes": {
+        "A": "동작은 하지만 인스턴스 수만큼 인증서를 배포하고 만료를 추적해야 합니다. 운영 부담 한정어가 붙은 문항에서는 배제됩니다.",
+        "B": "저장소를 옮겨도 발급과 갱신을 직접 해야 한다는 사실은 그대로입니다. 배포 파이프라인만 복잡해집니다.",
+        "D": "자체 서명 인증서는 공개 서비스의 클라이언트 신뢰를 얻지 못합니다. 사용자에게 경고를 무시하라고 안내하는 것은 보안 요구를 포기하는 것입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/acm/latest/APIReference/API_RequestCertificate.html",
+          "title": "AWS Certificate Manager RequestCertificate"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html",
+          "title": "Application Load Balancer란"
+        }
+      ],
+      "tags": [
+        "tls-termination",
+        "acm",
+        "elb"
+      ]
+    },
+    {
+      "id": "saa-secure-038",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 회사가 ap-northeast-2에서 운영하는 웹사이트 앞에 Amazon CloudFront를 두고 자사 도메인으로 HTTPS를 제공하려 합니다. ACM에서 서울 리전에 발급한 인증서를 배포에 연결하려는데 목록에 나타나지 않습니다. 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "us-east-1에서 인증서를 발급하거나 가져와 CloudFront 배포에 연결한다."
+        },
+        {
+          "id": "B",
+          "text": "오리진과 같은 리전에서 발급한 인증서를 오리진 서버에 설치해 사용한다."
+        },
+        {
+          "id": "C",
+          "text": "CloudFront 기본 도메인 이름을 사용하고 사용자 지정 도메인 사용을 포기한다."
+        },
+        {
+          "id": "D",
+          "text": "인증서를 내보내 CloudFront 배포 설정에 파일로 업로드한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "CloudFront는 글로벌 서비스이며 사용자 지정 도메인용 인증서를 us-east-1의 ACM에서만 참조합니다. 그래서 다른 리전에서 발급한 인증서는 배포 설정 화면에 나타나지 않습니다. 같은 도메인이라도 리전마다 인증서를 따로 발급할 수 있으므로 us-east-1에서 다시 발급하면 됩니다. Application Load Balancer는 반대로 자신이 있는 리전의 인증서를 사용하므로, 어디에 붙이는지에 따라 발급 리전이 달라진다는 점을 함께 기억해야 합니다.",
+      "distractorNotes": {
+        "B": "오리진에 인증서를 설치하는 것은 CloudFront와 오리진 사이 구간의 문제입니다. 사용자가 보는 뷰어 쪽 도메인 인증서 문제는 해결되지 않습니다.",
+        "C": "기본 도메인을 쓰면 요구사항인 자사 도메인 제공을 포기하게 됩니다. 문제문의 요구를 버리는 선택지입니다.",
+        "D": "CloudFront는 ACM에 있는 인증서를 참조하는 방식으로 연결하며 배포 설정에 파일을 올려 붙이는 흐름이 아닙니다. 리전 문제를 우회하지도 못합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_ViewerCertificate.html",
+          "title": "CloudFront ViewerCertificate"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html",
+          "title": "Amazon CloudFront란"
+        }
+      ],
+      "tags": [
+        "tls-termination",
+        "cloudfront",
+        "acm"
+      ]
+    },
+    {
+      "id": "saa-secure-039",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "규정이 사용자 브라우저부터 애플리케이션 서버까지 전 구간에서 트래픽이 평문으로 존재하지 않을 것을 요구합니다. 현재는 Application Load Balancer가 TLS를 종료하고 대상에는 HTTP로 전달합니다. 이 요구를 충족하는 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "로드 밸런서를 Network Load Balancer로 바꾸고 TCP 리스너로 트래픽을 그대로 전달한다."
+        },
+        {
+          "id": "B",
+          "text": "대상 인스턴스를 프라이빗 서브넷으로 옮기고 보안 그룹으로 로드 밸런서만 허용한다."
+        },
+        {
+          "id": "C",
+          "text": "로드 밸런서와 대상 사이 구간에 VPC 흐름 로그를 켜고 암호화 여부를 감사한다."
+        },
+        {
+          "id": "D",
+          "text": "로드 밸런서 리스너에 ACM 인증서를 붙이고 대상 그룹 프로토콜을 HTTPS로 지정한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "Application Load Balancer는 뷰어 구간과 백엔드 구간의 암호화를 각각 설정합니다. 리스너에서 TLS를 종료해 요청 내용을 검사하고 라우팅한 뒤, 대상 그룹 프로토콜을 HTTPS로 지정하면 백엔드로 다시 암호화해 전달합니다. 이렇게 하면 계층 7 기능을 유지하면서 전 구간 암호화 요구를 충족할 수 있습니다. 사설망이라 안전하다는 이유로 뒤 구간을 평문으로 두는 구성은 규정이 명시한 요구를 만족하지 못합니다.",
+      "distractorNotes": {
+        "A": "TCP 패스스루는 전 구간 암호화를 만들지만 계층 7 라우팅과 요청 기반 규칙을 잃습니다. 인증서 관리도 인스턴스로 되돌아가 부담이 커집니다.",
+        "B": "네트워크 배치와 접근 제어는 도달 가능성을 줄일 뿐 구간의 평문 존재를 없애지 못합니다. 요구는 암호화이지 격리가 아닙니다.",
+        "C": "흐름 로그는 트래픽 메타데이터를 기록하는 도구이며 암호화를 적용하지 않습니다. 감사 수단을 대책으로 제시한 오답입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateTargetGroup.html",
+          "title": "Elastic Load Balancing CreateTargetGroup"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html",
+          "title": "Application Load Balancer란"
+        }
+      ],
+      "tags": [
+        "tls-termination",
+        "elb",
+        "encryption"
+      ]
+    },
+    {
+      "id": "saa-secure-040",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "보안팀이 계정 안에서 침해된 EC2 인스턴스가 암호화폐 채굴 도메인과 통신하거나 비정상적인 API 호출 패턴이 나타나는지를 지속적으로 감시하려 합니다. 에이전트 설치 없이 시작할 수 있어야 합니다. 어떤 서비스를 사용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "Amazon Inspector로 인스턴스의 취약점을 주기적으로 평가한다."
+        },
+        {
+          "id": "B",
+          "text": "Amazon GuardDuty를 활성화해 위협 탐지 결과를 확인한다."
+        },
+        {
+          "id": "C",
+          "text": "Amazon Macie로 계정의 데이터에서 이상 접근을 찾는다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Config 규칙으로 인스턴스 구성이 기준에 맞는지 평가한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "위협 탐지 서비스는 각자 답하는 질문이 다릅니다. GuardDuty는 CloudTrail 이벤트, VPC 흐름 로그, DNS 로그 같은 데이터 원본을 분석해 이상 행위와 알려진 위협 지표를 찾아내며 에이전트를 설치할 필요가 없습니다. Inspector는 소프트웨어 취약점과 의도치 않은 네트워크 노출을, Macie는 데이터에 민감 정보가 있는지를 봅니다. 문제문의 동사가 위협을 탐지한다인지, 취약점을 찾는다인지, 민감 데이터를 분류한다인지로 갈라 읽으면 됩니다.",
+      "distractorNotes": {
+        "A": "Inspector는 패키지 취약점과 노출 경로를 평가합니다. 실행 중 통신 패턴의 이상을 탐지하는 도구가 아닙니다.",
+        "C": "Macie는 S3에 저장된 데이터에서 개인정보 같은 민감 정보를 찾아내는 서비스입니다. 인스턴스의 통신 이상과는 대상이 다릅니다.",
+        "D": "Config는 리소스 구성이 규칙에 맞는지 평가합니다. 구성 변화는 보지만 실행 중 행위의 이상은 다루지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html",
+          "title": "Amazon GuardDuty란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/inspector/latest/user/what-is-inspector.html",
+          "title": "Amazon Inspector란"
+        }
+      ],
+      "tags": [
+        "security-service-choice",
+        "guardduty",
+        "threat-detection"
+      ]
+    },
+    {
+      "id": "saa-secure-041",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 기업이 수년간 여러 팀이 쌓아 온 S3 버킷들에 주민등록번호나 신용카드 번호 같은 개인정보가 섞여 있는지 파악해야 합니다. 어떤 버킷의 어떤 객체가 문제인지 목록이 필요합니다. 어떤 서비스를 사용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "Amazon Macie로 버킷을 검사해 민감 데이터 유형과 위치를 식별한다."
+        },
+        {
+          "id": "B",
+          "text": "Amazon GuardDuty를 켜서 버킷에 대한 비정상 접근을 탐지한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS Config 규칙으로 버킷 암호화와 공개 여부를 평가한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS CloudTrail 데이터 이벤트를 켜서 객체 접근 기록을 분석한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "민감 데이터가 어디에 있는지를 찾아내는 것은 Amazon Macie의 역할입니다. Macie는 S3의 객체를 표본 추출해 개인 식별 정보나 금융 정보 유형을 인식하고 어떤 버킷과 객체에 있는지 결과로 제시합니다. 다른 보안 서비스들은 접근 행위나 구성 상태를 보므로 내용물의 성격은 알려 주지 못합니다. 발견 이후의 조치인 암호화와 접근 통제는 별개의 단계입니다.",
+      "distractorNotes": {
+        "B": "GuardDuty는 접근 패턴의 이상을 탐지합니다. 객체 안에 어떤 정보가 들어 있는지는 판단 대상이 아닙니다.",
+        "C": "Config는 암호화 설정이나 퍼블릭 차단 같은 구성 준수를 봅니다. 데이터 내용은 평가하지 않습니다.",
+        "D": "CloudTrail 데이터 이벤트는 누가 어떤 객체를 읽고 썼는지를 남깁니다. 내용의 민감도 분류와는 질문이 다릅니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/macie/latest/user/what-is-macie.html",
+          "title": "Amazon Macie란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html",
+          "title": "Amazon S3란"
+        }
+      ],
+      "tags": [
+        "security-service-choice",
+        "macie",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-042",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "보안팀이 EC2 인스턴스와 컨테이너 이미지에 알려진 소프트웨어 취약점이 있는지 지속적으로 확인하고 심각도에 따라 조치 우선순위를 정하려 합니다. 어떤 서비스가 이 요구에 맞습니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "AWS Security Hub로 여러 서비스의 결과를 모아 표준 준수 점수를 확인한다."
+        },
+        {
+          "id": "B",
+          "text": "Amazon GuardDuty를 켜서 위협 지표 기반 탐지 결과를 확인한다."
+        },
+        {
+          "id": "C",
+          "text": "Amazon Inspector를 활성화해 취약점 검사 결과를 심각도별로 확인한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Config로 인스턴스 구성이 기준 규칙을 만족하는지 평가한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "취약점을 찾는 일은 Amazon Inspector의 몫입니다. Inspector는 인스턴스와 컨테이너 이미지의 소프트웨어 목록을 취약점 데이터베이스와 대조해 발견 항목을 심각도와 함께 제시합니다. Security Hub는 여러 보안 서비스의 결과를 한곳에 모아 보여 주는 집계 계층이므로, 검사를 수행하는 주체가 따로 있어야 합니다. 네 서비스의 질문이 위협, 취약점, 민감 데이터, 집계로 나뉜다는 점을 기준으로 고르면 됩니다.",
+      "distractorNotes": {
+        "A": "Security Hub는 결과를 모으고 표준에 대조해 보여 줍니다. 취약점 검사를 직접 수행하지는 않으므로 이것만으로는 요구가 채워지지 않습니다.",
+        "B": "GuardDuty는 실행 중 행위와 통신에서 위협 신호를 찾습니다. 설치된 패키지의 알려진 취약점 목록을 만들어 주지는 않습니다.",
+        "D": "Config는 구성 준수 여부를 평가하며 소프트웨어 취약점 데이터베이스와 대조하지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/inspector/latest/user/what-is-inspector.html",
+          "title": "Amazon Inspector란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html",
+          "title": "AWS Security Hub란"
+        }
+      ],
+      "tags": [
+        "security-service-choice",
+        "inspector",
+        "vulnerability"
+      ]
+    },
+    {
+      "id": "saa-secure-043",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "한 기업이 50개 계정의 보안 상태를 한곳에서 보고 싶어 합니다. 위협 탐지 결과와 취약점 결과가 계정별로 흩어져 있고, 조직 차원의 표준 준수 점수도 필요합니다. 어떤 조치를 취해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "계정마다 CloudWatch 대시보드를 만들어 보안 지표를 직접 수집한다."
+        },
+        {
+          "id": "B",
+          "text": "조직 전체에 Amazon GuardDuty를 활성화하고 위임된 관리자 계정으로 결과를 모은다."
+        },
+        {
+          "id": "C",
+          "text": "계정마다 CloudTrail 추적을 만들어 로그를 각자의 버킷에 저장한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Config를 끄고 Security Hub만 활성화해 중복 평가를 없앤다."
+        },
+        {
+          "id": "E",
+          "text": "AWS Security Hub를 조직 수준으로 켜서 여러 서비스의 결과를 집계하고 표준을 평가한다."
+        }
+      ],
+      "answer": [
+        "B",
+        "E"
+      ],
+      "explanation": "여러 계정의 보안 결과를 모으는 문제는 탐지 서비스와 집계 서비스를 함께 쓰는 것으로 풀립니다. GuardDuty와 Inspector 같은 탐지 서비스는 조직 수준으로 활성화하고 위임된 관리자 계정을 지정하면 결과가 한곳으로 모입니다. Security Hub는 그 결과들과 Config 기반 표준 검사 결과를 함께 받아 준수 점수와 우선순위를 제시하는 집계 계층입니다. 대시보드를 직접 만드는 방식은 같은 결과를 훨씬 큰 운영 부담으로 얻는 길입니다.",
+      "distractorNotes": {
+        "A": "지표를 직접 모아 대시보드를 만드는 방식은 계정 수만큼 구성과 유지 부담이 늘어납니다. 관리형 집계 서비스가 있는 영역을 수작업으로 대신하는 셈입니다.",
+        "C": "계정별로 로그를 각자 보관하면 오히려 흩어짐이 심해집니다. 감사 목적이라면 조직 추적으로 중앙 버킷에 모으는 편이 낫습니다.",
+        "D": "Security Hub의 표준 검사 상당수는 Config 기록에 의존합니다. Config를 끄면 준수 점수를 얻을 수 없습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html",
+          "title": "AWS Security Hub란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html",
+          "title": "Amazon GuardDuty란"
+        }
+      ],
+      "tags": [
+        "security-service-choice",
+        "security-hub",
+        "organizations"
+      ]
+    },
+    {
+      "id": "saa-secure-044",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "공개 웹 애플리케이션이 SQL 삽입과 크로스 사이트 스크립팅 시도를 받고 있습니다. 요청 본문과 쿼리 문자열의 패턴을 보고 차단하되, 정상 사용자에게는 영향이 없어야 합니다. 어떤 서비스를 어디에 적용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "AWS Shield Advanced를 구독하고 로드 밸런서에 보호를 적용한다."
+        },
+        {
+          "id": "B",
+          "text": "네트워크 ACL에 공격 출발지 IP를 거부 규칙으로 계속 추가한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS Network Firewall을 VPC에 배포해 모든 트래픽을 검사한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS WAF 웹 ACL을 만들어 로드 밸런서나 CloudFront 배포에 연결한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "AWS WAF는 HTTP 요청의 내용을 규칙으로 검사해 차단하거나 허용하는 계층 7 도구입니다. SQL 삽입, 스크립트 삽입, 특정 경로나 헤더 패턴처럼 요청의 내용을 기준으로 판단해야 하는 요구에 맞습니다. 연결 대상은 요청을 받는 지점, 즉 CloudFront 배포, Application Load Balancer, API Gateway입니다. Shield는 대량 트래픽을 이용한 디도스 공격에 대응하는 서비스이므로 질문이 다릅니다.",
+      "distractorNotes": {
+        "A": "Shield Advanced는 디도스 공격 완화와 대응 지원을 제공합니다. 요청 내용 기반 규칙으로 삽입 공격을 거르는 도구가 아닙니다.",
+        "B": "출발지 IP를 계속 추가하는 방식은 공격자가 주소를 바꾸면 무력화되고 규칙 수 관리도 불가능해집니다. 애초에 계층 7 패턴을 볼 수 없습니다.",
+        "C": "Network Firewall은 VPC 경계에서 네트워크 트래픽을 광범위하게 검사합니다. 웹 요청 규칙을 다루는 데 특화된 도구는 WAF입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html",
+          "title": "AWS WAF CreateWebACL"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/waf/latest/APIReference/API_AssociateWebACL.html",
+          "title": "AWS WAF AssociateWebACL"
+        }
+      ],
+      "tags": [
+        "waf-vs-shield",
+        "waf",
+        "elb"
+      ]
+    },
+    {
+      "id": "saa-secure-045",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 결제 서비스가 대규모 볼륨 기반 디도스 공격을 반복해서 받고 있습니다. 회사는 공격 중 전문가 지원과 공격으로 인한 확장 요금 보호를 원하며, 동시에 애플리케이션 계층의 악성 요청도 규칙으로 거르고자 합니다. 가장 적절한 조합은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "AWS WAF 웹 ACL만 적용하고 속도 기반 규칙으로 모든 공격에 대응한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Shield Advanced를 구독하고 AWS WAF 웹 ACL을 함께 적용한다."
+        },
+        {
+          "id": "C",
+          "text": "기본 제공되는 AWS Shield 표준 보호에 의존하고 오토 스케일링으로 흡수한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Network Firewall과 네트워크 ACL로 공격 대역을 차단한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "두 서비스는 대체 관계가 아니라 계층이 다릅니다. Shield는 네트워크·전송 계층의 대량 트래픽 공격을 완화하며, 상위 등급인 Shield Advanced는 대응팀 지원과 공격으로 인한 확장 요금 보호 같은 추가 혜택을 제공합니다. WAF는 그 위에서 요청 내용을 보고 규칙으로 거릅니다. 문제문이 두 종류의 요구를 함께 제시했다면 두 서비스를 함께 적용하는 선택지가 답이 됩니다.",
+      "distractorNotes": {
+        "A": "WAF는 계층 7 규칙에 강하지만 대규모 볼륨 공격 완화와 대응 지원은 제공하지 않습니다. 요구의 절반만 충족합니다.",
+        "C": "표준 보호는 기본으로 제공되지만 대응 지원과 요금 보호는 포함되지 않습니다. 오토 스케일링으로 흡수하는 방식은 비용이 공격자에게 유리하게 작동합니다.",
+        "D": "네트워크 계층 차단만으로는 애플리케이션 계층 요청 규칙 요구를 채우지 못합니다. 대규모 공격에서 대역 목록 관리도 현실적이지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/waf/latest/developerguide/shield-chapter.html",
+          "title": "AWS Shield"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html",
+          "title": "AWS WAF CreateWebACL"
+        }
+      ],
+      "tags": [
+        "waf-vs-shield",
+        "shield",
+        "ddos"
+      ]
+    },
+    {
+      "id": "saa-secure-046",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "보안 사고 조사에서 특정 IAM 역할이 언제 어떤 API를 호출했고 어느 IP에서 요청이 왔는지 확인해야 합니다. 조사 대상 기간은 지난 30일입니다. 어떤 서비스의 기록을 봐야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "AWS Config의 구성 항목 이력에서 리소스 변경 내역을 확인한다."
+        },
+        {
+          "id": "B",
+          "text": "Amazon CloudWatch 지표에서 API 호출 수의 추이를 확인한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS CloudTrail 이벤트 기록에서 호출자와 요청 정보를 확인한다."
+        },
+        {
+          "id": "D",
+          "text": "VPC 흐름 로그에서 해당 역할의 네트워크 트래픽을 확인한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "CloudTrail과 Config는 대체 관계가 아니라 답하는 질문이 다릅니다. CloudTrail은 누가 언제 어떤 API를 호출했고 요청이 어디서 왔는지를 이벤트로 남기므로 행위자 추적에 쓰입니다. Config는 리소스의 구성이 시간에 따라 어떻게 변했고 규칙에 맞는지를 평가합니다. 조사 문항에서 동사가 호출했다면 CloudTrail, 구성이 규정에 맞는가라면 Config로 갈리면 됩니다.",
+      "distractorNotes": {
+        "A": "Config는 리소스 구성의 변화를 보여 주지만 호출자 신원과 요청 출발지를 이벤트 단위로 남기지는 않습니다. 무엇이 바뀌었는지는 알아도 누가 호출했는지는 CloudTrail이 채웁니다.",
+        "B": "CloudWatch 지표는 집계된 수치이므로 개별 호출의 주체와 출처를 알 수 없습니다. 추세 파악용입니다.",
+        "D": "흐름 로그는 네트워크 인터페이스 단위의 트래픽 메타데이터입니다. IAM 주체가 어떤 API를 호출했는지는 기록하지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/cloudtrail/latest/APIReference/API_CreateTrail.html",
+          "title": "AWS CloudTrail CreateTrail"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/config/latest/APIReference/API_PutConfigRule.html",
+          "title": "AWS Config PutConfigRule"
+        }
+      ],
+      "tags": [
+        "cloudtrail-vs-config",
+        "cloudtrail",
+        "audit"
+      ]
+    },
+    {
+      "id": "saa-secure-047",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "감사팀이 모든 EBS 볼륨은 암호화되어 있어야 하고 모든 S3 버킷은 퍼블릭 액세스가 차단되어 있어야 한다는 기준을 정했습니다. 위반 리소스를 지속적으로 찾아내고 가능하면 자동으로 되돌리려 합니다. 어떤 서비스를 사용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "AWS Config 규칙으로 준수 여부를 평가하고 자동 교정 작업을 연결한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS CloudTrail 추적을 켜고 이벤트를 분석해 위반을 찾는다."
+        },
+        {
+          "id": "C",
+          "text": "Amazon Inspector로 리소스를 검사해 위반 목록을 확인한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Trusted Advisor 점검 결과에서 위반 항목을 확인한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "리소스의 구성이 정해진 기준에 맞는지를 지속적으로 평가하는 것은 AWS Config의 역할입니다. Config 규칙은 리소스 구성이 바뀔 때마다 준수 여부를 다시 판정하고, 교정 작업을 연결해 두면 위반 상태를 자동으로 되돌릴 수 있습니다. CloudTrail은 호출 기록이라 위반이 만들어진 순간의 행위는 알려 주지만 현재 상태의 준수 여부를 판정하지는 않습니다. 무엇을 묻는지가 행위인지 상태인지로 구분하면 두 서비스가 명확히 갈립니다.",
+      "distractorNotes": {
+        "B": "CloudTrail은 API 호출을 남길 뿐 리소스가 현재 기준을 지키는지 평가하지 않습니다. 규칙 위반 목록을 만들려면 별도 분석을 직접 구현해야 합니다.",
+        "C": "Inspector는 소프트웨어 취약점과 노출을 다룹니다. 암호화 설정 같은 구성 기준 준수는 대상이 아닙니다.",
+        "D": "Trusted Advisor는 비용·성능·보안 등에서 정해진 점검 항목을 제공하지만 조직이 정의한 기준을 규칙으로 추가하고 자동 교정하는 용도는 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/config/latest/APIReference/API_PutConfigRule.html",
+          "title": "AWS Config PutConfigRule"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/config/latest/APIReference/API_PutRemediationConfigurations.html",
+          "title": "AWS Config 자동 교정 구성"
+        }
+      ],
+      "tags": [
+        "cloudtrail-vs-config",
+        "config",
+        "compliance"
+      ]
+    },
+    {
+      "id": "saa-secure-048",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "규제 기관이 감사 로그의 무결성을 요구합니다. 침해된 계정의 관리자가 자신의 흔적을 지우거나 고칠 수 없어야 합니다. CloudTrail 구성으로 취해야 할 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "로그 파일 무결성 검증을 활성화해 변조 여부를 확인할 수 있게 한다."
+        },
+        {
+          "id": "B",
+          "text": "추적을 단일 리전으로 한정해 기록 대상을 줄인다."
+        },
+        {
+          "id": "C",
+          "text": "로그를 별도 감사 계정의 S3 버킷에 저장하고 운영 계정에는 쓰기 권한만 남긴다."
+        },
+        {
+          "id": "D",
+          "text": "로그 보존 기간을 90일로 줄여 오래된 기록을 자동 삭제한다."
+        },
+        {
+          "id": "E",
+          "text": "로그 버킷을 퍼블릭으로 열어 외부 감사인이 언제든 확인하게 한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "감사 로그 보호의 핵심은 기록을 만든 주체가 그 기록을 지배하지 못하게 하는 것입니다. 로그를 별도 계정의 버킷에 보내면 운영 계정의 관리자 권한으로는 삭제나 수정에 손댈 수 없습니다. 여기에 로그 파일 무결성 검증을 켜면 서명 파일로 변조 여부를 사후에 증명할 수 있습니다. 객체 잠금과 버전 관리를 더하면 보존 요구까지 함께 충족할 수 있습니다.",
+      "distractorNotes": {
+        "B": "리전을 한정하면 다른 리전에서 벌어진 활동이 기록되지 않습니다. 감사 범위를 스스로 좁히는 선택입니다.",
+        "D": "보존 기간을 줄이면 조사 가능한 구간이 사라집니다. 규제가 요구하는 것은 축소가 아니라 보존과 무결성입니다.",
+        "E": "감사 로그에는 계정 구조와 활동 정보가 담기므로 공개하면 그 자체가 정보 노출입니다. 접근은 감사인에게 한정해 부여해야 합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html",
+          "title": "CloudTrail 로그 파일 무결성 검증"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/cloudtrail/latest/APIReference/API_CreateTrail.html",
+          "title": "AWS CloudTrail CreateTrail"
+        }
+      ],
+      "tags": [
+        "cloudtrail-vs-config",
+        "cloudtrail",
+        "audit"
+      ]
+    },
+    {
+      "id": "saa-secure-049",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 아래 명령문을 버킷 정책에 추가했습니다. 이 명령문이 실제로 만들어 내는 효과를 가장 정확하게 설명한 것은 무엇입니까?",
+      "code": {
+        "lang": "json",
+        "caption": "버킷 정책에 추가된 명령문",
+        "body": "{\n  \"Effect\": \"Deny\",\n  \"Principal\": \"*\",\n  \"Action\": \"s3:*\",\n  \"Resource\": [\n    \"arn:aws:s3:::reports-bucket\",\n    \"arn:aws:s3:::reports-bucket/*\"\n  ],\n  \"Condition\": {\n    \"Bool\": { \"aws:SecureTransport\": \"false\" }\n  }\n}"
+      },
+      "choices": [
+        {
+          "id": "A",
+          "text": "HTTPS가 아닌 요청을 모두 거부해 전송 중 암호화되지 않은 접근을 막는다."
+        },
+        {
+          "id": "B",
+          "text": "저장 데이터를 암호화되지 않은 상태로 업로드하는 요청을 거부한다."
+        },
+        {
+          "id": "C",
+          "text": "버킷을 퍼블릭으로 만드는 정책 변경 요청을 거부한다."
+        },
+        {
+          "id": "D",
+          "text": "VPC 엔드포인트를 거치지 않는 요청을 모두 거부한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "aws:SecureTransport는 요청이 TLS로 전송되었는지를 나타내는 조건 키입니다. 값이 false인 경우를 거부하면 평문 HTTP 요청이 차단되어 전송 중 암호화가 강제됩니다. 저장 데이터 암호화를 강제하려면 s3:x-amz-server-side-encryption 같은 다른 조건 키를 써야 하므로 두 요구를 혼동하면 안 됩니다. 명시적 거부는 어떤 허용보다 우선하므로 이 명령문 하나로 예외 없는 강제가 만들어집니다.",
+      "distractorNotes": {
+        "B": "저장 데이터 암호화 여부는 요청 헤더로 판단하며 다른 조건 키를 사용합니다. 이 조건은 전송 구간만 봅니다.",
+        "C": "퍼블릭 정책 변경을 막는 것은 퍼블릭 액세스 차단 설정이나 SCP의 역할입니다. 이 명령문은 데이터 요청 자체를 다룹니다.",
+        "D": "엔드포인트 경유 여부는 aws:SourceVpce나 aws:SourceVpc 조건으로 판단합니다. 이 명령문에는 그런 조건이 없습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html",
+          "title": "IAM JSON 정책 요소"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+          "title": "서버 측 암호화로 데이터 보호"
+        }
+      ],
+      "tags": [
+        "iam-policy-evaluation",
+        "s3",
+        "encryption"
+      ]
+    },
+    {
+      "id": "saa-secure-050",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "수십 개 프로젝트 팀이 같은 계정에서 EC2 인스턴스를 운영합니다. 각 팀은 자기 프로젝트 태그가 붙은 인스턴스만 조작할 수 있어야 하고, 프로젝트가 늘어도 정책을 새로 만들지 않아야 합니다. 가장 적절한 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "프로젝트마다 리소스 ARN을 나열한 정책을 만들어 해당 팀 역할에 연결한다."
+        },
+        {
+          "id": "B",
+          "text": "프로젝트마다 별도의 AWS 계정을 만들어 리소스를 물리적으로 분리한다."
+        },
+        {
+          "id": "C",
+          "text": "프로젝트마다 권한 경계를 만들어 팀 역할에 연결하고 리소스를 제한한다."
+        },
+        {
+          "id": "D",
+          "text": "요청 주체의 태그와 리소스 태그가 일치할 때만 허용하는 조건을 쓴 정책 하나를 사용한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "속성 기반 접근 제어는 주체에 붙은 태그와 리소스에 붙은 태그를 조건으로 비교해 접근을 결정하는 방식입니다. 정책 안에 프로젝트 이름을 적지 않고 태그가 같은지를 묻기 때문에, 새 프로젝트가 생겨도 태그만 올바르게 붙이면 정책을 고칠 필요가 없습니다. 리소스를 일일이 나열하는 방식은 프로젝트 수만큼 정책이 늘어나 확장성이 떨어집니다. 다만 태그 값을 바꿀 수 있는 권한을 함께 통제하지 않으면 우회가 가능해집니다.",
+      "distractorNotes": {
+        "A": "동작은 하지만 프로젝트가 늘 때마다 정책을 만들고 연결해야 합니다. 정책을 새로 만들지 않아야 한다는 요구를 위반합니다.",
+        "B": "계정 분리는 강한 격리를 주지만 이미 같은 계정에서 운영 중인 상황을 크게 바꿔야 합니다. 요구에 비해 과도한 변경입니다.",
+        "C": "권한 경계는 주체가 가질 수 있는 최대 권한의 상한이며 리소스 단위 소유권을 표현하는 도구가 아닙니다. 프로젝트 수만큼 경계를 만들어야 하는 문제도 그대로입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html",
+          "title": "IAM JSON 정책 요소"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html",
+          "title": "IAM의 정책과 권한"
+        }
+      ],
+      "tags": [
+        "iam-policy-evaluation",
+        "abac",
+        "iam"
+      ]
+    },
+    {
+      "id": "saa-secure-051",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 회사가 운영자에게 프로덕션 리소스 삭제 권한을 유지하되, 삭제 작업만은 다중 인증을 거친 세션에서만 수행되게 하려 합니다. 콘솔과 CLI 모두에 동일하게 적용되어야 합니다. 어떤 방법이 가장 적절합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "운영자 IAM 사용자에게 MFA 디바이스를 등록하도록 안내하고 정책은 그대로 둔다."
+        },
+        {
+          "id": "B",
+          "text": "삭제 작업에 aws:MultiFactorAuthPresent 조건을 걸어 다중 인증 세션에서만 허용한다."
+        },
+        {
+          "id": "C",
+          "text": "삭제 권한을 별도 IAM 사용자에게 옮기고 비밀번호를 보안팀이 보관한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Config 규칙으로 삭제 이벤트를 탐지해 자동으로 리소스를 복구한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "MFA 등록과 MFA 강제는 다른 문제입니다. 디바이스를 등록해 두어도 정책에 조건이 없으면 다중 인증 없이 받은 세션으로 삭제가 가능합니다. 정책의 조건 요소로 다중 인증 여부를 요구하면 콘솔이든 CLI든 그 조건을 만족하는 세션에서만 작업이 허용되므로 강제가 성립합니다. 이처럼 특정 작업에만 추가 인증을 요구할 때는 권한을 분리하기보다 조건을 붙이는 편이 단순하고 감사도 쉽습니다.",
+      "distractorNotes": {
+        "A": "등록만으로는 사용이 강제되지 않습니다. 정책에 조건이 없으면 다중 인증 없이도 삭제가 통과합니다.",
+        "C": "공유 자격 증명을 만드는 방향이라 책임 추적이 어려워집니다. 보안팀이 병목이 되는 운영 부담도 생깁니다.",
+        "D": "탐지 후 복구는 예방이 아닙니다. 삭제와 복구 사이의 공백과 복구 불가능한 리소스 문제가 남습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html",
+          "title": "IAM JSON 정책 요소"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+          "title": "IAM 보안 모범 사례"
+        }
+      ],
+      "tags": [
+        "iam-policy-evaluation",
+        "mfa",
+        "iam"
+      ]
+    },
+    {
+      "id": "saa-secure-052",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "신규 입사한 데이터 분석가 열 명에게 특정 S3 버킷 읽기와 Athena 쿼리 실행 권한을 주어야 합니다. 인원은 계속 늘어날 예정이며 권한은 동일합니다. 관리 부담이 가장 적은 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "사용자마다 인라인 정책을 작성해 필요한 권한을 개별로 부여한다."
+        },
+        {
+          "id": "B",
+          "text": "전원에게 AdministratorAccess를 부여하고 이후 필요 없는 권한을 제거해 나간다."
+        },
+        {
+          "id": "C",
+          "text": "분석가용 그룹이나 권한 집합을 만들어 필요한 정책을 붙이고 사용자를 소속시킨다."
+        },
+        {
+          "id": "D",
+          "text": "요청이 있을 때마다 보안팀이 임시로 권한을 부여하고 하루 뒤 회수한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "같은 권한을 여러 사람에게 줄 때는 개인이 아니라 묶음 단위로 정책을 관리합니다. 그룹이나 권한 집합에 정책을 붙여 두면 인원이 늘어도 소속만 바꾸면 되고, 권한을 조정할 때 한 곳만 고치면 전원에게 반영됩니다. 사용자마다 정책을 복사하면 시간이 지날수록 서로 다른 권한이 생겨 감사와 회수가 어려워집니다. 넓게 준 뒤 줄이는 방식은 최소 권한 원칙의 반대 방향입니다.",
+      "distractorNotes": {
+        "A": "동작은 하지만 인원이 늘수록 같은 정책이 복제되어 표류합니다. 변경 한 번에 사용자 수만큼 작업이 필요합니다.",
+        "B": "넓은 권한을 먼저 주면 그 사이에 발생한 접근을 되돌릴 수 없습니다. 최소 권한은 좁게 시작해 필요할 때 넓히는 것이 원칙입니다.",
+        "D": "매번 사람이 개입하므로 관리 부담이 가장 큽니다. 상시 필요한 권한을 임시 부여로 처리하는 것은 목적에도 맞지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups.html",
+          "title": "IAM 사용자 그룹"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+          "title": "IAM 보안 모범 사례"
+        }
+      ],
+      "tags": [
+        "iam",
+        "least-privilege",
+        "federation-choice"
+      ]
+    },
+    {
+      "id": "saa-secure-053",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "외부 협력사가 대용량 보고서 파일 하나를 24시간 안에 내려받아야 합니다. 협력사에는 AWS 계정이 없고 버킷은 비공개로 유지되어야 합니다. 적절한 접근 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "만료 시간을 설정한 사전 서명 URL을 생성해 협력사에 전달한다."
+        },
+        {
+          "id": "B",
+          "text": "버킷의 퍼블릭 액세스 차단을 해제하고 객체를 공개로 전환한다."
+        },
+        {
+          "id": "C",
+          "text": "CloudFront 배포에 서명된 URL을 사용해 만료 시간이 있는 접근을 제공한다."
+        },
+        {
+          "id": "D",
+          "text": "협력사에 IAM 사용자를 만들어 액세스 키를 이메일로 전달한다."
+        },
+        {
+          "id": "E",
+          "text": "버킷 ACL로 모든 사용자에게 읽기 권한을 부여하고 파일명을 복잡하게 짓는다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "AWS 계정이 없는 상대에게 한시적 접근을 줄 때는 시간 제한이 있는 서명 방식이 표준입니다. 사전 서명 URL은 서명한 주체의 권한과 만료 시간을 담은 링크이며, 만료 후에는 같은 주소로 접근할 수 없습니다. CloudFront 서명된 URL도 같은 목적을 배포 계층에서 처리하며 대용량 전송에서는 엣지 캐시의 이점도 얻습니다. 어느 쪽이든 버킷은 비공개로 유지된다는 점이 공개 전환과 결정적으로 다릅니다.",
+      "distractorNotes": {
+        "B": "객체를 공개로 바꾸면 링크를 아는 누구나 접근할 수 있고 만료도 없습니다. 버킷을 비공개로 유지하라는 요구를 위반합니다.",
+        "D": "일회성 다운로드를 위해 장기 자격 증명을 외부에 넘기는 것은 회수와 감사가 어렵습니다. 이메일 전달은 유출 경로를 하나 더 만듭니다.",
+        "E": "이름을 어렵게 짓는 것은 통제가 아닙니다. 공개된 객체는 어떤 방식으로든 노출될 수 있습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html",
+          "title": "사전 서명된 URL 사용"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-choosing-signed-urls-cookies.html",
+          "title": "서명된 URL과 서명된 쿠키 선택"
+        }
+      ],
+      "tags": [
+        "s3",
+        "presigned-url",
+        "cloudfront"
+      ]
+    },
+    {
+      "id": "saa-secure-054",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "모바일 앱이 사용자에게 개인 문서를 보여 줍니다. 문서는 비공개 S3 버킷에 있고 앱 서버는 사용자를 이미 인증했습니다. 서버가 문서를 대신 내려받아 중계하지 않으면서 짧은 시간만 접근을 허용하려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "서버가 짧은 만료 시간의 사전 서명 URL을 만들어 앱에 전달한다."
+        },
+        {
+          "id": "B",
+          "text": "앱에 읽기 전용 IAM 사용자 액세스 키를 내장해 직접 조회하게 한다."
+        },
+        {
+          "id": "C",
+          "text": "해당 객체만 퍼블릭으로 전환하고 조회 후 다시 비공개로 되돌린다."
+        },
+        {
+          "id": "D",
+          "text": "버킷 정책에서 앱 사용자의 단말 IP를 허용 소스로 추가한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "사전 서명 URL은 이미 권한을 가진 주체가 자기 권한 범위 안에서 시간 제한이 있는 접근 링크를 만들어 주는 기능입니다. 앱은 그 링크로 S3에서 직접 내려받으므로 서버가 대용량 데이터를 중계하지 않아도 되고, 만료 이후에는 링크가 무효가 되어 노출 창이 좁습니다. 클라이언트에 장기 자격 증명을 넣거나 객체를 잠시 공개하는 방법은 노출 범위를 통제할 수 없습니다. 만료 시간은 요구에 맞는 최소값으로 잡는 것이 원칙입니다.",
+      "distractorNotes": {
+        "B": "배포된 앱에 넣은 키는 공개된 것과 같습니다. 게다가 그 키의 권한이면 다른 사용자의 문서까지 읽을 수 있습니다.",
+        "C": "잠시라도 공개로 전환하면 그 사이 누구나 접근할 수 있고 되돌리기를 잊는 사고가 잦습니다. 접근 제어를 수동 조작으로 대신하는 방식입니다.",
+        "D": "모바일 단말의 IP는 이동 중 계속 바뀌고 여러 사용자가 같은 주소를 공유할 수도 있습니다. 사용자별 접근 제어가 성립하지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html",
+          "title": "사전 서명된 URL 사용"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html",
+          "title": "IAM의 임시 보안 자격 증명"
+        }
+      ],
+      "tags": [
+        "s3",
+        "presigned-url",
+        "least-privilege"
+      ]
+    },
+    {
+      "id": "saa-secure-055",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "정적 웹사이트 자산이 S3 버킷에 있고 Amazon CloudFront로 배포됩니다. 사용자가 버킷 URL로 직접 접근하는 경로를 없애고 CloudFront를 통해서만 콘텐츠를 받게 하려 합니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "버킷을 정적 웹사이트 호스팅으로 설정하고 CloudFront 오리진을 그 엔드포인트로 지정한다."
+        },
+        {
+          "id": "B",
+          "text": "버킷 정책에서 CloudFront 엣지 로케이션의 IP 대역만 허용한다."
+        },
+        {
+          "id": "C",
+          "text": "버킷에 퍼블릭 읽기를 허용하고 CloudFront에서 뷰어 프로토콜을 HTTPS로 강제한다."
+        },
+        {
+          "id": "D",
+          "text": "오리진 액세스 제어를 설정하고 버킷 정책에서 해당 배포만 읽도록 허용한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "오리진 액세스 제어를 사용하면 CloudFront가 오리진으로 보내는 요청에 서명을 붙이고, 버킷 정책은 그 배포에서 온 요청만 허용합니다. 버킷은 퍼블릭 액세스 차단을 켠 상태로 유지되므로 직접 접근 경로가 사라집니다. 엣지 IP 대역을 허용하는 방식은 주소가 바뀌면 깨지고 목록 관리도 현실적이지 않습니다. 오리진 보호는 배포 앞단의 접근 통제와 별개의 문제라는 점을 구분해야 합니다.",
+      "distractorNotes": {
+        "A": "정적 웹사이트 엔드포인트는 퍼블릭으로 열려 있어야 동작합니다. 직접 접근 경로를 없애려는 요구와 정면으로 충돌합니다.",
+        "B": "엣지 로케이션 주소 목록은 변합니다. 이를 정책에 하드코딩하면 유지가 불가능하고 장애 원인이 됩니다.",
+        "C": "뷰어 프로토콜 강제는 사용자와 CloudFront 사이 구간의 문제입니다. 버킷이 퍼블릭인 이상 직접 접근은 그대로 가능합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html",
+          "title": "S3 오리진에 대한 접근 제한"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_OriginAccessControlConfig.html",
+          "title": "CloudFront OriginAccessControlConfig"
+        }
+      ],
+      "tags": [
+        "cloudfront",
+        "s3",
+        "tls-termination"
+      ]
+    },
+    {
+      "id": "saa-secure-056",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 교육 회사가 유료 구독자에게만 동영상을 제공합니다. 콘텐츠는 CloudFront로 배포되며, 구독이 끝난 사용자가 예전에 받은 링크를 계속 쓰지 못해야 하고 재생 목록의 여러 파일에 한 번에 접근 권한을 주어야 합니다. 가장 적절한 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "파일마다 사전 서명 S3 URL을 만들어 재생 목록에 넣어 전달한다."
+        },
+        {
+          "id": "B",
+          "text": "CloudFront 서명된 쿠키를 발급해 정책에 맞는 경로 전체의 접근을 제어한다."
+        },
+        {
+          "id": "C",
+          "text": "지리적 제한을 설정해 구독자가 있는 국가에서만 접근을 허용한다."
+        },
+        {
+          "id": "D",
+          "text": "웹 ACL에 속도 기반 규칙을 추가해 과도한 요청을 차단한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "CloudFront 서명된 URL은 파일 하나에 대한 접근을, 서명된 쿠키는 정책에 지정한 여러 경로에 대한 접근을 한 번에 제어합니다. 재생 목록처럼 여러 파일을 연속으로 받아야 하는 콘텐츠에는 쿠키 방식이 URL을 파일마다 만드는 것보다 단순합니다. 어느 쪽이든 만료 시간이 정책에 들어가므로 구독이 끝나면 기존 링크가 자동으로 무효가 됩니다. 오리진이 S3라면 오리진 액세스 제어를 함께 걸어 우회 경로를 막아야 합니다.",
+      "distractorNotes": {
+        "A": "동작은 하지만 파일 수만큼 URL을 만들어야 하고 엣지 캐시의 이점도 얻지 못합니다. 여러 파일에 한 번에 권한을 준다는 요구와도 어긋납니다.",
+        "C": "지리적 제한은 국가 단위 통제이며 구독 여부를 구분하지 못합니다. 같은 나라의 비구독자를 막을 수 없습니다.",
+        "D": "속도 제한은 남용을 줄이는 수단이지 인가 수단이 아닙니다. 구독 만료 사용자를 걸러 내지 못합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-choosing-signed-urls-cookies.html",
+          "title": "서명된 URL과 서명된 쿠키 선택"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html",
+          "title": "S3 오리진에 대한 접근 제한"
+        }
+      ],
+      "tags": [
+        "cloudfront",
+        "signed-cookies",
+        "waf-vs-shield"
+      ]
+    },
+    {
+      "id": "saa-secure-057",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "라이선스 계약에 따라 특정 국가에서는 CloudFront로 배포하는 콘텐츠를 제공할 수 없습니다. 애플리케이션 코드를 바꾸지 않고 이 요구를 충족하는 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "Route 53 지리 위치 라우팅으로 해당 국가의 질의를 다른 리전으로 보낸다."
+        },
+        {
+          "id": "B",
+          "text": "오리진 서버에서 요청 헤더를 검사해 해당 국가의 요청을 거부한다."
+        },
+        {
+          "id": "C",
+          "text": "CloudFront 배포에서 지리적 제한을 설정해 해당 국가를 차단한다."
+        },
+        {
+          "id": "D",
+          "text": "네트워크 ACL에 해당 국가의 IP 대역을 거부 규칙으로 추가한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "CloudFront의 지리적 제한은 배포 설정만으로 국가 단위 허용 목록이나 차단 목록을 적용합니다. 판단이 엣지에서 이루어지므로 차단된 요청은 오리진까지 도달하지 않고 애플리케이션 코드도 바뀌지 않습니다. 오리진에서 직접 거르면 요청이 이미 오리진까지 오게 되고 코드 변경도 필요합니다. 더 세밀한 조건이 필요하다면 WAF의 지리 일치 규칙을 함께 쓸 수 있습니다.",
+      "distractorNotes": {
+        "A": "지리 위치 라우팅은 응답할 엔드포인트를 고르는 기능이며 접근 차단 수단이 아닙니다. 다른 리전으로 보내도 콘텐츠는 제공됩니다.",
+        "B": "동작할 수 있지만 애플리케이션 변경이 필요하고 모든 요청이 오리진까지 도달합니다. 코드를 바꾸지 않는다는 제약을 위반합니다.",
+        "D": "네트워크 ACL은 VPC 서브넷 계층의 통제이며 CloudFront 엣지에서 종료되는 요청에는 적용되지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/georestrictions.html",
+          "title": "CloudFront 지리적 제한"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html",
+          "title": "Amazon CloudFront란"
+        }
+      ],
+      "tags": [
+        "cloudfront",
+        "waf-vs-shield",
+        "compliance"
+      ]
+    },
+    {
+      "id": "saa-secure-058",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "한 팀이 사내 문서용 S3 버킷이 외부에 노출되지 않도록 하려 합니다. 문서는 사내 애플리케이션의 IAM 역할만 읽어야 합니다. 이 요구에 맞는 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "버킷 정책에서 익명 주체에 대한 읽기를 명시적으로 허용하되 접두사를 제한한다."
+        },
+        {
+          "id": "B",
+          "text": "버킷의 퍼블릭 액세스 차단 설정을 켜진 상태로 유지한다."
+        },
+        {
+          "id": "C",
+          "text": "객체마다 퍼블릭 읽기 ACL을 부여하고 파일명을 임의 문자열로 만든다."
+        },
+        {
+          "id": "D",
+          "text": "버킷 정책에서 해당 애플리케이션 역할만 주체로 허용한다."
+        },
+        {
+          "id": "E",
+          "text": "버킷을 정적 웹사이트 호스팅으로 전환해 접근 경로를 단순화한다."
+        }
+      ],
+      "answer": [
+        "B",
+        "D"
+      ],
+      "explanation": "비공개 유지의 기본은 퍼블릭 경로를 차단한 상태를 유지하고 필요한 주체만 정책으로 허용하는 것입니다. 퍼블릭 액세스 차단은 실수로 만들어진 퍼블릭 정책이나 ACL을 무력화하는 안전망 역할을 합니다. 그 위에서 버킷 정책이 특정 역할만 주체로 허용하면 최소 권한이 완성됩니다. 신규 버킷은 이 차단이 기본으로 켜져 있으므로 대개 해제하지 않는 것 자체가 조치가 됩니다.",
+      "distractorNotes": {
+        "A": "익명 주체에 대한 허용은 그 자체로 공개입니다. 접두사를 제한해도 그 접두사가 공개된다는 사실은 바뀌지 않습니다.",
+        "C": "이름을 추측하기 어렵게 만드는 것은 접근 제어가 아닙니다. 현행 버킷은 ACL도 기본 비활성 상태입니다.",
+        "E": "정적 웹사이트 호스팅은 퍼블릭 제공을 전제로 하는 기능입니다. 사내 전용 요구와 방향이 반대입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html",
+          "title": "Amazon S3 CreateBucket"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html",
+          "title": "S3 정적 웹사이트 호스팅"
+        }
+      ],
+      "tags": [
+        "s3-secure-defaults",
+        "s3",
+        "least-privilege"
+      ]
+    },
+    {
+      "id": "saa-secure-059",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "보안팀이 VPC 안에서 거부된 연결 시도와 비정상 통신 패턴을 조사할 수 있어야 한다고 요구했습니다. 로그는 장기 보관하고 질의도 가능해야 합니다. 어떤 조치를 취해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "VPC 흐름 로그를 활성화해 허용·거부된 트래픽 메타데이터를 기록한다."
+        },
+        {
+          "id": "B",
+          "text": "보안 그룹에 거부 규칙을 추가해 차단 이벤트를 로그로 남긴다."
+        },
+        {
+          "id": "C",
+          "text": "흐름 로그 대상을 S3 버킷으로 지정해 장기 보관하고 분석에 사용한다."
+        },
+        {
+          "id": "D",
+          "text": "CloudTrail 데이터 이벤트를 켜서 인스턴스 간 패킷을 기록한다."
+        },
+        {
+          "id": "E",
+          "text": "네트워크 ACL 규칙 번호를 재정렬해 거부 로그가 생성되게 한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "VPC 흐름 로그는 네트워크 인터페이스를 오가는 IP 트래픽의 메타데이터를 기록하며 허용과 거부를 모두 남깁니다. 대상은 CloudWatch Logs나 S3 중에서 고를 수 있고, 장기 보관과 대용량 질의가 중요하면 S3에 두고 분석 도구로 조회하는 구성이 적합합니다. 흐름 로그는 패킷 내용이 아니라 메타데이터를 남긴다는 점도 함께 기억해야 합니다. 내용까지 봐야 한다면 트래픽 미러링처럼 다른 수단이 필요합니다.",
+      "distractorNotes": {
+        "B": "보안 그룹에는 거부 규칙이 없습니다. 차단 기록은 흐름 로그가 남깁니다.",
+        "D": "CloudTrail은 API 호출 기록을 남기는 서비스이며 인스턴스 간 네트워크 패킷을 기록하지 않습니다.",
+        "E": "규칙 번호는 평가 순서를 정할 뿐 로그 생성 여부와 무관합니다. 로그는 흐름 로그 설정으로 만들어집니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html",
+          "title": "VPC 흐름 로그"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateFlowLogs.html",
+          "title": "Amazon EC2 CreateFlowLogs"
+        }
+      ],
+      "tags": [
+        "sg-vs-nacl",
+        "flow-logs",
+        "vpc",
+        "audit"
+      ]
+    },
+    {
+      "id": "saa-secure-060",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "규정 준수를 위해 KMS로 암호화된 S3 객체를 다른 리전의 버킷으로 복제해야 합니다. 대상 리전에서도 암호화가 유지되어야 하고 복제가 실패해서는 안 됩니다. 필요한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "복제 규칙에서 KMS로 암호화된 객체의 복제를 활성화하고 대상 리전의 KMS 키를 지정한다."
+        },
+        {
+          "id": "B",
+          "text": "원본 객체를 모두 SSE-S3로 다시 암호화한 뒤 복제를 설정한다."
+        },
+        {
+          "id": "C",
+          "text": "복제 역할에 원본 키의 복호화와 대상 키의 암호화 권한을 부여한다."
+        },
+        {
+          "id": "D",
+          "text": "대상 버킷을 원본과 같은 KMS 키로 암호화하도록 설정한다."
+        },
+        {
+          "id": "E",
+          "text": "두 버킷의 버전 관리를 끄고 객체 덮어쓰기로 동기화한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "S3 복제는 복제 역할이 대신 읽고 쓰는 구조이므로 암호화된 객체에서는 키 권한이 관건입니다. 규칙에서 KMS 암호화 객체 복제를 켜고 대상에서 사용할 키를 지정한 뒤, 복제 역할에 원본 키 복호화와 대상 키 암호화 권한을 함께 주어야 합니다. KMS 키는 리전 리소스이므로 원본 키를 다른 리전 버킷의 기본 키로 지정할 수 없습니다. 복제 기능 자체가 원본과 대상 양쪽의 버전 관리를 요구한다는 점도 전제 조건입니다.",
+      "distractorNotes": {
+        "B": "암호화 방식을 낮추는 방향이라 규정 준수 요구를 스스로 포기하는 선택입니다. 전체 재암호화 비용도 큽니다.",
+        "D": "KMS 키는 리전에 속하므로 다른 리전 버킷의 기본 암호화 키로 지정할 수 없습니다. 다중 리전 키를 쓰는 별도 설계가 필요합니다.",
+        "E": "S3 복제는 원본과 대상 모두 버전 관리가 켜져 있어야 동작합니다. 버전 관리를 끄면 복제 구성 자체가 성립하지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html",
+          "title": "객체 복제"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketReplication.html",
+          "title": "Amazon S3 PutBucketReplication"
+        }
+      ],
+      "tags": [
+        "s3-encryption-choice",
+        "s3-replication",
+        "kms-envelope",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-061",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 제조사가 공장 시스템과 VPC 사이에 상시 대용량 트래픽을 주고받아야 합니다. 보안 정책상 이 트래픽은 공용 인터넷 회선을 지나서는 안 되며 지연 시간도 일정해야 합니다. 가장 적절한 연결 방식은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "사이트 간 VPN 터널을 두 개 만들어 이중화하고 IPsec으로 암호화한다."
+        },
+        {
+          "id": "B",
+          "text": "인터넷 게이트웨이를 통해 공인 IP로 접속하고 TLS로 전 구간을 암호화한다."
+        },
+        {
+          "id": "C",
+          "text": "공장에 NAT 게이트웨이를 두고 VPC 엔드포인트로 서비스에 접근한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Direct Connect 전용 연결을 구성해 프라이빗 가상 인터페이스로 VPC에 연결한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "인터넷을 지나면 안 된다는 제약은 암호화가 아니라 경로에 대한 요구입니다. Direct Connect는 고객 시설과 AWS를 잇는 전용 연결이므로 트래픽이 공용망을 타지 않고 대역폭과 지연이 일정합니다. 사이트 간 VPN도 암호화는 되지만 실제 경로는 인터넷 회선이라 이 제약을 만족하지 못하고 지연도 변동합니다. 조건이 빠른 구축과 낮은 초기 비용이었다면 답은 반대로 VPN이 됩니다.",
+      "distractorNotes": {
+        "A": "VPN 터널은 암호화된 논리 경로일 뿐 물리 경로는 인터넷입니다. 경로 제약과 지연 일관성 요구를 둘 다 충족하지 못합니다.",
+        "B": "TLS는 내용 보호이며 경로를 바꾸지 않습니다. 공인 IP 접속은 노출 면도 넓힙니다.",
+        "C": "VPC 엔드포인트는 VPC 안의 리소스가 AWS 서비스에 접근하는 수단입니다. 온프레미스와 VPC를 잇는 연결 수단이 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html",
+          "title": "AWS Direct Connect란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/WorkingWithVirtualInterfaces.html",
+          "title": "가상 인터페이스 작업"
+        }
+      ],
+      "tags": [
+        "hybrid-connectivity",
+        "direct-connect",
+        "vpc-endpoint-choice"
+      ]
+    },
+    {
+      "id": "saa-secure-062",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 스타트업이 사무실 네트워크와 VPC를 2주 안에 연결해야 합니다. 트래픽 양은 많지 않고 예산도 제한적이며, 전송 구간은 암호화되어야 합니다. 가장 적절한 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "AWS 사이트 간 VPN을 구성해 가상 프라이빗 게이트웨이와 IPsec 터널을 맺는다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Direct Connect 전용 연결을 신청해 프라이빗 가상 인터페이스를 만든다."
+        },
+        {
+          "id": "C",
+          "text": "퍼블릭 서브넷에 배스천 호스트를 두고 SSH 터널로 내부 리소스에 접근한다."
+        },
+        {
+          "id": "D",
+          "text": "VPC 피어링으로 사무실 네트워크와 VPC를 직접 연결한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "사이트 간 VPN은 인터넷 회선 위에 IPsec 터널을 세우는 방식이라 물리 회선 준비 없이 단시간에 구성할 수 있고 초기 비용이 낮습니다. 암호화가 기본이므로 전송 구간 보호 요구도 충족합니다. Direct Connect는 전용 회선이라 성능과 경로 면에서 우수하지만 준비 기간이 길어 2주라는 제약과 충돌합니다. 실무에서는 VPN으로 먼저 연결하고 이후 Direct Connect로 옮기면서 VPN을 백업으로 남기는 순서가 흔합니다.",
+      "distractorNotes": {
+        "B": "전용 연결은 물리 회선 신청과 설치가 필요해 짧은 기간에 완료하기 어렵습니다. 비용 제약과도 맞지 않습니다.",
+        "C": "배스천을 통한 접속은 관리자 개별 접속을 위한 수단이며 네트워크 간 연결이 아닙니다. 사무실 시스템이 VPC 리소스와 통신하는 요구를 채우지 못합니다.",
+        "D": "VPC 피어링은 AWS의 VPC끼리 연결하는 기능입니다. 온프레미스 네트워크는 대상이 되지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpn/latest/s2svpn/VPC_VPN.html",
+          "title": "AWS 사이트 간 VPN이란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html",
+          "title": "AWS Direct Connect란"
+        }
+      ],
+      "tags": [
+        "hybrid-connectivity",
+        "vpn",
+        "direct-connect"
+      ]
+    },
+    {
+      "id": "saa-secure-063",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 은행이 Direct Connect 하나로 본사와 VPC를 연결해 운영합니다. 회선 장애 시에도 업무가 끊기지 않아야 하지만 두 번째 전용 회선을 즉시 확보하기는 어렵습니다. 가장 적절한 보완 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "인터넷 게이트웨이 경로를 추가해 장애 시 공인 IP로 접속하도록 전환한다."
+        },
+        {
+          "id": "B",
+          "text": "Direct Connect 연결의 대역폭을 늘리고 라우팅을 이중화한다."
+        },
+        {
+          "id": "C",
+          "text": "다른 리전에 VPC를 하나 더 만들고 리전 간 피어링을 구성한다."
+        },
+        {
+          "id": "D",
+          "text": "사이트 간 VPN을 백업 경로로 구성하고 라우팅 우선순위를 전용 연결에 둔다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "전용 연결의 단일 장애점을 보완하는 표준 구성은 사이트 간 VPN을 백업 경로로 두는 것입니다. 평상시에는 전용 연결이 선호되도록 라우팅 우선순위를 두고, 장애가 나면 트래픽이 암호화된 VPN 터널로 넘어갑니다. 두 번째 전용 회선을 놓는 것이 성능 면에서는 더 낫지만 즉시 확보하기 어렵다는 제약이 있으므로 이 시나리오에서는 VPN이 현실적인 답입니다. 대역폭을 늘리는 조치는 처리량 문제이지 가용성 문제의 해법이 아닙니다.",
+      "distractorNotes": {
+        "A": "공인 IP 직접 접속은 암호화와 경로 통제를 모두 잃습니다. 금융권 보안 요구에서 허용되기 어려운 구성입니다.",
+        "B": "대역폭 증설은 같은 회선의 용량을 키울 뿐 그 회선이 끊겼을 때를 대비하지 못합니다. 단일 장애점이 그대로 남습니다.",
+        "C": "다른 리전의 VPC를 추가해도 본사와 AWS를 잇는 구간의 장애는 그대로입니다. 끊기는 지점을 잘못 짚은 대책입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpn/latest/s2svpn/vpn-static-dynamic.html",
+          "title": "사이트 간 VPN 라우팅 옵션"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/whitepapers/latest/aws-vpc-connectivity-options/aws-direct-connect.html",
+          "title": "VPC 연결 옵션 — Direct Connect"
+        }
+      ],
+      "tags": [
+        "hybrid-connectivity",
+        "direct-connect",
+        "vpn",
+        "single-point-of-failure"
+      ]
+    },
+    {
+      "id": "saa-secure-064",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 기업이 VPC 25개와 온프레미스 데이터센터를 서로 통신하게 하려 합니다. 지금은 VPC 피어링을 하나씩 추가하고 있는데 연결 수와 라우팅 테이블 항목이 감당하기 어려울 만큼 늘고 있습니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "모든 VPC를 하나의 대형 VPC로 통합하고 서브넷으로 구분한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Transit Gateway를 만들어 VPC와 온프레미스 연결을 연결한다."
+        },
+        {
+          "id": "C",
+          "text": "중앙 VPC를 허브로 두고 나머지를 피어링해 전이 라우팅을 구성한다."
+        },
+        {
+          "id": "D",
+          "text": "각 VPC에 인터페이스 엔드포인트를 만들어 서로의 서비스를 호출한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "VPC 피어링은 두 VPC를 잇는 일대일 관계이며 전이 라우팅을 지원하지 않습니다. 그래서 연결 수가 늘수록 필요한 피어링과 라우팅 항목이 급격히 증가합니다. Transit Gateway는 허브 역할을 하는 리전 라우터로, VPC와 VPN·Direct Connect 연결을 하나의 지점에 붙여 라우팅 테이블로 통신 범위를 통제합니다. 다수의 네트워크를 한 번에 연결해야 한다는 서술이 나오면 이 서비스를 먼저 떠올려야 합니다.",
+      "distractorNotes": {
+        "A": "VPC를 통합하면 장애 영역과 권한 경계가 함께 합쳐집니다. 팀별 격리를 잃고 마이그레이션 비용도 큽니다.",
+        "C": "피어링은 전이 라우팅을 지원하지 않으므로 허브를 두어도 스포크끼리 통신할 수 없습니다. 구성 자체가 성립하지 않습니다.",
+        "D": "인터페이스 엔드포인트는 특정 서비스를 노출할 때 쓰는 수단입니다. 네트워크 전체를 서로 연결하는 문제와 층위가 다릅니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/tgw/how-transit-gateways-work.html",
+          "title": "Transit Gateway 작동 방식"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html",
+          "title": "VPC 피어링 기본 사항"
+        }
+      ],
+      "tags": [
+        "hybrid-connectivity",
+        "transit-gateway",
+        "vpc"
+      ]
+    },
+    {
+      "id": "saa-secure-065",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "VPC A와 VPC B가 피어링되어 있고, VPC B와 VPC C도 피어링되어 있습니다. VPC A의 인스턴스가 VPC C의 인스턴스와 통신하려 하지만 실패합니다. 원인으로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "VPC 피어링은 전이 라우팅을 지원하지 않아 A와 C 사이에 별도 피어링이 필요하다."
+        },
+        {
+          "id": "B",
+          "text": "피어링 연결은 같은 리전 안에서만 동작하므로 리전이 다르면 통신할 수 없다."
+        },
+        {
+          "id": "C",
+          "text": "피어링된 VPC끼리는 보안 그룹을 참조할 수 없어 통신이 차단된다."
+        },
+        {
+          "id": "D",
+          "text": "피어링 연결마다 NAT 게이트웨이를 두어야 트래픽이 전달된다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "VPC 피어링은 두 VPC 사이의 일대일 연결이며 중간 VPC를 거쳐 다른 VPC로 넘어가는 전이 통신을 허용하지 않습니다. 세 VPC가 서로 통신하려면 세 개의 피어링이 필요하고, 개수가 늘면 이 방식은 곧 한계에 부딪힙니다. 다수의 네트워크를 연결해야 한다면 Transit Gateway가 대안이 됩니다. 피어링 자체는 서로 다른 리전과 다른 계정의 VPC 사이에도 만들 수 있습니다.",
+      "distractorNotes": {
+        "B": "다른 리전의 VPC 사이에도 피어링을 만들 수 있습니다. 리전 제약은 원인이 아닙니다.",
+        "C": "같은 리전의 피어링에서는 상대 VPC의 보안 그룹을 규칙 소스로 참조할 수 있습니다. 통신 실패의 원인은 라우팅 구조입니다.",
+        "D": "피어링 트래픽은 프라이빗 IP로 직접 오가며 NAT 게이트웨이를 필요로 하지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html",
+          "title": "VPC 피어링 기본 사항"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-peering.html",
+          "title": "VPC 피어링"
+        }
+      ],
+      "tags": [
+        "vpc",
+        "vpc-peering",
+        "hybrid-connectivity"
+      ]
+    },
+    {
+      "id": "saa-secure-066",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 SaaS 기업이 자사 VPC에서 운영하는 API를 여러 고객사의 VPC에 제공하려 합니다. 고객사 네트워크와 자사 네트워크가 서로 라우팅되면 안 되고, 노출 대상은 그 API 하나로 한정되어야 합니다. 가장 적절한 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "고객사마다 VPC 피어링을 맺고 보안 그룹으로 API 포트만 허용한다."
+        },
+        {
+          "id": "B",
+          "text": "API를 인터넷에 공개하고 고객사 IP 대역만 허용하는 규칙을 둔다."
+        },
+        {
+          "id": "C",
+          "text": "Transit Gateway에 자사 VPC와 고객사 VPC를 모두 연결한다."
+        },
+        {
+          "id": "D",
+          "text": "Network Load Balancer 뒤에 API를 두고 엔드포인트 서비스로 게시해 고객이 인터페이스 엔드포인트로 접근하게 한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "AWS PrivateLink는 서비스 하나를 다른 VPC에 비공개로 노출하는 수단입니다. 제공자는 로드 밸런서 뒤의 서비스를 엔드포인트 서비스로 게시하고, 소비자는 자기 VPC에 인터페이스 엔드포인트를 만들어 접근합니다. 두 네트워크의 주소 공간이 연결되지 않으므로 대역이 겹쳐도 되고 노출 범위가 그 서비스로 한정됩니다. 네트워크 전체를 잇는 것이 목적이면 피어링이나 Transit Gateway, 특정 서비스만 노출하는 것이 목적이면 PrivateLink로 갈립니다.",
+      "distractorNotes": {
+        "A": "피어링은 네트워크를 서로 라우팅 가능하게 만들며 대역이 겹치면 아예 구성할 수 없습니다. 노출 범위도 서비스 하나로 한정되지 않습니다.",
+        "B": "인터넷 공개는 노출 면을 크게 늘립니다. IP 허용 목록은 고객사 주소가 바뀔 때마다 유지 부담이 생깁니다.",
+        "C": "Transit Gateway는 다수 네트워크를 라우팅으로 연결하는 허브입니다. 서로 라우팅되면 안 된다는 제약을 위반합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpcEndpointServiceConfiguration.html",
+          "title": "VPC 엔드포인트 서비스 구성 생성"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints.html",
+          "title": "AWS PrivateLink와 VPC 엔드포인트"
+        }
+      ],
+      "tags": [
+        "vpc-endpoint-choice",
+        "privatelink",
+        "vpc"
+      ]
+    },
+    {
+      "id": "saa-secure-067",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch05",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "보안팀이 서버 측 요청 위조 공격으로 EC2 인스턴스의 메타데이터에서 임시 자격 증명이 유출되는 시나리오를 우려합니다. 인스턴스 메타데이터 접근 자체는 유지해야 합니다. 어떤 조치가 가장 적절합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "인스턴스 메타데이터 서비스를 완전히 비활성화하고 자격 증명을 파일로 배포한다."
+        },
+        {
+          "id": "B",
+          "text": "인스턴스 메타데이터 옵션에서 세션 토큰을 요구하도록 설정해 IMDSv2만 사용하게 한다."
+        },
+        {
+          "id": "C",
+          "text": "메타데이터 주소로 향하는 트래픽을 보안 그룹 아웃바운드 규칙으로 차단한다."
+        },
+        {
+          "id": "D",
+          "text": "인스턴스 역할을 제거하고 애플리케이션에 액세스 키를 환경 변수로 넣는다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "IMDSv2는 메타데이터를 읽기 전에 PUT 요청으로 세션 토큰을 받아야 하는 방식이라, 단순히 URL을 대신 호출하게 만드는 서버 측 요청 위조 공격이 성립하기 어렵습니다. 메타데이터 옵션에서 토큰 요구를 설정하면 그 인스턴스는 IMDSv2로만 응답하며, 계정 수준 기본값으로도 지정할 수 있습니다. 메타데이터를 아예 끄면 역할 기반 자격 증명 전달이 불가능해져 더 나쁜 구성으로 되돌아갑니다. 최근 출시된 인스턴스 타입 중에는 IMDSv2만 지원하는 것도 있습니다.",
+      "distractorNotes": {
+        "A": "메타데이터를 끄면 인스턴스 역할이 동작하지 않아 장기 자격 증명을 다시 쓰게 됩니다. 위험을 다른 곳으로 옮기는 선택입니다.",
+        "C": "메타데이터 주소는 인스턴스 내부에서 처리되는 링크 로컬 주소이며 보안 그룹 규칙의 대상이 아닙니다.",
+        "D": "역할을 없애고 액세스 키로 되돌리는 것은 이 도메인에서 거의 언제나 오답입니다. 유출 시 피해가 더 커집니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html",
+          "title": "인스턴스 메타데이터 서비스 구성"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifyInstanceMetadataOptions.html",
+          "title": "ModifyInstanceMetadataOptions"
+        }
+      ],
+      "tags": [
+        "imdsv2-default",
+        "ec2",
+        "iam-role-vs-access-key"
+      ]
+    },
+    {
+      "id": "saa-secure-068",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "보안 정책상 VPC에서 나가는 모든 아웃바운드 트래픽은 허용된 도메인 목록에 대해서만 가능해야 하며, 여러 서브넷과 계정에 일관되게 적용되어야 합니다. 어떤 서비스를 사용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "네트워크 ACL에 허용 도메인의 IP 대역을 나열하고 나머지를 거부한다."
+        },
+        {
+          "id": "B",
+          "text": "보안 그룹 아웃바운드 규칙에 허용 도메인을 문자열로 추가한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS Network Firewall을 배포하고 도메인 목록 규칙으로 아웃바운드를 검사한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS WAF 웹 ACL을 VPC에 연결해 아웃바운드 요청을 규칙으로 거른다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "AWS Network Firewall은 VPC 경계에서 트래픽을 검사하는 관리형 방화벽으로, 도메인 이름 기반 허용·차단 규칙과 상태 저장 검사를 지원합니다. 규칙 그룹을 여러 VPC와 계정에 재사용할 수 있어 일관된 적용이라는 요구에도 맞습니다. 보안 그룹과 네트워크 ACL은 IP와 포트 수준의 통제라 도메인 목록을 표현할 수 없고, 대상 서비스의 주소가 바뀌면 곧 어긋납니다. WAF는 들어오는 웹 요청을 검사하는 도구이므로 방향이 반대입니다.",
+      "distractorNotes": {
+        "A": "도메인이 가리키는 주소는 수시로 바뀌므로 IP 목록으로는 유지할 수 없습니다. 규칙 수도 빠르게 한계에 부딪힙니다.",
+        "B": "보안 그룹 규칙의 대상은 IP 대역, 접두사 목록, 다른 보안 그룹입니다. 도메인 이름을 직접 적을 수 없습니다.",
+        "D": "WAF는 CloudFront나 로드 밸런서 같은 진입 지점에 연결해 인바운드 요청을 검사합니다. VPC 아웃바운드 필터링 도구가 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/network-firewall/latest/developerguide/what-is-aws-network-firewall.html",
+          "title": "AWS Network Firewall이란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html",
+          "title": "Amazon VPC의 보안"
+        }
+      ],
+      "tags": [
+        "sg-vs-nacl",
+        "network-firewall",
+        "vpc"
+      ]
+    },
+    {
+      "id": "saa-secure-069",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "온프레미스 배치 서버가 Amazon S3에 대용량 파일을 올려야 합니다. 트래픽은 공용 인터넷을 지나지 않아야 하고 S3 퍼블릭 엔드포인트로 나가서도 안 됩니다. 필요한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "온프레미스와 VPC를 AWS Direct Connect로 연결한다."
+        },
+        {
+          "id": "B",
+          "text": "VPC에 S3용 게이트웨이 엔드포인트를 만들고 온프레미스에서 그 경로로 접근한다."
+        },
+        {
+          "id": "C",
+          "text": "VPC에 S3용 인터페이스 엔드포인트를 만들어 온프레미스에서 프라이빗 IP로 접근한다."
+        },
+        {
+          "id": "D",
+          "text": "온프레미스 서버에 탄력적 IP를 부여하고 버킷 정책에 소스 IP 조건을 건다."
+        },
+        {
+          "id": "E",
+          "text": "S3 Transfer Acceleration을 활성화해 업로드 경로를 최적화한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "온프레미스에서 시작한 요청이 VPC를 거쳐 AWS 서비스로 가려면 두 가지가 필요합니다. 먼저 전용 연결이나 VPN으로 네트워크를 이어야 하고, 다음으로 그 네트워크에서 쓸 수 있는 비공개 진입점이 있어야 합니다. 게이트웨이 엔드포인트는 VPC 라우팅 테이블의 경로로 동작하기 때문에 VPC 밖에서 시작한 요청에는 쓸 수 없고, 이 경우에는 프라이빗 IP를 가지는 인터페이스 엔드포인트가 답이 됩니다. 두 엔드포인트 유형의 이 차이는 하이브리드 시나리오에서 결정적입니다.",
+      "distractorNotes": {
+        "B": "게이트웨이 엔드포인트는 VPC 안의 라우팅 테이블을 통해서만 사용됩니다. 온프레미스에서 온 트래픽은 이 경로를 이용할 수 없습니다.",
+        "D": "소스 IP 조건은 접근 제어를 더할 뿐 경로를 바꾸지 않습니다. 여전히 퍼블릭 엔드포인트로 나가게 됩니다.",
+        "E": "Transfer Acceleration은 엣지 로케이션을 거쳐 업로드를 빠르게 하는 기능으로 오히려 인터넷 경로를 사용합니다. 경로 제약과 충돌합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html",
+          "title": "인터페이스 VPC 엔드포인트"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/Welcome.html",
+          "title": "AWS Direct Connect란"
+        }
+      ],
+      "tags": [
+        "vpc-endpoint-choice",
+        "direct-connect",
+        "s3",
+        "privatelink"
+      ]
+    },
+    {
+      "id": "saa-secure-070",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "한 기업이 새 계정을 표준화된 보안 기준으로 빠르게 만들고, 승인되지 않은 리전 사용을 조직 차원에서 막으려 합니다. 이 요구에 맞는 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "계정마다 관리자가 체크리스트를 보고 수동으로 기준을 적용한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Control Tower로 랜딩 존을 만들고 계정 팩토리로 계정을 생성한다."
+        },
+        {
+          "id": "C",
+          "text": "각 계정에서 IAM 정책으로 리전 조건을 걸어 관리자에게만 예외를 준다."
+        },
+        {
+          "id": "D",
+          "text": "조직 SCP로 승인되지 않은 리전에서의 작업을 거부한다."
+        },
+        {
+          "id": "E",
+          "text": "AWS Config 규칙으로 승인되지 않은 리전의 리소스를 탐지해 알림을 보낸다."
+        }
+      ],
+      "answer": [
+        "B",
+        "D"
+      ],
+      "explanation": "계정 표준화와 조직 차원의 가드레일은 각각 담당하는 도구가 있습니다. Control Tower는 랜딩 존과 계정 팩토리로 새 계정에 기준 구성을 자동 적용해 사람이 매번 체크리스트를 따르지 않아도 되게 합니다. 리전 제한처럼 예외 없이 강제해야 하는 규칙은 SCP로 걸어야 계정 관리자도 우회할 수 없습니다. 계정별 IAM 정책은 그 계정의 관리자가 언제든 고칠 수 있어 조직 차원의 강제가 되지 않습니다.",
+      "distractorNotes": {
+        "A": "수동 적용은 누락과 표류를 만듭니다. 계정 수가 늘수록 기준이 서로 달라집니다.",
+        "C": "계정 안의 IAM 정책은 그 계정의 관리자가 수정할 수 있습니다. 상한을 거는 통제로는 부족합니다.",
+        "E": "Config 규칙은 이미 만들어진 리소스를 탐지합니다. 사용 자체를 막아 달라는 요구에는 예방 통제가 필요합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/controltower/latest/userguide/what-is-control-tower.html",
+          "title": "AWS Control Tower란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html",
+          "title": "서비스 제어 정책 전략"
+        }
+      ],
+      "tags": [
+        "scp-guardrail",
+        "organizations",
+        "control-tower"
+      ]
+    },
+    {
+      "id": "saa-secure-071",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "GuardDuty가 한 EC2 인스턴스에서 외부 명령 서버와의 통신을 탐지했습니다. 팀은 추가 확산을 막으면서 사후 분석에 필요한 증거를 남겨야 합니다. 가장 적절한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "인스턴스를 아웃바운드가 없는 격리용 보안 그룹으로 교체해 통신을 끊는다."
+        },
+        {
+          "id": "B",
+          "text": "인스턴스를 즉시 종료해 위협을 제거하고 새 인스턴스를 시작한다."
+        },
+        {
+          "id": "C",
+          "text": "연결된 EBS 볼륨의 스냅샷을 만들어 분석용으로 보관한다."
+        },
+        {
+          "id": "D",
+          "text": "인스턴스의 IAM 역할을 그대로 두어 조사 도구가 계속 접근하게 한다."
+        },
+        {
+          "id": "E",
+          "text": "CloudTrail 추적을 일시 중지해 조사 중 로그가 섞이지 않게 한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "침해 대응의 원칙은 확산을 막되 증거를 파괴하지 않는 것입니다. 격리용 보안 그룹으로 교체하면 인스턴스는 살아 있으면서 통신만 끊기므로 메모리와 디스크 상태가 보존됩니다. 볼륨 스냅샷은 디스크 증거를 시점 그대로 남기며, 이후 별도 분석 환경에 붙여 조사할 수 있습니다. 즉시 종료는 확산은 막지만 증거를 함께 없애므로 원인 규명이 어려워집니다.",
+      "distractorNotes": {
+        "B": "종료하면 인스턴스 스토어 데이터와 실행 중 상태가 사라집니다. 재발 원인을 찾지 못해 같은 사고가 반복될 수 있습니다.",
+        "D": "침해된 인스턴스의 역할은 공격자가 그대로 사용할 수 있습니다. 자격 증명 권한을 회수하는 것이 대응의 기본입니다.",
+        "E": "감사 로그를 멈추는 것은 조사에서 가장 중요한 기록을 잃는 행위입니다. 사고 중일수록 기록은 더 촘촘해야 합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html",
+          "title": "Amazon GuardDuty란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html",
+          "title": "Amazon EBS 스냅샷"
+        }
+      ],
+      "tags": [
+        "security-service-choice",
+        "incident-response",
+        "guardduty",
+        "ec2"
+      ]
+    },
+    {
+      "id": "saa-secure-072",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch05",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "새로 구축한 EC2 기반 애플리케이션의 보안 기준선을 세우려 합니다. 인스턴스에는 관리자가 직접 로그인하지 않으며 자동화된 방식으로 패치를 적용해야 합니다. 적절한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "모든 인스턴스에 공통 SSH 키 페어를 배포하고 담당자에게 공유한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Systems Manager로 인스턴스를 관리하고 패치 기준선으로 패치를 적용한다."
+        },
+        {
+          "id": "C",
+          "text": "보안 그룹에서 관리 포트를 모든 주소에 열어 두어 원격 지원을 대비한다."
+        },
+        {
+          "id": "D",
+          "text": "인스턴스에 IAM 사용자 액세스 키를 배포해 자동화 스크립트가 사용하게 한다."
+        },
+        {
+          "id": "E",
+          "text": "필요한 권한만 가진 인스턴스 프로필을 연결하고 EBS 볼륨 암호화를 적용한다."
+        }
+      ],
+      "answer": [
+        "B",
+        "E"
+      ],
+      "explanation": "관리자가 직접 로그인하지 않는다는 전제가 있으면 접속 경로 자체를 없애는 방향으로 설계합니다. Systems Manager로 인스턴스를 관리하면 인바운드 포트를 열지 않고도 패치와 명령 실행을 자동화할 수 있습니다. 여기에 최소 권한 인스턴스 프로필과 저장 데이터 암호화를 더하면 기본선이 완성됩니다. 공유 키와 상시 개방 포트는 이 도메인에서 반복적으로 등장하는 대표적 오답 소재입니다.",
+      "distractorNotes": {
+        "A": "공유 키는 누가 무엇을 했는지 구분할 수 없고 회수도 어렵습니다. 직접 로그인이 필요 없다는 전제와도 어긋납니다.",
+        "C": "관리 포트를 모든 주소에 여는 것은 노출 면을 최대로 만드는 구성입니다. 원격 지원은 Session Manager로 대체할 수 있습니다.",
+        "D": "인스턴스에서 AWS API를 호출할 때 액세스 키를 배포하는 방식은 거의 언제나 오답입니다. 인스턴스 프로필이 표준입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_CreatePatchBaseline.html",
+          "title": "Systems Manager CreatePatchBaseline"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html",
+          "title": "Amazon EBS 암호화"
+        }
+      ],
+      "tags": [
+        "iam-role-vs-access-key",
+        "ec2",
+        "patching",
+        "least-privilege"
+      ]
+    },
+    {
+      "id": "saa-secure-073",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch10",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "운영 중인 Amazon RDS 인스턴스가 암호화되지 않은 상태로 생성되었다는 사실이 감사에서 확인되었습니다. 저장 데이터를 암호화하려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "스냅샷을 만들어 암호화 옵션으로 복사한 뒤 그 복사본에서 인스턴스를 복원한다."
+        },
+        {
+          "id": "B",
+          "text": "인스턴스를 수정해 저장 데이터 암호화 옵션을 켜고 재부팅한다."
+        },
+        {
+          "id": "C",
+          "text": "읽기 전용 복제본을 암호화해 만들고 그 복제본으로 장애 조치한다."
+        },
+        {
+          "id": "D",
+          "text": "인스턴스가 있는 서브넷에 KMS 키를 연결해 볼륨을 암호화한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "RDS의 저장 데이터 암호화는 인스턴스를 만들 때 결정되며 나중에 켜는 설정이 아닙니다. 그래서 기존 인스턴스를 암호화하려면 스냅샷을 만들고 그 스냅샷을 암호화 옵션과 KMS 키를 지정해 복사한 뒤, 복사본에서 새 인스턴스를 복원하는 경로를 씁니다. 이 과정에는 전환 시간이 필요하므로 유지 보수 창을 계획해야 합니다. 이후에는 계정 수준 기본 암호화나 Config 규칙으로 미암호화 인스턴스 생성을 예방하는 편이 낫습니다.",
+      "distractorNotes": {
+        "B": "암호화되지 않은 인스턴스를 수정해 암호화 상태로 바꿀 수는 없습니다. 콘솔에도 그 설정 변경 경로가 없습니다.",
+        "C": "암호화되지 않은 원본에서 암호화된 복제본을 만들 수 없습니다. 복제본은 원본의 암호화 속성을 따릅니다.",
+        "D": "KMS 키는 서브넷 같은 네트워크 구성 요소에 연결하는 대상이 아닙니다. 암호화는 스토리지 계층의 속성입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html",
+          "title": "Amazon RDS 리소스 암호화"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CopyDBSnapshot.html",
+          "title": "Amazon RDS CopyDBSnapshot"
+        }
+      ],
+      "tags": [
+        "rds",
+        "encryption",
+        "kms-envelope"
+      ]
+    },
+    {
+      "id": "saa-secure-074",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "수백 개 Lambda 함수가 RDS 데이터베이스에 접속하며 자격 증명을 환경 변수로 갖고 있습니다. 자격 증명 교체 시 모든 함수를 다시 배포해야 하고 연결 수도 폭주합니다. 가장 적절한 개선은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "환경 변수를 KMS로 암호화하고 함수마다 복호화 권한을 부여한다."
+        },
+        {
+          "id": "B",
+          "text": "데이터베이스 인스턴스 크기를 키워 최대 연결 수를 늘린다."
+        },
+        {
+          "id": "C",
+          "text": "자격 증명을 S3 객체로 옮기고 함수가 시작할 때 내려받게 한다."
+        },
+        {
+          "id": "D",
+          "text": "Secrets Manager에 자격 증명을 두고 RDS Proxy를 통해 연결을 공유하게 한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "이 문제에는 자격 증명 관리와 연결 관리라는 두 축이 함께 있습니다. Secrets Manager에 자격 증명을 두면 교체가 중앙에서 일어나므로 함수 코드를 다시 배포할 필요가 없습니다. RDS Proxy는 연결 풀을 공유해 짧게 생성되고 사라지는 함수들이 만드는 연결 폭주를 완화하고, 인증에 Secrets Manager의 비밀을 사용합니다. 두 요구가 함께 제시되면 두 기능을 함께 쓰는 선택지가 정답 형태입니다.",
+      "distractorNotes": {
+        "A": "암호화해도 값이 함수 설정에 박혀 있으므로 교체 시 재배포가 필요합니다. 연결 폭주 문제도 그대로입니다.",
+        "B": "수직 확장은 연결 한도를 잠시 늘릴 뿐 근본 구조를 바꾸지 않습니다. 자격 증명 교체 문제와도 무관합니다.",
+        "C": "저장 위치만 바뀌고 교체 절차와 연결 관리는 여전히 직접 구현해야 합니다. 조회 실패 처리도 새로 만들어야 합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html",
+          "title": "Amazon RDS Proxy"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/secretsmanager/latest/APIReference/API_RotateSecret.html",
+          "title": "AWS Secrets Manager RotateSecret"
+        }
+      ],
+      "tags": [
+        "secrets-vs-parameter-store",
+        "rds",
+        "lambda"
+      ]
+    },
+    {
+      "id": "saa-secure-075",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "규정 담당자가 DynamoDB 테이블의 저장 데이터가 암호화되어 있는지, 그리고 키 사용 기록을 감사할 수 있는지 확인하려 합니다. 팀은 키 정책으로 접근을 따로 통제하고 싶어 합니다. 어떻게 구성해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "테이블 항목을 애플리케이션에서 암호화한 뒤 저장하고 키는 코드에 둔다."
+        },
+        {
+          "id": "B",
+          "text": "테이블 암호화에 고객 관리형 KMS 키를 지정하고 키 정책으로 사용 주체를 제한한다."
+        },
+        {
+          "id": "C",
+          "text": "테이블에 백업을 켜고 백업 파일만 KMS로 암호화한다."
+        },
+        {
+          "id": "D",
+          "text": "테이블을 VPC 안으로 옮기고 인터페이스 엔드포인트로만 접근하게 한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "DynamoDB는 저장 데이터가 기본적으로 암호화되지만, 어떤 키를 쓰는지에 따라 통제 수준이 달라집니다. 고객 관리형 키를 지정하면 키 정책이라는 별도 통제 지점이 생기고 키 사용 호출이 CloudTrail에 남아 감사 요구를 충족합니다. 애플리케이션에서 직접 암호화하는 방식은 키 배포와 교체를 스스로 만들어야 하고 코드에 키를 두는 순간 통제가 무너집니다. 네트워크 경로 통제는 암호화·감사 요구와는 다른 축의 문제입니다.",
+      "distractorNotes": {
+        "A": "키를 코드에 두면 소스에 접근하는 누구나 데이터를 복호화할 수 있습니다. 키 사용 감사도 남지 않습니다.",
+        "C": "백업만 암호화하는 것은 원본 테이블의 요구를 채우지 못합니다. 감사 대상은 운영 데이터입니다.",
+        "D": "엔드포인트는 접근 경로를 비공개로 만들 뿐 저장 데이터 암호화나 키 감사와 무관합니다. 요구의 축이 다릅니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html",
+          "title": "Amazon DynamoDB CreateTable"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html",
+          "title": "AWS KMS CreateKey와 키 정책"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "dynamodb",
+        "encryption"
+      ]
+    },
+    {
+      "id": "saa-secure-076",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 기업이 두 리전에서 동일한 암호문을 사용해야 하는 재해 복구 구성을 만듭니다. 한쪽 리전에서 암호화한 데이터를 다른 리전에서 원본 리전 호출 없이 복호화할 수 있어야 합니다. 어떤 KMS 구성이 필요합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "각 리전에 독립적인 고객 관리형 키를 만들고 같은 별칭을 부여한다."
+        },
+        {
+          "id": "B",
+          "text": "원본 리전의 키를 대상 리전으로 이동시키고 별칭을 옮긴다."
+        },
+        {
+          "id": "C",
+          "text": "다중 리전 키를 만들고 대상 리전에 복제본 키를 생성한다."
+        },
+        {
+          "id": "D",
+          "text": "원본 리전 키의 자동 교체를 켜고 대상 리전에서 그 키를 참조한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "KMS 키는 기본적으로 리전에 종속되어 다른 리전에서는 사용할 수 없습니다. 다중 리전 키는 같은 키 재료와 키 ID를 공유하는 복제본을 다른 리전에 만들 수 있게 해 주며, 한쪽에서 만든 암호문을 다른 쪽에서 그대로 복호화할 수 있습니다. 별칭이 같기만 한 별개의 키는 키 재료가 달라 암호문이 호환되지 않습니다. 다중 리전 키는 편의를 주는 대신 키 재료가 여러 리전에 존재하게 되므로 격리 요구가 강한 경우에는 신중히 선택해야 합니다.",
+      "distractorNotes": {
+        "A": "별칭은 이름표일 뿐입니다. 키 재료가 다르므로 한쪽에서 만든 암호문을 다른 쪽에서 풀 수 없습니다.",
+        "B": "KMS 키를 다른 리전으로 이동시키는 기능은 없습니다. 리전 간에 필요한 것은 복제본 개념입니다.",
+        "D": "자동 교체는 같은 키의 재료를 주기적으로 새로 만드는 기능이며 리전 경계를 넘게 해 주지 않습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_ReplicateKey.html",
+          "title": "AWS KMS ReplicateKey"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html",
+          "title": "AWS KMS CreateKey와 키 정책"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "kms",
+        "multi-region"
+      ]
+    },
+    {
+      "id": "saa-secure-077",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 결제 사업자의 인증 규정이 암호화 키를 고객 전용 하드웨어 보안 모듈에 보관하고 그 모듈에 대한 단독 통제권을 가질 것을 요구합니다. 이 요구에 맞는 AWS 서비스는 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "AWS KMS의 AWS 관리형 키를 사용한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Secrets Manager에 키를 비밀로 저장한다."
+        },
+        {
+          "id": "C",
+          "text": "Systems Manager Parameter Store의 SecureString을 사용한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS CloudHSM 클러스터를 만들어 키를 보관하고 사용한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "CloudHSM은 고객 전용 하드웨어 보안 모듈을 제공하며 키 재료와 모듈 사용자 관리 권한을 고객이 단독으로 가집니다. 전용 하드웨어에서의 키 보관을 규정이 명시할 때 선택하는 서비스입니다. KMS는 다중 테넌트 관리형 서비스로 대부분의 요구에 충분하고 운영 부담이 훨씬 적지만 전용 모듈 요구는 충족하지 못합니다. 비밀 보관 서비스들은 값을 안전하게 저장하는 도구이지 암호화 연산을 수행하는 모듈이 아닙니다.",
+      "distractorNotes": {
+        "A": "AWS 관리형 키는 키 정책도 편집할 수 없는 관리형 키입니다. 전용 하드웨어와 단독 통제 요구와 정반대입니다.",
+        "B": "Secrets Manager는 자격 증명 같은 비밀을 저장하고 교체하는 서비스입니다. 하드웨어 보안 모듈이 아닙니다.",
+        "C": "Parameter Store는 설정값 저장소이며 SecureString도 KMS를 사용합니다. 전용 모듈 요구와는 무관합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/cloudhsm/latest/userguide/introduction.html",
+          "title": "AWS CloudHSM이란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html",
+          "title": "AWS KMS 개요"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "cloudhsm",
+        "compliance"
+      ]
+    },
+    {
+      "id": "saa-secure-078",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 기업이 Windows 파일 공유와 도메인 조인이 필요한 애플리케이션을 AWS로 옮깁니다. 사용자는 기존 온프레미스 Active Directory 계정으로 인증해야 하고, 온프레미스 도메인 컨트롤러에 대한 의존을 줄이고자 합니다. 어떤 서비스를 사용해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "AWS Directory Service의 관리형 Microsoft AD를 만들고 온프레미스 도메인과 신뢰를 맺는다."
+        },
+        {
+          "id": "B",
+          "text": "Amazon Cognito 사용자 풀을 만들어 직원 계정을 옮긴다."
+        },
+        {
+          "id": "C",
+          "text": "IAM 사용자와 그룹을 만들어 파일 서버 접근을 관리한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS IAM Identity Center를 켜고 파일 서버에 권한 집합을 할당한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "도메인 조인과 Windows 인증 프로토콜이 필요한 워크로드는 실제 디렉터리 서비스가 있어야 동작합니다. AWS Directory Service의 관리형 Microsoft AD는 AWS 안에서 디렉터리를 운영하면서 온프레미스 도메인과 신뢰 관계를 맺어 기존 계정으로 인증하게 해 줍니다. Identity Center는 AWS 계정과 애플리케이션에 대한 접근을 관리하는 계층이라 도메인 조인 요구를 대신하지 못합니다. 사용자 종류와 필요한 프로토콜을 먼저 구분하면 이 계열 문항이 정리됩니다.",
+      "distractorNotes": {
+        "B": "Cognito는 애플리케이션 최종 사용자 인증 서비스입니다. Windows 도메인 조인이나 파일 공유 인증을 제공하지 않습니다.",
+        "C": "IAM은 AWS API 접근을 통제합니다. 운영체제 수준의 디렉터리 인증과는 층위가 다릅니다.",
+        "D": "Identity Center는 AWS 접근을 중앙에서 관리하는 도구입니다. 도메인 조인이 필요한 서버 워크로드의 요구를 채우지 못합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/directoryservice/latest/admin-guide/what_is.html",
+          "title": "AWS Directory Service란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html",
+          "title": "FSx for Windows File Server 다중 AZ"
+        }
+      ],
+      "tags": [
+        "federation-choice",
+        "directory-service",
+        "hybrid-connectivity"
+      ]
+    },
+    {
+      "id": "saa-secure-079",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch06",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "여러 팀이 EC2 인스턴스를 만들면서 EBS 볼륨 암호화를 켜지 않는 사례가 반복됩니다. 앞으로 만들어지는 볼륨은 예외 없이 암호화되어야 하며 팀의 작업 절차는 바꾸고 싶지 않습니다. 어떤 조치가 가장 적절합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "미암호화 볼륨을 매일 찾아 스냅샷을 만들고 암호화 사본으로 교체한다."
+        },
+        {
+          "id": "B",
+          "text": "리전마다 EBS 기본 암호화를 활성화해 새로 만드는 볼륨이 자동으로 암호화되게 한다."
+        },
+        {
+          "id": "C",
+          "text": "볼륨 생성 시 암호화 옵션을 켜도록 사내 문서를 개정하고 교육한다."
+        },
+        {
+          "id": "D",
+          "text": "인스턴스 시작 템플릿마다 암호화된 스냅샷을 지정해 복제한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "EBS 기본 암호화는 계정과 리전 단위 설정으로, 켜 두면 새로 만들어지는 볼륨과 스냅샷 사본이 자동으로 암호화됩니다. 사용자가 옵션을 지정하지 않아도 적용되므로 작업 절차를 바꾸지 않고 예외를 없앨 수 있습니다. 사후에 찾아 교체하거나 문서와 교육에 의존하는 방식은 누락을 남기고 운영 부담이 계속됩니다. 다만 이 설정은 리전별로 적용되므로 사용 중인 모든 리전에서 켜야 합니다.",
+      "distractorNotes": {
+        "A": "사후 교체는 이미 만들어진 미암호화 구간을 없애지 못하고 매일 작업이 필요합니다. 예방 통제가 아닙니다.",
+        "C": "사람의 준수에 의존하면 반복되던 누락이 계속됩니다. 설정으로 강제할 수 있는 영역입니다.",
+        "D": "템플릿마다 관리해야 하므로 새 템플릿이 생기면 다시 누락됩니다. 계정 수준 설정이 더 단순합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_EnableEbsEncryptionByDefault.html",
+          "title": "EnableEbsEncryptionByDefault"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html",
+          "title": "Amazon EBS 암호화"
+        }
+      ],
+      "tags": [
+        "ebs",
+        "encryption",
+        "kms-envelope"
+      ]
+    },
+    {
+      "id": "saa-secure-080",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch06",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 표준 이미지를 다른 계정과 공유하려 합니다. 원본 AMI를 만든 스냅샷은 고객 관리형 KMS 키로 암호화되어 있습니다. 상대 계정이 이 이미지로 인스턴스를 시작할 수 있게 하려면 무엇이 필요합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "이미지를 퍼블릭으로 공개하면 암호화 키와 무관하게 사용할 수 있다."
+        },
+        {
+          "id": "B",
+          "text": "상대 계정이 이미지를 자기 리전으로 복사하면 키 권한 없이도 사용할 수 있다."
+        },
+        {
+          "id": "C",
+          "text": "이미지 시작 권한과 함께 KMS 키 정책에서 상대 계정에 키 사용 권한을 부여해야 한다."
+        },
+        {
+          "id": "D",
+          "text": "이미지를 SSE-S3로 다시 암호화한 뒤 공유하면 키 권한이 필요 없다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "암호화된 스냅샷을 기반으로 하는 AMI는 이미지 공유 권한만으로는 사용할 수 없습니다. 인스턴스를 시작하려면 볼륨을 복호화해야 하므로 상대 계정 주체가 해당 KMS 키를 사용할 권한을 가져야 합니다. 그래서 이미지 시작 권한 부여와 키 정책에서의 사용 허용이 함께 필요합니다. 고객 관리형 키를 쓰는 이유가 바로 이런 공유 통제를 가능하게 하기 위해서이며, AWS 관리형 키로 암호화된 리소스는 애초에 공유할 수 없습니다.",
+      "distractorNotes": {
+        "A": "암호화된 스냅샷을 사용하는 AMI는 퍼블릭으로 공유할 수 없습니다. 공개한다고 키 문제가 사라지지도 않습니다.",
+        "B": "복사 과정 자체가 원본 스냅샷의 복호화를 필요로 합니다. 키 권한이 없으면 복사도 실패합니다.",
+        "D": "EBS 스냅샷은 S3의 서버 측 암호화 옵션을 지정하는 대상이 아닙니다. 스냅샷 암호화는 KMS 키로 이루어집니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html",
+          "title": "Amazon 머신 이미지"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CopyImage.html",
+          "title": "Amazon EC2 CopyImage"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "ec2",
+        "cross-account",
+        "encryption"
+      ]
+    },
+    {
+      "id": "saa-secure-081",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch10",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "감사 계정에서 운영 계정의 암호화된 RDS 스냅샷을 복원해 데이터를 검증해야 합니다. 스냅샷은 운영 계정의 고객 관리형 KMS 키로 암호화되어 있습니다. 필요한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "스냅샷을 퍼블릭으로 표시하면 다른 계정이 자유롭게 복원할 수 있다."
+        },
+        {
+          "id": "B",
+          "text": "감사 계정에서 같은 이름의 KMS 키를 만들면 복호화가 가능해진다."
+        },
+        {
+          "id": "C",
+          "text": "스냅샷을 암호화되지 않은 상태로 내보낸 뒤 감사 계정에서 다시 암호화한다."
+        },
+        {
+          "id": "D",
+          "text": "스냅샷 속성으로 감사 계정에 공유하고 KMS 키 정책에서 그 계정의 키 사용을 허용한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "암호화된 스냅샷 공유는 두 층의 허가가 모두 필요합니다. 스냅샷 자체를 대상 계정에 공유하는 속성 변경과, 그 스냅샷을 복호화할 KMS 키에 대한 사용 허용이 함께 있어야 복원이 성공합니다. 키 정책에서 허용한 뒤 대상 계정의 IAM 정책에서도 그 키 사용을 허용해야 한다는 점까지 확인하면 실패 원인이 대부분 해소됩니다. 암호화된 스냅샷은 퍼블릭으로 공유할 수 없다는 제약도 함께 기억해야 합니다.",
+      "distractorNotes": {
+        "A": "암호화된 스냅샷은 퍼블릭으로 표시할 수 없습니다. 가능하다 해도 키 권한 문제는 남습니다.",
+        "B": "키는 이름이 아니라 키 재료로 식별됩니다. 같은 이름의 다른 키로는 복호화되지 않습니다.",
+        "C": "암호화 요구가 있는 데이터를 평문으로 내보내는 것은 규정을 위반하는 방향입니다. 공유 기능이 있는데 우회로를 만드는 셈입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBSnapshotAttribute.html",
+          "title": "RDS ModifyDBSnapshotAttribute"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html",
+          "title": "Amazon RDS 리소스 암호화"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "rds",
+        "cross-account",
+        "encryption"
+      ]
+    },
+    {
+      "id": "saa-secure-082",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "규정 담당자가 민감한 S3 버킷에 대해 누가 어떤 객체를 읽고 썼는지 추적할 수 있어야 한다고 요구했습니다. 기존 CloudTrail 추적은 관리 이벤트만 기록합니다. 필요한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "해당 버킷을 대상으로 CloudTrail 데이터 이벤트를 활성화한다."
+        },
+        {
+          "id": "B",
+          "text": "버킷의 버전 관리를 켜서 객체 변경 이력을 기록한다."
+        },
+        {
+          "id": "C",
+          "text": "S3 서버 액세스 로깅을 활성화해 요청 로그를 별도 버킷에 남긴다."
+        },
+        {
+          "id": "D",
+          "text": "버킷 정책에 조건을 추가해 로그를 남기지 않는 요청을 거부한다."
+        },
+        {
+          "id": "E",
+          "text": "Amazon Macie를 켜서 객체 접근 이벤트를 수집한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "CloudTrail의 기본 추적은 버킷 생성이나 정책 변경 같은 관리 이벤트를 남기며, 객체 단위의 읽기와 쓰기는 데이터 이벤트를 따로 켜야 기록됩니다. S3 서버 액세스 로깅은 요청 단위 로그를 별도 버킷에 남기는 보완 수단으로, 두 기록은 형식과 지연 특성이 달라 함께 쓰는 경우가 많습니다. 버전 관리는 객체 상태를 보존하지만 누가 요청했는지는 알려 주지 않습니다. 요구가 행위자 추적인지 상태 보존인지 구분하는 것이 핵심입니다.",
+      "distractorNotes": {
+        "B": "버전 관리는 이전 버전을 남겨 복구를 돕는 기능입니다. 요청자와 요청 시각을 기록하지는 않습니다.",
+        "D": "요청이 로그를 남기는지 여부를 조건으로 판단하는 정책 키는 없습니다. 로깅은 버킷과 추적 설정으로 켭니다.",
+        "E": "Macie는 데이터의 민감도를 분류합니다. 접근 이벤트 로그를 만드는 서비스가 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/cloudtrail/latest/APIReference/API_PutEventSelectors.html",
+          "title": "CloudTrail PutEventSelectors"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/cloudtrail/latest/APIReference/API_CreateTrail.html",
+          "title": "AWS CloudTrail CreateTrail"
+        }
+      ],
+      "tags": [
+        "cloudtrail-vs-config",
+        "s3",
+        "audit"
+      ]
+    },
+    {
+      "id": "saa-secure-083",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch09",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "여러 EC2 인스턴스가 Amazon EFS 파일 시스템을 공유합니다. 보안팀은 저장 데이터와 전송 구간이 모두 암호화되고, 애플리케이션마다 접근 가능한 디렉터리가 분리되기를 원합니다. 적절한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "파일 시스템을 만들 때 저장 데이터 암호화를 켜고 마운트 시 전송 중 암호화 옵션을 사용한다."
+        },
+        {
+          "id": "B",
+          "text": "인스턴스마다 별도의 파일 시스템을 만들어 물리적으로 분리한다."
+        },
+        {
+          "id": "C",
+          "text": "EFS 액세스 포인트를 애플리케이션별로 만들어 디렉터리와 사용자 권한을 강제한다."
+        },
+        {
+          "id": "D",
+          "text": "파일 시스템을 퍼블릭 서브넷에 마운트해 접근 경로를 단순화한다."
+        },
+        {
+          "id": "E",
+          "text": "파일 시스템 정책 대신 인스턴스의 운영체제 권한으로만 접근을 나눈다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "EFS는 파일 시스템 생성 시 저장 데이터 암호화를 켤 수 있고, 마운트 시 옵션으로 전송 구간까지 암호화할 수 있습니다. 액세스 포인트는 특정 디렉터리를 루트처럼 보이게 하고 사용자·그룹 ID를 강제하므로 애플리케이션별 격리를 파일 시스템 계층에서 만들 수 있습니다. 파일 시스템을 여러 개로 쪼개는 방식은 공유라는 전제를 버리고 비용과 관리 부담을 늘립니다. 운영체제 권한에만 의존하면 인스턴스가 침해될 때 격리가 무너집니다.",
+      "distractorNotes": {
+        "B": "공유 파일 시스템이 필요하다는 요구를 포기하는 선택입니다. 관리 대상도 인스턴스 수만큼 늘어납니다.",
+        "D": "마운트 대상을 퍼블릭 서브넷에 두는 것은 노출 면을 넓힐 뿐 격리와 무관합니다. 요구와 방향이 반대입니다.",
+        "E": "운영체제 권한만으로는 마운트 지점 전체가 보이므로 경로 격리가 약합니다. 액세스 포인트가 이 문제를 위해 존재합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html",
+          "title": "Amazon EFS 작동 방식"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html",
+          "title": "Amazon EFS 액세스 포인트"
+        }
+      ],
+      "tags": [
+        "efs",
+        "encryption",
+        "least-privilege"
+      ]
+    },
+    {
+      "id": "saa-secure-084",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "한 공공기관이 모든 워크로드와 데이터를 지정된 두 리전 안에서만 운영해야 합니다. 개발 팀이 실수로 다른 리전에 리소스를 만드는 일을 조직 차원에서 예방해야 합니다. 적절한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "조직 SCP에서 aws:RequestedRegion 조건으로 승인된 리전 외의 작업을 거부한다."
+        },
+        {
+          "id": "B",
+          "text": "각 계정에서 사용하지 않는 리전을 비활성화해 접근 자체를 차단한다."
+        },
+        {
+          "id": "C",
+          "text": "Cost Explorer에서 리전별 비용을 매주 검토해 이상 사용을 찾아낸다."
+        },
+        {
+          "id": "D",
+          "text": "리전별로 IAM 사용자를 따로 만들어 접근 범위를 나눈다."
+        },
+        {
+          "id": "E",
+          "text": "Config 규칙으로 다른 리전에 만들어진 리소스를 탐지해 삭제 작업을 실행한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "B"
+      ],
+      "explanation": "데이터 레지던시 요구는 탐지가 아니라 예방으로 풀어야 합니다. 조직 SCP에 요청 리전 조건을 걸면 계정 관리자라도 승인되지 않은 리전에서 작업할 수 없고, 상속 구조 덕분에 새 계정에도 자동 적용됩니다. 여기에 계정 설정에서 사용하지 않는 리전을 비활성화하면 접근 경로 자체가 닫혀 방어가 이중이 됩니다. 사후 검토나 탐지 후 삭제는 이미 데이터가 그 리전에 존재했다는 사실을 되돌리지 못합니다.",
+      "distractorNotes": {
+        "C": "비용 검토는 사후 발견 수단이며 주기도 깁니다. 그 사이 규정 위반 상태가 유지됩니다.",
+        "D": "IAM 사용자는 리전에 속하지 않는 전역 주체입니다. 사용자를 나눈다고 리전 사용이 제한되지 않습니다.",
+        "E": "탐지 후 삭제는 데이터가 잠시라도 그 리전에 존재하는 것을 허용합니다. 규정이 요구하는 것은 존재하지 않게 하는 것입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html",
+          "title": "서비스 제어 정책 전략"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-regions.html",
+          "title": "AWS 리전 활성화 및 비활성화"
+        }
+      ],
+      "tags": [
+        "scp-guardrail",
+        "organizations",
+        "compliance"
+      ]
+    },
+    {
+      "id": "saa-secure-085",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "모바일 앱이 Amazon API Gateway 뒤의 서버리스 백엔드를 호출합니다. 로그인한 사용자만 API를 호출할 수 있어야 하며, 각 요청마다 사용자 신원을 백엔드에서 확인할 수 있어야 합니다. 운영 부담이 가장 적은(LEAST operational overhead) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "API에 고정 API 키를 발급해 앱에 내장하고 사용량 계획으로 제한한다."
+        },
+        {
+          "id": "B",
+          "text": "Amazon Cognito 사용자 풀을 권한 부여자로 지정해 토큰을 검증하게 한다."
+        },
+        {
+          "id": "C",
+          "text": "백엔드 함수에서 요청 본문의 사용자 이름과 비밀번호를 직접 검증한다."
+        },
+        {
+          "id": "D",
+          "text": "API 앞에 로드 밸런서를 두고 소스 IP 허용 목록으로 접근을 제한한다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "API Gateway는 Cognito 사용자 풀을 권한 부여자로 연결해 요청의 토큰을 검증하고 클레임을 백엔드에 전달할 수 있습니다. 인증 로직을 직접 만들지 않아도 되고, 토큰이 만료되면 접근이 자동으로 끊깁니다. API 키는 사용량을 식별하고 제한하는 수단이지 사용자 인증 수단이 아니며, 앱에 내장하면 곧바로 노출됩니다. 사용자마다 다른 인가가 필요하면 토큰의 그룹이나 클레임을 백엔드에서 활용합니다.",
+      "distractorNotes": {
+        "A": "API 키는 호출자를 구분하는 식별자일 뿐 신원을 증명하지 않습니다. 배포된 앱에 넣으면 누구나 추출할 수 있습니다.",
+        "C": "인증을 직접 구현하면 토큰 관리, 비밀번호 저장, 만료 처리까지 모두 만들어야 합니다. 운영 부담이 가장 큽니다.",
+        "D": "모바일 사용자의 IP는 계속 바뀌므로 허용 목록이 성립하지 않습니다. 사용자 신원 확인 요구도 충족하지 못합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-lambda-authorizer.html",
+          "title": "API Gateway 권한 부여자"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html",
+          "title": "Amazon Cognito란"
+        }
+      ],
+      "tags": [
+        "federation-choice",
+        "cognito",
+        "api-gateway"
+      ]
+    },
+    {
+      "id": "saa-secure-086",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "AWS Lambda 함수가 프라이빗 서브넷의 Amazon RDS 인스턴스에 접근해야 합니다. 데이터베이스는 인터넷에서 도달할 수 없어야 하고 함수는 Secrets Manager에서 자격 증명을 읽어야 합니다. 어떻게 구성해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "RDS 인스턴스를 퍼블릭으로 접근 가능하게 바꾸고 보안 그룹으로 함수 IP를 허용한다."
+        },
+        {
+          "id": "B",
+          "text": "함수를 VPC 없이 실행하고 데이터베이스 앞에 퍼블릭 로드 밸런서를 둔다."
+        },
+        {
+          "id": "C",
+          "text": "함수에 데이터베이스 자격 증명을 환경 변수로 넣고 VPC 구성은 생략한다."
+        },
+        {
+          "id": "D",
+          "text": "함수를 프라이빗 서브넷에 연결하고 Secrets Manager용 인터페이스 엔드포인트를 만든다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "함수를 VPC에 연결하면 지정한 서브넷의 네트워크 인터페이스를 통해 통신하므로 프라이빗 서브넷의 데이터베이스에 접근할 수 있습니다. 다만 VPC에 연결된 함수는 그 서브넷의 라우팅을 따르므로, 인터넷 경로가 없는 서브넷에서 AWS 서비스를 부르려면 엔드포인트가 필요합니다. Secrets Manager는 게이트웨이 엔드포인트를 지원하지 않으므로 인터페이스 엔드포인트를 만들어야 합니다. 데이터베이스를 공개하거나 자격 증명을 함수 설정에 박는 방안은 요구를 정면으로 위반합니다.",
+      "distractorNotes": {
+        "A": "데이터베이스를 공개 접근 가능하게 만드는 것은 명시된 제약을 위반합니다. VPC 밖 함수의 주소는 고정되지도 않습니다.",
+        "B": "데이터베이스 앞에 퍼블릭 진입점을 만드는 구성은 노출 면을 크게 넓힙니다. 요구와 방향이 반대입니다.",
+        "C": "환경 변수에 자격 증명을 넣으면 Secrets Manager를 쓰라는 요구가 사라집니다. VPC 연결 없이는 프라이빗 데이터베이스에 도달할 수도 없습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html",
+          "title": "VPC의 리소스에 액세스하는 Lambda 함수"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html",
+          "title": "인터페이스 VPC 엔드포인트"
+        }
+      ],
+      "tags": [
+        "vpc-endpoint-choice",
+        "lambda",
+        "secrets-vs-parameter-store"
+      ]
+    },
+    {
+      "id": "saa-secure-087",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch13",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 컨테이너 이미지를 Amazon ECR에 저장합니다. 배포 전에 이미지에 알려진 취약점이 있는지 자동으로 확인하고, 이미 저장된 이미지도 새 취약점이 공개되면 다시 평가되기를 원합니다. 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "ECR 리포지토리에 향상된 스캔을 활성화해 푸시 시점과 이후 지속적으로 평가한다."
+        },
+        {
+          "id": "B",
+          "text": "빌드 서버에서 이미지 해시를 계산해 변경 여부를 확인한다."
+        },
+        {
+          "id": "C",
+          "text": "Amazon GuardDuty를 켜서 이미지 취약점 결과를 확인한다."
+        },
+        {
+          "id": "D",
+          "text": "AWS Config 규칙으로 리포지토리 설정이 기준에 맞는지 평가한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "ECR의 이미지 스캔은 푸시 시점에 이미지의 패키지 목록을 취약점 데이터베이스와 대조합니다. 향상된 스캔을 켜면 저장된 이미지도 새 취약점 정보가 나올 때 다시 평가되므로 이미 배포된 이미지의 위험 변화를 놓치지 않습니다. 해시 비교는 이미지가 바뀌었는지만 알려 줄 뿐 취약점 정보를 주지 않습니다. 실행 중 이상 행위 탐지와 이미지 취약점 평가는 서로 다른 질문이라는 점을 구분해야 합니다.",
+      "distractorNotes": {
+        "B": "무결성 확인과 취약점 평가는 다른 문제입니다. 변경이 없어도 새로 공개된 취약점의 영향을 받을 수 있습니다.",
+        "C": "GuardDuty는 실행 환경의 이상 행위와 위협 지표를 다룹니다. 이미지 안 패키지의 취약점 목록을 만들지 않습니다.",
+        "D": "Config는 리소스 구성의 준수를 평가합니다. 이미지 내용의 취약점은 대상이 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-scanning.html",
+          "title": "Amazon ECR 이미지 스캔"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/inspector/latest/user/what-is-inspector.html",
+          "title": "Amazon Inspector란"
+        }
+      ],
+      "tags": [
+        "security-service-choice",
+        "ecr",
+        "vulnerability"
+      ]
+    },
+    {
+      "id": "saa-secure-088",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch13",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "ECS 태스크가 데이터베이스 암호를 필요로 합니다. 현재는 태스크 정의의 환경 변수에 평문으로 들어 있어 콘솔과 API로 값이 노출됩니다. 애플리케이션 코드를 바꾸지 않으면서 가장 안전한(MOST secure) 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "환경 변수 값을 사전에 암호화한 문자열로 바꾸고 컨테이너 시작 스크립트에서 복호화한다."
+        },
+        {
+          "id": "B",
+          "text": "태스크 정의를 조회할 수 있는 IAM 권한을 소수 인원으로 제한한다."
+        },
+        {
+          "id": "C",
+          "text": "태스크 정의의 비밀 참조 기능으로 Secrets Manager 값을 환경 변수에 주입한다."
+        },
+        {
+          "id": "D",
+          "text": "암호를 컨테이너 이미지에 파일로 넣고 이미지 접근 권한을 제한한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "ECS 태스크 정의는 환경 변수 값을 직접 적는 대신 Secrets Manager나 Parameter Store의 참조를 지정할 수 있습니다. 이렇게 하면 태스크가 시작될 때 실행 역할의 권한으로 값을 가져와 컨테이너 환경 변수로 주입하므로, 애플리케이션은 기존처럼 환경 변수를 읽기만 하면 됩니다. 정의 자체에는 참조만 남아 콘솔이나 API로 값이 노출되지 않고 교체도 중앙에서 처리됩니다. 값을 미리 암호화해 넣는 방식은 복호화 키를 다시 어딘가에 두어야 하는 순환에 빠집니다.",
+      "distractorNotes": {
+        "A": "복호화 키를 전달할 방법이 다시 필요해 문제가 한 단계 뒤로 밀립니다. 시작 스크립트도 새로 만들어야 합니다.",
+        "B": "권한 축소는 노출 범위를 줄일 뿐 정의에 평문이 남아 있다는 사실은 그대로입니다. 감사에서도 지적이 유지됩니다.",
+        "D": "이미지에 비밀을 넣으면 그 이미지에 접근하는 모든 경로가 비밀 노출 경로가 됩니다. 교체 때마다 재빌드도 필요합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RegisterTaskDefinition.html",
+          "title": "Amazon ECS RegisterTaskDefinition"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html",
+          "title": "Amazon ECS 태스크 실행 IAM 역할"
+        }
+      ],
+      "tags": [
+        "secrets-vs-parameter-store",
+        "ecs",
+        "secrets-manager"
+      ]
+    },
+    {
+      "id": "saa-secure-089",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "회사 정책상 특정 S3 버킷은 사내 VPC 안에서 출발한 요청으로만 접근되어야 하며, 유효한 자격 증명이 있어도 외부에서는 접근할 수 없어야 합니다. 어떤 구성이 이 요구를 충족합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "버킷을 프라이빗 서브넷과 같은 가용 영역에 생성해 접근 범위를 제한한다."
+        },
+        {
+          "id": "B",
+          "text": "버킷 정책에서 회사 사무실의 공인 IP 대역만 허용하는 조건을 건다."
+        },
+        {
+          "id": "C",
+          "text": "버킷의 퍼블릭 액세스 차단을 켜고 IAM 정책만으로 접근을 제한한다."
+        },
+        {
+          "id": "D",
+          "text": "버킷 정책에서 지정한 VPC 엔드포인트를 통한 요청만 허용하는 조건을 건다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "버킷 정책의 조건 요소로 요청이 어떤 VPC 엔드포인트나 VPC에서 왔는지를 판단할 수 있습니다. 이 조건을 걸면 자격 증명이 유효하더라도 지정한 경로 밖에서 온 요청은 거부되므로 키 유출 시 피해 범위가 줄어듭니다. 퍼블릭 액세스 차단은 익명 접근을 막는 기능이라 자격 증명이 있는 외부 접근에는 적용되지 않습니다. 경로를 인가 조건으로 삼는다는 발상이 이 문항의 핵심입니다.",
+      "distractorNotes": {
+        "A": "S3 버킷은 리전 단위 리소스이며 서브넷이나 가용 영역에 배치되지 않습니다. 이런 구성 자체가 없습니다.",
+        "B": "사무실 IP 조건은 사무실 밖에서의 접근을 막을 뿐 VPC 안에서 출발했는지를 판단하지 못합니다. 대역 변경 시 유지 부담도 생깁니다.",
+        "C": "퍼블릭 액세스 차단과 IAM 정책만으로는 유효한 자격 증명을 가진 외부 요청을 막을 수 없습니다. 요구의 핵심을 놓칩니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html",
+          "title": "Amazon S3용 게이트웨이 엔드포인트"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html",
+          "title": "IAM JSON 정책 요소"
+        }
+      ],
+      "tags": [
+        "vpc-endpoint-choice",
+        "s3",
+        "iam-policy-evaluation"
+      ]
+    },
+    {
+      "id": "saa-secure-090",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch12",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "주문 정보가 담긴 메시지가 Amazon SQS 큐를 거쳐 처리됩니다. 규정상 큐에 보관되는 동안 메시지가 암호화되어야 하고 키 사용 기록이 남아야 합니다. 어떻게 구성해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "생산자 애플리케이션에서 메시지 본문을 암호화하고 키는 코드에 둔다."
+        },
+        {
+          "id": "B",
+          "text": "큐에 고객 관리형 KMS 키로 서버 측 암호화를 설정한다."
+        },
+        {
+          "id": "C",
+          "text": "큐를 FIFO로 전환해 메시지 순서와 무결성을 보장한다."
+        },
+        {
+          "id": "D",
+          "text": "큐의 메시지 보존 기간을 최소로 줄여 노출 시간을 없앤다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "SQS는 KMS 키를 사용한 서버 측 암호화를 지원하며, 고객 관리형 키를 지정하면 키 정책으로 사용 주체를 통제하고 호출 기록이 CloudTrail에 남습니다. 애플리케이션에서 직접 암호화하면 키 배포와 교체를 스스로 만들어야 하고 코드에 키를 두는 순간 통제가 무너집니다. FIFO 전환은 순서와 중복 처리에 관한 선택이지 암호화와 무관합니다. 보존 기간 단축은 노출 시간을 줄일 뿐 암호화 요구를 대신하지 못합니다.",
+      "distractorNotes": {
+        "A": "코드에 키를 두면 소스 접근자가 모두 복호화할 수 있고 키 사용 감사도 남지 않습니다. 규정 요구를 충족하지 못합니다.",
+        "C": "FIFO 큐는 순서 보장과 중복 제거를 제공합니다. 저장 데이터 암호화와는 다른 축의 기능입니다.",
+        "D": "보존 기간을 줄이면 처리 실패 시 재시도 여지가 사라집니다. 암호화 요구도 여전히 남습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html",
+          "title": "Amazon SQS CreateQueue"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html",
+          "title": "AWS KMS CreateKey와 키 정책"
+        }
+      ],
+      "tags": [
+        "kms-envelope",
+        "sqs",
+        "encryption"
+      ]
+    },
+    {
+      "id": "saa-secure-091",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "공용 도구 계정의 역할을 조직 안의 모든 계정이 맡을 수 있어야 하지만, 조직 밖의 계정은 절대 맡을 수 없어야 합니다. 계정이 추가될 때마다 신뢰 정책을 고치지 않으려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "신뢰 정책에서 조직 식별자 조건을 사용해 같은 조직의 주체만 허용한다."
+        },
+        {
+          "id": "B",
+          "text": "신뢰 정책에 모든 계정을 허용하고 SCP로 외부 계정을 차단한다."
+        },
+        {
+          "id": "C",
+          "text": "신뢰 정책에 현재 계정 목록을 나열하고 분기마다 검토해 갱신한다."
+        },
+        {
+          "id": "D",
+          "text": "역할 대신 IAM 사용자를 만들어 각 계정에 액세스 키를 배포한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "신뢰 정책의 조건 요소에는 요청 주체가 속한 조직을 식별하는 키를 쓸 수 있습니다. 이 조건을 걸면 조직에 새 계정이 들어와도 신뢰 정책을 고치지 않고 자동으로 포함되며, 조직 밖 계정은 조건을 만족하지 못해 배제됩니다. 계정을 나열하는 방식은 동작하지만 계정이 추가될 때마다 정책을 고쳐야 해 요구를 위반합니다. SCP는 조직 안 계정의 권한 상한이므로 조직 밖 주체의 역할 위임을 막는 수단이 되지 못합니다.",
+      "distractorNotes": {
+        "B": "SCP는 조직 안 계정의 주체에만 적용됩니다. 신뢰 정책이 모두를 허용하면 조직 밖 계정이 그대로 역할을 맡을 수 있습니다.",
+        "C": "동작은 하지만 계정이 추가될 때마다 정책 수정이 필요합니다. 문제문이 명시한 제약을 위반합니다.",
+        "D": "장기 자격 증명을 계정마다 배포하는 방식은 회수와 감사가 어렵습니다. 교차 계정 접근의 표준은 역할 위임입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html",
+          "title": "IAM 역할 용어와 개념"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_getting-started_concepts.html",
+          "title": "AWS Organizations 개념"
+        }
+      ],
+      "tags": [
+        "sts-assume-role",
+        "organizations",
+        "cross-account"
+      ]
+    },
+    {
+      "id": "saa-secure-092",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "새로 합류한 보안 담당자가 계정 전반에서 공개된 EBS 스냅샷, 열려 있는 관리 포트, 루트 사용자 MFA 미설정 같은 대표적인 위험 항목을 빠르게 훑어보려 합니다. 추가 구축 없이 바로 확인할 수 있는 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "VPC 흐름 로그를 켜고 며칠간 트래픽을 수집해 분석한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Config 규칙 수십 개를 직접 작성해 평가 결과를 확인한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS Trusted Advisor의 보안 점검 결과를 확인한다."
+        },
+        {
+          "id": "D",
+          "text": "CloudTrail 로그를 내려받아 스크립트로 위험 이벤트를 집계한다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "Trusted Advisor는 비용, 성능, 보안, 내결함성, 서비스 한도를 미리 정의된 점검 항목으로 확인해 주는 도구입니다. 공개된 스냅샷이나 널리 열린 보안 그룹 포트처럼 자주 발생하는 위험을 별도 구축 없이 즉시 볼 수 있어 초기 점검에 적합합니다. 조직이 정의한 기준을 규칙으로 만들어 지속 평가하려면 그때 Config로 넘어갑니다. 로그를 모아 분석하는 방식은 준비 시간이 필요하고 현재 상태 점검과는 목적이 다릅니다.",
+      "distractorNotes": {
+        "A": "흐름 로그는 트래픽 메타데이터를 수집하는 도구이며 구성 위험 목록을 만들어 주지 않습니다. 수집 시간도 필요합니다.",
+        "B": "동작은 하지만 규칙을 직접 만들고 유지해야 합니다. 바로 확인하고 싶다는 요구와 맞지 않습니다.",
+        "D": "CloudTrail은 과거 호출 기록입니다. 현재 구성이 위험한지 판정하는 용도가 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/awssupport/latest/user/trusted-advisor-check-reference.html",
+          "title": "Trusted Advisor 점검 참조"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/awssupport/latest/user/get-started-with-aws-trusted-advisor.html",
+          "title": "Trusted Advisor 시작하기"
+        }
+      ],
+      "tags": [
+        "security-service-choice",
+        "trusted-advisor",
+        "audit"
+      ]
+    },
+    {
+      "id": "saa-secure-093",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "공개 전자상거래 사이트가 로그인 페이지에 대한 자격 증명 대입 공격과 특정 국가에서 오는 자동화 요청에 시달립니다. 오리진 부하를 줄이면서 이 요청들을 차단하려 합니다. 적절한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "오리진 인스턴스 수를 늘려 공격 트래픽을 흡수한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS WAF 웹 ACL에 속도 기반 규칙을 만들어 로그인 경로의 과도한 요청을 차단한다."
+        },
+        {
+          "id": "C",
+          "text": "네트워크 ACL에 공격 출발지 IP를 발견될 때마다 추가한다."
+        },
+        {
+          "id": "D",
+          "text": "CloudFront 배포에 웹 ACL을 연결해 엣지에서 요청을 걸러 낸다."
+        },
+        {
+          "id": "E",
+          "text": "로그인 API의 응답 시간을 늘려 자동화 도구가 포기하도록 유도한다."
+        }
+      ],
+      "answer": [
+        "B",
+        "D"
+      ],
+      "explanation": "요청 내용과 빈도를 기준으로 판단해야 하는 공격은 계층 7 규칙으로 다룹니다. 속도 기반 규칙은 일정 시간 동안 같은 출발지에서 오는 요청 수가 임계값을 넘으면 차단하므로 자격 증명 대입에 효과적입니다. 이 웹 ACL을 CloudFront 배포에 연결하면 판단이 엣지에서 일어나 오리진까지 트래픽이 도달하지 않습니다. 서버를 늘려 흡수하는 방식은 공격자에게 비용을 전가받는 구조라 대책이 되지 못합니다.",
+      "distractorNotes": {
+        "A": "용량 증설은 공격을 견디게 할 뿐 막지 못하고 비용만 늘어납니다. 오리진 부하를 줄이라는 요구와도 반대입니다.",
+        "C": "출발지 주소를 수동으로 추가하는 방식은 규모와 속도를 따라갈 수 없습니다. 자동화된 규칙이 필요합니다.",
+        "E": "응답을 늦추면 정상 사용자 경험이 함께 나빠지고 서버 자원도 더 오래 점유됩니다. 보안 통제가 아닙니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html",
+          "title": "AWS WAF CreateWebACL"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/waf/latest/APIReference/API_AssociateWebACL.html",
+          "title": "AWS WAF AssociateWebACL"
+        }
+      ],
+      "tags": [
+        "waf-vs-shield",
+        "cloudfront",
+        "waf"
+      ]
+    },
+    {
+      "id": "saa-secure-094",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "개발자가 실수로 IAM 사용자 액세스 키를 공개 코드 저장소에 올렸고 몇 시간 뒤에 발견되었습니다. 피해를 줄이고 재발을 막기 위한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "노출된 액세스 키를 즉시 비활성화하고 삭제한 뒤 사용 흔적을 CloudTrail에서 확인한다."
+        },
+        {
+          "id": "B",
+          "text": "저장소에서 커밋만 삭제하고 같은 키를 계속 사용한다."
+        },
+        {
+          "id": "C",
+          "text": "해당 워크로드를 IAM 역할 기반 임시 자격 증명으로 전환한다."
+        },
+        {
+          "id": "D",
+          "text": "키에 소스 IP 조건을 추가해 사무실에서만 쓰도록 제한하고 키는 유지한다."
+        },
+        {
+          "id": "E",
+          "text": "키의 권한을 읽기 전용으로 축소하고 그대로 사용한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "노출된 자격 증명은 회수 시점 이전에 이미 사용되었을 수 있으므로, 즉시 무효화하고 그 키로 어떤 호출이 있었는지 확인하는 것이 우선입니다. 커밋을 지워도 저장소 이력과 이미 복제된 사본에 값이 남아 있어 노출은 되돌릴 수 없습니다. 재발 방지의 근본 대책은 장기 액세스 키 자체를 없애고 역할이 발급하는 임시 자격 증명으로 전환하는 것입니다. 조건을 붙이거나 권한을 줄이는 조치는 위험을 줄일 뿐 노출된 비밀이 계속 존재한다는 문제를 남깁니다.",
+      "distractorNotes": {
+        "B": "저장소 이력과 이미 내려받힌 사본에 값이 남습니다. 커밋 삭제는 노출을 되돌리지 못합니다.",
+        "D": "조건을 붙여도 그 키는 여전히 유효한 비밀입니다. 조건을 만족하는 경로에서 사용되면 막을 수 없습니다.",
+        "E": "권한 축소는 피해 범위를 줄일 뿐 이미 노출된 자격 증명을 무효화하지 않습니다. 읽기 권한만으로도 정보 유출이 가능합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html",
+          "title": "IAM 보안 모범 사례"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html",
+          "title": "IAM의 임시 보안 자격 증명"
+        }
+      ],
+      "tags": [
+        "iam-role-vs-access-key",
+        "incident-response",
+        "iam"
+      ]
+    },
+    {
+      "id": "saa-secure-095",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "보안 운영팀이 20개 계정의 API 호출 기록과 애플리케이션 로그를 한곳에서 검색하고, 특정 위험 이벤트가 나타나면 즉시 알림을 받고자 합니다. 적절한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "조직 수준 CloudTrail 추적을 만들어 모든 계정의 이벤트를 중앙 버킷에 모은다."
+        },
+        {
+          "id": "B",
+          "text": "계정마다 담당자가 콘솔에서 이벤트 기록을 눈으로 확인하는 절차를 만든다."
+        },
+        {
+          "id": "C",
+          "text": "CloudWatch Logs 지표 필터와 경보로 위험 이벤트 발생 시 알림을 보낸다."
+        },
+        {
+          "id": "D",
+          "text": "로그 보존 기간을 7일로 줄여 검색 대상을 최소화한다."
+        },
+        {
+          "id": "E",
+          "text": "각 계정의 로그를 담당자 노트북으로 주기적으로 내려받아 보관한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "여러 계정의 감사 로그는 조직 수준 추적으로 한 번에 수집해 중앙 버킷에 모으는 것이 표준입니다. 계정이 추가되어도 자동으로 포함되므로 누락이 생기지 않습니다. 즉시 알림이 필요하면 로그를 CloudWatch Logs로도 보내고 지표 필터와 경보를 걸어 특정 패턴이 나타날 때 통지하도록 구성합니다. 사람이 눈으로 확인하거나 로컬에 내려받는 방식은 지연과 누락, 유출 위험을 함께 만듭니다.",
+      "distractorNotes": {
+        "B": "수동 확인은 즉시 알림 요구를 충족하지 못하고 계정 수가 늘수록 불가능해집니다.",
+        "D": "보존 기간 단축은 조사 가능한 구간을 줄입니다. 검색 편의를 위해 증적을 버리는 선택입니다.",
+        "E": "감사 로그를 개인 단말로 옮기는 것은 새로운 유출 경로를 만듭니다. 중앙 집중과도 반대 방향입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/cloudtrail/latest/APIReference/API_CreateTrail.html",
+          "title": "AWS CloudTrail CreateTrail"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutMetricFilter.html",
+          "title": "CloudWatch Logs PutMetricFilter"
+        }
+      ],
+      "tags": [
+        "cloudtrail-vs-config",
+        "cloudtrail",
+        "audit",
+        "organizations"
+      ]
+    },
+    {
+      "id": "saa-secure-096",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "데이터 계정의 S3 버킷에 분석 계정이 객체를 씁니다. 데이터 계정이 모든 객체를 소유해 수명 주기와 접근을 통제해야 하며, 쓰기 계정이 객체 접근을 좌우해서는 안 됩니다. 필요한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "버킷의 객체 소유권을 버킷 소유자 강제로 두어 ACL을 비활성 상태로 유지한다."
+        },
+        {
+          "id": "B",
+          "text": "쓰기 계정에 버킷 ACL 편집 권한을 주어 업로드 시 소유권을 넘기게 한다."
+        },
+        {
+          "id": "C",
+          "text": "버킷 정책으로 분석 계정 역할에 필요한 쓰기 작업만 허용한다."
+        },
+        {
+          "id": "D",
+          "text": "분석 계정에 버킷 정책 편집 권한을 위임해 필요할 때 조정하게 한다."
+        },
+        {
+          "id": "E",
+          "text": "객체마다 퍼블릭 읽기 ACL을 부여해 두 계정이 모두 읽을 수 있게 한다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "교차 계정 업로드에서 소유권 문제가 생기는 이유는 ACL 기반 소유 모델 때문입니다. 객체 소유권을 버킷 소유자 강제로 두면 ACL이 비활성화되고 업로드된 객체를 버킷 소유자가 자동으로 소유하므로 수명 주기와 접근 통제가 한 계정에 모입니다. 그 위에서 버킷 정책으로 쓰기 계정 역할에 필요한 작업만 허용하면 최소 권한이 완성됩니다. 정책 편집 권한을 넘기거나 객체를 공개하는 방안은 통제권을 잃는 방향입니다.",
+      "distractorNotes": {
+        "B": "ACL로 소유권을 넘기는 방식은 현행 권장 구성이 아니며 업로드 측이 ACL을 빠뜨리면 소유권 문제가 재발합니다.",
+        "D": "정책 편집 권한을 넘기면 데이터 계정이 접근을 통제한다는 요구가 무너집니다. 쓰기 계정이 스스로 권한을 넓힐 수 있습니다.",
+        "E": "객체를 공개하면 통제 문제가 해결되기는커녕 외부 노출로 이어집니다. 요구와 무관한 위험을 추가합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketOwnershipControls.html",
+          "title": "Amazon S3 PutBucketOwnershipControls"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_identity-vs-resource.html",
+          "title": "자격 증명 기반 정책과 리소스 기반 정책"
+        }
+      ],
+      "tags": [
+        "s3-secure-defaults",
+        "identity-vs-resource-policy",
+        "cross-account",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-097",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 스타트업이 하나의 AWS 계정에서 개발과 운영 워크로드를 태그로만 구분해 운영합니다. 개발 작업 중 운영 리소스를 잘못 건드리는 사고가 반복됩니다. 가장 근본적인 격리 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "태그 기반 조건을 정책에 추가해 개발자가 운영 태그 리소스를 건드리지 못하게 한다."
+        },
+        {
+          "id": "B",
+          "text": "운영 리소스에만 삭제 방지 설정을 켜고 나머지는 그대로 둔다."
+        },
+        {
+          "id": "C",
+          "text": "운영 리소스를 다른 VPC로 옮기고 보안 그룹으로 접근을 나눈다."
+        },
+        {
+          "id": "D",
+          "text": "개발과 운영을 별도 AWS 계정으로 나누고 조직 단위와 SCP로 관리한다."
+        }
+      ],
+      "answer": [
+        "D"
+      ],
+      "explanation": "AWS에서 가장 강한 격리 경계는 계정입니다. 계정을 나누면 권한, 서비스 할당량, 청구, 장애 영향 범위가 함께 분리되므로 한쪽에서의 실수가 다른 쪽으로 번지지 않습니다. 정책 조건이나 네트워크 분리는 같은 계정 안에서 통제를 더하는 방법이라 관리자 권한을 가진 주체가 있으면 우회될 수 있습니다. 계정을 조직 단위로 묶고 SCP로 가드레일을 걸면 표준화와 격리를 함께 얻습니다.",
+      "distractorNotes": {
+        "A": "태그 조건은 유용하지만 태그를 바꿀 수 있는 권한이 있으면 우회됩니다. 같은 계정 안이라는 전제가 그대로 남습니다.",
+        "B": "삭제 방지는 특정 작업 하나를 막을 뿐입니다. 구성 변경이나 데이터 조작 같은 다른 실수는 여전히 가능합니다.",
+        "C": "네트워크 분리는 통신 경로를 나눌 뿐 IAM 권한 경계를 만들지 않습니다. 콘솔에서의 조작은 그대로 가능합니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html",
+          "title": "AWS Organizations란"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_getting-started_concepts.html",
+          "title": "AWS Organizations 개념"
+        }
+      ],
+      "tags": [
+        "scp-guardrail",
+        "organizations",
+        "account-isolation"
+      ]
+    },
+    {
+      "id": "saa-secure-098",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch09",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "협력사 시스템들이 SFTP로 파일을 보내면 그 파일이 Amazon S3에 저장되어야 합니다. 회사는 SFTP 서버를 직접 운영하고 싶지 않으며, 접근은 사설 네트워크로 연결된 협력사만 가능해야 합니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "EC2 인스턴스에 SFTP 서버를 설치하고 주기적으로 S3에 동기화한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS Transfer Family 서버를 VPC 내부 엔드포인트로 만들어 S3를 백엔드로 사용한다."
+        },
+        {
+          "id": "C",
+          "text": "협력사에 사전 서명 URL을 발급해 HTTPS로 업로드하게 한다."
+        },
+        {
+          "id": "D",
+          "text": "S3 버킷을 정적 웹사이트로 열고 업로드 전용 경로를 만든다."
+        }
+      ],
+      "answer": [
+        "B"
+      ],
+      "explanation": "AWS Transfer Family는 SFTP를 비롯한 파일 전송 프로토콜을 관리형으로 제공하고 데이터를 곧바로 S3나 EFS에 저장합니다. 엔드포인트 유형을 VPC 내부로 지정하면 인터넷에 노출되지 않고 사설 연결을 통해서만 접근할 수 있습니다. 서버를 직접 운영하면 패치와 가용성, 사용자 관리 부담이 계속 발생하고 동기화 지연도 생깁니다. 프로토콜을 바꿀 수 없다는 제약이 있을 때 이 서비스가 답이 되는 전형적인 사례입니다.",
+      "distractorNotes": {
+        "A": "동작은 하지만 서버 운영 부담이 그대로 남고 동기화 지연과 이중 저장 문제가 생깁니다. 직접 운영하지 않겠다는 요구를 위반합니다.",
+        "C": "협력사 시스템이 SFTP를 사용한다는 전제를 바꿔야 합니다. 상대 시스템 변경이 불가능한 경우가 많습니다.",
+        "D": "정적 웹사이트 호스팅은 퍼블릭 읽기 제공을 위한 기능이며 업로드 경로도 아닙니다. 사설 접근 요구와도 반대입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/transfer/latest/userguide/create-server-in-vpc.html",
+          "title": "VPC에서 Transfer Family 서버 생성"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/transfer/latest/APIReference/API_EndpointDetails.html",
+          "title": "AWS Transfer Family EndpointDetails"
+        }
+      ],
+      "tags": [
+        "vpc-endpoint-choice",
+        "transfer-family",
+        "s3"
+      ]
+    },
+    {
+      "id": "saa-secure-099",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch06",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "암호화된 EBS 볼륨의 스냅샷을 만들어 다른 리전으로 복사한 뒤 그 스냅샷에서 볼륨을 만들었습니다. 새로 만든 볼륨의 암호화 상태에 대한 설명으로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "복사 과정에서 암호화가 해제되므로 새 볼륨은 평문 상태가 된다."
+        },
+        {
+          "id": "B",
+          "text": "리전을 넘으면 암호화 속성이 사라지므로 대상 리전에서 다시 설정해야 한다."
+        },
+        {
+          "id": "C",
+          "text": "스냅샷과 그로부터 만든 볼륨은 암호화 상태를 유지하며 대상 리전의 키로 암호화된다."
+        },
+        {
+          "id": "D",
+          "text": "스냅샷은 암호화되지만 그로부터 만든 볼륨은 기본 설정에 따라 평문이 된다."
+        }
+      ],
+      "answer": [
+        "C"
+      ],
+      "explanation": "암호화된 볼륨에서 만든 스냅샷은 암호화 상태를 그대로 이어받고, 그 스냅샷에서 만든 볼륨도 암호화됩니다. 리전 간 복사에서는 KMS 키가 리전 리소스이므로 대상 리전의 키를 지정해 다시 암호화된 사본이 만들어집니다. 즉 암호화 상태가 파이프라인 전체에서 유지되며 중간에 평문 구간이 생기지 않습니다. 이 상속 규칙 덕분에 기본 암호화를 켜 두면 파생 리소스까지 자동으로 보호됩니다.",
+      "distractorNotes": {
+        "A": "복사 과정에서 암호화가 해제되는 경로는 없습니다. 오히려 복사 시 키를 지정할 수 있습니다.",
+        "B": "리전 간 복사에서도 암호화는 유지되며 대상 리전의 키로 다시 감쌉니다. 속성이 사라지지 않습니다.",
+        "D": "암호화된 스냅샷에서 만든 볼륨은 반드시 암호화됩니다. 평문 볼륨으로 만들 수 없습니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html",
+          "title": "Amazon EBS 암호화"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CopySnapshot.html",
+          "title": "Amazon EC2 CopySnapshot"
+        }
+      ],
+      "tags": [
+        "ebs",
+        "encryption",
+        "kms-envelope"
+      ]
+    },
+    {
+      "id": "saa-secure-100",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 애플리케이션이 역할을 맡을 때 세션 정책을 함께 전달해 세션 권한을 좁히려 합니다. 개발자가 역할에 없는 권한을 세션 정책에 적어 두었는데 그 작업이 계속 거부됩니다. 이유로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "세션 정책은 역할 권한과 교집합으로 동작하므로 역할에 없는 권한을 더할 수 없다."
+        },
+        {
+          "id": "B",
+          "text": "세션 정책은 신뢰 정책이 명시한 작업만 평가하므로 신뢰 정책을 먼저 고쳐야 한다."
+        },
+        {
+          "id": "C",
+          "text": "세션 정책은 임시 자격 증명이 만료된 뒤에야 적용되므로 즉시 반영되지 않는다."
+        },
+        {
+          "id": "D",
+          "text": "세션 정책은 리소스 기반 정책이 있을 때만 평가되므로 버킷 정책을 추가해야 한다."
+        }
+      ],
+      "answer": [
+        "A"
+      ],
+      "explanation": "권한 경계, 조직 SCP, 세션 정책은 모두 권한을 넓히지 않고 좁히기만 하는 상한입니다. 역할을 맡을 때 전달한 세션 정책은 역할의 자격 증명 기반 권한과 교집합을 이루므로, 역할이 갖지 못한 권한을 세션 정책에 적어도 사용할 수 없습니다. 권한을 늘리려면 역할에 연결된 정책 자체를 고쳐야 합니다. 이 교집합 규칙을 자격 증명 기반과 리소스 기반 정책의 합집합 규칙과 혼동하는 것이 이 계열 문항의 함정입니다.",
+      "distractorNotes": {
+        "B": "신뢰 정책은 누가 역할을 맡을 수 있는지를 정합니다. 세션이 어떤 작업을 할 수 있는지는 결정하지 않습니다.",
+        "C": "세션 정책은 자격 증명을 발급받는 시점부터 적용됩니다. 만료 이후에 적용된다는 개념은 없습니다.",
+        "D": "세션 정책은 리소스 기반 정책의 존재와 무관하게 평가됩니다. 두 정책 유형은 별개의 축입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html",
+          "title": "임시 보안 자격 증명 요청"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html",
+          "title": "정책 평가 로직"
+        }
+      ],
+      "tags": [
+        "iam-policy-evaluation",
+        "sts-assume-role",
+        "permissions-boundary"
+      ]
+    },
+    {
+      "id": "saa-secure-101",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "신입 엔지니어가 VPC의 두 접근 제어 계층을 정리하고 있습니다. 보안 그룹과 네트워크 ACL에 대한 서술 중 옳은 것 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "보안 그룹은 상태 저장이므로 허용된 요청의 반환 트래픽이 자동으로 통과한다."
+        },
+        {
+          "id": "B",
+          "text": "보안 그룹은 규칙을 낮은 번호부터 순서대로 평가해 첫 일치에서 결정한다."
+        },
+        {
+          "id": "C",
+          "text": "네트워크 ACL은 서브넷 수준에서 동작하며 허용과 거부 규칙을 모두 지원한다."
+        },
+        {
+          "id": "D",
+          "text": "네트워크 ACL은 인스턴스마다 연결하며 연결하지 않으면 적용되지 않는다."
+        },
+        {
+          "id": "E",
+          "text": "보안 그룹에서 특정 IP를 거부하려면 거부 규칙을 추가하면 된다."
+        }
+      ],
+      "answer": [
+        "A",
+        "C"
+      ],
+      "explanation": "두 계층은 적용 지점과 성격이 다릅니다. 보안 그룹은 네트워크 인터페이스 수준에서 동작하고 허용 규칙만 가지며, 상태 저장이라 허용된 요청의 응답이 규칙 없이 돌아옵니다. 네트워크 ACL은 서브넷 수준에서 동작하고 허용과 거부를 모두 표현하며, 상태 비저장이라 왕복 두 방향을 각각 허용해야 합니다. 이 차이를 알면 특정 IP를 차단하라는 요구에서 보안 그룹 선택지를 즉시 소거할 수 있습니다.",
+      "distractorNotes": {
+        "B": "번호 순서대로 평가하는 것은 네트워크 ACL입니다. 보안 그룹은 모든 규칙을 평가해 하나라도 허용하면 통과시킵니다.",
+        "D": "네트워크 ACL은 서브넷에 연결되며 그 서브넷의 모든 리소스에 적용됩니다. 인스턴스 단위로 붙이는 것은 보안 그룹입니다.",
+        "E": "보안 그룹에는 거부 규칙이 없습니다. 차단은 네트워크 ACL이나 상위 계층 도구의 몫입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html",
+          "title": "Amazon VPC의 보안"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html",
+          "title": "네트워크 ACL로 서브넷 트래픽 제어"
+        }
+      ],
+      "tags": [
+        "sg-vs-nacl",
+        "vpc",
+        "network-acl"
+      ]
+    },
+    {
+      "id": "saa-secure-102",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "한 기업이 온프레미스 Active Directory를 계속 쓰면서 직원에게 AWS 콘솔 접근과 Windows 워크로드의 도메인 인증을 모두 제공하려 합니다. 적절한 조치 두 가지는 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        {
+          "id": "A",
+          "text": "직원마다 IAM 사용자를 만들고 비밀번호 정책으로 관리한다."
+        },
+        {
+          "id": "B",
+          "text": "AWS IAM Identity Center를 활성화하고 기존 디렉터리를 자격 증명 원본으로 연결한다."
+        },
+        {
+          "id": "C",
+          "text": "AWS Directory Service 관리형 Microsoft AD를 만들어 온프레미스 도메인과 신뢰를 맺는다."
+        },
+        {
+          "id": "D",
+          "text": "Amazon Cognito 사용자 풀에 직원 계정을 복제해 인증을 처리한다."
+        },
+        {
+          "id": "E",
+          "text": "도메인 컨트롤러를 퍼블릭 서브넷에 두고 인터넷에서 직접 인증하게 한다."
+        }
+      ],
+      "answer": [
+        "B",
+        "C"
+      ],
+      "explanation": "요구가 두 갈래이므로 담당 서비스도 둘입니다. AWS 계정과 콘솔에 대한 접근은 IAM Identity Center가 담당하며, 기존 디렉터리를 자격 증명 원본으로 연결하면 직원은 사내 계정으로 로그인해 임시 자격 증명을 받습니다. 도메인 조인과 Windows 인증 프로토콜이 필요한 워크로드에는 관리형 Microsoft AD를 두고 온프레미스 도메인과 신뢰를 맺어 기존 계정을 그대로 사용합니다. 어느 쪽도 사람마다 IAM 사용자를 만드는 방식으로는 대체되지 않습니다.",
+      "distractorNotes": {
+        "A": "인원과 계정 수를 곱한 만큼 관리 대상이 늘고 퇴사 처리 누락이 생깁니다. 기존 디렉터리를 계속 쓰겠다는 전제와도 어긋납니다.",
+        "D": "Cognito는 애플리케이션 최종 사용자 인증 서비스입니다. 직원 계정을 복제하면 자격 증명 원본이 둘로 갈라져 관리가 무너집니다.",
+        "E": "도메인 컨트롤러를 인터넷에 노출하는 것은 심각한 위험입니다. 사설 연결 위에서 신뢰를 맺는 것이 표준입니다."
+      },
+      "refs": [
+        {
+          "url": "https://docs.aws.amazon.com/singlesignon/latest/userguide/what-is.html",
+          "title": "AWS IAM Identity Center란 무엇입니까"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/directoryservice/latest/admin-guide/what_is.html",
+          "title": "AWS Directory Service란"
+        }
+      ],
+      "tags": [
+        "federation-choice",
+        "directory-service",
+        "iam-identity-center"
+      ]
+    }
+  ]
+}

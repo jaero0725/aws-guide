@@ -1,0 +1,57 @@
+<svg viewBox="0 0 720 420" role="img" aria-labelledby="d080-title d080-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d080-title">공유 스토리지 선택 매트릭스 — 프로토콜과 동시 접근 범위</title>
+  <desc id="d080-desc">세로축은 스토리지가 노출하는 인터페이스이고 가로축은 몇 대가 동시에 붙을 수 있는가입니다.
+    맨 아래 블록 인터페이스에는 Amazon EBS 가 있으며 기본적으로 인스턴스 한 대에 붙는 볼륨입니다.
+    그 위 NFS 행에는 Amazon EFS 가 있고 여러 가용 영역의 리눅스 인스턴스 수천 대가 같은 파일 시스템을 동시에 마운트할 수 있습니다.
+    그 위 SMB 행에는 FSx for Windows File Server 가 있으며 윈도우 파일 공유와 Active Directory 통합이 필요한 경우의 답입니다.
+    맨 위 고성능 병렬 행에는 FSx for Lustre 가 있고 대규모 계산 클러스터가 S3 데이터를 밀리초 미만 지연으로 읽어야 할 때 씁니다.
+    애플리케이션 코드를 고치지 않고 공유 스토리지를 붙여야 한다는 요구는 운영체제가 리눅스면 EFS 로,
+    윈도우면 FSx for Windows File Server 로 수렴합니다. 객체 API 로 다시 짜야 하는 S3 는 이 요구의 답이 아닙니다.</desc>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">인터페이스와 동시 접근 범위로 자리가 정해집니다</text>
+
+  <text class="dg-fs-sm dg-bold" x="240" y="62" text-anchor="middle">인스턴스 한 대</text>
+  <text class="dg-fs-sm dg-bold" x="430" y="62" text-anchor="middle">여러 인스턴스</text>
+  <text class="dg-fs-sm dg-bold" x="620" y="62" text-anchor="middle">여러 AZ에서 동시에</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="62">동시 접근 →</text>
+
+  <path class="dg-grid" d="M20 70 L700 70 M20 138 L700 138 M20 206 L700 206
+                            M20 274 L700 274 M20 342 L700 342
+                            M150 70 L150 342 M340 70 L340 342 M530 70 L530 342"/>
+
+  <!-- 고성능 병렬 -->
+  <text class="dg-fs-sm dg-bold" x="26" y="98">고성능 병렬</text>
+  <text class="dg-fs-sm dg-muted" x="26" y="118">POSIX · HPC</text>
+  <rect class="dg-node" x="348" y="78" width="174" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="435" y="100" text-anchor="middle">FSx for Lustre</text>
+  <text class="dg-fs-sm dg-muted" x="435" y="120" text-anchor="middle">S3 연동 · 계산 클러스터</text>
+
+  <!-- SMB -->
+  <text class="dg-fs-sm dg-bold" x="26" y="166">SMB</text>
+  <text class="dg-fs-sm dg-muted" x="26" y="186">Windows</text>
+  <rect class="dg-node dg-node--accent" x="538" y="146" width="162" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="619" y="168" text-anchor="middle">FSx for Windows</text>
+  <text class="dg-fs-sm dg-muted" x="619" y="188" text-anchor="middle">Active Directory 통합</text>
+
+  <!-- NFS -->
+  <text class="dg-fs-sm dg-bold" x="26" y="234">NFS</text>
+  <text class="dg-fs-sm dg-muted" x="26" y="254">Linux</text>
+  <rect class="dg-node dg-node--accent" x="538" y="214" width="162" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="619" y="236" text-anchor="middle">Amazon EFS</text>
+  <text class="dg-fs-sm dg-muted" x="619" y="256" text-anchor="middle">여러 AZ · 자동 확장</text>
+
+  <!-- 블록 -->
+  <text class="dg-fs-sm dg-bold" x="26" y="302">블록</text>
+  <text class="dg-fs-sm dg-muted" x="26" y="322">파일 시스템은 직접</text>
+  <rect class="dg-node" x="158" y="282" width="174" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="245" y="304" text-anchor="middle">Amazon EBS</text>
+  <text class="dg-fs-sm dg-muted" x="245" y="324" text-anchor="middle">기본은 인스턴스 하나</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="360">인터페이스 ↑</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="368" width="680" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="390" text-anchor="middle">"코드를 바꾸지 않고 공유 스토리지" — 리눅스면 EFS, 윈도우면 FSx for Windows</text>
+  <text class="dg-fs-sm" x="360" y="408" text-anchor="middle">객체 API 로 다시 짜야 하는 S3 는 이 요구의 답이 아닙니다</text>
+</svg>

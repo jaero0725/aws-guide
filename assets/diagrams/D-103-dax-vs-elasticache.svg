@@ -1,0 +1,85 @@
+<svg viewBox="0 0 720 390" role="img" aria-labelledby="d103-title d103-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d103-title">캐시 계층이 놓이는 자리 — DAX와 ElastiCache</title>
+  <desc id="d103-desc">왼쪽 DynamoDB Accelerator 는 DynamoDB 앞에만 놓이는 전용 캐시입니다.
+    애플리케이션은 DynamoDB API 를 그대로 호출하고 SDK 클라이언트만 DAX 클라이언트로 바꾸면 되므로
+    캐시 조회와 채우기 로직을 따로 짤 일이 거의 없습니다. 대신 DynamoDB 이외의 데이터 소스에는 쓸 수 없습니다.
+    오른쪽 ElastiCache 는 Redis 나 Memcached 를 그대로 제공하는 범용 캐시라
+    RDS 든 DynamoDB 든 외부 API 든 어떤 데이터 소스 앞에도 놓을 수 있습니다.
+    그 대가로 캐시를 먼저 보고 없으면 원본에서 읽어 캐시에 넣는 지연 로딩,
+    또는 원본에 쓸 때 캐시도 함께 갱신하는 라이트 스루 같은 채우기 전략과
+    무효화와 만료 시간 관리를 애플리케이션이 직접 구현해야 합니다.
+    "코드를 거의 바꾸지 않고 DynamoDB 읽기를 빠르게" 라는 요구는 DAX 를,
+    "여러 종류의 데이터 소스 앞에 캐시를" 이라는 요구는 ElastiCache 를 가리킵니다.</desc>
+
+  <defs>
+    <marker id="d103-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d103-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">캐시가 붙는 자리와 캐시 로직의 주인이 다릅니다</text>
+
+  <!-- DAX -->
+  <rect class="dg-panel" x="20" y="40" width="330" height="270" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="64">DAX — DynamoDB 앞에만</text>
+
+  <rect class="dg-node" x="110" y="78" width="150" height="38" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="185" y="102" text-anchor="middle">애플리케이션</text>
+
+  <path class="dg-edge dg-edge--accent" d="M185 116 L185 130" marker-end="url(#d103-ar-accent)"/>
+  <text class="dg-fs-sm dg-muted" x="196" y="128">DynamoDB API 그대로</text>
+
+  <rect class="dg-node dg-node--accent" x="96" y="134" width="178" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="185" y="156" text-anchor="middle">DAX 클러스터</text>
+  <text class="dg-fs-sm" x="185" y="176" text-anchor="middle">캐시 로직은 DAX 안에</text>
+
+  <path class="dg-edge dg-edge--accent" d="M185 186 L185 200" marker-end="url(#d103-ar-accent)"/>
+
+  <rect class="dg-node" x="110" y="204" width="150" height="38" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="185" y="228" text-anchor="middle">DynamoDB</text>
+
+  <text class="dg-fs-sm" x="34" y="266">SDK 클라이언트만 바꾸면 됩니다</text>
+  <text class="dg-fs-sm" x="34" y="284">채우기 전략을 짤 일이 거의 없습니다</text>
+  <text class="dg-fs-sm dg-bold" x="34" y="302">DynamoDB 이외에는 쓸 수 없습니다</text>
+
+  <!-- ElastiCache -->
+  <rect class="dg-panel" x="370" y="40" width="330" height="270" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="384" y="64">ElastiCache — 아무 소스 앞에나</text>
+
+  <rect class="dg-node" x="460" y="78" width="150" height="38" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="535" y="102" text-anchor="middle">애플리케이션</text>
+
+  <path class="dg-edge" d="M496 116 L456 130" marker-end="url(#d103-ar)"/>
+  <path class="dg-edge dg-edge--dashed" d="M574 116 L614 130" marker-end="url(#d103-ar)"/>
+
+  <rect class="dg-node dg-node--accent" x="384" y="134" width="136" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="452" y="156" text-anchor="middle">ElastiCache</text>
+  <text class="dg-fs-sm" x="452" y="176" text-anchor="middle">Redis · Memcached</text>
+
+  <rect class="dg-node" x="550" y="134" width="136" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="618" y="156" text-anchor="middle">임의의 데이터 소스</text>
+  <text class="dg-fs-sm dg-muted" x="618" y="176" text-anchor="middle">RDS · DynamoDB · API</text>
+
+  <rect class="dg-node dg-node--warn" x="384" y="198" width="136" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="452" y="220" text-anchor="middle">지연 로딩</text>
+  <text class="dg-fs-sm" x="452" y="240" text-anchor="middle">미스 때 채웁니다</text>
+
+  <rect class="dg-node dg-node--warn" x="550" y="198" width="136" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="618" y="220" text-anchor="middle">라이트 스루</text>
+  <text class="dg-fs-sm" x="618" y="240" text-anchor="middle">쓸 때 함께 채웁니다</text>
+
+  <text class="dg-fs-sm dg-bold" x="384" y="270">두 전략 모두 애플리케이션이 구현합니다</text>
+  <text class="dg-fs-sm" x="384" y="288">무효화와 만료 시간도 직접 관리합니다</text>
+  <text class="dg-fs-sm" x="384" y="306">대신 어떤 데이터 소스 앞에도 놓입니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="322" width="680" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="346" text-anchor="middle">"코드를 거의 안 바꾸고 DynamoDB 읽기를 빠르게" 는 DAX</text>
+  <text class="dg-fs-sm" x="360" y="368" text-anchor="middle">"여러 종류의 데이터 소스 앞에 캐시를 두어야 한다" 는 ElastiCache 입니다</text>
+</svg>

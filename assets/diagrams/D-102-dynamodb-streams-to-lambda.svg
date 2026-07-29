@@ -1,0 +1,82 @@
+<svg viewBox="0 0 720 456" role="img" aria-labelledby="d102-title d102-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d102-title">DynamoDB 스트림에서 Lambda까지의 경로</title>
+  <desc id="d102-desc">테이블의 항목이 추가되거나 수정되거나 삭제되면 그 변경 하나하나가 스트림 레코드가 되어
+    DynamoDB 스트림에 시간 순서대로 쌓입니다. Lambda 는 이 스트림을 이벤트 소스 매핑으로 폴링하며
+    레코드를 배치로 가져가 처리합니다. 즉 DynamoDB 가 Lambda 를 호출하는 것이 아니라 Lambda 가 가지러 오는 구조이고,
+    그래서 재시도 규칙도 Lambda 의 비동기 호출 규칙이 아니라 스트림의 규칙을 따릅니다.
+    스트림을 켤 때 고르는 뷰 타입에 따라 레코드에 담기는 내용이 달라집니다.
+    키만 담을 수도 있고, 변경 후 항목 전체나 변경 전 항목 전체를 담을 수도 있으며, 둘 다 담을 수도 있습니다.
+    변경 전후를 비교하는 로직을 짜려면 NEW_AND_OLD_IMAGES 가 필요합니다.
+    글로벌 테이블의 리전 간 복제도 별도의 장치가 아니라 같은 스트림 위에서 동작합니다.</desc>
+
+  <defs>
+    <marker id="d102-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d102-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">변경이 레코드가 되고, Lambda 가 가지러 옵니다</text>
+
+  <rect class="dg-node" x="20" y="46" width="140" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="90" y="74" text-anchor="middle">DynamoDB 테이블</text>
+  <text class="dg-fs-sm dg-muted" x="90" y="96" text-anchor="middle">항목 추가 · 수정 · 삭제</text>
+
+  <path class="dg-edge dg-edge--accent" d="M160 81 L184 81" marker-end="url(#d102-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="190" y="46" width="170" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="275" y="74" text-anchor="middle">DynamoDB 스트림</text>
+  <text class="dg-fs-sm" x="275" y="96" text-anchor="middle">변경이 순서대로 쌓입니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M384 81 L366 81" marker-end="url(#d102-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="375" y="134" text-anchor="middle">폴링</text>
+
+  <rect class="dg-node" x="390" y="46" width="150" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="465" y="74" text-anchor="middle">Lambda</text>
+  <text class="dg-fs-sm dg-muted" x="465" y="96" text-anchor="middle">이벤트 소스 매핑</text>
+
+  <path class="dg-edge" d="M540 81 L564 81" marker-end="url(#d102-ar)"/>
+
+  <rect class="dg-node" x="570" y="46" width="130" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="635" y="74" text-anchor="middle">후속 처리</text>
+  <text class="dg-fs-sm dg-muted" x="635" y="96" text-anchor="middle">집계 · 알림 · 색인</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="136">Lambda 가 가지러 오므로 재시도 규칙도 스트림의 규칙을 따릅니다</text>
+
+  <!-- 글로벌 테이블 -->
+  <path class="dg-edge dg-edge--dashed" d="M275 116 L275 152" marker-end="url(#d102-ar)"/>
+  <rect class="dg-node dg-node--alt" x="190" y="156" width="340" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="178" text-anchor="middle">글로벌 테이블의 리전 간 복제</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="198" text-anchor="middle">별도 장치가 아니라 같은 스트림 위에서 동작합니다</text>
+
+  <!-- 뷰 타입 -->
+  <text class="dg-fs-md dg-bold" x="20" y="236">뷰 타입이 레코드에 담기는 내용을 정합니다</text>
+
+  <rect class="dg-node dg-node--empty" x="20" y="246" width="680" height="150" rx="4"/>
+  <path class="dg-grid" d="M20 276 L700 276 M20 306 L700 306 M20 336 L700 336 M20 366 L700 366
+                            M270 246 L270 396"/>
+
+  <text class="dg-fs-sm dg-muted" x="30" y="267">StreamViewType</text>
+  <text class="dg-fs-sm dg-muted" x="282" y="267">스트림 레코드에 담기는 것</text>
+
+  <text class="dg-fs-sm dg-mono dg-bold" x="30" y="297">KEYS_ONLY</text>
+  <text class="dg-fs-sm" x="282" y="297">변경된 항목의 키만 — 가장 가볍습니다</text>
+
+  <text class="dg-fs-sm dg-mono dg-bold" x="30" y="327">NEW_IMAGE</text>
+  <text class="dg-fs-sm" x="282" y="327">변경된 뒤의 항목 전체</text>
+
+  <text class="dg-fs-sm dg-mono dg-bold" x="30" y="357">OLD_IMAGE</text>
+  <text class="dg-fs-sm" x="282" y="357">변경되기 전의 항목 전체</text>
+
+  <text class="dg-fs-sm dg-mono dg-bold" x="30" y="387">NEW_AND_OLD_IMAGES</text>
+  <text class="dg-fs-sm dg-bold" x="282" y="387">전후 모두 — 변경 내용을 비교하려면 이것이 필요합니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="408" width="680" height="38" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="432" text-anchor="middle">"항목이 바뀔 때마다 무언가 하고 싶다"의 표준 답은 스트림 + Lambda 이벤트 소스 매핑입니다</text>
+</svg>

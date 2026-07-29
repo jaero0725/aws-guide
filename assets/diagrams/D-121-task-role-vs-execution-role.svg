@@ -1,0 +1,80 @@
+<svg viewBox="0 0 720 420" role="img" aria-labelledby="d121-title d121-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d121-title">태스크 역할과 태스크 실행 역할 — 화살표의 출발점이 다릅니다</title>
+  <desc id="d121-desc">ECS 태스크에는 이름이 비슷한 두 개의 IAM 역할이 붙습니다. 둘을 가르는 기준은 누가 그 권한을 쓰느냐입니다.
+    위쪽 화살표는 컨테이너 안에서 도는 애플리케이션 코드에서 출발합니다.
+    코드가 SDK 로 S3 나 DynamoDB 나 SQS 를 호출할 때 쓰는 자격 증명이 태스크 역할입니다.
+    아래쪽 화살표는 컨테이너가 아니라 ECS 에이전트와 Fargate 인프라에서 출발합니다.
+    태스크를 시작하기 위해 ECR 에서 이미지를 내려받고, CloudWatch Logs 로 로그를 보내고,
+    Secrets Manager 나 SSM 파라미터 스토어에서 값을 읽어 환경 변수로 주입하는 일은 컨테이너가 하는 일이 아니라
+    태스크를 띄우는 쪽이 하는 일이며, 그때 쓰는 자격 증명이 태스크 실행 역할입니다.
+    그래서 진단도 갈립니다. 컨테이너 코드가 AccessDenied 를 받으면 태스크 역할을 보고,
+    이미지를 못 받거나 로그가 아예 남지 않으면 태스크 실행 역할을 봅니다.
+    Fargate 에서도 두 역할은 그대로 필요합니다.</desc>
+
+  <defs>
+    <marker id="d121-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d121-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">누가 그 권한을 쓰는가로 갈립니다</text>
+
+  <!-- 태스크 -->
+  <rect class="dg-panel" x="20" y="52" width="310" height="216" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="30" y="72">ECS 태스크</text>
+
+  <rect class="dg-node dg-node--accent" x="34" y="84" width="282" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="46" y="108">컨테이너</text>
+  <text class="dg-fs-sm dg-bold" x="46" y="130">애플리케이션 코드</text>
+  <text class="dg-fs-sm dg-muted" x="46" y="152">SDK 로 AWS 서비스를 호출합니다</text>
+
+  <rect class="dg-node" x="34" y="182" width="282" height="72" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="46" y="206">ECS 에이전트 · Fargate 인프라</text>
+  <text class="dg-fs-sm dg-muted" x="46" y="228">태스크를 띄우는 쪽이며</text>
+  <text class="dg-fs-sm dg-muted" x="46" y="246">컨테이너 안이 아닙니다</text>
+
+  <!-- 역할 -->
+  <path class="dg-edge dg-edge--accent" d="M316 124 L344 124" marker-end="url(#d121-ar-accent)"/>
+  <rect class="dg-node dg-node--accent" x="350" y="96" width="140" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="420" y="120" text-anchor="middle">태스크 역할</text>
+  <text class="dg-fs-sm" x="420" y="140" text-anchor="middle">taskRoleArn</text>
+
+  <path class="dg-edge" d="M316 218 L344 218" marker-end="url(#d121-ar)"/>
+  <rect class="dg-node" x="350" y="190" width="140" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="420" y="214" text-anchor="middle">태스크 실행 역할</text>
+  <text class="dg-fs-sm" x="420" y="234" text-anchor="middle">executionRoleArn</text>
+
+  <!-- 대상 -->
+  <path class="dg-edge dg-edge--accent" d="M490 124 L510 124" marker-end="url(#d121-ar-accent)"/>
+  <rect class="dg-node dg-node--accent" x="516" y="84" width="184" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="530" y="108">Amazon S3</text>
+  <text class="dg-fs-sm dg-bold" x="530" y="130">Amazon DynamoDB</text>
+  <text class="dg-fs-sm dg-muted" x="530" y="152">코드가 직접 부르는 서비스</text>
+
+  <path class="dg-edge" d="M490 218 L510 218" marker-end="url(#d121-ar)"/>
+  <rect class="dg-node" x="516" y="176" width="184" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="530" y="198">Amazon ECR — 이미지</text>
+  <text class="dg-fs-sm dg-bold" x="530" y="220">CloudWatch Logs — 로그</text>
+  <text class="dg-fs-sm dg-bold" x="530" y="242">Secrets Manager — 비밀</text>
+
+  <!-- 진단 -->
+  <rect class="dg-node dg-node--accent" x="20" y="284" width="330" height="76" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="308">컨테이너 코드가 AccessDenied 를 받는다</text>
+  <text class="dg-fs-sm" x="34" y="330">태스크 역할을 봅니다</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="350">애플리케이션이 부르는 API 권한이 여기 있습니다</text>
+
+  <rect class="dg-node" x="370" y="284" width="330" height="76" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="308">이미지를 못 받거나 로그가 안 남는다</text>
+  <text class="dg-fs-sm" x="384" y="330">태스크 실행 역할을 봅니다</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="350">태스크가 시작조차 못 하는 원인이 여기입니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="372" width="680" height="38" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="396" text-anchor="middle">Fargate 에서도 두 역할은 그대로 필요하며, 하나로 합쳐지지 않습니다</text>
+</svg>

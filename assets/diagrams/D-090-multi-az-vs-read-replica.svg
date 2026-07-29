@@ -49,9 +49,10 @@
   <text class="dg-fs-sm dg-bold" x="269" y="208" text-anchor="middle">읽기 트래픽 없음</text>
 
   <path class="dg-edge dg-edge--accent" d="M174 195 L196 195" marker-end="url(#d090-ar-accent)"/>
-  <path class="dg-x" d="M262 236 L276 250 M276 236 L262 250"/>
+  <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M182 131 L269 131 L269 162"/>
+  <path class="dg-x" d="M262 138 L276 152 M276 138 L262 152"/>
   <text class="dg-fs-sm dg-muted" x="103" y="244" text-anchor="middle">AZ-a</text>
-  <text class="dg-fs-sm dg-muted" x="200" y="244" text-anchor="end">AZ-b</text>
+  <text class="dg-fs-sm dg-muted" x="269" y="244" text-anchor="middle">AZ-b</text>
 
   <!-- 우: 읽기 전용 복제본 -->
   <rect class="dg-panel" x="370" y="34" width="330" height="216" rx="4"/>

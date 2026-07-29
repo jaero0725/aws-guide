@@ -66,7 +66,7 @@
   <text class="dg-fs-sm dg-muted" x="34" y="256">소비자가 멱등하게 만들어야 합니다</text>
 
   <!-- FIFO 큐 -->
-  <rect class="dg-panel" x="370" y="66" width="330" height="200" rx="4"/>
+  <rect class="dg-panel" x="370" y="66" width="330" height="208" rx="4"/>
   <text class="dg-fs-md dg-bold" x="384" y="90">FIFO 큐</text>
   <text class="dg-fs-sm dg-muted" x="384" y="112">메시지 그룹 안에서만 순서 보장</text>
 
@@ -84,10 +84,10 @@
   <text class="dg-fs-sm dg-bold" x="501" y="176" text-anchor="middle">4</text>
   <text class="dg-fs-sm dg-muted" x="530" y="176">순서 그대로</text>
 
-  <text class="dg-fs-sm" x="384" y="206">그룹이 다르면 서로의 순서는 무관합니다</text>
-  <text class="dg-fs-sm" x="384" y="226">중복 제거 — 정확히 한 번 처리</text>
-  <text class="dg-fs-sm" x="384" y="246">초당 300개 · 배치 사용 시 초당 3,000개</text>
-  <text class="dg-fs-sm dg-muted" x="384" y="266">MessageGroupId 를 빠뜨리면 전송이 실패합니다</text>
+  <text class="dg-fs-sm" x="384" y="202">그룹이 다르면 서로의 순서는 무관합니다</text>
+  <text class="dg-fs-sm" x="384" y="222">중복 제거 — 정확히 한 번 처리</text>
+  <text class="dg-fs-sm" x="384" y="242">초당 300개 · 배치 사용 시 초당 3,000개</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="262">MessageGroupId 를 빠뜨리면 전송이 실패합니다</text>
 
   <!-- 수명주기 -->
   <text class="dg-fs-md dg-bold" x="20" y="300">메시지 수명주기 — 두 큐에 공통입니다</text>
@@ -98,8 +98,8 @@
   <path class="dg-edge" d="M140 337 L152 337" marker-end="url(#d113-ar)"/>
 
   <rect class="dg-node dg-node--accent" x="158" y="312" width="150" height="50" rx="4"/>
-  <text class="dg-fs-sm dg-bold" x="233" y="334" text-anchor="middle">가시성 제한 시간</text>
-  <text class="dg-fs-sm" x="233" y="352" text-anchor="middle">동안 감춰집니다 (기본 30초)</text>
+  <text class="dg-fs-sm dg-bold" x="233" y="333" text-anchor="middle">가시성 제한 시간 동안</text>
+  <text class="dg-fs-sm" x="233" y="351" text-anchor="middle">감춰집니다 (기본 30초)</text>
 
   <path class="dg-edge dg-edge--ok" d="M308 328 L318 302" marker-end="url(#d113-ar-ok)"/>
   <rect class="dg-node dg-node--ok" x="324" y="276" width="160" height="42" rx="4"/>

@@ -1,0 +1,89 @@
+<svg viewBox="0 0 720 480" role="img" aria-labelledby="d081-title d081-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d081-title">Storage Gateway 세 종류에서 온프레미스와 AWS의 경계</title>
+  <desc id="d081-desc">가운데 세로선이 온프레미스와 AWS 의 경계입니다.
+    파일 게이트웨이에서는 서버들이 평소처럼 NFS 나 SMB 로 파일 공유를 마운트하고,
+    게이트웨이 어플라이언스가 그 파일을 S3 객체로 옮깁니다. 파일 하나가 객체 하나에 대응하므로
+    S3 쪽에서도 원래 파일 형태로 보입니다.
+    볼륨 게이트웨이에서는 서버가 iSCSI 블록 볼륨을 보고, 게이트웨이가 그 볼륨의 스냅샷을 AWS 에 EBS 스냅샷으로 저장합니다.
+    테이프 게이트웨이에서는 기존 백업 소프트웨어가 가상 테이프 라이브러리를 진짜 테이프 장비로 인식하고,
+    가상 테이프가 S3 와 Glacier 아카이브로 넘어갑니다.
+    세 종류 모두에서 자주 쓰는 데이터는 온프레미스 어플라이언스의 로컬 캐시에 남습니다.
+    그래서 대부분의 읽기가 로컬 디스크 속도로 처리되고, 클라우드로 옮기면서도 낮은 지연 시간 요구를 만족시킬 수 있습니다.</desc>
+
+  <defs>
+    <marker id="d081-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d081-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="30">무엇이 남고 무엇이 넘어가는가</text>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="52">온프레미스</text>
+  <text class="dg-fs-sm dg-bold" x="380" y="52">AWS</text>
+  <path class="dg-edge dg-edge--dashdot dg-edge--muted" d="M360 58 L360 400"/>
+
+  <!-- 파일 게이트웨이 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="76">파일 게이트웨이</text>
+  <rect class="dg-node" x="20" y="84" width="120" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="80" y="108" text-anchor="middle">서버</text>
+  <text class="dg-fs-sm dg-muted" x="80" y="128" text-anchor="middle">NFS · SMB 마운트</text>
+
+  <path class="dg-edge" d="M140 114 L152 114" marker-end="url(#d081-ar)"/>
+
+  <rect class="dg-node dg-node--accent" x="158" y="84" width="182" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="249" y="108" text-anchor="middle">게이트웨이 어플라이언스</text>
+  <text class="dg-fs-sm dg-bold" x="249" y="128" text-anchor="middle">로컬 캐시가 여기 남습니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M340 114 L374 114" marker-end="url(#d081-ar-accent)"/>
+
+  <rect class="dg-node" x="380" y="84" width="320" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="540" y="108" text-anchor="middle">Amazon S3 객체</text>
+  <text class="dg-fs-sm dg-muted" x="540" y="128" text-anchor="middle">파일 하나가 객체 하나로 그대로 보입니다</text>
+
+  <!-- 볼륨 게이트웨이 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="196">볼륨 게이트웨이</text>
+  <rect class="dg-node" x="20" y="204" width="120" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="80" y="228" text-anchor="middle">서버</text>
+  <text class="dg-fs-sm dg-muted" x="80" y="248" text-anchor="middle">iSCSI 블록 볼륨</text>
+
+  <path class="dg-edge" d="M140 234 L152 234" marker-end="url(#d081-ar)"/>
+
+  <rect class="dg-node dg-node--accent" x="158" y="204" width="182" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="249" y="228" text-anchor="middle">캐시 볼륨 · 저장 볼륨</text>
+  <text class="dg-fs-sm dg-bold" x="249" y="248" text-anchor="middle">로컬 캐시가 여기 남습니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M340 234 L374 234" marker-end="url(#d081-ar-accent)"/>
+
+  <rect class="dg-node" x="380" y="204" width="320" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="540" y="228" text-anchor="middle">EBS 스냅샷</text>
+  <text class="dg-fs-sm dg-muted" x="540" y="248" text-anchor="middle">스냅샷에서 EBS 볼륨을 만들 수 있습니다</text>
+
+  <!-- 테이프 게이트웨이 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="316">테이프 게이트웨이</text>
+  <rect class="dg-node" x="20" y="324" width="120" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="80" y="348" text-anchor="middle">백업 소프트웨어</text>
+  <text class="dg-fs-sm dg-muted" x="80" y="368" text-anchor="middle">기존 그대로</text>
+
+  <path class="dg-edge" d="M140 354 L152 354" marker-end="url(#d081-ar)"/>
+
+  <rect class="dg-node dg-node--accent" x="158" y="324" width="182" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="249" y="348" text-anchor="middle">가상 테이프 라이브러리</text>
+  <text class="dg-fs-sm dg-bold" x="249" y="368" text-anchor="middle">테이프 장비로 인식됩니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M340 354 L374 354" marker-end="url(#d081-ar-accent)"/>
+
+  <rect class="dg-node" x="380" y="324" width="320" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="540" y="348" text-anchor="middle">S3 · Glacier 아카이브</text>
+  <text class="dg-fs-sm dg-muted" x="540" y="368" text-anchor="middle">테이프 장비와 유지보수 계약이 사라집니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="410" width="680" height="60" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="434" text-anchor="middle">세 종류 모두 자주 쓰는 데이터는 온프레미스 캐시에 남습니다</text>
+  <text class="dg-fs-sm" x="360" y="456" text-anchor="middle">"클라우드로 옮기되 접근 지연은 지금과 같아야 한다"는 요구를 만족시키는 근거가 이 캐시입니다</text>
+</svg>
