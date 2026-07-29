@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-07-29",
   "examCode": "SAA-C03",
-  "totalQuestions": 350,
+  "totalQuestions": 390,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -10,6 +10,46 @@
       "exam": "BASICS",
       "domain": "AWS 글로벌 인프라와 계정 기초",
       "chapter": "ch01",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch02",
+      "file": "basics-ch02.json",
+      "title": "IAM과 자격 증명 확인 문제",
+      "exam": "BASICS",
+      "domain": "IAM과 자격 증명",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch03",
+      "file": "basics-ch03.json",
+      "title": "VPC 네트워킹 기초 확인 문제",
+      "exam": "BASICS",
+      "domain": "VPC 네트워킹 기초",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch08",
+      "file": "basics-ch08.json",
+      "title": "S3와 오브젝트 스토리지 확인 문제",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch16",
+      "file": "basics-ch16.json",
+      "title": "보안 · 암호화 · 거버넌스 확인 문제",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
       "count": 10,
       "mock": false,
       "diagnostic": false

@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 3 · S3 정적 사이트 + CloudFront + OAC — AWS SAA Guide</title>
+  <meta name="description" content="버킷을 비공개로 유지한 채 CloudFront로 정적 사이트를 배포합니다. 오리진 액세스 제어(OAC)와 버킷 정책, 캐시 무효화, 기본 루트 객체 설정을 AWS CLI로 구성하고 직접 접근이 차단되는지 검증합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab03"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab03">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 3 · S3 정적 사이트 + CloudFront + OAC</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 3</p>
+      <h1>S3 정적 사이트 + CloudFront + OAC</h1>
+      <p class="page__lead">
+        이 실습의 결론은 하나입니다 —
+        <strong>버킷을 퍼블릭으로 열지 않고도 정적 사이트를 배포할 수 있습니다.</strong>
+        오리진 액세스 제어(Origin Access Control, OAC)를 쓰면
+        CloudFront 배포만 버킷을 읽을 수 있고 직접 접근은 차단됩니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a> ·
+        <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>퍼블릭 액세스가 차단된 버킷을 CloudFront 오리진으로 쓸 수 있습니다.</li>
+        <li>오리진 액세스 제어와 버킷 정책이 어떻게 짝을 이루는지 설명할 수 있습니다.</li>
+        <li>기본 루트 객체와 사용자 지정 오류 응답을 설정할 수 있습니다.</li>
+        <li>배포 후 캐시 무효화로 변경을 반영할 수 있습니다.</li>
+        <li>버킷에 직접 접근했을 때 차단되는지 검증할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        제품 소개 페이지를 정적 파일로 배포합니다. 요구는 이렇습니다.
+      </p>
+      <ul>
+        <li>전 세계 사용자에게 <strong>낮은 지연</strong>으로 제공해야 합니다.</li>
+        <li>오리진 버킷은 <strong>인터넷에 직접 노출되지 않아야</strong> 합니다.</li>
+        <li>HTTPS로만 접근되어야 합니다.</li>
+        <li>배포 후 변경 사항이 <strong>빠르게 반영</strong>되어야 합니다.</li>
+      </ul>
+      <p>
+        S3의 정적 웹사이트 호스팅 기능만 쓰면 버킷을 퍼블릭으로 열어야 하고,
+        HTTPS도 직접 제공되지 않습니다.
+        그래서 <strong>비공개 버킷 + CloudFront + OAC</strong>가 현재의 표준 조합입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>구성 요소와 역할</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성 요소</th>
+              <th scope="col">역할</th>
+              <th scope="col">설정 요점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 버킷</th>
+              <td>정적 파일의 오리진</td>
+              <td>퍼블릭 액세스 차단 유지, 정적 웹사이트 호스팅은 켜지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">오리진 액세스 제어(OAC)</th>
+              <td>CloudFront가 서명된 요청으로 오리진에 접근</td>
+              <td>서명 프로토콜 <code>sigv4</code>, 서명 동작 <code>always</code></td>
+            </tr>
+            <tr>
+              <th scope="row">버킷 정책</th>
+              <td>CloudFront 서비스 주체에게만 읽기 허용</td>
+              <td>조건으로 <strong>특정 배포 ARN</strong>만 허용</td>
+            </tr>
+            <tr>
+              <th scope="row">CloudFront 배포</th>
+              <td>엣지 캐시와 HTTPS 종료</td>
+              <td>뷰어 프로토콜 정책 <code>redirect-to-https</code>, 기본 루트 객체 지정</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          신규 S3 버킷은 <strong>퍼블릭 액세스 차단이 켜진 상태</strong>로 만들어지고,
+          ACL이 비활성화되어 있으며(객체 소유권이 버킷 소유자로 강제),
+          신규 객체는 <strong>SSE-S3로 자동 암호화</strong>됩니다.
+          "버킷을 만들고 퍼블릭 읽기 ACL을 붙인다"는 옛 절차는 지금 기본 구성에서 동작하지 않습니다.
+        </p>
+        <p>
+          다만 <strong>버전 관리는 여전히 기본 비활성화</strong>입니다.
+          기본값이 전부 켜졌다고 뭉뚱그리면 틀립니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-bucket">1 · 비공개 버킷 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-bucket.sh</span> — 버킷 생성과 퍼블릭 액세스 차단 확인 (버킷 이름과 리전은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">BUCKET=example-lab03-site
+REGION=ap-northeast-2
+
+aws s3api create-bucket \
+  --bucket "$BUCKET" \
+  --region "$REGION" \
+  --create-bucket-configuration LocationConstraint="$REGION"
+
+# 신규 버킷은 기본으로 차단되어 있지만, 명시적으로 확인하고 고정합니다.
+aws s3api put-public-access-block \
+  --bucket "$BUCKET" \
+  --public-access-block-configuration \
+    BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+
+aws s3api get-public-access-block --bucket "$BUCKET"
+
+# 정적 파일을 올립니다.
+aws s3 cp ./site/ "s3://$BUCKET/" --recursive</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <code>us-east-1</code>에 버킷을 만들 때는
+          <code>--create-bucket-configuration</code>을 지정하지 않습니다.
+          그 리전이 기본값이라 위치 제약을 함께 주면 오류가 납니다.
+        </p>
+      </aside>
+
+      <h3 id="step-oac">2 · 오리진 액세스 제어 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-oac.sh</span> — S3 오리진용 OAC 생성</figcaption>
+        <pre><code class="lang-bash">aws cloudfront create-origin-access-control \
+  --origin-access-control-config '{
+      "Name": "lab03-site-oac",
+      "Description": "OAC for lab03 static site",
+      "OriginAccessControlOriginType": "s3",
+      "SigningProtocol": "sigv4",
+      "SigningBehavior": "always"
+    }' \
+  --query 'OriginAccessControl.Id' --output text</code></pre>
+      </figure>
+
+      <p>
+        <code>OriginAccessControlOriginType</code>은
+        <code>s3</code> · <code>mediastore</code> · <code>mediapackagev2</code> · <code>lambda</code> 중
+        하나이고, 이 실습에서는 <code>s3</code>입니다.
+        서명 프로토콜은 <code>sigv4</code> 하나뿐입니다.
+      </p>
+
+      <h3 id="step-distribution">3 · 배포 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">distribution.json</span> — 배포 구성 (버킷 이름과 OAC ID는 앞 단계의 값으로 바꿉니다)</figcaption>
+        <pre><code class="lang-json">{
+  "CallerReference": "lab03-site-2026-07-29",
+  "Comment": "lab03 static site",
+  "Enabled": true,
+  "DefaultRootObject": "index.html",
+  "Origins": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "s3-origin",
+        "DomainName": "example-lab03-site.s3.ap-northeast-2.amazonaws.com",
+        "OriginAccessControlId": "E1EXAMPLEOACID",
+        "S3OriginConfig": { "OriginAccessIdentity": "" }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "s3-origin",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "AllowedMethods": {
+      "Quantity": 2,
+      "Items": ["GET", "HEAD"],
+      "CachedMethods": { "Quantity": 2, "Items": ["GET", "HEAD"] }
+    },
+    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+    "Compress": true
+  }
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-distribution.sh</span> — 배포 생성과 도메인 이름 확인</figcaption>
+        <pre><code class="lang-bash">aws cloudfront create-distribution \
+  --distribution-config file://distribution.json \
+  --query 'Distribution.[Id,DomainName,Status]' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <code>CachePolicyId</code>에는 AWS가 제공하는 관리형 캐시 정책의 ID를 넣습니다.
+          정책 목록은 <code>aws cloudfront list-cache-policies --type managed</code>로 조회할 수 있으므로,
+          위 값을 그대로 쓰지 말고 <strong>조회해서 확인한 뒤</strong> 씁니다.
+          쿼리 문자열이나 쿠키를 캐시 키에 포함할지가 캐시 적중률을 좌우합니다.
+        </p>
+      </aside>
+
+      <h3 id="step-policy">4 · 버킷 정책으로 배포만 허용</h3>
+      <p>
+        OAC를 만들었다고 접근이 되는 것은 아닙니다.
+        <strong>버킷 정책이 CloudFront 서비스 주체를 허용해야</strong> 완성됩니다.
+        조건으로 배포 ARN을 못 박아 <strong>이 배포만</strong> 읽을 수 있게 합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">bucket-policy.json</span> — CloudFront 서비스 주체에게만 읽기 허용 (계정 ID와 배포 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCloudFrontServicePrincipalReadOnly",
+      "Effect": "Allow",
+      "Principal": { "Service": "cloudfront.amazonaws.com" },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::example-lab03-site/*",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceArn": "arn:aws:cloudfront::123456789012:distribution/E1EXAMPLEDIST"
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">apply-policy.sh</span> — 정책 적용</figcaption>
+        <pre><code class="lang-bash">aws s3api put-bucket-policy \
+  --bucket "$BUCKET" \
+  --policy file://bucket-policy.json
+
+aws s3api get-bucket-policy --bucket "$BUCKET" --query 'Policy' --output text</code></pre>
+      </figure>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          조건 없이 <code>cloudfront.amazonaws.com</code>을 허용하면
+          <strong>다른 계정의 배포도 이 버킷을 오리진으로 삼을 수 있습니다.</strong>
+          <code>AWS:SourceArn</code> 조건을 반드시 넣습니다.
+        </p>
+      </aside>
+
+      <h3 id="step-invalidate">5 · 배포 후 캐시 무효화</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">deploy-and-invalidate.sh</span> — 파일 갱신과 무효화 (배포 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws s3 sync ./site/ "s3://$BUCKET/" --delete
+
+aws cloudfront create-invalidation \
+  --distribution-id E1EXAMPLEDIST \
+  --paths "/*" \
+  --query 'Invalidation.[Id,Status]' --output table</code></pre>
+      </figure>
+
+      <p>
+        무효화는 편리하지만 남용하면 요금 항목이 됩니다.
+        프로덕션에서는 <strong>파일 이름에 내용 해시를 넣어</strong> 새 경로로 배포하고,
+        <code>index.html</code>처럼 이름이 고정된 소수의 파일만 무효화하는 방식이 일반적입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>검증 항목과 기대 결과</caption>
+          <thead>
+            <tr>
+              <th scope="col">확인</th>
+              <th scope="col">방법</th>
+              <th scope="col">기대 결과</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">CloudFront 경유 접근</th>
+              <td>배포 도메인 이름으로 HTTPS 요청</td>
+              <td>정상 응답 (200)</td>
+            </tr>
+            <tr>
+              <th scope="row">버킷 직접 접근</th>
+              <td>S3 객체 URL로 직접 요청</td>
+              <td><span class="mark-ok">거부됨 — 접근이 차단된다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">HTTP 접근</th>
+              <td>배포 도메인에 HTTP로 요청</td>
+              <td>HTTPS로 리디렉션</td>
+            </tr>
+            <tr>
+              <th scope="row">기본 루트 객체</th>
+              <td>경로 없이 배포 도메인만 요청</td>
+              <td><code>index.html</code>이 반환된다</td>
+            </tr>
+            <tr>
+              <th scope="row">캐시 적중</th>
+              <td>같은 경로를 두 번 요청하고 응답 헤더 확인</td>
+              <td>두 번째 요청이 엣지 캐시에서 처리된다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify.sh</span> — 배포 상태와 접근 차단 확인</figcaption>
+        <pre><code class="lang-bash"># 배포가 전 엣지에 전파되었는지 상태를 확인합니다.
+aws cloudfront get-distribution \
+  --id E1EXAMPLEDIST \
+  --query 'Distribution.[Status,DomainName]' --output table
+
+# 버킷 정책과 퍼블릭 액세스 차단이 의도대로인지 확인합니다.
+aws s3api get-public-access-block --bucket "$BUCKET"
+aws s3api get-bucket-policy-status --bucket "$BUCKET"</code></pre>
+      </figure>
+
+      <p>
+        <code>get-bucket-policy-status</code>가 버킷이 퍼블릭이 아니라고 보고하고,
+        동시에 CloudFront 도메인으로는 페이지가 열려야 이 실습이 성공한 것입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요금이 발생하는 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 저장</th>
+              <td>저장 용량과 요청 수</td>
+            </tr>
+            <tr>
+              <th scope="row">CloudFront 전송</th>
+              <td>엣지에서 뷰어로 나가는 데이터와 요청 수</td>
+            </tr>
+            <tr>
+              <th scope="row">오리진 요청</th>
+              <td>캐시 미스로 오리진에 도달한 요청. <strong>적중률이 오르면 줄어든다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">무효화</th>
+              <td>일정 수를 넘는 경로 무효화가 항목이 된다. 남용하지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">가격 등급</th>
+              <td>배포를 어느 지역 엣지까지 쓸지에 따라 달라진다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        정적 사이트에서 비용을 좌우하는 것은 <strong>캐시 적중률</strong>입니다.
+        캐시 키에 불필요한 쿼리 문자열이나 헤더를 넣으면
+        같은 콘텐츠가 여러 항목으로 나뉘어 적중률이 떨어지고 오리진 요청이 늘어납니다.
+        구조적 배경은 <a href="../cases/case06.html">케이스 6</a>에 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>사용자 지정 도메인과 인증서.</strong>
+          CloudFront에 붙일 ACM 인증서는 <strong><code>us-east-1</code>에서 발급</strong>해야 합니다.
+          다른 리전에서 만든 인증서는 붙지 않습니다.</li>
+        <li><strong>단일 페이지 애플리케이션의 라우팅.</strong>
+          존재하지 않는 경로를 <code>index.html</code>로 돌려주려면
+          사용자 지정 오류 응답을 설정합니다.</li>
+        <li><strong>보안 헤더.</strong> 응답 헤더 정책으로 콘텐츠 보안 정책 등을 붙일 수 있습니다.</li>
+        <li><strong>접근 로그.</strong> 기본이 꺼짐이므로 필요한 경우 켜고 저장 위치를 정합니다.</li>
+        <li><strong>지리적 제한.</strong> 특정 국가만 허용하거나 차단해야 한다면 배포 수준에서 설정합니다.</li>
+        <li><strong>WAF 연동.</strong> 애플리케이션 계층 공격 방어가 필요하면 배포에 웹 ACL을 붙입니다.</li>
+        <li><strong>버전 관리.</strong> 실수로 덮어쓴 파일을 되돌리려면 버킷 버전 관리를 켭니다.
+          대신 이전 버전 만료 규칙을 함께 둡니다(<a href="../cases/case03.html">케이스 3</a>).</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          CloudFront 배포는 <strong>비활성화한 뒤에야 삭제</strong>할 수 있고,
+          비활성화가 전 엣지에 전파되기까지 시간이 걸립니다.
+          삭제 요청에는 현재 <code>ETag</code>가 필요합니다.
+        </p>
+      </aside>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 배포 비활성화 후 삭제, 버킷 정리</figcaption>
+        <pre><code class="lang-bash">DIST_ID=E1EXAMPLEDIST
+
+# 현재 구성과 ETag 를 받아 Enabled 를 false 로 바꿔 다시 올립니다.
+aws cloudfront get-distribution-config --id "$DIST_ID" > dist.json
+ETAG=$(python3 -c "import json;print(json.load(open('dist.json'))['ETag'])")
+python3 - <<'PY'
+import json
+d = json.load(open('dist.json'))['DistributionConfig']
+d['Enabled'] = False
+json.dump(d, open('dist-disabled.json','w'))
+PY
+
+aws cloudfront update-distribution \
+  --id "$DIST_ID" \
+  --distribution-config file://dist-disabled.json \
+  --if-match "$ETAG"
+
+# 상태가 Deployed 가 될 때까지 기다린 뒤 삭제합니다.
+aws cloudfront wait distribution-deployed --id "$DIST_ID"
+NEW_ETAG=$(aws cloudfront get-distribution-config --id "$DIST_ID" --query 'ETag' --output text)
+aws cloudfront delete-distribution --id "$DIST_ID" --if-match "$NEW_ETAG"
+
+# 오리진 액세스 제어와 버킷을 정리합니다.
+aws s3 rm "s3://$BUCKET" --recursive
+aws s3api delete-bucket --bucket "$BUCKET"</code></pre>
+      </figure>
+
+      <p>
+        버킷 버전 관리를 켰다면 <code>rm --recursive</code>만으로는 비워지지 않습니다.
+        이전 버전과 삭제 마커까지 지워야 버킷을 삭제할 수 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">OAC만 만들고 버킷 정책을 안 붙임</th>
+              <td>CloudFront 경유 요청이 접근 거부로 실패한다</td>
+              <td>서비스 주체 허용 정책을 적용한다</td>
+            </tr>
+            <tr>
+              <th scope="row">버킷 정책에 <code>AWS:SourceArn</code> 조건이 없음</th>
+              <td>다른 계정의 배포도 이 버킷을 오리진으로 쓸 수 있다</td>
+              <td>배포 ARN 조건을 추가한다</td>
+            </tr>
+            <tr>
+              <th scope="row">문제를 풀려고 퍼블릭 액세스 차단을 해제</th>
+              <td>실습의 목적이 사라지고 버킷이 노출된다</td>
+              <td>차단을 유지한 채 정책과 OAC를 점검한다</td>
+            </tr>
+            <tr>
+              <th scope="row">정적 웹사이트 호스팅 엔드포인트를 오리진으로 지정</th>
+              <td>OAC 서명이 적용되지 않아 버킷을 퍼블릭으로 열어야 한다</td>
+              <td>버킷의 REST 엔드포인트를 오리진으로 쓴다</td>
+            </tr>
+            <tr>
+              <th scope="row">기본 루트 객체 미설정</th>
+              <td>도메인만 입력했을 때 오류가 난다</td>
+              <td><code>DefaultRootObject</code>를 지정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">변경 후 무효화하지 않음</th>
+              <td>옛 파일이 계속 보인다</td>
+              <td>무효화하거나 파일 이름에 해시를 넣는 배포 방식으로 바꾼다</td>
+            </tr>
+            <tr>
+              <th scope="row">인증서를 배포 리전에서 발급</th>
+              <td>CloudFront에 붙지 않는다</td>
+              <td><code>us-east-1</code>에서 발급한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch14.html">
+          <span class="card__title">14장 · 엣지와 DNS</span>
+          <span class="card__desc">CloudFront 캐시 동작과 오리진 액세스 제어, Route 53 라우팅 정책을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 3</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch08.html">
+          <span class="card__title">8장 · S3와 오브젝트 스토리지</span>
+          <span class="card__desc">버킷 정책과 퍼블릭 액세스 차단, 신규 버킷의 보안 기본값을 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../cases/case06.html">
+          <span class="card__title">케이스 6 · 데이터 전송 요금이 예산을 넘겼다</span>
+          <span class="card__desc">캐시 적중률이 오리진 송신량과 비용을 어떻게 바꾸는지 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cases/case03.html">
+          <span class="card__title">케이스 3 · S3 비용이 매달 늘어난다</span>
+          <span class="card__desc">버전 관리를 켰을 때 함께 넣어야 하는 수명 주기 규칙을 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="lab11.html">
+          <span class="card__title">실습 11 · KMS 고객 관리형 키로 암호화</span>
+          <span class="card__desc">오리진 객체를 고객 관리형 키로 암호화할 때의 권한 구성을 다룹니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CreateOriginAccessControl.html">Amazon CloudFront API 레퍼런스 — CreateOriginAccessControl</a>
+          — 오리진 유형(<code>s3</code> 등), 서명 프로토콜 <code>sigv4</code>, 서명 동작 값</li>
+        <li><a href="https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CreateDistribution.html">Amazon CloudFront API 레퍼런스 — CreateDistribution</a>
+          — 배포 구성의 필수 요소와 <code>DefaultRootObject</code>, 뷰어 프로토콜 정책</li>
+        <li><a href="https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CreateInvalidation.html">Amazon CloudFront API 레퍼런스 — CreateInvalidation</a>
+          — 무효화 경로 지정 방식</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutPublicAccessBlock.html">Amazon S3 API 레퍼런스 — PutPublicAccessBlock</a>
+          — 네 가지 차단 설정의 의미</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketPolicy.html">Amazon S3 API 레퍼런스 — PutBucketPolicy</a>
+          — 버킷 정책 적용 방식</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">Amazon S3 API 레퍼런스 — CreateBucket</a>
+          — 퍼블릭 액세스 차단 기본 활성화와 ACL 비활성화(<code>BucketOwnerEnforced</code>) 기본값</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html">Amazon CloudFront 개발자 안내서 — CloudFront란</a>
+          — 엣지 캐시의 동작과 배포 상태의 의미</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

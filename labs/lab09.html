@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 9 · ECS Fargate 서비스 배포 — AWS SAA Guide</title>
+  <meta name="description" content="Fargate 시작 유형으로 ECS 서비스를 배포합니다. 태스크 역할과 태스크 실행 역할의 차이, awsvpc 네트워크 모드, 로드 밸런서 연결, 서비스 오토스케일링을 AWS CLI로 구성하고 검증합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab09"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab09">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 9 · ECS Fargate 서비스 배포</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 9</p>
+      <h1>ECS Fargate 서비스 배포</h1>
+      <p class="page__lead">
+        Fargate를 쓰면 컨테이너를 올릴 <strong>인스턴스가 사라집니다.</strong>
+        패치와 용량 관리라는 책임이 AWS 쪽으로 넘어가고,
+        남는 것은 태스크 정의와 서비스 설정입니다.
+        이 실습에서 반드시 구분하고 넘어갈 것은
+        <strong>태스크 역할과 태스크 실행 역할</strong>입니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a> ·
+        <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>태스크 역할과 태스크 실행 역할이 각각 무엇을 위한 권한인지 구분할 수 있습니다.</li>
+        <li><code>awsvpc</code> 네트워크 모드에서 태스크가 갖는 네트워크 인터페이스를 설명할 수 있습니다.</li>
+        <li>Fargate 태스크를 로드 밸런서 대상 그룹에 연결할 수 있습니다.</li>
+        <li>서비스 오토스케일링으로 태스크 수를 조절할 수 있습니다.</li>
+        <li>EC2 시작 유형과 Fargate의 책임 경계 차이를 설명할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        컨테이너 이미지로 배포된 API 서비스를 올립니다.
+      </p>
+      <ul>
+        <li>컨테이너를 올릴 <strong>인스턴스를 관리하고 싶지 않습니다.</strong></li>
+        <li>태스크는 <strong>프라이빗 서브넷</strong>에 있고 로드 밸런서를 통해서만 접근됩니다.</li>
+        <li>애플리케이션이 Amazon S3에 파일을 씁니다.</li>
+        <li>이미지는 Amazon ECR의 프라이빗 저장소에 있습니다.</li>
+        <li>부하에 따라 태스크 수가 조절되어야 합니다.</li>
+      </ul>
+      <p>
+        세 번째와 네 번째 요구가 <strong>서로 다른 역할</strong>을 필요로 합니다.
+        애플리케이션 코드가 S3를 호출하는 것과,
+        ECS 에이전트가 ECR에서 이미지를 받아오는 것은 <strong>주체가 다릅니다.</strong>
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>태스크 역할과 태스크 실행 역할</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">태스크 역할(<code>taskRoleArn</code>)</th>
+              <th scope="col">태스크 실행 역할(<code>executionRoleArn</code>)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">누가 쓰는가</th>
+              <td><strong>컨테이너 안의 애플리케이션 코드</strong></td>
+              <td><strong>ECS 에이전트</strong>(플랫폼)</td>
+            </tr>
+            <tr>
+              <th scope="row">무엇에 쓰는가</th>
+              <td>Amazon S3·DynamoDB 등 AWS 서비스 호출</td>
+              <td>ECR에서 이미지 가져오기, 로그 전송, 비밀 주입</td>
+            </tr>
+            <tr>
+              <th scope="row">누락되면</th>
+              <td>애플리케이션이 실행 중에 권한 오류를 낸다</td>
+              <td><strong>태스크가 시작조차 되지 않는다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">신뢰 주체</th>
+              <td><code>ecs-tasks.amazonaws.com</code></td>
+              <td><code>ecs-tasks.amazonaws.com</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          두 역할을 하나로 뭉뜽그리면 문항에서 틀립니다.
+          증상으로 구분하는 것이 가장 빠릅니다 —
+          <strong>태스크가 시작되지 않으면 실행 역할</strong>,
+          <strong>시작은 되는데 API 호출이 거부되면 태스크 역할</strong>입니다.
+        </p>
+      </aside>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>EC2 시작 유형과 Fargate의 책임 경계</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">EC2 시작 유형</th>
+              <th scope="col">Fargate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">컨테이너 인스턴스</th>
+              <td>고객이 관리(패치·용량·확장)</td>
+              <td><span class="mark-ok">없다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">자원 지정</th>
+              <td>인스턴스 타입 선택</td>
+              <td>태스크 단위 CPU·메모리 조합</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 모드</th>
+              <td><code>bridge</code>·<code>host</code>·<code>awsvpc</code>·<code>none</code></td>
+              <td><span class="mark-ok"><code>awsvpc</code>만</span></td>
+            </tr>
+            <tr>
+              <th scope="row">보안 그룹</th>
+              <td>인스턴스 단위(또는 <code>awsvpc</code>면 태스크 단위)</td>
+              <td><strong>태스크마다</strong> 네트워크 인터페이스와 보안 그룹</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>GPU·특수 인스턴스·비용 최적화가 중요할 때</td>
+              <td><code>LEAST operational overhead</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-roles">1 · 역할 두 개</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">ecs-tasks-trust.json</span> — 두 역할이 공통으로 쓰는 신뢰 정책</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "ecs-tasks.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-roles.sh</span> — 실행 역할과 태스크 역할 (버킷 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 실행 역할 — ECR 이미지 가져오기와 로그 전송
+aws iam create-role \
+  --role-name Lab09TaskExecutionRole \
+  --assume-role-policy-document file://ecs-tasks-trust.json
+
+aws iam attach-role-policy \
+  --role-name Lab09TaskExecutionRole \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+# 태스크 역할 — 애플리케이션이 쓰는 권한만 최소로
+aws iam create-role \
+  --role-name Lab09TaskRole \
+  --assume-role-policy-document file://ecs-tasks-trust.json
+
+aws iam put-role-policy \
+  --role-name Lab09TaskRole \
+  --policy-name WriteUploads \
+  --policy-document '{
+      "Version": "2012-10-17",
+      "Statement": [{
+        "Effect": "Allow",
+        "Action": ["s3:PutObject"],
+        "Resource": "arn:aws:s3:::example-lab09-uploads/*"
+      }]
+    }'</code></pre>
+      </figure>
+
+      <h3 id="step-taskdef">2 · 태스크 정의</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">task-definition.json</span> — Fargate용 태스크 정의 (이미지와 ARN은 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "family": "lab09-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::123456789012:role/Lab09TaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/Lab09TaskRole",
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/lab09-api:1.0.0",
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 8080, "protocol": "tcp" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/lab09-api",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "api"
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">register-task.sh</span> — 로그 그룹을 먼저 만들고 태스크 정의 등록</figcaption>
+        <pre><code class="lang-bash">aws logs create-log-group --log-group-name /ecs/lab09-api
+aws logs put-retention-policy --log-group-name /ecs/lab09-api --retention-in-days 14
+
+aws ecs register-task-definition \
+  --cli-input-json file://task-definition.json \
+  --query 'taskDefinition.[family,revision,cpu,memory]' --output table</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          Fargate에서 <code>cpu</code>와 <code>memory</code>는 <strong>정해진 조합</strong>만 허용됩니다.
+          임의의 값을 넣으면 등록이 거부되므로,
+          유효한 조합을 문서에서 확인하고 씁니다.
+        </p>
+        <p>
+          로그 그룹은 <strong>미리 만들어 두는 편이 안전합니다.</strong>
+          그리고 <strong>보존 기간을 지정하지 않으면 로그가 무기한 쌓입니다.</strong>
+        </p>
+      </aside>
+
+      <h3 id="step-service">3 · 서비스 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-service.sh</span> — 프라이빗 서브넷에 배치하고 대상 그룹에 연결 (ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws ecs create-cluster --cluster-name lab09-cluster
+
+aws ecs create-service \
+  --cluster lab09-cluster \
+  --service-name lab09-api-svc \
+  --task-definition lab09-api \
+  --desired-count 2 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={
+      subnets=[subnet-0prv00000000000a,subnet-0prv00000000000b],
+      securityGroups=[sg-0task00000000000],
+      assignPublicIp=DISABLED
+    }" \
+  --load-balancers "targetGroupArn=$TG_ARN,containerName=api,containerPort=8080" \
+  --health-check-grace-period-seconds 60</code></pre>
+      </figure>
+
+      <p>
+        대상 그룹은 <strong>대상 유형이 <code>ip</code></strong>여야 합니다.
+        <code>awsvpc</code> 모드에서는 태스크마다 네트워크 인터페이스와 사설 IP가 생기고,
+        로드 밸런서는 인스턴스가 아니라 그 IP를 대상으로 등록하기 때문입니다.
+      </p>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <code>assignPublicIp=DISABLED</code>인 프라이빗 서브넷에서는
+          <strong>이미지를 가져올 경로가 필요합니다.</strong>
+          NAT 게이트웨이가 있거나, ECR과 CloudWatch Logs용
+          <strong>인터페이스 엔드포인트와 S3 게이트웨이 엔드포인트</strong>가 있어야 합니다.
+          경로가 없으면 태스크가 이미지를 받지 못하고 시작에 실패합니다.
+        </p>
+      </aside>
+
+      <h3 id="step-scaling">4 · 서비스 오토스케일링</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">service-scaling.sh</span> — 확장 대상 등록과 대상 추적 정책</figcaption>
+        <pre><code class="lang-bash">aws application-autoscaling register-scalable-target \
+  --service-namespace ecs \
+  --resource-id service/lab09-cluster/lab09-api-svc \
+  --scalable-dimension ecs:service:DesiredCount \
+  --min-capacity 2 \
+  --max-capacity 10
+
+aws application-autoscaling put-scaling-policy \
+  --service-namespace ecs \
+  --resource-id service/lab09-cluster/lab09-api-svc \
+  --scalable-dimension ecs:service:DesiredCount \
+  --policy-name lab09-cpu-target \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration '{
+      "TargetValue": 60.0,
+      "PredefinedMetricSpecification": {
+        "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
+      },
+      "ScaleInCooldown": 300,
+      "ScaleOutCooldown": 60
+    }'</code></pre>
+      </figure>
+
+      <p>
+        ECS 서비스에 쓸 수 있는 사전 정의 지표에는
+        <code>ECSServiceAverageCPUUtilization</code>과
+        <code>ECSServiceAverageMemoryUtilization</code>이 있습니다.
+        로드 밸런서 뒤라면 대상당 요청 수를 사용자 지정 지표로 쓸 수도 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify.sh</span> — 서비스·태스크 상태와 실패 원인 확인</figcaption>
+        <pre><code class="lang-bash">aws ecs describe-services \
+  --cluster lab09-cluster \
+  --services lab09-api-svc \
+  --query 'services[0].[status,desiredCount,runningCount,pendingCount,events[0:3].message]' \
+  --output json
+
+aws ecs list-tasks --cluster lab09-cluster --service-name lab09-api-svc \
+  --query 'taskArns' --output text
+
+aws ecs describe-tasks \
+  --cluster lab09-cluster \
+  --tasks $(aws ecs list-tasks --cluster lab09-cluster --service-name lab09-api-svc --query 'taskArns[0]' --output text) \
+  --query 'tasks[0].[lastStatus,healthStatus,stoppedReason,containers[].[name,lastStatus,reason]]' \
+  --output json</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>증상으로 원인을 좁히는 표</caption>
+          <thead>
+            <tr>
+              <th scope="col">증상</th>
+              <th scope="col">가장 흔한 원인</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">태스크가 <code>PENDING</code>에서 멈춘다</th>
+              <td>이미지 가져오기 경로 없음(NAT나 엔드포인트 부재) 또는 실행 역할 권한 부족</td>
+            </tr>
+            <tr>
+              <th scope="row">태스크가 시작되고 곧 종료된다</th>
+              <td>컨테이너 프로세스가 즉시 종료됨. 로그를 확인한다</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 그룹에 등록되지 않는다</th>
+              <td>대상 유형이 <code>ip</code>가 아니거나 컨테이너 포트 불일치</td>
+            </tr>
+            <tr>
+              <th scope="row">상태 확인이 계속 실패한다</th>
+              <td>보안 그룹이 로드 밸런서에서 컨테이너 포트를 허용하지 않음</td>
+            </tr>
+            <tr>
+              <th scope="row">애플리케이션이 권한 오류를 낸다</th>
+              <td>태스크 역할에 해당 권한이 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">로그가 보이지 않는다</th>
+              <td>로그 그룹이 없거나 실행 역할에 로그 권한 없음</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">check-logs.sh</span> — 컨테이너 로그 확인</figcaption>
+        <pre><code class="lang-bash">aws logs describe-log-streams \
+  --log-group-name /ecs/lab09-api \
+  --order-by LastEventTime --descending --max-items 3 \
+  --query 'logStreams[].logStreamName' --output text</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요금이 발생하는 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Fargate 태스크</th>
+              <td>요청한 <strong>CPU와 메모리</strong>에 대해 실행 시간만큼</td>
+            </tr>
+            <tr>
+              <th scope="row">최소 태스크 수</th>
+              <td>가용성을 위한 하한이 곧 상시 비용의 바닥이다</td>
+            </tr>
+            <tr>
+              <th scope="row">로드 밸런서</th>
+              <td>가동 시간과 처리 용량 단위</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 게이트웨이</th>
+              <td>이미지 가져오기와 외부 호출이 지나면 처리량 항목이 커진다</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC 인터페이스 엔드포인트</th>
+              <td>엔드포인트 항목이 생기지만 NAT 처리량을 줄인다</td>
+            </tr>
+            <tr>
+              <th scope="row">CloudWatch Logs</th>
+              <td>수집량과 보존 기간</td>
+            </tr>
+            <tr>
+              <th scope="row">ECR 저장</th>
+              <td>이미지 저장 용량. 오래된 태그는 수명 주기 정책으로 정리한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Fargate는 <strong>요청한 자원</strong>에 대해 과금되므로
+        실제 사용량보다 크게 잡으면 그대로 낭비입니다.
+        지표를 보고 CPU와 메모리를 조정하는 것이 가장 직접적인 절감입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>이미지 태그를 고정합니다.</strong>
+          <code>latest</code>를 쓰면 어떤 이미지가 돌고 있는지 특정할 수 없고 롤백이 어렵습니다.</li>
+        <li><strong>비밀은 태스크 정의의 <code>secrets</code>로 주입합니다.</strong>
+          환경 변수에 평문으로 넣으면 태스크 정의를 볼 수 있는 사람이 모두 읽을 수 있습니다.</li>
+        <li><strong>배포 구성을 정합니다.</strong> 최소 정상 비율과 최대 비율로
+          무중단 롤링 배포의 폭을 조절합니다.</li>
+        <li><strong>가용 영역을 둘 이상</strong> 지정하고 태스크가 고르게 퍼지는지 확인합니다.</li>
+        <li><strong>컨테이너 상태 확인</strong>을 태스크 정의에 넣으면
+          프로세스는 살아 있는데 응답하지 못하는 상태를 잡을 수 있습니다.</li>
+        <li><strong>ECR 이미지 스캔</strong>을 켜 취약점을 배포 전에 확인합니다.</li>
+        <li><strong>인터페이스 엔드포인트</strong>로 ECR·로그 트래픽을 인터넷 밖으로 빼면
+          보안과 비용을 함께 개선할 수 있습니다(<a href="lab10.html">실습 10</a>).</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 서비스를 0으로 줄이고 순서대로 삭제</figcaption>
+        <pre><code class="lang-bash">aws application-autoscaling deregister-scalable-target \
+  --service-namespace ecs \
+  --resource-id service/lab09-cluster/lab09-api-svc \
+  --scalable-dimension ecs:service:DesiredCount
+
+aws ecs update-service \
+  --cluster lab09-cluster \
+  --service lab09-api-svc \
+  --desired-count 0
+
+aws ecs delete-service \
+  --cluster lab09-cluster \
+  --service lab09-api-svc \
+  --force
+
+aws ecs delete-cluster --cluster lab09-cluster
+
+aws logs delete-log-group --log-group-name /ecs/lab09-api
+
+aws iam delete-role-policy --role-name Lab09TaskRole --policy-name WriteUploads
+aws iam delete-role --role-name Lab09TaskRole
+aws iam detach-role-policy \
+  --role-name Lab09TaskExecutionRole \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+aws iam delete-role --role-name Lab09TaskExecutionRole</code></pre>
+      </figure>
+
+      <p>
+        태스크 정의는 등록을 취소해도 목록에는 남습니다.
+        요금이 발생하지는 않지만, 필요하면 개별 리비전을 등록 취소해 정리합니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">두 역할을 하나로 씀</th>
+              <td>권한이 과하거나 태스크가 시작되지 않는다</td>
+              <td>실행 역할과 태스크 역할을 분리한다</td>
+            </tr>
+            <tr>
+              <th scope="row">프라이빗 서브넷에 이미지 경로 없음</th>
+              <td>태스크가 <code>PENDING</code>에서 실패한다</td>
+              <td>NAT 또는 ECR·로그·S3 엔드포인트를 추가한다</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 그룹 유형이 <code>instance</code></th>
+              <td>태스크가 등록되지 않는다</td>
+              <td><code>awsvpc</code> 모드에서는 <code>ip</code> 유형을 쓴다</td>
+            </tr>
+            <tr>
+              <th scope="row">CPU·메모리 조합이 유효하지 않음</th>
+              <td>태스크 정의 등록이 거부된다</td>
+              <td>Fargate가 허용하는 조합을 확인한다</td>
+            </tr>
+            <tr>
+              <th scope="row">로그 그룹을 만들지 않음</th>
+              <td>로그가 남지 않거나 태스크가 실패한다</td>
+              <td>로그 그룹을 미리 만들고 보존 기간을 설정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">이미지 태그가 <code>latest</code></th>
+              <td>어떤 버전이 돌고 있는지 알 수 없다</td>
+              <td>불변 태그를 쓰고 배포마다 갱신한다</td>
+            </tr>
+            <tr>
+              <th scope="row">비밀을 환경 변수 평문으로</th>
+              <td>태스크 정의를 조회하면 노출된다</td>
+              <td><code>secrets</code>로 주입하고 실행 역할에 읽기 권한을 준다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch13.html">
+          <span class="card__title">13장 · 컨테이너</span>
+          <span class="card__desc">ECS 구성요소와 시작 유형, 태스크 역할 구분, 서비스 오토스케일링을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2·3</span>
+        </a></li>
+        <li><a class="card" href="lab02.html">
+          <span class="card__title">실습 2 · ALB + ASG 웹 티어</span>
+          <span class="card__desc">같은 로드 밸런서 구성을 인스턴스 기반으로 만들어 비교합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="lab10.html">
+          <span class="card__title">실습 10 · VPC 엔드포인트로 S3 비공개 접근</span>
+          <span class="card__desc">프라이빗 서브넷 태스크가 이미지와 로그 경로를 확보하는 방법입니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case01.html">
+          <span class="card__title">케이스 1 · EC2에 액세스 키를 심어 배포했다</span>
+          <span class="card__desc">컨테이너에서도 같은 원칙이 적용됩니다 — 키가 아니라 역할입니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="lab06.html">
+          <span class="card__title">실습 6 · Lambda + API Gateway REST API</span>
+          <span class="card__desc">실행 역할과 리소스 기반 권한이라는 같은 구분을 다른 서비스에서 봅니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RegisterTaskDefinition.html">Amazon ECS API 레퍼런스 — RegisterTaskDefinition</a>
+          — <code>taskRoleArn</code>과 <code>executionRoleArn</code>의 구분,
+          네트워크 모드와 호환성 값, CPU·메모리 지정</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_CreateService.html">Amazon ECS API 레퍼런스 — CreateService</a>
+          — 시작 유형, <code>awsvpc</code> 네트워크 구성, 로드 밸런서 연결, 상태 확인 유예 기간</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_UpdateService.html">Amazon ECS API 레퍼런스 — UpdateService</a>
+          — 원하는 태스크 수 변경과 새 배포 강제</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/application/APIReference/API_RegisterScalableTarget.html">Application Auto Scaling API 레퍼런스 — RegisterScalableTarget</a>
+          — <code>ecs:service:DesiredCount</code> 확장 차원</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/application/APIReference/API_PutScalingPolicy.html">Application Auto Scaling API 레퍼런스 — PutScalingPolicy</a>
+          — ECS 서비스용 사전 정의 지표</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateTargetGroup.html">Elastic Load Balancing API 레퍼런스 — CreateTargetGroup</a>
+          — 대상 유형 <code>ip</code>의 의미</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 5 · DynamoDB 테이블 설계 — AWS SAA Guide</title>
+  <meta name="description" content="접근 패턴에서 출발해 파티션 키와 정렬 키를 정하고, 글로벌 보조 인덱스로 두 번째 접근 패턴을 지원합니다. 온디맨드와 프로비저닝 용량 모드, TTL, 핫 파티션 회피를 AWS CLI로 구성하고 검증합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab05"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab05">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 5 · DynamoDB 테이블 설계</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 5</p>
+      <h1>DynamoDB 테이블 설계</h1>
+      <p class="page__lead">
+        관계형 데이터베이스는 데이터를 정규화한 뒤 질의를 짜지만,
+        Amazon DynamoDB는 <strong>접근 패턴을 먼저 적고 그것에 맞춰 키를 정합니다.</strong>
+        이 실습은 주문 데이터를 예로 파티션 키와 정렬 키를 정하고,
+        두 번째 접근 패턴을 글로벌 보조 인덱스로 지원하는 과정을 따라갑니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a> ·
+        <a href="../saa/domain-cost.html">비용 최적화 아키텍처 설계(20%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>접근 패턴에서 파티션 키와 정렬 키를 도출할 수 있습니다.</li>
+        <li>글로벌 보조 인덱스와 로컬 보조 인덱스의 제약 차이를 설명할 수 있습니다.</li>
+        <li>온디맨드와 프로비저닝 용량 모드를 선택 기준으로 구분할 수 있습니다.</li>
+        <li>TTL로 오래된 항목을 자동 만료시킬 수 있습니다.</li>
+        <li>핫 파티션이 생기는 키 설계를 알아보고 피할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>주문 서비스의 데이터를 DynamoDB에 담습니다. 필요한 접근 패턴은 셋입니다.</p>
+      <ol>
+        <li><strong>고객 한 명의 주문 목록</strong>을 최신순으로 조회한다.</li>
+        <li><strong>주문 하나</strong>를 주문 번호로 조회한다.</li>
+        <li><strong>상태가 <code>PENDING</code>인 주문</strong>을 오래된 순으로 조회한다(운영 화면).</li>
+      </ol>
+      <p>
+        트래픽은 프로모션 때 크게 튀고 평상시에는 낮습니다.
+        완료된 주문의 임시 처리 기록은 <strong>90일이 지나면 지워도 됩니다.</strong>
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요 — 키 설계</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>접근 패턴에서 도출한 키 설계</caption>
+          <thead>
+            <tr>
+              <th scope="col">접근 패턴</th>
+              <th scope="col">사용할 키</th>
+              <th scope="col">조회 방식</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1. 고객의 주문 목록(최신순)</th>
+              <td>파티션 키 <code>customerId</code> · 정렬 키 <code>orderedAt</code></td>
+              <td>기본 테이블 <code>Query</code>, 내림차순</td>
+            </tr>
+            <tr>
+              <th scope="row">2. 주문 번호로 단건 조회</th>
+              <td>글로벌 보조 인덱스 파티션 키 <code>orderId</code></td>
+              <td>인덱스 <code>Query</code></td>
+            </tr>
+            <tr>
+              <th scope="row">3. 상태별 주문 목록</th>
+              <td>글로벌 보조 인덱스 파티션 키 <code>status</code> · 정렬 키 <code>orderedAt</code></td>
+              <td>인덱스 <code>Query</code>, 오름차순</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>로컬 보조 인덱스와 글로벌 보조 인덱스의 제약 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">LSI (로컬 보조 인덱스)</th>
+              <th scope="col">GSI (글로벌 보조 인덱스)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">최대 개수</th>
+              <td>5개</td>
+              <td>20개</td>
+            </tr>
+            <tr>
+              <th scope="row">파티션 키</th>
+              <td><strong>테이블과 같아야 한다</strong></td>
+              <td>달라도 된다</td>
+            </tr>
+            <tr>
+              <th scope="row">크기 제약</th>
+              <td>파티션 키 값당 10 GB</td>
+              <td>없음</td>
+            </tr>
+            <tr>
+              <th scope="row">용량</th>
+              <td>테이블 용량을 공유</td>
+              <td><strong>자체 용량</strong>을 가진다</td>
+            </tr>
+            <tr>
+              <th scope="row">나중에 추가</th>
+              <td><span class="mark-no">불가 — 테이블 생성 시에만</span></td>
+              <td><span class="mark-ok">언제든 추가·삭제 가능</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="참고">
+        <p>
+          접근 패턴 2와 3의 파티션 키가 테이블과 다르므로 <strong>둘 다 GSI</strong>여야 합니다.
+          그리고 운영 중인 테이블에 인덱스를 추가해야 하는 상황이라면
+          답은 언제나 GSI입니다 — LSI를 갱신하는 API 자체가 존재하지 않습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-create">1 · 테이블 만들기</h3>
+      <p>
+        트래픽이 프로모션 때 크게 튀므로 <strong>온디맨드(<code>PAY_PER_REQUEST</code>)</strong>로 시작합니다.
+        용량 모드는 나중에 바꿀 수 있습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-table.sh</span> — 파티션 키와 정렬 키로 테이블 생성</figcaption>
+        <pre><code class="lang-bash">aws dynamodb create-table \
+  --table-name lab05-orders \
+  --billing-mode PAY_PER_REQUEST \
+  --attribute-definitions \
+      AttributeName=customerId,AttributeType=S \
+      AttributeName=orderedAt,AttributeType=S \
+  --key-schema \
+      AttributeName=customerId,KeyType=HASH \
+      AttributeName=orderedAt,KeyType=RANGE
+
+aws dynamodb wait table-exists --table-name lab05-orders</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <code>--attribute-definitions</code>에는 <strong>키로 쓰는 속성만</strong> 선언합니다.
+          나머지 속성은 항목마다 자유롭게 넣을 수 있습니다.
+          이것이 스키마를 미리 정의하는 관계형 모델과의 근본적인 차이입니다.
+        </p>
+      </aside>
+
+      <h3 id="step-gsi">2 · 글로벌 보조 인덱스 추가</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">add-gsi.sh</span> — 운영 중인 테이블에 GSI 추가</figcaption>
+        <pre><code class="lang-bash">aws dynamodb update-table \
+  --table-name lab05-orders \
+  --attribute-definitions \
+      AttributeName=orderId,AttributeType=S \
+  --global-secondary-index-updates '[
+      {
+        "Create": {
+          "IndexName": "gsi-orderId",
+          "KeySchema": [{ "AttributeName": "orderId", "KeyType": "HASH" }],
+          "Projection": { "ProjectionType": "ALL" }
+        }
+      }
+    ]'
+
+aws dynamodb update-table \
+  --table-name lab05-orders \
+  --attribute-definitions \
+      AttributeName=status,AttributeType=S \
+      AttributeName=orderedAt,AttributeType=S \
+  --global-secondary-index-updates '[
+      {
+        "Create": {
+          "IndexName": "gsi-status-orderedAt",
+          "KeySchema": [
+            { "AttributeName": "status", "KeyType": "HASH" },
+            { "AttributeName": "orderedAt", "KeyType": "RANGE" }
+          ],
+          "Projection": {
+            "ProjectionType": "INCLUDE",
+            "NonKeyAttributes": ["customerId", "totalAmount"]
+          }
+        }
+      }
+    ]'</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>프로젝션 타입 3종</caption>
+          <thead>
+            <tr>
+              <th scope="col">타입</th>
+              <th scope="col">인덱스에 복사되는 속성</th>
+              <th scope="col">고르는 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>KEYS_ONLY</code></th>
+              <td>키 속성만</td>
+              <td>저장 용량을 최소화. 나머지는 테이블을 다시 읽어야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>INCLUDE</code></th>
+              <td>키 + 지정한 속성</td>
+              <td>화면에 필요한 속성만 골라 담는다. 대개 이 선택이 균형이 좋다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>ALL</code></th>
+              <td>모든 속성</td>
+              <td>인덱스만으로 조회가 끝난다. 저장 용량과 쓰기 비용이 커진다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <code>INCLUDE</code>로 지정하는 비키 속성의 총합은
+        <strong>모든 보조 인덱스를 통틀어 100개를 넘을 수 없습니다.</strong>
+        같은 속성을 두 인덱스에 넣으면 2개로 계산됩니다.
+      </p>
+
+      <h3 id="step-ttl">3 · TTL로 오래된 항목 자동 만료</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">enable-ttl.sh</span> — 만료 시각 속성을 지정</figcaption>
+        <pre><code class="lang-bash">aws dynamodb update-time-to-live \
+  --table-name lab05-orders \
+  --time-to-live-specification "Enabled=true, AttributeName=expiresAt"
+
+aws dynamodb describe-time-to-live --table-name lab05-orders</code></pre>
+      </figure>
+
+      <p>
+        TTL 속성에는 <strong>에포크 초 단위의 숫자</strong>를 넣습니다.
+        문자열로 넣거나 밀리초로 넣으면 만료가 동작하지 않습니다.
+        삭제는 즉시가 아니라 백그라운드에서 이뤄지므로,
+        <strong>만료된 항목이 잠시 조회될 수 있습니다.</strong>
+        정확한 만료가 필요한 로직에서는 조회 시점에 한 번 더 걸러야 합니다.
+      </p>
+
+      <h3 id="step-items">4 · 항목 넣기와 조회</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">put-and-query.sh</span> — 항목 저장과 세 가지 조회</figcaption>
+        <pre><code class="lang-bash">aws dynamodb put-item \
+  --table-name lab05-orders \
+  --item '{
+      "customerId": {"S": "cust-001"},
+      "orderedAt":  {"S": "2026-07-29T10:00:00Z"},
+      "orderId":    {"S": "ord-1001"},
+      "status":     {"S": "PENDING"},
+      "totalAmount":{"N": "42000"},
+      "expiresAt":  {"N": "1793404800"}
+    }'
+
+# 패턴 1 — 고객의 주문을 최신순으로
+aws dynamodb query \
+  --table-name lab05-orders \
+  --key-condition-expression "customerId = :c" \
+  --expression-attribute-values '{":c": {"S": "cust-001"}}' \
+  --no-scan-index-forward
+
+# 패턴 2 — 주문 번호로 단건 조회
+aws dynamodb query \
+  --table-name lab05-orders \
+  --index-name gsi-orderId \
+  --key-condition-expression "orderId = :o" \
+  --expression-attribute-values '{":o": {"S": "ord-1001"}}'
+
+# 패턴 3 — 상태별 목록을 오래된 순으로
+aws dynamodb query \
+  --table-name lab05-orders \
+  --index-name gsi-status-orderedAt \
+  --key-condition-expression "#s = :s" \
+  --expression-attribute-names '{"#s": "status"}' \
+  --expression-attribute-values '{":s": {"S": "PENDING"}}'</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <code>status</code>는 예약어이므로 표현식에 그대로 쓸 수 없습니다.
+          <code>--expression-attribute-names</code>로 별칭을 만들어 씁니다.
+        </p>
+        <p>
+          그리고 <strong><code>Scan</code>을 습관적으로 쓰지 않습니다.</strong>
+          <code>Scan</code>은 테이블 전체를 읽으므로 데이터가 늘수록 비용과 지연이 함께 커집니다.
+          "조회 조건이 키에 없다"면 그것은 인덱스를 하나 더 만들어야 한다는 신호입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify.sh</span> — 테이블과 인덱스 상태, 소비 용량 확인</figcaption>
+        <pre><code class="lang-bash">aws dynamodb describe-table \
+  --table-name lab05-orders \
+  --query 'Table.[TableStatus, BillingModeSummary.BillingMode,
+             KeySchema, GlobalSecondaryIndexes[].[IndexName,IndexStatus,Projection.ProjectionType]]' \
+  --output json
+
+# 조회가 얼마나 읽었는지 확인합니다. Query 와 Scan 의 차이가 여기서 드러납니다.
+aws dynamodb query \
+  --table-name lab05-orders \
+  --key-condition-expression "customerId = :c" \
+  --expression-attribute-values '{":c": {"S": "cust-001"}}' \
+  --return-consumed-capacity TOTAL \
+  --query 'ConsumedCapacity'
+
+aws dynamodb scan \
+  --table-name lab05-orders \
+  --return-consumed-capacity TOTAL \
+  --query 'ConsumedCapacity'</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>검증 항목과 통과 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">통과 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">인덱스 상태</th>
+              <td>두 GSI가 모두 <code>ACTIVE</code></td>
+            </tr>
+            <tr>
+              <th scope="row">세 접근 패턴</th>
+              <td>모두 <code>Query</code>로 처리된다 (<code>Scan</code>이 필요 없다)</td>
+            </tr>
+            <tr>
+              <th scope="row">소비 용량</th>
+              <td>같은 결과를 얻을 때 <code>Query</code>가 <code>Scan</code>보다 적게 읽는다</td>
+            </tr>
+            <tr>
+              <th scope="row">TTL</th>
+              <td>설정이 <code>ENABLED</code>이고 속성 이름이 맞다</td>
+            </tr>
+            <tr>
+              <th scope="row">정렬 방향</th>
+              <td>최신순 조회에서 가장 최근 주문이 먼저 나온다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>용량 모드 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">모드</th>
+              <th scope="col">AWS 권고</th>
+              <th scope="col">고르는 상황</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>PAY_PER_REQUEST</code> (온디맨드)</th>
+              <td><strong>대부분의 워크로드에 권장</strong></td>
+              <td>트래픽이 예측하기 어렵거나 변동이 클 때, 신규 서비스</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>PROVISIONED</code> (프로비저닝)</th>
+              <td>안정적이고 예측 가능한 증가에 권장</td>
+              <td>용량을 신뢰성 있게 예측할 수 있을 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>이 밖에 비용을 좌우하는 것은 다음입니다.</p>
+      <ul>
+        <li><strong>인덱스 수와 프로젝션.</strong>
+          GSI는 자체 저장 공간과 쓰기 용량을 가집니다.
+          <code>ALL</code> 프로젝션은 쓰기마다 인덱스에도 전체 항목을 씁니다.</li>
+        <li><strong><code>Scan</code>의 사용.</strong> 전체 읽기는 데이터가 늘수록 선형으로 비싸집니다.</li>
+        <li><strong>항목 크기.</strong> 읽기·쓰기 용량은 항목 크기 단위로 계산되므로
+          큰 속성을 굳이 항목 안에 담지 않습니다.
+          대용량 본문은 Amazon S3에 두고 키만 저장하는 방식이 일반적입니다.</li>
+        <li><strong>TTL로 자동 삭제.</strong> 만료 항목을 배치로 지우는 대신 TTL을 쓰면
+          삭제에 별도의 쓰기 용량이 들지 않습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>핫 파티션을 피합니다.</strong>
+          날짜나 상태값처럼 값의 종류가 적은 속성을 파티션 키로 쓰면
+          요청이 한 파티션에 몰려 스로틀링이 납니다.
+          접미사를 붙여 분산하거나 복합 키로 바꿉니다.</li>
+        <li><strong>일관성 모델을 이해합니다.</strong>
+          기본 읽기는 최종적 일관성이고, 필요하면 강력한 일관성 읽기를 요청할 수 있습니다.
+          다만 <strong>GSI는 강력한 일관성 읽기를 지원하지 않습니다.</strong></li>
+        <li><strong>DynamoDB Streams</strong>로 변경 이벤트를 흘려보내면
+          집계나 검색 인덱스 갱신을 비동기로 처리할 수 있습니다.</li>
+        <li><strong>DAX</strong>는 DynamoDB 앞에 붙는 캐시로,
+          읽기가 압도적으로 많은 워크로드에서 코드 변경을 거의 하지 않고 지연을 줄입니다.</li>
+        <li><strong>글로벌 테이블</strong>은 여러 리전에서 읽고 쓰는 구성입니다
+          (<a href="../cases/case08.html">케이스 8</a>).</li>
+        <li><strong>지정 시점 복구</strong>를 켜 두면 실수로 지운 데이터를 되돌릴 수 있습니다.</li>
+        <li><strong>IAM 정책으로 항목 수준 접근 제어</strong>가 가능합니다.
+          조건 키로 파티션 키 값을 제한하면 테넌트 격리를 만들 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 테이블 삭제 (인덱스는 함께 삭제됩니다)</figcaption>
+        <pre><code class="lang-bash">aws dynamodb delete-table --table-name lab05-orders
+aws dynamodb wait table-not-exists --table-name lab05-orders
+
+# 남아 있는 백업이 없는지 확인합니다.
+aws dynamodb list-backups \
+  --query 'BackupSummaries[].[TableName,BackupName,BackupStatus]' \
+  --output table</code></pre>
+      </figure>
+
+      <p>
+        테이블을 지우면 보조 인덱스도 함께 사라집니다.
+        다만 별도로 만든 <strong>온디맨드 백업</strong>은 테이블과 무관하게 남으므로 확인합니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">관계형 스키마를 그대로 옮김</th>
+              <td>조회할 때마다 <code>Scan</code>이 필요해진다</td>
+              <td>접근 패턴을 먼저 적고 키를 도출한다</td>
+            </tr>
+            <tr>
+              <th scope="row">테이블을 만든 뒤 LSI를 추가하려 함</th>
+              <td>방법이 없다</td>
+              <td>GSI를 쓰거나, 필요하면 테이블을 다시 만든다</td>
+            </tr>
+            <tr>
+              <th scope="row">파티션 키에 값 종류가 적은 속성 사용</th>
+              <td>핫 파티션과 스로틀링</td>
+              <td>고유값이 많은 속성이나 복합 키를 쓴다</td>
+            </tr>
+            <tr>
+              <th scope="row">TTL 속성을 문자열이나 밀리초로 저장</th>
+              <td>만료가 일어나지 않는다</td>
+              <td>에포크 <strong>초</strong> 단위 숫자로 저장한다</td>
+            </tr>
+            <tr>
+              <th scope="row">모든 GSI를 <code>ALL</code> 프로젝션으로</th>
+              <td>저장과 쓰기 비용이 배로 늘어난다</td>
+              <td>화면에 필요한 속성만 <code>INCLUDE</code>한다</td>
+            </tr>
+            <tr>
+              <th scope="row">GSI에서 강력한 일관성 읽기를 기대</th>
+              <td>지원되지 않는다</td>
+              <td>강한 일관성이 필요하면 기본 테이블로 조회한다</td>
+            </tr>
+            <tr>
+              <th scope="row">예약어를 표현식에 직접 사용</th>
+              <td>유효성 오류가 난다</td>
+              <td><code>--expression-attribute-names</code>로 별칭을 쓴다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch11.html">
+          <span class="card__title">11장 · NoSQL · 캐시 · 분석 DB</span>
+          <span class="card__desc">DynamoDB 용량 모드, LSI와 GSI, 스트림과 DAX, 글로벌 테이블을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 3</span>
+        </a></li>
+        <li><a class="card" href="lab07.html">
+          <span class="card__title">실습 7 · SQS + Lambda 비동기 처리</span>
+          <span class="card__desc">스트림과 큐로 쓰기 경로를 비동기로 만드는 구성을 이어서 봅니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case02.html">
+          <span class="card__title">케이스 2 · 읽기 부하로 데이터베이스가 죽었다</span>
+          <span class="card__desc">캐시 계층이 어떤 조건에서 근본 처방이 되는지 비교합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cases/case08.html">
+          <span class="card__title">케이스 8 · 리전 장애에 대비한 DR을 설계하라</span>
+          <span class="card__desc">글로벌 테이블이 다중 리전 구성에서 차지하는 자리를 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../saa/traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">LSI와 GSI를 포함한 헷갈리는 쌍을 한 자리에 모았습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html">Amazon DynamoDB API 레퍼런스 — CreateTable</a>
+          — 용량 모드(<code>PAY_PER_REQUEST</code> · <code>PROVISIONED</code>)와 권고,
+          LSI 최대 5개·파티션 키 값당 10 GB 제약, GSI 최대 20개, 프로젝션 타입</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html">Amazon DynamoDB API 레퍼런스 — UpdateTable</a>
+          — <code>GlobalSecondaryIndexUpdates</code>만 존재하고 LSI를 갱신하는 파라미터가 없다는 사실</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTimeToLive.html">Amazon DynamoDB API 레퍼런스 — UpdateTimeToLive</a>
+          — TTL 속성 지정 방식과 만료 처리의 성격</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html">Amazon DynamoDB API 레퍼런스 — Query</a>
+          — 키 조건 표현식, 인덱스 조회, 정렬 방향과 일관성 옵션</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Scan.html">Amazon DynamoDB API 레퍼런스 — Scan</a>
+          — 전체 테이블을 읽는 동작과 소비 용량</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GlobalTables.html">Amazon DynamoDB 개발자 안내서 — 글로벌 테이블</a>
+          — 다중 리전 복제의 동작</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

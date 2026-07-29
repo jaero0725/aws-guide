@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 7 · SQS + Lambda 비동기 처리 — AWS SAA Guide</title>
+  <meta name="description" content="표준 큐와 배달 못한 편지 큐를 만들고 Lambda 이벤트 소스 매핑으로 연결합니다. 가시성 제한 시간과 함수 제한 시간의 관계, 배치 처리와 부분 실패, DLQ로 넘어가는 조건을 AWS CLI로 구성하고 실패를 재현합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab07"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab07">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 7 · SQS + Lambda 비동기 처리</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 7</p>
+      <h1>SQS + Lambda 비동기 처리</h1>
+      <p class="page__lead">
+        큐를 넣는 이유는 <strong>유입 속도와 처리 속도를 분리</strong>하기 위해서입니다.
+        처리가 늦어도 요청이 유실되지 않고, 처리 계층은 자기 속도로 소비합니다.
+        이 실습에서는 큐와 배달 못한 편지 큐(DLQ)를 만들고,
+        <strong>실패를 일부러 만들어</strong> 메시지가 어디로 가는지 확인합니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>표준 큐와 FIFO 큐의 차이를 알고 상황에 맞게 고를 수 있습니다.</li>
+        <li>가시성 제한 시간과 함수 제한 시간의 관계를 설명할 수 있습니다.</li>
+        <li>재구동 정책으로 DLQ를 구성하고 넘어가는 조건을 정할 수 있습니다.</li>
+        <li>이벤트 소스 매핑의 배치 크기와 대기 시간이 무엇을 바꾸는지 이해할 수 있습니다.</li>
+        <li>중복 전달에 대비한 멱등 처리의 필요성을 설명할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        주문이 들어오면 영수증을 만들고 알림을 보내는 후처리를 합니다.
+        후처리는 몇 초가 걸리고 가끔 외부 서비스 오류로 실패합니다.
+      </p>
+      <ul>
+        <li>주문 접수는 <strong>즉시 응답</strong>해야 하므로 후처리를 동기로 두지 않습니다.</li>
+        <li>후처리가 실패해도 <strong>메시지가 유실되면 안 됩니다.</strong></li>
+        <li>계속 실패하는 메시지가 큐를 막지 않아야 합니다.</li>
+        <li>순서 보장은 필요하지 않습니다.</li>
+      </ul>
+      <p>
+        마지막 조건 때문에 <strong>표준 큐</strong>를 고릅니다.
+        순서와 중복 제거가 필요했다면 FIFO 큐를 골라야 하고, 처리량 특성이 달라집니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>표준 큐와 FIFO 큐 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">표준 큐</th>
+              <th scope="col">FIFO 큐</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">기본값</th>
+              <td><span class="mark-ok">속성을 지정하지 않으면 표준 큐</span></td>
+              <td><code>FifoQueue</code> 속성을 켜야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">순서</th>
+              <td>최선 노력 — 보장 없음</td>
+              <td>메시지 그룹 안에서 <strong>엄격한 순서</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">중복</th>
+              <td>발생할 수 있다</td>
+              <td>중복 제거</td>
+            </tr>
+            <tr>
+              <th scope="row">처리량</th>
+              <td>거의 무제한</td>
+              <td>배치 없이 초당 300개, 배치 사용 시 초당 3,000개</td>
+            </tr>
+            <tr>
+              <th scope="row">유형 변경</th>
+              <td colspan="2"><span class="mark-no">생성 후 변경 불가 — 새로 만들어야 한다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>이 실습에서 다루는 큐 속성과 기본값</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">범위</th>
+              <th scope="col">기본값</th>
+              <th scope="col">의미</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>VisibilityTimeout</code></th>
+              <td>0초 – 12시간</td>
+              <td>30초</td>
+              <td>수신된 메시지가 다른 소비자에게 보이지 않는 시간</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>MessageRetentionPeriod</code></th>
+              <td>60초 – 14일</td>
+              <td>4일</td>
+              <td>처리되지 않은 메시지를 큐에 보관하는 기간</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>DelaySeconds</code></th>
+              <td>0 – 900초</td>
+              <td>0</td>
+              <td>메시지가 소비 가능해지기까지의 지연</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>MaximumMessageSize</code></th>
+              <td>1 KiB – 1 MiB</td>
+              <td>1 MiB</td>
+              <td>메시지 본문의 최대 크기</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-queues">1 · 큐와 DLQ 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-queues.sh</span> — DLQ를 먼저 만들고 주 큐의 재구동 정책에 연결</figcaption>
+        <pre><code class="lang-bash"># DLQ 를 먼저 만듭니다. 주 큐가 이 ARN 을 참조하기 때문입니다.
+DLQ_URL=$(aws sqs create-queue \
+  --queue-name lab07-orders-dlq \
+  --attributes '{"MessageRetentionPeriod":"1209600"}' \
+  --query 'QueueUrl' --output text)
+
+DLQ_ARN=$(aws sqs get-queue-attributes \
+  --queue-url "$DLQ_URL" \
+  --attribute-names QueueArn \
+  --query 'Attributes.QueueArn' --output text)
+
+QUEUE_URL=$(aws sqs create-queue \
+  --queue-name lab07-orders \
+  --attributes "{
+      \"VisibilityTimeout\": \"180\",
+      \"MessageRetentionPeriod\": \"345600\",
+      \"RedrivePolicy\": \"{\\\"deadLetterTargetArn\\\":\\\"$DLQ_ARN\\\",\\\"maxReceiveCount\\\":\\\"3\\\"}\"
+    }" \
+  --query 'QueueUrl' --output text)
+
+aws sqs get-queue-attributes \
+  --queue-url "$QUEUE_URL" \
+  --attribute-names All \
+  --query 'Attributes.{Visibility:VisibilityTimeout,Retention:MessageRetentionPeriod,Redrive:RedrivePolicy}'</code></pre>
+      </figure>
+
+      <p>
+        DLQ의 보존 기간은 주 큐보다 <strong>길게</strong> 잡습니다.
+        실패한 메시지를 조사할 시간이 필요한데, DLQ의 보존 기간이 짧으면
+        원인을 찾기 전에 사라집니다.
+      </p>
+
+      <h3 id="step-function">2 · 처리 함수</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">index.mjs</span> — 배치 항목 실패를 개별로 보고하는 처리기</figcaption>
+        <pre><code class="lang-javascript">export const handler = async (event) => {
+  const failures = [];
+
+  for (const record of event.Records) {
+    try {
+      const body = JSON.parse(record.body);
+      if (body.simulateFailure) {
+        throw new Error("simulated downstream failure");
+      }
+      // 실제 후처리를 여기서 수행합니다. 멱등하게 작성합니다.
+      console.log("processed", body.orderId);
+    } catch (err) {
+      console.error("failed", record.messageId, err.message);
+      failures.push({ itemIdentifier: record.messageId });
+    }
+  }
+
+  // 실패한 항목만 다시 큐로 돌려보냅니다.
+  return { batchItemFailures: failures };
+};</code></pre>
+      </figure>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          배치 안의 한 건이 실패했을 때 <strong>배치 전체를 다시 처리</strong>하면
+          이미 성공한 건까지 중복 처리됩니다.
+          위처럼 실패한 항목만 보고하면 성공한 건은 큐에서 제거됩니다.
+          이 동작을 쓰려면 이벤트 소스 매핑에서 부분 배치 응답을 켜야 합니다.
+        </p>
+      </aside>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-function.sh</span> — 함수 생성 (제한 시간은 가시성 제한 시간과 함께 정합니다)</figcaption>
+        <pre><code class="lang-bash">zip -q function.zip index.mjs
+
+aws lambda create-function \
+  --function-name lab07-order-worker \
+  --runtime nodejs22.x \
+  --role arn:aws:iam::123456789012:role/Lab07WorkerRole \
+  --handler index.handler \
+  --zip-file fileb://function.zip \
+  --timeout 30 \
+  --memory-size 256</code></pre>
+      </figure>
+
+      <p>
+        실행 역할에는 로그 권한과 함께
+        <code>sqs:ReceiveMessage</code>, <code>sqs:DeleteMessage</code>,
+        <code>sqs:GetQueueAttributes</code> 권한이 필요합니다.
+        이벤트 소스 매핑에서 <strong>Lambda 서비스가 함수의 역할로 큐를 폴링</strong>하기 때문입니다.
+      </p>
+
+      <h3 id="step-mapping">3 · 이벤트 소스 매핑</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-mapping.sh</span> — 큐를 함수의 이벤트 소스로 연결</figcaption>
+        <pre><code class="lang-bash">QUEUE_ARN=$(aws sqs get-queue-attributes \
+  --queue-url "$QUEUE_URL" \
+  --attribute-names QueueArn \
+  --query 'Attributes.QueueArn' --output text)
+
+aws lambda create-event-source-mapping \
+  --function-name lab07-order-worker \
+  --event-source-arn "$QUEUE_ARN" \
+  --batch-size 10 \
+  --maximum-batching-window-in-seconds 5 \
+  --function-response-types ReportBatchItemFailures
+
+aws lambda list-event-source-mappings \
+  --function-name lab07-order-worker \
+  --query 'EventSourceMappings[].[UUID,State,BatchSize,EventSourceArn]' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>가시성 제한 시간은 함수 제한 시간보다 길어야 합니다.</strong>
+          함수가 아직 처리 중인데 가시성 제한 시간이 끝나면
+          같은 메시지가 다른 실행에 다시 전달되어 <strong>중복 처리</strong>가 일어납니다.
+        </p>
+        <p>
+          배치를 쓴다면 여유가 더 필요합니다.
+          배치 크기만큼의 처리 시간과 재시도를 함께 고려해 값을 정합니다.
+          이 실습에서는 함수 제한 시간 30초에 가시성 제한 시간 180초로 여유를 뒀습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">send-and-observe.sh</span> — 정상 메시지와 실패 메시지를 넣고 결과를 관찰</figcaption>
+        <pre><code class="lang-bash"># 정상 처리될 메시지
+aws sqs send-message \
+  --queue-url "$QUEUE_URL" \
+  --message-body '{"orderId":"ord-1001"}'
+
+# 항상 실패하도록 표시한 메시지
+aws sqs send-message \
+  --queue-url "$QUEUE_URL" \
+  --message-body '{"orderId":"ord-9999","simulateFailure":true}'
+
+# 큐에 남은 메시지와 처리 중인 메시지 수
+aws sqs get-queue-attributes \
+  --queue-url "$QUEUE_URL" \
+  --attribute-names ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible \
+  --query 'Attributes'
+
+# 최대 수신 횟수를 넘긴 메시지는 DLQ 로 넘어갑니다.
+aws sqs get-queue-attributes \
+  --queue-url "$DLQ_URL" \
+  --attribute-names ApproximateNumberOfMessages \
+  --query 'Attributes'</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>관찰 항목과 기대 결과</caption>
+          <thead>
+            <tr>
+              <th scope="col">관찰</th>
+              <th scope="col">기대 결과</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">정상 메시지</th>
+              <td>한 번 처리되고 큐에서 사라진다</td>
+            </tr>
+            <tr>
+              <th scope="row">실패 메시지</th>
+              <td>가시성 제한 시간이 지날 때마다 재전달되고, 3회를 넘기면 DLQ로 이동한다</td>
+            </tr>
+            <tr>
+              <th scope="row">배치 부분 실패</th>
+              <td>같은 배치의 성공 건은 재처리되지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">함수 로그</th>
+              <td>실패 메시지의 <code>messageId</code>가 반복해서 나타난다</td>
+            </tr>
+            <tr>
+              <th scope="row">DLQ</th>
+              <td>실패 메시지 본문이 원본 그대로 남아 있다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">inspect-dlq.sh</span> — DLQ 메시지 확인과 재처리</figcaption>
+        <pre><code class="lang-bash">aws sqs receive-message \
+  --queue-url "$DLQ_URL" \
+  --max-number-of-messages 10 \
+  --query 'Messages[].[MessageId,Body]' --output table
+
+# 원인을 고친 뒤에는 DLQ 의 메시지를 원래 큐로 되돌릴 수 있습니다.
+aws sqs start-message-move-task \
+  --source-arn "$DLQ_ARN"</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요금이 발생하는 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">SQS 요청</th>
+              <td>송신·수신·삭제 요청 수. <strong>폴링도 요청이다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Lambda 호출과 실행 시간</th>
+              <td>배치 크기를 키우면 호출 수가 줄어든다</td>
+            </tr>
+            <tr>
+              <th scope="row">긴 폴링</th>
+              <td>대기 시간을 두면 빈 응답 요청이 줄어 <strong>요청 수가 감소</strong>한다</td>
+            </tr>
+            <tr>
+              <th scope="row">DLQ 보관</th>
+              <td>메시지가 오래 남을수록 저장 관련 항목이 늘어난다</td>
+            </tr>
+            <tr>
+              <th scope="row">재시도</th>
+              <td>실패가 반복되면 호출과 요청이 배로 늘어난다. <strong>DLQ가 이 비용을 끊는다</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        비용과 지연은 <strong>배치 크기와 대기 시간</strong>에서 맞바꿉니다.
+        배치를 키우고 대기 시간을 늘리면 호출 수가 줄지만 처리 지연이 커집니다.
+        지연 요구를 먼저 정하고 그 범위 안에서 배치를 키우는 순서가 맞습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>처리를 멱등하게 만듭니다.</strong>
+          표준 큐는 중복 전달이 발생할 수 있으므로,
+          같은 메시지를 두 번 처리해도 결과가 같아야 합니다.
+          처리 완료를 기록하는 테이블을 두는 방식이 흔합니다.</li>
+        <li><strong>DLQ를 감시합니다.</strong> DLQ에 메시지가 쌓이는 것은 장애 신호입니다.
+          메시지 수에 알람을 걸어 둡니다(<a href="lab12.html">실습 12</a>).</li>
+        <li><strong>큐 적체를 기준으로 확장합니다.</strong>
+          Lambda는 자동으로 확장하지만, 소비자가 컨테이너나 인스턴스라면
+          대기 메시지 수를 지표로 삼습니다.</li>
+        <li><strong>동시성을 제한합니다.</strong>
+          하류 데이터베이스가 감당할 수 있는 수준으로 예약 동시성을 두지 않으면
+          큐가 완충한 부하가 그대로 데이터베이스로 전달됩니다.</li>
+        <li><strong>메시지 크기 상한을 넘길 데이터</strong>는 Amazon S3에 두고 키만 보냅니다.</li>
+        <li><strong>암호화와 접근 제어.</strong> 큐에 저장 데이터 암호화를 켜고,
+          큐 정책으로 송신자와 수신자를 한정합니다.</li>
+        <li><strong>순서가 필요해지면 큐를 새로 만들어야 합니다.</strong>
+          표준 큐를 FIFO로 바꿀 수 없습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 매핑부터 끊고 큐와 함수 삭제</figcaption>
+        <pre><code class="lang-bash">UUID=$(aws lambda list-event-source-mappings \
+  --function-name lab07-order-worker \
+  --query 'EventSourceMappings[0].UUID' --output text)
+
+aws lambda delete-event-source-mapping --uuid "$UUID"
+aws lambda delete-function --function-name lab07-order-worker
+aws logs delete-log-group --log-group-name /aws/lambda/lab07-order-worker
+
+aws sqs delete-queue --queue-url "$QUEUE_URL"
+aws sqs delete-queue --queue-url "$DLQ_URL"</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          큐를 삭제한 뒤 <strong>같은 이름으로 다시 만들려면 최소 60초를 기다려야</strong> 합니다.
+          실습을 반복할 때 이름을 재사용하다가 오류를 만나면 이 제약 때문입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">가시성 제한 시간 &lt; 함수 제한 시간</th>
+              <td>같은 메시지가 여러 번 처리된다</td>
+              <td>가시성 제한 시간을 충분히 크게 잡는다</td>
+            </tr>
+            <tr>
+              <th scope="row">DLQ 없이 운영</th>
+              <td>실패 메시지가 무한히 재시도되며 큐를 막는다</td>
+              <td>재구동 정책으로 최대 수신 횟수를 정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">DLQ 보존 기간이 주 큐보다 짧음</th>
+              <td>조사하기 전에 실패 메시지가 사라진다</td>
+              <td>DLQ 보존 기간을 길게 잡는다</td>
+            </tr>
+            <tr>
+              <th scope="row">실행 역할에 큐 권한 없음</th>
+              <td>매핑이 만들어지지만 메시지가 소비되지 않는다</td>
+              <td>수신·삭제·속성 조회 권한을 부여한다</td>
+            </tr>
+            <tr>
+              <th scope="row">배치 전체를 실패 처리</th>
+              <td>성공한 건까지 중복 처리된다</td>
+              <td>부분 배치 응답으로 실패 항목만 보고한다</td>
+            </tr>
+            <tr>
+              <th scope="row">비멱등 처리</th>
+              <td>중복 전달 시 결제나 알림이 두 번 나간다</td>
+              <td>처리 이력을 남기고 같은 키를 건너뛴다</td>
+            </tr>
+            <tr>
+              <th scope="row">큐만 넣고 하류 보호 없음</th>
+              <td>완충한 부하가 데이터베이스를 그대로 친다</td>
+              <td>소비자 동시성을 제한한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch12.html">
+          <span class="card__title">12장 · 서버리스와 애플리케이션 통합</span>
+          <span class="card__desc">SQS 표준과 FIFO, 호출 모델 3종, Lambda 동시성을 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2</span>
+        </a></li>
+        <li><a class="card" href="../cases/case07.html">
+          <span class="card__title">케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다</span>
+          <span class="card__desc">큐 완충이 부족 구간을 어떻게 견디게 하는지 설계 관점에서 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="lab06.html">
+          <span class="card__title">실습 6 · Lambda + API Gateway REST API</span>
+          <span class="card__desc">같은 함수를 동기로 호출할 때의 권한과 응답 구조를 비교합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="lab08.html">
+          <span class="card__title">실습 8 · EventBridge 이벤트 아키텍처</span>
+          <span class="card__desc">큐가 아니라 이벤트 버스로 결합을 끊는 또 다른 방식입니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="lab12.html">
+          <span class="card__title">실습 12 · CloudWatch 알람 + SNS 알림</span>
+          <span class="card__desc">DLQ 적체와 큐 지연에 알람을 걸어 장애를 조기에 잡습니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html">Amazon SQS API 레퍼런스 — CreateQueue</a>
+          — 표준 큐가 기본이고 유형을 바꿀 수 없다는 서술, 큐 속성의 범위와 기본값,
+          삭제 후 같은 이름 재생성에 60초가 필요하다는 제약</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibility.html">Amazon SQS API 레퍼런스 — ChangeMessageVisibility</a>
+          — 가시성 제한 시간의 기본 30초, 최소 0초, 최대 12시간</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html">Amazon SQS API 레퍼런스 — SendMessage</a>
+          — FIFO 큐에서 <code>MessageGroupId</code>가 없으면 실패한다는 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html">Amazon SQS 개발자 안내서 — 고처리량 FIFO</a>
+          — FIFO의 초당 300개, 배치 사용 시 3,000개 기준</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/api/API_CreateEventSourceMapping.html">AWS Lambda API 레퍼런스 — CreateEventSourceMapping</a>
+          — 배치 크기, 배치 대기 시간, 함수 응답 유형 설정</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_StartMessageMoveTask.html">Amazon SQS API 레퍼런스 — StartMessageMoveTask</a>
+          — DLQ의 메시지를 원래 큐로 되돌리는 작업</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

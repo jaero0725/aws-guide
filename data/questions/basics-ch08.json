@@ -1,0 +1,295 @@
+{
+  "setId": "basics-ch08",
+  "title": "8장 · S3와 오브젝트 스토리지 — 확인 문제",
+  "exam": "BASICS",
+  "domain": "S3와 오브젝트 스토리지",
+  "examCode": "SAA-C03",
+  "questions": [
+    {
+      "id": "basics-ch08-001",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "감사 팀이 새로 만든 Amazon S3 버킷의 초기 상태를 확인하려 합니다. 아무 설정도 바꾸지 않은 버킷에 대한 설명으로 옳은 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "버킷을 만든 뒤 퍼블릭 액세스 차단과 기본 암호화를 각각 켜야 안전해집니다." },
+        { "id": "B", "text": "기본 암호화는 자동으로 적용되지만 퍼블릭 액세스 차단은 꺼진 상태입니다." },
+        { "id": "C", "text": "퍼블릭 액세스 차단이 켜져 있고 새 객체는 SSE-S3로 자동 암호화됩니다." },
+        { "id": "D", "text": "퍼블릭 액세스 차단과 암호화는 물론 버전 관리까지 켜진 상태로 만들어집니다." }
+      ],
+      "answer": ["C"],
+      "explanation": "S3의 기본값은 지난 몇 년 사이에 크게 안전해졌습니다. 신규 버킷은 퍼블릭 액세스 차단이 켜진 상태로 만들어지고, 객체 소유권이 버킷 소유자로 강제되어 ACL이 비활성화되며, 업로드되는 새 객체는 추가 비용 없이 SSE-S3로 자동 암호화됩니다. 그래서 암호화를 켜라거나 차단을 활성화하라는 선택지는 이미 되어 있는 일을 하겠다는 뜻이 되어 정답이 되기 어렵습니다. 다만 버전 관리만은 여전히 꺼진 채로 시작하며, 이것이 실수로 인한 덮어쓰기와 삭제에 대비하려면 별도로 켜야 하는 이유입니다.",
+      "distractorNotes": {
+        "A": "두 가지 모두 이미 적용된 상태입니다. 오래된 자료가 이 절차를 안내하고 있어 그대로 외운 사람이 고르기 쉬운 선택지입니다.",
+        "B": "퍼블릭 액세스 차단의 기본값이 반대로 서술되었습니다. 차단은 기본으로 켜져 있습니다.",
+        "D": "버전 관리는 기본으로 켜지지 않습니다. 그리고 한 번 켜면 완전한 비활성 상태로는 되돌릴 수 없고 일시 중지만 가능합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html", "title": "Amazon S3 API 레퍼런스 — CreateBucket" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html", "title": "Amazon S3 사용 설명서 — 기본 암호화 FAQ" }
+      ],
+      "tags": ["s3", "encryption", "block-public-access", "bucket"]
+    },
+    {
+      "id": "basics-ch08-002",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "회사가 S3에 올린 정적 사이트를 회사 도메인으로 서비스하려 합니다. 모든 요청이 HTTPS여야 하고 버킷은 비공개로 유지되어야 합니다. 어떤 구성이 적절합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Amazon CloudFront 배포를 앞에 두고 오리진 액세스 제어로 버킷을 비공개로 유지합니다." },
+        { "id": "B", "text": "S3 정적 웹사이트 엔드포인트에 ACM 인증서를 연결해 HTTPS를 제공합니다." },
+        { "id": "C", "text": "버킷 정책으로 퍼블릭 읽기를 허용하고 웹사이트 엔드포인트를 HTTPS로 호출합니다." },
+        { "id": "D", "text": "Transfer Acceleration을 활성화해 가속 엔드포인트로 HTTPS 요청을 받습니다." }
+      ],
+      "answer": ["A"],
+      "explanation": "S3의 정적 웹사이트 엔드포인트는 HTTPS를 제공하지 않습니다. 그래서 사용자 지정 도메인과 HTTPS가 함께 요구되면 앞단에 CloudFront를 두는 구성이 사실상 정해진 답이 됩니다. 여기에 오리진 액세스 제어를 붙이면 CloudFront만 버킷을 읽을 수 있게 되어 버킷을 퍼블릭으로 열지 않아도 됩니다. 결과적으로 HTTPS 요구와 비공개 유지 요구가 하나의 구성으로 함께 해결되고, 덤으로 엣지 캐시 덕분에 오리진으로 나가는 전송량도 줄어듭니다.",
+      "distractorNotes": {
+        "B": "웹사이트 엔드포인트에는 인증서를 연결할 수 없습니다. 인증서를 붙일 수 있는 대상은 CloudFront 같은 앞단 서비스입니다.",
+        "C": "버킷을 퍼블릭으로 여는 것은 비공개 유지 요구를 정면으로 위반합니다. 게다가 웹사이트 엔드포인트는 여전히 HTTPS를 제공하지 않습니다.",
+        "D": "Transfer Acceleration은 멀리 있는 클라이언트가 버킷으로 올리는 전송을 빠르게 하는 기능입니다. 콘텐츠를 내려주는 배포 요구와는 목적이 다릅니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html", "title": "Amazon S3 사용 설명서 — 정적 웹사이트 호스팅" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/transfer-acceleration.html", "title": "Amazon S3 사용 설명서 — Transfer Acceleration" }
+      ],
+      "tags": ["s3", "static-website", "cloudfront", "https"]
+    },
+    {
+      "id": "basics-ch08-003",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "개발자가 자신의 자격 증명으로 프리사인 URL을 만들어 협력사에 전달했습니다. 그 URL이 사내 채팅방에 그대로 공유되었습니다. 프리사인 URL의 동작으로 옳은 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "URL을 받은 사람의 IAM 권한으로 평가되므로 권한 없는 사람은 접근할 수 없습니다." },
+        { "id": "B", "text": "서명한 주체의 권한으로 동작하므로 만료 전에는 누구나 그 URL로 객체를 읽습니다." },
+        { "id": "C", "text": "한 번 사용되면 자동으로 무효화되므로 유출되어도 재사용될 수 없습니다." },
+        { "id": "D", "text": "버킷의 퍼블릭 액세스 차단이 켜져 있으면 프리사인 URL도 함께 차단됩니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "프리사인 URL은 서명한 주체의 권한을 URL 안에 담아 위임하는 장치입니다. 요청을 받은 S3는 URL의 서명을 검증할 뿐 그것을 들고 온 사람이 누구인지는 묻지 않습니다. 따라서 유효 기간이 남아 있는 동안 URL을 가진 모든 사람이 그 객체에 접근할 수 있고, 횟수 제한도 없습니다. 위험을 줄이는 방법은 접근 통제를 더 거는 것이 아니라 유효 기간을 짧게 잡고 최소 권한을 가진 주체로 서명하는 것입니다. 반대로 버킷을 퍼블릭으로 여는 선택지는 이 기능이 존재하는 이유를 없애 버립니다.",
+      "distractorNotes": {
+        "A": "수신자의 권한은 평가되지 않습니다. 아예 AWS 계정이 없는 사람도 URL만 있으면 접근할 수 있다는 점이 이 기능의 목적이자 위험입니다.",
+        "C": "일회용이라는 성질은 없습니다. 만료 시각까지는 몇 번이든 재사용할 수 있습니다.",
+        "D": "퍼블릭 액세스 차단은 정책과 ACL을 통한 공개를 막는 설정입니다. 서명된 요청은 익명 요청이 아니므로 영향을 받지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html", "title": "Amazon S3 사용 설명서 — 프리사인 URL 사용" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html", "title": "Amazon S3 API 레퍼런스 — PutObject" }
+      ],
+      "tags": ["s3", "presigned-url", "access-control"]
+    },
+    {
+      "id": "basics-ch08-004",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 버킷의 청구 스토리지 양이 객체 목록에서 계산한 합계보다 훨씬 크고, 매달 조금씩 늘어납니다. 대용량 파일을 자주 업로드하지만 실패도 잦은 워크로드입니다. 어떤 조치가 필요합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "이전 버전 객체를 콘솔에서 찾아 일괄 삭제하고 버전 관리를 끕니다." },
+        { "id": "B", "text": "스토리지 클래스를 S3 Standard-IA로 전환해 저장 단가를 낮춥니다." },
+        { "id": "C", "text": "Requester Pays를 활성화해 저장 비용 부담을 요청자에게 넘깁니다." },
+        { "id": "D", "text": "수명 주기 규칙에 불완전 멀티파트 업로드 중단을 추가합니다." }
+      ],
+      "answer": ["D"],
+      "explanation": "멀티파트 업로드는 완료 호출을 받아야 하나의 객체가 됩니다. 중간에 실패하면 이미 올라간 파트들이 서버에 남는데, 이 조각들은 객체 목록에 나타나지 않으면서 저장 요금은 계속 발생시킵니다. 목록으로 센 합계와 청구서가 어긋나고 그 차이가 계속 커지는 증상은 이 항목을 가장 먼저 의심해야 합니다. 수명 주기 규칙에 지정한 일수가 지난 불완전 업로드를 중단하는 항목을 넣어 두면 자동으로 정리됩니다. 같은 이유로 수명 주기 규칙에는 전환과 비현재 버전 만료, 불완전 업로드 정리를 함께 넣는 것이 기본형입니다.",
+      "distractorNotes": {
+        "A": "이전 버전은 목록에서 확인할 수 있으므로 이 증상의 원인으로는 맞지 않습니다. 게다가 버전 관리는 완전히 끌 수 없고 일시 중지만 가능합니다.",
+        "B": "저장 단가를 낮춰도 보이지 않는 조각은 그대로 쌓입니다. 원인을 두고 증상만 완화하는 안입니다.",
+        "C": "Requester Pays는 요청과 데이터 전송 요금을 요청자에게 옮길 뿐 저장 요금은 여전히 버킷 소유자가 냅니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketLifecycleConfiguration.html", "title": "Amazon S3 API 레퍼런스 — PutBucketLifecycleConfiguration" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateMultipartUpload.html", "title": "Amazon S3 API 레퍼런스 — CreateMultipartUpload" }
+      ],
+      "tags": ["s3", "multipart-upload", "lifecycle", "cost-optimization"]
+    },
+    {
+      "id": "basics-ch08-005",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "운영 팀이 버킷에 복제 규칙을 설정했습니다. 이후 업로드된 객체는 대상 버킷에 잘 나타나지만, 규칙을 만들기 전에 있던 수백만 개의 객체는 대상에 없습니다. 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "복제 규칙을 삭제하고 다시 만들면 기존 객체까지 다시 평가되어 복제됩니다." },
+        { "id": "B", "text": "원본 버킷의 버전 관리를 껐다 켜면 전체 객체가 새 버전으로 복제 대상이 됩니다." },
+        { "id": "C", "text": "기존 객체는 배치 복제 작업으로 별도로 옮깁니다." },
+        { "id": "D", "text": "대상 버킷의 스토리지 클래스를 원본과 같게 맞추면 자동으로 동기화됩니다." }
+      ],
+      "answer": ["C"],
+      "explanation": "S3 복제는 규칙이 활성화된 이후에 발생한 변경만 대상으로 삼습니다. 이미 저장되어 있던 객체는 아무 이벤트도 만들지 않으므로 규칙이 볼 기회 자체가 없습니다. 그래서 기존 데이터를 옮기려면 별도의 배치 복제 작업을 실행해 한 번 훑어 주어야 하고, 이는 규칙 재생성으로는 대신할 수 없습니다. 복제를 설계할 때 함께 확인할 전제도 있습니다. 원본과 대상 양쪽 모두 버전 관리가 켜져 있어야 하고, S3가 대상 버킷에 쓸 수 있는 IAM 역할이 필요합니다.",
+      "distractorNotes": {
+        "A": "규칙을 다시 만들어도 기준 시점만 새로 잡힐 뿐입니다. 기존 객체에 대한 소급 적용은 일어나지 않습니다.",
+        "B": "버전 관리는 완전히 끌 수 없고, 일시 중지했다 다시 켜도 기존 객체가 새로 쓰이지 않습니다. 오히려 버전 이력만 흐트러집니다.",
+        "D": "대상의 스토리지 클래스는 복제된 객체를 어디에 담을지의 문제이며 무엇을 복제할지와는 무관합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html", "title": "Amazon S3 사용 설명서 — 객체 복제" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-what-is-isnot-replicated.html", "title": "Amazon S3 사용 설명서 — 무엇이 복제되는가" }
+      ],
+      "tags": ["s3", "replication", "versioning"]
+    },
+    {
+      "id": "basics-ch08-006",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "금융 규제에 따라 거래 기록을 5년간 보관해야 하며, 그 기간에는 계정 관리자나 루트 사용자를 포함해 누구도 삭제하거나 보존 기간을 줄일 수 없어야 합니다. 어떤 구성이 요구를 충족합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "버전 관리를 켜고 S3 Object Lock 규정 준수 모드로 5년 보존 기간을 설정합니다." },
+        { "id": "B", "text": "버킷 정책에 삭제 작업을 거부하는 문을 넣고 MFA Delete를 활성화합니다." },
+        { "id": "C", "text": "S3 Object Lock 거버넌스 모드로 5년 보존 기간을 설정하고 삭제 권한을 회수합니다." },
+        { "id": "D", "text": "수명 주기 규칙으로 5년 뒤 만료되도록 설정하고 그전까지 접근 권한을 제한합니다." }
+      ],
+      "answer": ["A"],
+      "explanation": "누구도 지울 수 없어야 한다는 요구는 권한으로 푸는 문제가 아니라 보존 모델로 푸는 문제입니다. 권한 기반 통제는 권한을 가진 사람이 언제든 되돌릴 수 있으므로, 관리자와 루트를 포함해 막아야 한다는 조건을 만족시키지 못합니다. Object Lock의 규정 준수 모드는 보존 기간이 끝나기 전에는 어떤 주체도 객체 버전을 삭제하거나 기간을 줄일 수 없게 만들며, 이 모드를 쓰려면 버킷의 버전 관리가 켜져 있어야 합니다. 거버넌스 모드는 특별한 권한을 가진 주체가 우회할 수 있어 사내 실수 방지용에 가깝고, 규제 대응 문항에서는 두 모드를 구분하는 것이 채점 포인트입니다.",
+      "distractorNotes": {
+        "B": "정책은 정책을 바꿀 수 있는 사람이 되돌릴 수 있습니다. 또 MFA Delete는 루트 사용자만 활성화할 수 있고 수명 주기 구성과 함께 쓸 수 없다는 제약도 있습니다.",
+        "C": "거버넌스 모드는 우회 권한을 가진 주체가 보존을 해제할 수 있도록 설계되었습니다. 누구도 지울 수 없어야 한다는 조건과 어긋납니다.",
+        "D": "수명 주기 만료는 기간이 지난 뒤 지우는 기능이지 그 전에 삭제를 막는 기능이 아닙니다. 요구사항의 방향을 반대로 읽은 선택지입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-overview.html", "title": "Amazon S3 사용 설명서 — Object Lock 동작 방식" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html", "title": "Amazon S3 사용 설명서 — MFA Delete 구성" }
+      ],
+      "tags": ["s3", "object-lock", "compliance", "versioning"]
+    },
+    {
+      "id": "basics-ch08-007",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "버전 관리가 켜진 버킷에서의 삭제 동작에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "버전 ID를 지정하지 않고 삭제하면 삭제 마커가 추가되고 이전 버전은 남습니다." },
+        { "id": "B", "text": "한 번 켠 버전 관리는 완전히 끌 수 없고 일시 중지만 할 수 있습니다." },
+        { "id": "C", "text": "삭제 마커가 붙는 순간 이전 버전에 대한 저장 요금이 더 이상 부과되지 않습니다." },
+        { "id": "D", "text": "새로 만든 버킷은 버전 관리가 켜진 상태로 생성됩니다." },
+        { "id": "E", "text": "삭제 마커를 지우면 그 객체의 모든 버전이 함께 영구 삭제됩니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "버전 관리가 켜진 버킷에서 일반적인 삭제는 데이터를 지우는 조작이 아니라 최신 버전을 가리는 조작입니다. 삭제 마커가 새로운 최신 버전으로 얹히고 그 아래의 버전들은 그대로 남아 계속 저장 요금을 발생시킵니다. 그래서 지웠는데 용량이 줄지 않는다는 상황이 생기고, 실제로 줄이려면 비현재 버전 만료 규칙을 수명 주기에 넣어야 합니다. 반대로 삭제 마커만 제거하면 가려져 있던 최신 버전이 다시 드러나므로 실수로 지운 객체를 되살리는 수단이 됩니다.",
+      "distractorNotes": {
+        "C": "가려질 뿐 저장되어 있으므로 요금은 계속 발생합니다. 비용을 줄이려면 비현재 버전을 만료시키는 규칙이 필요합니다.",
+        "D": "버전 관리는 신규 버킷에서 기본으로 켜지지 않습니다. 다른 기본값들이 안전해졌다고 뭉뚱그리면 틀리는 지점입니다.",
+        "E": "삭제 마커를 제거하면 오히려 직전 버전이 최신으로 복귀합니다. 복구 수단을 파괴 수단으로 뒤집어 서술한 선택지입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html", "title": "Amazon S3 사용 설명서 — 객체 복제" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketLifecycleConfiguration.html", "title": "Amazon S3 API 레퍼런스 — PutBucketLifecycleConfiguration" }
+      ],
+      "tags": ["s3", "versioning", "delete-marker", "lifecycle"]
+    },
+    {
+      "id": "basics-ch08-008",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "대용량 미디어 파일을 전 세계 지사에서 올려 받는 워크로드의 S3 성능을 검토하고 있습니다. 옳은 설명을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "요청 성능은 접두사 단위로 확장되며 접두사마다 초당 수천 건의 요청을 처리할 수 있습니다." },
+        { "id": "B", "text": "S3 Transfer Acceleration은 멀리 있는 클라이언트가 버킷으로 올리는 전송을 가속합니다." },
+        { "id": "C", "text": "성능을 높이려면 객체 키 앞에 무작위 해시 문자열을 붙여야 합니다." },
+        { "id": "D", "text": "초당 요청 한도는 버킷 하나 전체에 걸리므로 버킷을 여러 개로 나눠야 합니다." },
+        { "id": "E", "text": "멀티파트 업로드의 각 파트는 마지막 파트를 포함해 최소 50 MB 이상이어야 합니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "S3의 요청 성능은 버킷 단위가 아니라 접두사 단위로 늘어납니다. 접두사 개수에 제한이 없으므로 키 설계를 자연스러운 계층 구조로만 잡아도 필요한 만큼 병렬성이 확보됩니다. 예전에는 키 앞에 무작위 문자열을 붙이라는 권고가 있었지만 지금은 필요하지 않고, 오히려 목록 조회와 수명 주기 규칙 설계를 어렵게 만듭니다. 한편 장거리 업로드가 느린 문제는 성능 한도가 아니라 네트워크 거리의 문제이므로 Transfer Acceleration으로 풉니다. 내려주는 쪽이 문제라면 그때는 CloudFront가 답입니다.",
+      "distractorNotes": {
+        "C": "무작위 접두사는 옛 조언입니다. 지금은 필요하지 않으며 키를 읽기 어렵게 만드는 부작용만 남습니다.",
+        "D": "한도는 버킷 전체가 아니라 파티션된 접두사마다 적용됩니다. 이 오해 때문에 불필요하게 버킷을 쪼개는 설계가 나옵니다.",
+        "E": "각 파트의 최소 크기는 5 MB이며 마지막 파트는 그보다 작아도 됩니다. 최소 크기를 크게 잡으면 병렬 업로드의 이점을 잃습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html", "title": "Amazon S3 사용 설명서 — 성능 최적화 모범 사례" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html", "title": "Amazon S3 API 레퍼런스 — UploadPart" }
+      ],
+      "tags": ["s3", "performance", "transfer-acceleration", "multipart-upload"]
+    },
+    {
+      "id": "basics-ch08-009",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "matching",
+      "question": "각 요구사항에 가장 적합한 S3 스토리지 클래스를 연결하세요. 목록에는 정답이 아닌 미끼 값이 섞여 있습니다.",
+      "code": null,
+      "pairs": [
+        { "id": "p1", "left": "월 1~2회만 읽지만 읽을 때는 즉시 필요하고, 3개 이상 가용 영역에 저장되어야 하는 로그. 최소 저장 기간 30일을 감수할 수 있다", "right": "S3 Standard-IA" },
+        { "id": "p2", "left": "원본이 다른 곳에 있어 유실되어도 다시 만들 수 있는 변환본. 저장 비용을 더 낮추기 위해 단일 가용 영역 저장을 허용한다", "right": "S3 One Zone-IA" },
+        { "id": "p3", "left": "분기에 한 번 조회하지만 조회할 때는 밀리초 단위 접근이 필요한 아카이브. 최소 저장 기간 90일", "right": "S3 Glacier Instant Retrieval" },
+        { "id": "p4", "left": "법규상 7년 보관해야 하고 실제 조회는 거의 없으며, 필요할 때 기본 12시간을 기다릴 수 있는 데이터. 최소 저장 기간 180일", "right": "S3 Glacier Deep Archive" },
+        { "id": "p5", "left": "접근 패턴을 예측할 수 없어 수명 주기 규칙을 정하기 어렵고, 계층 이동을 자동으로 맡기고 싶은 데이터", "right": "S3 Intelligent-Tiering" }
+      ],
+      "extraRights": ["S3 Standard", "S3 Glacier Flexible Retrieval"],
+      "explanation": "스토리지 클래스 선택은 접근 빈도, 검색 시간 요구, 내구성 대비 가용 영역 수, 최소 저장 기간의 네 축으로 결정됩니다. 즉시 접근이 필요하면 Standard-IA와 Glacier Instant Retrieval이 후보이고, 둘의 차이는 최소 저장 기간 30일과 90일 그리고 접근 빈도입니다. 재생성 가능한 데이터만 단일 가용 영역에 두는 One Zone-IA를 고르며, 그렇지 않은 데이터에 이 클래스를 쓰면 가용 영역 장애가 곧 데이터 손실이 됩니다. 미끼로 넣은 Glacier Flexible Retrieval도 최소 저장 기간이 90일이지만 밀리초 접근을 제공하지 않아 즉시 조회 요구와 맞지 않습니다.",
+      "distractorNotes": {
+        "p1": "즉시 접근이 필요하다는 조건 때문에 Glacier 계열이 아니고, 최소 저장 기간 30일을 감수한다는 조건 때문에 Standard도 아닙니다.",
+        "p2": "저렴한 저장 비용만 보고 One Zone-IA를 고르면 안 됩니다. 이 클래스의 전제는 유실되어도 다시 만들 수 있다는 것입니다.",
+        "p3": "Glacier Instant Retrieval과 Glacier Flexible Retrieval은 최소 저장 기간이 둘 다 90일입니다. 갈라지는 지점은 밀리초 즉시 검색 여부입니다.",
+        "p4": "기본 검색 시간 12시간과 최소 저장 기간 180일은 Deep Archive의 결정적 표지입니다.",
+        "p5": "접근 패턴을 모른다는 서술이 나오면 Intelligent-Tiering을 먼저 의심합니다. 수명 주기 규칙은 패턴을 알 때 쓰는 도구입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html", "title": "Amazon S3 사용 설명서 — 스토리지 클래스 사용" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html", "title": "Amazon S3 사용 설명서 — 수명 주기 전환 일반 고려 사항" }
+      ],
+      "tags": ["s3", "storage-class", "lifecycle"]
+    },
+    {
+      "id": "basics-ch08-010",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "chapter": "ch08",
+      "difficulty": "hard",
+      "type": "ordering",
+      "question": "각 클래스의 최소 저장 기간을 위반하지 않으면서 감사 로그를 7년간 보관하려 합니다. 수명 주기 단계를 순서대로 배열하세요.",
+      "code": null,
+      "items": [
+        { "id": "i4", "text": "업로드 후 180일이 되면 S3 Glacier Deep Archive로 전환한다" },
+        { "id": "i1", "text": "객체를 S3 Standard에 업로드해 처음 한 달 동안 자주 조회되게 둔다" },
+        { "id": "i5", "text": "보관 기간 7년이 지나면 만료 규칙으로 객체를 삭제한다" },
+        { "id": "i3", "text": "업로드 후 90일이 되면 S3 Glacier Flexible Retrieval로 전환한다" },
+        { "id": "i2", "text": "업로드 후 30일이 되면 S3 Standard-IA로 전환한다" }
+      ],
+      "answer": ["i1", "i2", "i3", "i4", "i5"],
+      "explanation": "수명 주기 전환은 아무 시점에나 걸 수 있는 것이 아니라 각 클래스의 최소 저장 기간에 묶여 있습니다. Standard-IA와 One Zone-IA로 가려면 객체가 최소 30일 저장되어 있어야 하고, Glacier 계열은 90일, Deep Archive는 180일의 최소 저장 기간을 갖습니다. 최소 기간을 채우기 전에 다음 단계로 옮기면 남은 기간만큼 요금이 청구되어 절감하려던 목적이 사라집니다. 그래서 차가운 방향으로 한 단계씩 내려가는 순서가 곧 최소 기간이 커지는 순서와 일치하게 됩니다. 마지막으로 보관 의무가 끝나면 만료 규칙으로 삭제해 비용을 정리합니다.",
+      "distractorNotes": {
+        "i2": "업로드 직후 바로 IA로 보내는 규칙을 정답으로 고르는 실수가 잦습니다. 최소 저장 기간 30일이 지나야 전환할 수 있습니다.",
+        "i4": "Deep Archive를 앞으로 당기면 검색 시간이 기본 12시간이라 초반의 조회 요구를 감당하지 못합니다. 가장 차가운 계층은 항상 마지막입니다.",
+        "i5": "만료를 전환보다 앞에 두면 보관 의무를 채우지 못하고 데이터가 사라집니다. 삭제는 언제나 보관 기간이 끝난 뒤입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html", "title": "Amazon S3 사용 설명서 — 수명 주기 전환 일반 고려 사항" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html", "title": "Amazon S3 사용 설명서 — 스토리지 클래스 사용" }
+      ],
+      "tags": ["s3", "lifecycle", "storage-class", "cost-optimization"]
+    }
+  ]
+}

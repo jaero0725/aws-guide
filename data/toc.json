@@ -2,7 +2,7 @@
   "generatedAt": "2026-07-29",
   "examCode": "SAA-C03",
   "total": 62,
-  "built": 49,
+  "built": 60,
   "sections": [
     {
       "id": "home",
@@ -300,81 +300,81 @@
           "id": "lab01",
           "path": "labs/lab01.html",
           "title": "3계층 VPC 직접 구성",
-          "pageTitle": null,
+          "pageTitle": "실습 1 · 3계층 VPC 직접 구성",
           "num": "1",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab02",
           "path": "labs/lab02.html",
           "title": "ALB + ASG 웹 티어",
-          "pageTitle": null,
+          "pageTitle": "실습 2 · ALB + ASG 웹 티어",
           "num": "2",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab03",
           "path": "labs/lab03.html",
           "title": "S3 정적 사이트 + CloudFront + OAC",
-          "pageTitle": null,
+          "pageTitle": "실습 3 · S3 정적 사이트 + CloudFront + OAC",
           "num": "3",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab04",
           "path": "labs/lab04.html",
           "title": "RDS Multi-AZ와 읽기 전용 복제본",
-          "pageTitle": null,
+          "pageTitle": "실습 4 · RDS Multi-AZ와 읽기 전용 복제본",
           "num": "4",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab05",
           "path": "labs/lab05.html",
           "title": "DynamoDB 테이블 설계",
-          "pageTitle": null,
+          "pageTitle": "실습 5 · DynamoDB 테이블 설계",
           "num": "5",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab06",
           "path": "labs/lab06.html",
           "title": "Lambda + API Gateway REST API",
-          "pageTitle": null,
+          "pageTitle": "실습 6 · Lambda + API Gateway REST API",
           "num": "6",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab07",
           "path": "labs/lab07.html",
           "title": "SQS + Lambda 비동기 처리",
-          "pageTitle": null,
+          "pageTitle": "실습 7 · SQS + Lambda 비동기 처리",
           "num": "7",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab08",
           "path": "labs/lab08.html",
           "title": "EventBridge 이벤트 기반 아키텍처",
-          "pageTitle": null,
+          "pageTitle": "실습 8 · EventBridge 이벤트 아키텍처",
           "num": "8",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab09",
           "path": "labs/lab09.html",
           "title": "ECS Fargate 서비스 배포",
-          "pageTitle": null,
+          "pageTitle": "실습 9 · ECS Fargate 서비스 배포",
           "num": "9",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab10",
           "path": "labs/lab10.html",
           "title": "VPC 엔드포인트로 S3 비공개 접근",
-          "pageTitle": null,
+          "pageTitle": "실습 10 · VPC 엔드포인트로 S3 비공개 접근",
           "num": "10",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab11",
@@ -474,9 +474,9 @@
           "id": "case10",
           "path": "cases/case10.html",
           "title": "규정 준수 감사에 대응하라",
-          "pageTitle": null,
+          "pageTitle": "케이스 10 · 규정 준수 감사에 대응하라",
           "num": "10",
-          "exists": false
+          "exists": true
         }
       ]
     },
