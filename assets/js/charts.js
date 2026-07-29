@@ -292,9 +292,28 @@
   /* ======================================================================
      등록 · 생성
      ====================================================================== */
+  var booted = false;
+
   function register(id, specFn) {
     if (!id || typeof specFn !== 'function') return;
-    registry[String(id).toUpperCase()] = specFn;
+    id = String(id).toUpperCase();
+    registry[id] = specFn;
+    /* 이미 마운트를 끝낸 뒤에 등록되는 경우(늦게 로드된 charts-*.js, 동적 삽입)를
+       위해 해당 ID 의 플레이스홀더를 다시 훑는다. mount() 는 data-chart-init 로
+       중복을 막지만, 앞서 "등록되지 않았습니다" 상자를 넣어 둔 figure 는
+       그 상태로 굳어 있으므로 상자를 걷어내고 초기화 표시를 지운 뒤 재시도한다. */
+    if (!booted) return;
+    Array.prototype.forEach.call(
+      doc.querySelectorAll('figure.chart[data-chart="' + id + '"]'),
+      function (f) {
+        var box = f.querySelector('.chart__missing');
+        if (box) box.parentNode.removeChild(box);
+        if (f.dataset.chartInit === '1' && !f.querySelector('canvas')) {
+          delete f.dataset.chartInit;
+        }
+        mount(f);
+      }
+    );
   }
   function has(id) { return !!registry[String(id || '').toUpperCase()]; }
 
@@ -482,11 +501,20 @@
   global.registerChart = register;
 
   function boot() {
+    if (booted) return;
+    booted = true;
     mountAll();
     watchTheme();
   }
+
+  /* ⚠️ boot 를 **다음 틱으로 미룹니다.** 이 파일은 defer 로 로드되므로 실행 시점에
+     readyState 는 이미 'interactive' 이고, 여기서 바로 boot() 를 부르면 아래
+     REGISTRY 절이 아직 실행되기 전이라 전부 "등록되지 않았습니다" 로 표시됩니다.
+     setTimeout 0 이면 (1) 이 파일의 REGISTRY 절과 (2) 뒤이어 로드되는
+     charts-*.js 의 등록이 모두 끝난 뒤에 마운트됩니다.
+     그 뒤에 오는 늦은 등록은 register() 가 직접 재마운트합니다. */
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', boot);
-  else boot();
+  else global.setTimeout(boot, 0);
 
   /* ==========================================================================
      ────────────────────────── REGISTRY ──────────────────────────
