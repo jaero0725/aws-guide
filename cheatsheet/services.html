@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>서비스 한 줄 정의 — AWS SAA Guide</title>
+  <meta name="description" content="SAA-C03 시험 범위 서비스를 카테고리별로 모아 한 줄 정의와 선택 신호를 정리한 표입니다. 표마다 검색 필터가 있고, 시험 범위 밖 서비스 목록을 따로 실어 학습 범위를 좁힙니다. CloudFormation은 범위 안, AWS CDK는 범위 밖입니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cheatsheet" data-page="services"></div>
+
+  <main id="main" class="page page--wide" data-page-id="cheatsheet/services">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">빠른참조</a></li>
+        <li><span aria-current="page">서비스 한 줄 정의</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">빠른참조 · 1</p>
+      <h1>서비스 한 줄 정의</h1>
+      <p class="page__lead">
+        시험 범위 서비스를 카테고리별로 모아 <strong>한 줄 정의</strong>와
+        <strong>언제 고르는가</strong>만 남긴 표입니다.
+        문항에서 처음 보는 이름이 나왔을 때 그 자리에서 정체를 확인하고,
+        선택지 다섯 개 중 애초에 후보가 아닌 것을 빠르게 걷어 내는 용도입니다.
+      </p>
+      <p class="page__meta">
+        아래 <a href="#out-of-scope">시험 범위 밖 서비스</a> 절도 함께 보십시오.
+        <strong>공부하지 않아도 되는 것을 아는 것</strong>이 이 페이지에서 가장 값이 큰 부분입니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">이 페이지 쓰는 법</h2>
+      <ul>
+        <li>표마다 있는 검색 상자에 서비스명이나 키워드를 넣어 행을 걸러 낼 수 있습니다. <kbd>Esc</kbd>로 초기화됩니다.</li>
+        <li>세 번째 열 <strong>언제 고르는가</strong>만 세로로 훑으면 선택 신호 목록으로 읽힙니다.</li>
+        <li>정의가 잘 안 떠오르는 서비스는 이름만 보고 나머지 두 칸을 스스로 말한 뒤 대조하십시오.</li>
+        <li>두 서비스 중 무엇을 고를지가 문제라면 <a href="compare.html">헷갈리는 쌍 비교</a>로 넘어갑니다.</li>
+        <li>요구사항에서 출발해 서비스를 찾아 내려가려면 <a href="decision-tree.html">서비스 선택 결정 트리</a>를 씁니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="how-to-read">
+      <h2 id="how-to-read">읽는 규칙 세 가지</h2>
+
+      <p>
+        이 표는 서비스를 <strong>설명</strong>하지 않습니다. 설명은 각 챕터가 합니다.
+        여기서 하는 일은 문항의 선택지에 등장한 이름을 <strong>범주로 환원</strong>하는 것입니다.
+        범주가 잡히면 요구사항과 맞지 않는 선택지는 그 자리에서 사라집니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>표를 읽을 때 지킬 세 가지 규칙</caption>
+          <thead>
+            <tr>
+              <th scope="col">규칙</th>
+              <th scope="col">이유</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">접두사를 바꿔 쓰지 않습니다</th>
+              <td>서비스마다 <code>Amazon</code>과 <code>AWS</code> 중 하나가 정해져 있습니다. Amazon S3, AWS Lambda가 맞고 그 반대는 틀린 표기입니다. 문항의 선택지는 정식 명칭으로 나옵니다</td>
+            </tr>
+            <tr>
+              <th scope="row">한 줄 정의는 <strong>담당 문제</strong>로 씁니다</th>
+              <td>"관리형 NoSQL 데이터베이스"보다 "키로 접근하는 워크로드를 무제한에 가깝게 확장한다"가 선택에 쓰입니다. 시험은 기능 목록이 아니라 요구사항을 줍니다</td>
+            </tr>
+            <tr>
+              <th scope="row">범위 밖 서비스는 후보에서 뺍니다</th>
+              <td>AWS가 명시적으로 범위 밖으로 지정한 서비스는 정답으로 요구되지 않습니다. 선택지에 등장할 수는 있으므로 <strong>이름은 알되 공부하지는 않는</strong> 것이 정확한 전략입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="compute-services">
+      <h2 id="compute-services">컴퓨팅</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-compute">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-compute" data-target="#t-compute" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-compute">
+          <caption>컴퓨팅 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon EC2</th>
+              <td>운영체제 수준까지 우리가 통제하는 가상 서버입니다</td>
+              <td>특정 운영체제·커널·라이선스가 필요하거나, 기존 서버를 그대로 옮겨야 할 때. 반대로 "운영 부담 최소"가 한정어면 후보에서 내려갑니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EC2 Auto Scaling</th>
+              <td>인스턴스 수를 수요에 맞춰 늘리고 줄이며, 비정상 인스턴스를 교체합니다</td>
+              <td>부하가 변하거나, 인스턴스 장애를 자동 복구해야 할 때. 다중 가용 영역 배치와 함께 나옵니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Elastic Load Balancing</th>
+              <td>들어오는 트래픽을 여러 대상에 분산하고 비정상 대상을 뺍니다</td>
+              <td>단일 진입점이 필요하거나 다중 가용 영역으로 나눠 보내야 할 때. 세부 선택은 <a href="compare.html#alb-nlb-gwlb">ALB · NLB · GWLB 비교</a></td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Lambda</th>
+              <td>서버를 두지 않고 이벤트에 반응해 코드를 실행합니다</td>
+              <td>간헐적·이벤트 구동 처리이고 "운영 부담 최소"가 한정어일 때. 실행 시간 상한이 요구를 넘으면 다른 컴퓨팅으로 갑니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Fargate</th>
+              <td>컨테이너를 실행하는 서버리스 용량 제공 방식입니다. 그 자체로 별도의 오케스트레이터가 아닙니다</td>
+              <td>컨테이너는 쓰되 인스턴스를 관리하고 싶지 않을 때. Amazon ECS 또는 Amazon EKS와 함께 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon ECS</th>
+              <td>AWS 고유의 컨테이너 오케스트레이터입니다</td>
+              <td>컨테이너를 굴려야 하는데 Kubernetes API가 요구되지 않을 때. 가장 단순한 관리형 경로입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EKS</th>
+              <td>관리형 Kubernetes 컨트롤 플레인입니다</td>
+              <td>문제문이 <strong>Kubernetes</strong>를 명시하거나 기존 Kubernetes 자산을 옮겨야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon ECR</th>
+              <td>컨테이너 이미지를 저장하는 관리형 레지스트리입니다</td>
+              <td>컨테이너 문항에서 이미지 저장·스캔 위치를 물을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Batch</th>
+              <td>배치 작업을 큐에 넣고 컴퓨팅 환경을 자동으로 준비해 실행합니다</td>
+              <td>대량의 독립 작업을 시간에 구애받지 않고 처리할 때. 스팟 용량과 잘 맞습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Elastic Beanstalk</th>
+              <td>코드를 올리면 EC2 · 로드 밸런서 · Auto Scaling 구성을 대신 만들어 줍니다</td>
+              <td>애플리케이션 코드는 그대로 두고 배포·용량 관리만 넘기고 싶을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Lightsail</th>
+              <td>단순한 웹 서비스를 묶음 구성으로 제공합니다</td>
+              <td>소규모·단순 워크로드이고 세밀한 네트워크 제어가 필요 없을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Outposts</th>
+              <td>AWS 인프라를 고객 데이터센터 안에 설치해 같은 API로 씁니다</td>
+              <td>데이터가 물리적으로 특정 시설을 떠날 수 없거나 온프레미스 시스템과 극히 낮은 지연이 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Local Zones</th>
+              <td>리전 밖 도시 인접 위치에 컴퓨팅과 스토리지를 배치합니다</td>
+              <td>특정 대도시 사용자에게 리전보다 더 낮은 지연이 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Wavelength</th>
+              <td>통신 사업자 네트워크 안에 컴퓨팅을 배치합니다</td>
+              <td>모바일 단말이 코어 네트워크를 나가지 않고 도달해야 할 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="storage-services">
+      <h2 id="storage-services">스토리지</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-storage">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-storage" data-target="#t-storage" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-storage">
+          <caption>스토리지 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon S3</th>
+              <td>객체를 키로 저장하는 오브젝트 스토리지입니다. 파일 시스템이 아니라 키-값 저장소입니다</td>
+              <td>정적 자산 · 백업 · 로그 · 데이터 레이크처럼 <strong>통째로 읽고 쓰는</strong> 데이터. 부분 수정이 잦은 데이터에는 맞지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon S3 Glacier 스토리지 클래스</th>
+              <td>접근이 드문 데이터를 위한 S3의 아카이브 계층 세 가지입니다</td>
+              <td>보존은 해야 하지만 거의 읽지 않을 때. 필요한 <strong>검색 시간</strong>이 클래스를 가릅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EBS</th>
+              <td>EC2 인스턴스에 붙이는 네트워크 블록 볼륨입니다. 인스턴스와 수명이 분리됩니다</td>
+              <td>운영체제 디스크, 데이터베이스 데이터 파일처럼 <strong>블록 단위 임의 접근</strong>이 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">EC2 인스턴스 스토어</th>
+              <td>호스트에 직접 붙은 임시 디스크입니다</td>
+              <td>캐시·스크래치처럼 사라져도 되는 데이터에 최고 성능이 필요할 때. <strong>인스턴스를 중지하면 사라집니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EFS</th>
+              <td>여러 리눅스 인스턴스가 동시에 마운트하는 NFS 파일 시스템입니다</td>
+              <td>가용 영역을 넘어 <strong>여러 대가 같은 파일</strong>을 읽고 써야 할 때. 코드를 고치지 않고 공유가 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon FSx for Windows File Server</th>
+              <td>SMB 프로토콜과 Active Directory 통합을 제공하는 관리형 Windows 파일 서버입니다</td>
+              <td>문제문에 <strong>Windows · SMB · Active Directory</strong>가 있을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon FSx for Lustre</th>
+              <td>고성능 컴퓨팅용 병렬 파일 시스템이며 S3와 연동됩니다</td>
+              <td>문제문에 <strong>HPC · 머신러닝 학습 · 대규모 병렬 처리</strong>가 있을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon FSx for NetApp ONTAP</th>
+              <td>ONTAP 기능을 그대로 제공하며 NFS · SMB · iSCSI를 함께 씁니다</td>
+              <td>기존 NetApp 환경을 기능 손실 없이 옮겨야 할 때, 여러 프로토콜을 동시에 써야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon FSx for OpenZFS</th>
+              <td>OpenZFS 기반 NFS 파일 시스템입니다</td>
+              <td>기존 ZFS·리눅스 NFS 환경을 옮기면서 스냅샷·복제 기능을 유지할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Storage Gateway</th>
+              <td>온프레미스에서 익숙한 프로토콜로 접근하되 실제 데이터는 AWS에 두는 하이브리드 게이트웨이입니다</td>
+              <td>온프레미스 애플리케이션을 <strong>그대로 두고</strong> 저장 용량만 클라우드로 옮길 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Backup</th>
+              <td>여러 서비스의 백업을 정책 하나로 중앙에서 관리합니다</td>
+              <td>"백업 정책을 조직 전체에 일관되게 적용", "보존 규정을 증명"이 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Data Lifecycle Manager</th>
+              <td>EBS 스냅샷과 AMI의 생성·보존·삭제를 일정으로 자동화합니다</td>
+              <td>EBS 스냅샷만 주기적으로 돌리면 되는 좁은 요구일 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="참고">
+        <p>
+          스토리지 문항은 거의 언제나 <strong>블록 · 파일 · 객체</strong> 중 어느 계열인지를 먼저 물어봅니다.
+          "여러 서버가 동시에" 라는 말이 있으면 파일 계열, "인스턴스에 붙여서" 면 블록,
+          "정적 자산 · 백업 · 아카이브" 면 객체입니다.
+          이 판단을 분기 형태로 정리한 것이 <a href="decision-tree.html#storage-tree">스토리지 결정 트리</a>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="database-services">
+      <h2 id="database-services">데이터베이스</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-database">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-database" data-target="#t-database" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-database">
+          <caption>데이터베이스 · 캐시 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon RDS</th>
+              <td>관계형 데이터베이스 엔진을 관리형으로 제공합니다. 백업·패치·장애 조치를 AWS가 맡습니다</td>
+              <td>SQL과 트랜잭션이 필요하고 기존 엔진을 그대로 써야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Aurora</th>
+              <td>MySQL · PostgreSQL과 호환되며 여러 가용 영역에 걸친 공유 스토리지 위에서 동작합니다</td>
+              <td>읽기 확장과 빠른 장애 조치를 함께 요구할 때. 복제본이 읽기와 승격 대상을 겸합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Aurora Serverless v2</th>
+              <td>Aurora 용량을 부하에 따라 자동으로 조정합니다</td>
+              <td>부하가 간헐적·예측 불가이고 인스턴스 크기를 고정하기 어려울 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon RDS Proxy</th>
+              <td>데이터베이스 연결을 풀링해 재사용합니다</td>
+              <td>Lambda 등 동시 실행이 급증하는 클라이언트가 연결 수를 고갈시킬 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon DynamoDB</th>
+              <td>키로 접근하는 관리형 NoSQL이며 규모에 따라 자동으로 분할됩니다</td>
+              <td>접근 패턴이 키 조회로 고정되고, 예측 가능한 지연과 사실상 무제한 확장이 필요할 때. "운영 부담 최소" 한정어와 잘 맞습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon DynamoDB Accelerator (DAX)</th>
+              <td>DynamoDB 전용 인메모리 캐시이며 DynamoDB API와 호환됩니다</td>
+              <td>DynamoDB 읽기 지연을 <strong>코드 변경을 최소화하며</strong> 줄일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon ElastiCache</th>
+              <td>Redis 또는 Memcached 엔진을 관리형으로 제공하는 범용 인메모리 캐시입니다</td>
+              <td>관계형 데이터베이스의 반복 조회, 세션 저장, 순위표처럼 임의의 데이터를 캐시할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon MemoryDB</th>
+              <td>내구성 있는 인메모리 데이터베이스입니다. 캐시가 아니라 주 저장소로 씁니다</td>
+              <td>인메모리 속도가 필요하면서 데이터가 사라지면 안 될 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Redshift</th>
+              <td>열 기반 저장과 병렬 처리를 쓰는 데이터 웨어하우스입니다</td>
+              <td>대량 데이터를 대상으로 <strong>반복적인 복잡한 분석 질의</strong>를 돌릴 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon DocumentDB</th>
+              <td>MongoDB 호환 문서 데이터베이스입니다</td>
+              <td>문제문에 <strong>MongoDB</strong>가 명시될 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Neptune</th>
+              <td>그래프 데이터베이스입니다</td>
+              <td>문제문에 <strong>관계 · 소셜 그래프 · 추천 · 지식 그래프</strong>가 있을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Keyspaces</th>
+              <td>Apache Cassandra 호환 관리형 데이터베이스입니다</td>
+              <td>문제문에 <strong>Cassandra</strong>가 명시될 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Timestream</th>
+              <td>시계열 데이터에 특화된 데이터베이스입니다</td>
+              <td>센서·지표처럼 <strong>시간축으로 쌓이는</strong> 데이터를 저장하고 질의할 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="network-services">
+      <h2 id="network-services">네트워킹과 콘텐츠 전송</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-network">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-network" data-target="#t-network" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-network">
+          <caption>네트워킹 · 콘텐츠 전송 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon VPC</th>
+              <td>계정 안에 만드는 논리적으로 격리된 네트워크입니다</td>
+              <td>모든 네트워크 문항의 무대입니다. 서브넷이 가용 영역 하나에 묶인다는 사실이 다중 가용 영역 설계의 출발점입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">인터넷 게이트웨이</th>
+              <td>VPC와 인터넷을 잇는 수평 확장형 관문입니다</td>
+              <td>서브넷을 퍼블릭으로 만들 때. 이 게이트웨이 자체는 이중화를 걱정하지 않아도 됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 게이트웨이</th>
+              <td>프라이빗 서브넷의 아웃바운드만 허용하는 주소 변환 장치입니다</td>
+              <td>프라이빗 인스턴스가 인터넷으로 <strong>나가기만</strong> 해야 할 때. 가용 영역마다 하나씩 둡니다</td>
+            </tr>
+            <tr>
+              <th scope="row">보안 그룹</th>
+              <td>인스턴스(ENI) 수준의 상태 저장 방화벽이며 허용 규칙만 있습니다</td>
+              <td>"이 인스턴스에 누가 접근할 수 있는가"를 정할 때. <strong>차단은 할 수 없습니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 ACL</th>
+              <td>서브넷 수준의 상태 비저장 필터이며 허용과 거부를 모두 씁니다</td>
+              <td>특정 주소를 <strong>거부</strong>해야 하거나 서브넷 전체에 공통 규칙을 걸 때</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC 게이트웨이 엔드포인트</th>
+              <td>라우팅 테이블 항목으로 Amazon S3와 Amazon DynamoDB에 비공개로 접근합니다</td>
+              <td>두 서비스로 향하는 트래픽을 인터넷과 NAT 게이트웨이 밖으로 빼낼 때</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC 인터페이스 엔드포인트 (AWS PrivateLink)</th>
+              <td>서브넷 안에 ENI를 만들어 그 사설 주소로 서비스에 접근합니다</td>
+              <td>게이트웨이 엔드포인트가 지원하지 않는 서비스, 또는 다른 계정이 제공하는 서비스에 비공개로 접근할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC 피어링</th>
+              <td>두 VPC를 일대일로 잇습니다</td>
+              <td>연결해야 할 VPC가 소수이고 <strong>전이 라우팅이 필요 없을 때</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Transit Gateway</th>
+              <td>VPC와 온프레미스 연결을 허브 하나로 모읍니다</td>
+              <td>연결 대상이 많아 피어링이 조합 폭발을 일으킬 때, 전이 라우팅이 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Site-to-Site VPN</th>
+              <td>인터넷 위에 IPsec 암호화 터널을 만듭니다</td>
+              <td>빠르게 연결해야 하거나, 전용 회선의 백업 경로가 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Client VPN</th>
+              <td>개별 사용자 단말을 VPC에 연결합니다</td>
+              <td>사무실이 아니라 <strong>개인 단말</strong>이 프라이빗 리소스에 접근해야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Direct Connect</th>
+              <td>온프레미스와 AWS를 잇는 전용 물리 회선입니다</td>
+              <td>대역폭과 <strong>일관된 지연</strong>이 요구되고 인터넷을 경유하면 안 될 때. 구축에 시간이 걸립니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Route 53</th>
+              <td>DNS와 상태 확인, 그리고 여덟 가지 라우팅 정책을 제공합니다</td>
+              <td>도메인 이름으로 트래픽의 목적지를 고를 때. 리전 장애 대응의 전환 장치이기도 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Route 53 Resolver</th>
+              <td>VPC와 온프레미스 사이의 DNS 질의를 양방향으로 전달합니다</td>
+              <td>하이브리드 환경에서 <strong>이름이 안 풀리는</strong> 문제를 다룰 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon CloudFront</th>
+              <td>엣지 로케이션에서 콘텐츠를 캐시해 응답하는 콘텐츠 전송 네트워크입니다</td>
+              <td>전 세계 사용자에게 HTTP 콘텐츠를 빠르게 주고, 오리진 송신량을 줄일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Global Accelerator</th>
+              <td>고정 애니캐스트 IP로 트래픽을 받아 AWS 백본으로 태웁니다</td>
+              <td>캐시할 수 없는 트래픽, TCP·UDP 프로토콜, <strong>고정 IP</strong> 요구, 빠른 리전 장애 조치가 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC Flow Logs</th>
+              <td>ENI를 드나든 IP 트래픽의 메타데이터를 기록합니다</td>
+              <td>"어디서 막혔는지" 를 조사할 때. <strong>패킷 내용은 남지 않습니다</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="security-services">
+      <h2 id="security-services">보안 · 자격 증명 · 규정 준수</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-security">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-security" data-target="#t-security" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-security">
+          <caption>보안 · 자격 증명 · 규정 준수 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS IAM</th>
+              <td>누가 무엇을 할 수 있는지를 정책으로 정의합니다</td>
+              <td>모든 보안 문항의 출발점입니다. EC2에서 API를 호출한다면 답은 액세스 키가 아니라 <strong>IAM 역할</strong>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS STS</th>
+              <td>제한 시간이 있는 임시 자격 증명을 발급합니다</td>
+              <td>역할 위임, 교차 계정 접근, 페더레이션의 실행 주체입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS IAM Identity Center</th>
+              <td>여러 계정과 애플리케이션에 대한 인력 사용자 접근을 한곳에서 관리합니다</td>
+              <td><strong>직원</strong>이 여러 계정에 로그인해야 할 때. 외부 IdP와 연동합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Organizations</th>
+              <td>계정을 조직 단위로 묶고 서비스 제어 정책으로 상한을 겁니다</td>
+              <td>다중 계정 거버넌스, 통합 결제, 조직 전체에 금지 규칙을 걸 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Control Tower</th>
+              <td>모범 사례 기반의 다중 계정 환경을 설정하고 가드레일을 적용합니다</td>
+              <td>랜딩 존을 처음부터 손으로 짜지 않고 표준 구성을 받고 싶을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Cognito</th>
+              <td>애플리케이션 <strong>최종 사용자</strong>의 가입·로그인을 처리하고 임시 AWS 자격 증명으로 바꿔 줍니다</td>
+              <td>모바일·웹 앱의 사용자 인증이 요구일 때. 직원 접근은 IAM Identity Center의 영역입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Directory Service</th>
+              <td>관리형 Microsoft Active Directory와 연동 옵션을 제공합니다</td>
+              <td>문제문에 <strong>Active Directory · 도메인 조인</strong>이 있을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS KMS</th>
+              <td>암호화 키를 만들고 통제하며, 봉투 암호화의 상위 키를 담당합니다</td>
+              <td>저장 데이터 암호화 전반. 키 사용을 감사하거나 키 정책으로 접근을 나눠야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CloudHSM</th>
+              <td>고객 전용 하드웨어 보안 모듈을 제공합니다</td>
+              <td>규정이 <strong>단독 점유 HSM</strong>이나 FIPS 수준 통제를 명시할 때만. 그 외에는 KMS입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Certificate Manager</th>
+              <td>TLS 인증서를 발급·갱신하고 AWS 서비스에 연결합니다</td>
+              <td>전송 중 암호화를 붙일 때. 붙이는 지점은 로드 밸런서 · CloudFront · API Gateway입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Secrets Manager</th>
+              <td>비밀을 암호화해 저장하고 <strong>자동 교체</strong>를 내장합니다</td>
+              <td>"자격 증명을 주기적으로 자동 교체" 가 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Systems Manager Parameter Store</th>
+              <td>설정값과 비밀을 계층 구조로 저장합니다</td>
+              <td>교체 요구가 없고 설정값 관리가 목적일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon GuardDuty</th>
+              <td>로그와 네트워크 신호를 읽어 위협 활동을 탐지합니다</td>
+              <td>"의심스러운 활동을 탐지" 가 요구일 때. 에이전트 설치나 스캔 설정이 필요 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Inspector</th>
+              <td>워크로드의 소프트웨어 취약점과 노출된 네트워크 경로를 검사합니다</td>
+              <td>"인스턴스·컨테이너 이미지·함수의 <strong>취약점</strong>을 점검" 이 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Macie</th>
+              <td>Amazon S3의 데이터에서 민감 정보를 찾아냅니다</td>
+              <td>"개인정보가 S3에 들어 있는지 확인" 이 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Security Hub</th>
+              <td>여러 보안 서비스의 결과를 모으고 표준에 맞춰 점검합니다</td>
+              <td>"보안 상태를 한곳에서 본다", "표준 준수 여부를 점수로" 가 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Detective</th>
+              <td>탐지된 결과의 원인을 추적하도록 로그를 그래프로 엮습니다</td>
+              <td>탐지가 아니라 <strong>사후 조사</strong>가 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS WAF</th>
+              <td>HTTP 요청을 규칙으로 검사해 허용·차단합니다</td>
+              <td>SQL 주입·크로스 사이트 스크립팅·속도 기반 차단처럼 <strong>요청 내용</strong>으로 막을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Shield</th>
+              <td>디도스 공격으로부터 보호합니다</td>
+              <td>"대규모 트래픽 공격" 이 요구일 때. 계층이 다르므로 AWS WAF와 함께 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Network Firewall</th>
+              <td>VPC 경계에 상태 저장 네트워크 방화벽을 둡니다</td>
+              <td>도메인 필터링이나 침입 방지 규칙을 VPC 트래픽 전체에 적용할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Firewall Manager</th>
+              <td>여러 계정의 방화벽 정책을 중앙에서 적용합니다</td>
+              <td>조직 전체에 같은 AWS WAF 규칙을 강제할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Resource Access Manager</th>
+              <td>서브넷 같은 리소스를 다른 계정과 공유합니다</td>
+              <td>계정을 나누되 네트워크는 공유해야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">IAM Access Analyzer</th>
+              <td>외부에 열린 접근 경로와 쓰이지 않는 권한을 찾아냅니다</td>
+              <td>"의도치 않게 외부에 공유된 리소스를 찾는다" 가 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Artifact</th>
+              <td>AWS의 규정 준수 보고서를 내려받는 곳입니다</td>
+              <td>감사 대응에서 <strong>AWS 측 인증서</strong>가 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Audit Manager</th>
+              <td>규정 프레임워크에 맞춰 증거 수집을 자동화합니다</td>
+              <td>감사 증거를 반복적으로 모아야 할 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="integration-services">
+      <h2 id="integration-services">애플리케이션 통합</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-integration">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-integration" data-target="#t-integration" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-integration">
+          <caption>애플리케이션 통합 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon SQS</th>
+              <td>메시지를 저장해 두고 소비자가 <strong>가져가는</strong> 큐입니다</td>
+              <td>생산 속도와 소비 속도를 분리하거나, 급증 트래픽을 완충할 때. 소비자가 하나의 논리 그룹일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon SNS</th>
+              <td>주제를 구독한 모든 대상에게 <strong>밀어 주는</strong> 발행·구독 서비스입니다</td>
+              <td>같은 이벤트를 여러 대상이 동시에 받아야 할 때. SQS와 묶어 팬아웃 후 완충까지 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EventBridge</th>
+              <td>이벤트를 패턴 규칙으로 걸러 대상에 라우팅하는 이벤트 버스입니다</td>
+              <td>이벤트 내용에 따라 대상을 다르게 보내야 하거나, AWS 서비스·SaaS 이벤트를 받아야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Step Functions</th>
+              <td>여러 단계를 상태 기계로 엮고 재시도·분기·오류 처리를 선언적으로 다룹니다</td>
+              <td>순서와 상태가 있는 <strong>여러 단계 워크플로</strong>를 코드로 엮지 않고 관리할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon API Gateway</th>
+              <td>HTTP · REST · WebSocket API의 진입점이 되어 인증·제한·변환을 담당합니다</td>
+              <td>Lambda나 백엔드를 외부에 API로 공개할 때. 사용량 제한과 인증이 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS AppSync</th>
+              <td>관리형 GraphQL API를 제공합니다</td>
+              <td>문제문에 <strong>GraphQL</strong>이 명시되거나 클라이언트가 필요한 필드만 받아야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon MQ</th>
+              <td>Apache ActiveMQ와 RabbitMQ를 관리형으로 제공합니다</td>
+              <td>기존 애플리케이션이 <strong>표준 메시징 프로토콜</strong>(JMS · AMQP 등)을 쓰고 코드를 고칠 수 없을 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="analytics-services">
+      <h2 id="analytics-services">분석과 데이터 처리</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-analytics">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-analytics" data-target="#t-analytics" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-analytics">
+          <caption>분석 · 데이터 처리 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon Kinesis Data Streams</th>
+              <td>스트림 데이터를 샤드에 담아 보존하고 여러 소비자가 각자 읽게 합니다</td>
+              <td><strong>실시간</strong>이 한정어일 때, 같은 스트림을 여러 애플리케이션이 읽어야 할 때, 사용자 코드로 즉시 처리해야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Data Firehose (구 Amazon Kinesis Data Firehose)</th>
+              <td>스트림을 버퍼링해 S3 · Redshift · OpenSearch 같은 목적지에 적재합니다</td>
+              <td>수집한 데이터를 <strong>코드 없이 적재</strong>하는 것이 목적일 때. 버퍼링이 있으므로 즉시 처리 요구에는 맞지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon MSK</th>
+              <td>Apache Kafka를 관리형으로 제공합니다</td>
+              <td>문제문에 <strong>Kafka</strong>가 명시되거나 기존 Kafka 자산을 그대로 옮길 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Glue</th>
+              <td>서버리스 ETL과 데이터 카탈로그를 제공합니다</td>
+              <td>스키마를 크롤링해 카탈로그로 만들고 변환 작업을 돌릴 때. <strong>배치 성격</strong>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Athena</th>
+              <td>Amazon S3의 데이터에 표준 SQL로 바로 질의합니다</td>
+              <td>인프라를 두지 않고 <strong>가끔</strong> 질의할 때. 상시 고빈도 분석이면 Redshift 쪽으로 갑니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EMR</th>
+              <td>Spark · Hadoop 같은 빅데이터 프레임워크 클러스터를 운영합니다</td>
+              <td>기존 Spark · Hadoop 작업을 옮기거나 프레임워크 수준의 제어가 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Lake Formation</th>
+              <td>데이터 레이크의 구축과 <strong>세분화된 접근 권한</strong>을 관리합니다</td>
+              <td>여러 팀이 같은 데이터 레이크를 쓰면서 테이블·열 단위로 권한을 나눠야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon OpenSearch Service</th>
+              <td>검색과 로그 분석용 관리형 OpenSearch 클러스터입니다</td>
+              <td>전문 검색, 로그 탐색과 대시보드가 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon QuickSight</th>
+              <td>관리형 비즈니스 인텔리전스 대시보드입니다</td>
+              <td>분석 결과를 <strong>사람이 보는 대시보드</strong>로 만들어야 할 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="management-services">
+      <h2 id="management-services">관리 · 모니터링 · 비용</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-management">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-management" data-target="#t-management" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-management">
+          <caption>관리 · 모니터링 · 비용 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon CloudWatch</th>
+              <td>지표를 모으고 알람으로 동작을 유발합니다</td>
+              <td>"얼마나 잘 동작하는가" 가 질문일 때. 메모리와 디스크 사용률은 <strong>기본 지표가 아니라</strong> 에이전트가 필요합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon CloudWatch Logs</th>
+              <td>로그를 수집·보존하고 지표 필터와 구독 필터로 이어 붙입니다</td>
+              <td>로그에서 특정 패턴을 세어 알람을 걸거나, 로그를 실시간으로 다른 대상에 흘려보낼 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CloudTrail</th>
+              <td>계정에서 일어난 API 호출을 기록합니다</td>
+              <td>"<strong>누가 무엇을 호출했는가</strong>" 가 질문일 때. 감사 문항의 기본값입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Config</th>
+              <td>리소스 구성의 변화를 기록하고 규칙 위반을 평가합니다</td>
+              <td>"<strong>구성이 규정에 맞는가</strong>", "언제부터 어긋났는가" 가 질문일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Systems Manager</th>
+              <td>인스턴스에 명령을 내리고 패치·인벤토리·세션 접속을 관리합니다</td>
+              <td>SSH 키와 배스천 없이 접속하거나, 패치를 일괄 적용할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CloudFormation</th>
+              <td>인프라를 템플릿으로 선언해 스택으로 생성·갱신·삭제합니다</td>
+              <td>동일한 환경을 반복 생성하거나 변경을 검토 후 적용할 때. <strong>시험 범위 안</strong>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Service Catalog</th>
+              <td>승인된 구성만 골라 쓰도록 제품 목록으로 제공합니다</td>
+              <td>사용자가 임의 구성을 만들지 못하게 통제할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Trusted Advisor</th>
+              <td>비용·성능·보안·내결함성·서비스 한도를 점검해 권고합니다</td>
+              <td>"당장 무엇을 고칠 수 있는지" 를 목록으로 받고 싶을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Compute Optimizer</th>
+              <td>실제 사용 지표를 근거로 리소스 크기를 권고합니다</td>
+              <td>라이트사이징의 근거가 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Health Dashboard</th>
+              <td>내 계정에 영향을 주는 AWS 이벤트를 알려 줍니다</td>
+              <td>서비스 장애와 예정된 변경을 파악할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Cost Explorer</th>
+              <td>지난 비용을 분석하고 앞으로를 예측합니다</td>
+              <td>"어디에 얼마를 썼는지 <strong>본다</strong>" 가 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Budgets</th>
+              <td>예산 임계값을 정하고 초과가 예상되면 알립니다</td>
+              <td>"임계치를 넘으면 <strong>알림</strong>" 이 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Cost and Usage Report</th>
+              <td>가장 상세한 사용·비용 명세를 파일로 내보냅니다</td>
+              <td>자체 분석 도구로 <strong>원자료</strong>를 가져가야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">Savings Plans</th>
+              <td>일정한 사용 약정을 대가로 단가를 낮춥니다</td>
+              <td>상시 가동되는 기저 부하가 있을 때. 자세한 비교는 <a href="cost.html#commitment-levers">약정 레버</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="migration-services">
+      <h2 id="migration-services">마이그레이션과 데이터 전송</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-migration">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-migration" data-target="#t-migration" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-migration">
+          <caption>마이그레이션 · 데이터 전송 서비스 — 한 줄 정의와 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">한 줄 정의</th>
+              <th scope="col">언제 고르는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS Database Migration Service</th>
+              <td>데이터베이스를 옮기면서 <strong>원본을 계속 쓰게</strong> 해 줍니다</td>
+              <td>"다운타임 최소" 가 한정어인 데이터베이스 이전. 엔진이 다르면 스키마 변환 도구와 함께 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Application Migration Service (MGN)</th>
+              <td>서버를 블록 수준으로 복제해 그대로 AWS에서 기동합니다</td>
+              <td>서버를 <strong>고치지 않고 옮기는</strong> 리호스트 전략일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Migration Hub</th>
+              <td>여러 마이그레이션 도구의 진행 상황을 한곳에서 봅니다</td>
+              <td>대규모 이전의 진척 관리가 요구일 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Application Discovery Service</th>
+              <td>온프레미스 자산과 의존 관계를 수집합니다</td>
+              <td>무엇을 옮길지 <strong>먼저 파악</strong>해야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS DataSync</th>
+              <td>온프레미스와 AWS 사이, 또는 AWS 스토리지 사이에서 데이터를 네트워크로 옮깁니다</td>
+              <td>회선으로 감당 가능한 양을 반복적으로 동기화할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Transfer Family</th>
+              <td>SFTP · FTPS · FTP로 S3와 EFS에 접근하게 합니다</td>
+              <td>상대방이 <strong>기존 전송 프로토콜</strong>을 바꿀 수 없을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Snow Family</th>
+              <td>물리 장비에 데이터를 담아 배송으로 옮깁니다</td>
+              <td>회선으로는 기간 요구를 맞출 수 없을 때. 판단 기준은 장비 모델이 아니라 <strong>전송량과 가용 대역폭</strong>입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Elastic Disaster Recovery</th>
+              <td>서버를 지속 복제해 두었다가 재해 시 기동합니다</td>
+              <td>서버 단위 재해 복구가 요구이고 상시 비용을 낮게 유지해야 할 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          Snow Family는 라인업이 크게 줄었습니다.
+          Snowmobile은 2024년 3월에 종료되었고, Snowcone은 2024년 11월에 중단되었으며,
+          Snowball Edge는 2025년 11월부터 기존 고객으로 한정되었습니다.
+          <strong>장비 모델과 용량을 외우는 학습은 더 이상 가치가 없습니다.</strong>
+          "전송량을 가용 대역폭으로 나눠 기간을 계산하고, 회선으로 감당되면 네트워크 전송" 이라는
+          판단 절차만 남기십시오. 자세한 내용은 <a href="../basics/ch09.html#snow-family">9장</a>에 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="out-of-scope">
+      <h2 id="out-of-scope">시험 범위 밖 서비스 — 공부하지 않습니다</h2>
+
+      <p>
+        아래는 AWS가 SAA-C03 시험 가이드에서 <strong>범위 밖(out of scope)</strong>으로 명시한 영역입니다.
+        선택지에 이름이 등장할 수는 있지만, 이 서비스를 깊이 알아야 풀리는 문항은 출제되지 않습니다.
+        <strong>학습 시간을 여기에 쓰지 마십시오.</strong>
+        이름과 한 줄 정체만 알아 두고, 선택지에 보이면 그 자체를 근거로 후보에서 낮추면 됩니다.
+      </p>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-out">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-out" data-target="#t-out-of-scope" type="search" placeholder="서비스명 또는 키워드">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain" id="t-out-of-scope">
+          <caption>시험 범위 밖 서비스 — 이름과 정체만 알아 두는 목록</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">무엇인가</th>
+              <th scope="col">분류</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS CodePipeline</th>
+              <td>배포 파이프라인을 단계로 엮는 도구입니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CodeBuild</th>
+              <td>소스를 빌드하고 테스트하는 관리형 빌드 서비스입니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CodeDeploy</th>
+              <td>애플리케이션 배포를 자동화합니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CodeCommit</th>
+              <td>Git 저장소를 호스팅합니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CodeArtifact</th>
+              <td>패키지 아티팩트를 저장합니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon CodeGuru</th>
+              <td>코드 리뷰와 성능 프로파일링을 제공합니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CDK</th>
+              <td>프로그래밍 언어로 인프라를 정의해 CloudFormation 템플릿을 만들어 냅니다</td>
+              <td>개발자 도구 — <strong>가장 헷갈리는 항목</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Cloud9</th>
+              <td>브라우저에서 쓰는 통합 개발 환경입니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS CloudShell</th>
+              <td>브라우저에서 쓰는 셸 환경입니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Fault Injection Simulator</th>
+              <td>장애를 의도적으로 주입해 복원력을 시험합니다</td>
+              <td>개발자 도구</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon WorkSpaces</th>
+              <td>관리형 가상 데스크톱을 제공합니다</td>
+              <td>비즈니스 애플리케이션</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon AppStream 2.0</th>
+              <td>데스크톱 애플리케이션을 브라우저로 스트리밍합니다</td>
+              <td>비즈니스 애플리케이션</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Chime</th>
+              <td>회의와 통화 서비스입니다</td>
+              <td>비즈니스 애플리케이션</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Connect</th>
+              <td>클라우드 컨택 센터입니다</td>
+              <td>비즈니스 애플리케이션</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon WorkDocs · Amazon WorkMail</th>
+              <td>문서 공유와 메일 서비스입니다</td>
+              <td>비즈니스 애플리케이션</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Simple Workflow Service (SWF)</th>
+              <td>구세대 워크플로 서비스입니다. 현재 워크플로는 AWS Step Functions가 담당합니다</td>
+              <td>기타</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon CloudSearch</th>
+              <td>구세대 검색 서비스입니다. 현재 검색은 Amazon OpenSearch Service가 담당합니다</td>
+              <td>기타</td>
+            </tr>
+            <tr>
+              <th scope="row">Managed Service for Apache Flink</th>
+              <td>스트림 처리 애플리케이션을 실행합니다</td>
+              <td>기타</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon GameLift</th>
+              <td>게임 서버를 호스팅하고 매치메이킹을 제공합니다</td>
+              <td>기타</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS IoT 제품군</th>
+              <td>사물 인터넷 장치 연결과 관리 서비스 묶음입니다</td>
+              <td>기타</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Mainframe Modernization</th>
+              <td>메인프레임 워크로드를 현대화합니다</td>
+              <td>기타</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="cloudformation-vs-cdk">AWS CloudFormation은 범위 안, AWS CDK는 범위 밖</h3>
+
+      <p>
+        학습자가 가장 자주 시간을 낭비하는 지점입니다.
+        두 도구가 실무에서 함께 쓰이기 때문에 나란히 공부하게 되는데,
+        <strong>시험 범위는 둘로 갈립니다.</strong>
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>AWS CloudFormation과 AWS CDK의 시험 범위 구분</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">AWS CloudFormation</th>
+              <th scope="col">AWS CDK</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">시험 범위</th>
+              <td><span class="mark-ok">범위 안 — 정식 학습 대상</span></td>
+              <td><span class="mark-no">범위 밖 — 학습 대상 아님</span></td>
+            </tr>
+            <tr>
+              <th scope="row">정의 방식</th>
+              <td>템플릿(JSON · YAML)으로 선언합니다</td>
+              <td>프로그래밍 언어 코드로 작성해 템플릿을 생성합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">실행 주체</th>
+              <td>AWS가 스택으로 생성·갱신·롤백을 수행합니다</td>
+              <td>최종적으로는 CloudFormation이 실행합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">시험에서의 취급</th>
+              <td>스택 · 변경 세트 · 드리프트 감지 · 롤백을 물을 수 있습니다</td>
+              <td>선택지에 이름이 보이면 <strong>정답 후보로 올리지 않습니다</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="시험 범위 아님">
+        <p>
+          Aurora DSQL, S3 Tables, S3 Vectors처럼 최근에 나온 서비스도 같은 취급입니다.
+          이름은 접하게 되지만 SAA-C03 학습 대상이 아닙니다.
+          시험 대비 시간에는 <strong>범위 안 서비스의 판단 기준</strong>을 반복하는 편이 이득이 큽니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="compare.html">
+          <span class="card__title">헷갈리는 쌍 비교</span>
+          <span class="card__desc">두 서비스가 후보로 남았을 때, 속성을 열로 늘어놓고 어디서 갈리는지 대조합니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="decision-tree.html">
+          <span class="card__title">서비스 선택 결정 트리</span>
+          <span class="card__desc">요구사항에서 출발해 질문과 분기를 따라 내려가면 서비스가 나옵니다. 이 페이지의 역방향입니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="limits.html">
+          <span class="card__title">한도와 기본값</span>
+          <span class="card__desc">확인된 한도값만 모았습니다. 서비스를 골랐다면 그 서비스의 제약을 여기서 확인합니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">MOST cost-effective, LEAST operational overhead 같은 한정어가 어느 서비스군을 가리키는지 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../saa/traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">44개 쌍마다 시험이 무엇을 뒤집어 오답을 만드는지 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch01.html">
+          <span class="card__title">1장 · AWS 글로벌 인프라와 계정 기초</span>
+          <span class="card__desc">서비스 이름 이전에 리전과 가용 영역, 책임 공유 모델이라는 무대를 먼저 잡습니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/saa-03-in-scope-services.html">SAA-C03 시험 가이드 — 범위 안 서비스</a>
+          — 이 페이지가 싣는 서비스 목록의 근거</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/examguides/saa-03-out-of-scope-services.html">SAA-C03 시험 가이드 — 범위 밖 서비스</a>
+          — 개발자 도구 · 비즈니스 애플리케이션 · 기타 범위 밖 목록의 근거</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">AWS Certified Solutions Architect – Associate 시험 가이드 (SAA-C03)</a>
+          — 도메인 구성과 과제 진술</li>
+        <li><a href="https://docs.aws.amazon.com/whitepapers/latest/aws-overview/introduction.html">AWS 개요 백서</a>
+          — 서비스 카테고리 구분과 각 서비스의 정식 명칭</li>
+        <li><a href="https://docs.aws.amazon.com/firehose/latest/APIReference/Welcome.html">Amazon Data Firehose API 레퍼런스</a>
+          — Amazon Kinesis Data Firehose에서 Amazon Data Firehose로 개명된 사실</li>
+        <li><a href="https://aws.amazon.com/blogs/storage/aws-snow-device-updates/">AWS Snow 장비 업데이트</a>
+          — Snowmobile 종료, Snowcone 중단, Snowball Edge의 기존 고객 한정</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateLoadBalancer.html">Elastic Load Balancing API 레퍼런스 — CreateLoadBalancer</a>
+          — 로드 밸런서 세 유형의 존재</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html">Amazon Route 53 API 레퍼런스 — ResourceRecordSet</a>
+          — 라우팅 정책 여덟 가지</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

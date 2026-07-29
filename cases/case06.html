@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>케이스 6 · 데이터 전송 요금이 예산을 넘겼다 — AWS SAA Guide</title>
+  <meta name="description" content="데이터 전송은 양이 아니라 방향으로 요금이 정해집니다. NAT 게이트웨이 경유, 가용 영역 간, 리전 간, 인터넷 송신 네 경로를 구조로 분해하고 VPC 엔드포인트와 CloudFront로 경로를 바꾸는 판단 과정을 금액 없이 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cases" data-page="case06"></div>
+
+  <main id="main" class="page" data-page-id="cases/case06">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">아키텍처 케이스</a></li>
+        <li><span aria-current="page">케이스 6 · 데이터 전송 요금이 예산을 넘겼다</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">아키텍처 케이스 · 6</p>
+      <h1>데이터 전송 요금이 예산을 넘겼다</h1>
+      <p class="page__lead">
+        컴퓨팅과 스토리지는 예상 범위 안인데 청구서가 계속 늘어난다면
+        원인은 대개 <strong>데이터가 지나간 경로</strong>입니다.
+        데이터 전송은 양이 아니라 <strong>방향</strong>으로 요금이 정해지고,
+        같은 데이터라도 어느 경계를 넘느냐에 따라 요금 항목이 달라집니다.
+        이 케이스는 금액 없이 <strong>구조</strong>만으로 원인을 찾고 경로를 바꿉니다.
+      </p>
+      <p class="page__meta">
+        주 도메인: <a href="../saa/domain-cost.html">비용 최적화 아키텍처 설계(20%)</a> ·
+        과제 진술 4.4 비용 최적화 네트워크
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>데이터 전송 요금이 방향에 따라 비대칭이라는 점을 설명하고 방향별로 분류할 수 있습니다.</li>
+        <li>NAT 게이트웨이를 지나는 트래픽을 VPC 엔드포인트로 걷어내는 판단을 할 수 있습니다.</li>
+        <li>가용 영역 간 트래픽이 생기는 배치를 찾아내고 줄이는 방법을 설명할 수 있습니다.</li>
+        <li>인터넷 송신량 자체를 줄이는 수단으로 Amazon CloudFront를 선택하는 근거를 댈 수 있습니다.</li>
+        <li>시험 문항에서 비용 한정어가 붙었을 때 경로를 먼저 확인하는 순서를 적용할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="situation">
+      <h2 id="situation">상황</h2>
+
+      <p>
+        로그 수집·분석 서비스가 다음 구조로 동작합니다.
+      </p>
+
+      <ul>
+        <li>프라이빗 서브넷의 수집 인스턴스들이 <strong>Amazon S3에 로그를 올립니다.</strong>
+          VPC 엔드포인트가 없어서 이 트래픽은 <strong>NAT 게이트웨이를 지나</strong> 인터넷 경로로 나갑니다.</li>
+        <li>NAT 게이트웨이는 <strong>가용 영역 한 곳에만</strong> 있고,
+          다른 가용 영역의 인스턴스들도 이 NAT를 씁니다.</li>
+        <li>분석 클러스터는 다른 리전에 있고,
+          <strong>원본 로그를 매일 리전 간 복사</strong>해 옵니다.</li>
+        <li>대시보드가 원본 이미지와 대용량 리포트를 <strong>S3에서 직접 인터넷으로</strong> 내려보냅니다.
+          같은 파일이 여러 번 요청됩니다.</li>
+      </ul>
+
+      <p>
+        비용을 항목별로 나눠 보니 컴퓨팅과 스토리지는 예측 범위 안이고,
+        <strong>네트워크 관련 항목이 예산의 상당 부분</strong>을 차지하고 있었습니다.
+        팀은 "데이터를 줄일 수는 없다"고 판단하고 있지만,
+        실제로 줄여야 하는 것은 데이터가 아니라 <strong>데이터가 지나는 경계의 수</strong>입니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-170">
+        <figcaption>
+          인바운드 · 같은 가용 영역 내 프라이빗 통신 · 가용 영역 간 · 리전 간 · 인터넷 송신 ·
+          NAT 경유 · CloudFront 경유 각 방향의 과금 성격을 무료 · 과금 · 비쌈 세 범주로 표시한 지도.
+          비용 사고의 대부분이 이 지도의 화살표 하나에서 시작됩니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--warn" data-label="이 페이지의 요금 표기 원칙">
+        <p>
+          이 페이지에는 <strong>금액이 나오지 않습니다.</strong>
+          요금은 리전과 시점에 따라 달라지므로 학습 자료에 고정할 값이 아닙니다.
+          여기서 다루는 것은 <strong>어느 경로에 요금 항목이 붙는가</strong>이고,
+          그 구조는 잘 바뀌지 않습니다.
+          실제 금액이 필요하면 AWS 요금 페이지와 AWS Pricing Calculator를 확인하세요.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="direction-map">
+      <h2 id="direction-map">데이터 전송은 방향으로 결정된다</h2>
+
+      <p>
+        원인을 찾기 전에 지도를 먼저 봅니다.
+        아래 표의 방향 중 어디에 트래픽이 몰려 있는지가 곧 진단입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>데이터 전송 방향별 과금 성격 — 금액이 아니라 방향과 범주만 다룹니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">방향</th>
+              <th scope="col">과금</th>
+              <th scope="col">설계에 주는 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">인터넷에서 AWS로 (수신)</th>
+              <td><span class="mark-ok">대체로 무료</span></td>
+              <td>데이터를 올리는 것은 비용 요인이 아니다. 마이그레이션 방향이 유리한 이유다</td>
+            </tr>
+            <tr>
+              <th scope="row">같은 가용 영역 안, 프라이빗 IP</th>
+              <td><span class="mark-ok">가장 저렴한 경로</span></td>
+              <td>트래픽이 큰 계층 사이는 가급적 같은 가용 영역 안에서 프라이빗 IP로 통신하게 배치한다</td>
+            </tr>
+            <tr>
+              <th scope="row">같은 리전, 가용 영역 간</th>
+              <td><span class="mark-no">과금</span></td>
+              <td>다중 가용 영역은 가용성을 사지만 전송 요금을 함께 부른다. 넘지 않아도 되는 트래픽을 줄인다</td>
+            </tr>
+            <tr>
+              <th scope="row">리전 간</th>
+              <td><span class="mark-no">과금</span></td>
+              <td>교차 리전 복제와 리전 간 백업은 항상 비용을 동반한다. 옮길 데이터의 범위를 좁힌다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS에서 인터넷으로 (송신)</th>
+              <td><span class="mark-no">가장 큰 항목이 되기 쉽다</span></td>
+              <td>송신량 자체를 줄이는 수단(캐시·압축·해상도 조정)을 먼저 검토한다</td>
+            </tr>
+            <tr>
+              <th scope="row">프라이빗 서브넷에서 NAT 게이트웨이 경유</th>
+              <td><span class="mark-no">지나는 데이터양이 비용 요인</span></td>
+              <td>AWS 서비스로 가는 트래픽은 VPC 엔드포인트로 걷어낼 수 있다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="find-the-flow">어디로 얼마나 흐르는지 찾기</h3>
+      <p>
+        추측하지 않고 실제 흐름을 확인합니다.
+        VPC 흐름 로그는 네트워크 인터페이스 단위로 5-튜플과 바이트 수를 기록하므로,
+        <strong>어느 인터페이스가 얼마나 보내는지</strong>를 집계할 수 있습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">enable-flow-logs.sh</span> — 흐름 로그를 켜서 전송량을 관측 (리소스 ID와 역할 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws ec2 create-flow-logs \
+  --resource-type VPC \
+  --resource-ids vpc-0123456789abcdef0 \
+  --traffic-type ALL \
+  --log-destination-type cloud-watch-logs \
+  --log-group-name /aws/vpc/flowlogs \
+  --deliver-logs-permission-arn arn:aws:iam::123456789012:role/FlowLogsRole
+
+# NAT 게이트웨이가 실제로 얼마나 처리하고 있는지 확인합니다.
+aws ec2 describe-nat-gateways \
+  --query 'NatGateways[].[NatGatewayId,SubnetId,State]' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          흐름 로그는 5-튜플과 수락·거부, 바이트 수를 기록하지만
+          <strong>페이로드는 남기지 않습니다.</strong>
+          비용 원인 추적에는 충분하지만
+          "통신 내용을 감사하라"는 요구에는 다른 수단이 필요합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="requirements">
+      <h2 id="requirements">요구사항과 제약</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구사항과 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">내용</th>
+              <th scope="col">설계에 주는 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">요구 1</th>
+              <td>네트워크 관련 비용을 <strong>구조적으로</strong> 낮춘다</td>
+              <td>트래픽을 줄이는 것이 아니라 경계를 덜 넘게 만든다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 2</th>
+              <td>수집·분석 <strong>기능은 그대로</strong> 유지한다</td>
+              <td>데이터를 버리는 방식은 답이 아니다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 3</th>
+              <td>가용성은 <strong>낮아지지 않아야</strong> 한다</td>
+              <td>NAT를 하나로 줄이는 식의 절감은 금지된다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 1</th>
+              <td>로그 원본은 <strong>수집 리전에 보관</strong>한다</td>
+              <td>리전 간 복사는 필요한 부분만 남긴다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 2</th>
+              <td>대시보드의 응답 지연이 <strong>나빠지면 안 된다</strong></td>
+              <td>캐시는 지연을 줄이는 방향이므로 충돌하지 않는다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        배경 개념은 <a href="../basics/ch18.html">18장 비용 최적화 · 마이그레이션 · 재해 복구</a>와
+        <a href="../basics/ch04.html">4장 VPC 연결과 하이브리드</a>에 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="options">
+      <h2 id="options">후보 설계안 비교</h2>
+
+      <p>
+        원인이 네 갈래이므로 후보도 갈래별로 놓고 봅니다.
+        하나를 고르는 문제가 아니라 <strong>어떤 조합이 요구 3(가용성)을 깨지 않는가</strong>의 문제입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>후보 설계안 4종 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">A · NAT를 하나로 통합</th>
+              <th scope="col">B · S3·DynamoDB용 게이트웨이 엔드포인트</th>
+              <th scope="col">C · 리전 간 복사 범위 축소</th>
+              <th scope="col">D · CloudFront로 인터넷 송신 흡수</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">줄이는 경로</th>
+              <td>NAT 시간 항목만</td>
+              <td><span class="mark-ok">NAT를 지나는 데이터양</span></td>
+              <td><span class="mark-ok">리전 간 전송량</span></td>
+              <td><span class="mark-ok">오리진의 인터넷 송신량</span></td>
+            </tr>
+            <tr>
+              <th scope="row">가용성 영향</th>
+              <td><span class="mark-no">나빠진다 — 가용 영역 장애 시 전면 중단</span></td>
+              <td>영향 없음</td>
+              <td>영향 없음</td>
+              <td><span class="mark-ok">오리진 부하가 줄어 오히려 개선</span></td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 간 전송</th>
+              <td><span class="mark-no">늘어난다</span></td>
+              <td>줄어든다</td>
+              <td>영향 없음</td>
+              <td>영향 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">응답 지연</th>
+              <td>영향 없음</td>
+              <td>영향 없음 또는 개선</td>
+              <td>영향 없음</td>
+              <td><span class="mark-ok">개선</span></td>
+            </tr>
+            <tr>
+              <th scope="row">적용 난이도</th>
+              <td>낮음</td>
+              <td>낮음 — 라우팅 테이블에 경로가 추가된다</td>
+              <td>중간 — 무엇을 옮길지 정해야 한다</td>
+              <td>중간 — 배포와 캐시 정책 설계</td>
+            </tr>
+            <tr>
+              <th scope="row">판정</th>
+              <td><span class="mark-no">오답 — 요구 3 위반</span></td>
+              <td><span class="mark-ok">채택</span></td>
+              <td><span class="mark-ok">채택</span></td>
+              <td><span class="mark-ok">채택</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          A안은 비용 문항에서 자주 등장하는 <strong>가짜 절감</strong>입니다.
+          NAT 게이트웨이를 하나로 줄이면 시간 기반 항목은 줄지만,
+          다른 가용 영역의 인스턴스가 그 NAT를 쓰게 되어
+          <strong>가용 영역 간 전송이 새로 발생</strong>하고
+          <strong>가용 영역 장애 시 전면 중단</strong>이 됩니다.
+          비용과 가용성이 동시에 나빠지므로 시험에서도 항상 오답입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision">
+      <h2 id="decision">선택과 근거</h2>
+
+      <p>
+        <strong>B + C + D를 각각의 경로에 적용</strong>하고,
+        NAT는 가용 영역마다 유지합니다.
+      </p>
+
+      <h3 id="gateway-endpoint">1 · S3 트래픽을 NAT에서 걷어낸다</h3>
+      <p>
+        프라이빗 서브넷에서 Amazon S3로 가는 트래픽이 NAT 게이트웨이를 지나고 있다면
+        <strong>가장 먼저 고칠 곳</strong>입니다.
+        게이트웨이 엔드포인트를 만들면 라우팅 테이블에 S3 접두사 목록으로 향하는 경로가 추가되고,
+        그 트래픽은 NAT를 지나지 않습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-gateway-endpoint.sh</span> — S3 게이트웨이 엔드포인트 생성 (리소스 ID와 리전은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws ec2 create-vpc-endpoint \
+  --vpc-id vpc-0123456789abcdef0 \
+  --vpc-endpoint-type Gateway \
+  --service-name com.amazonaws.ap-northeast-2.s3 \
+  --route-table-ids rtb-0aaa000000000000a rtb-0bbb000000000000b
+
+# 사용 가능한 엔드포인트 서비스와 유형을 확인합니다.
+aws ec2 describe-vpc-endpoint-services \
+  --query 'ServiceDetails[?contains(ServiceName, `s3`)].[ServiceName,ServiceType[0].ServiceType]' \
+  --output table</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>게이트웨이 엔드포인트와 인터페이스 엔드포인트의 구현 위치 차이</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">게이트웨이 엔드포인트</th>
+              <th scope="col">인터페이스 엔드포인트(PrivateLink)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">구현 위치</th>
+              <td>라우팅 테이블의 경로</td>
+              <td>서브넷 안의 네트워크 인터페이스</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 서비스</th>
+              <td>Amazon S3, Amazon DynamoDB</td>
+              <td>대부분의 AWS 서비스와 PrivateLink 서비스</td>
+            </tr>
+            <tr>
+              <th scope="row">DNS</th>
+              <td>공용 DNS 이름을 그대로 쓰고 경로만 바뀐다</td>
+              <td>프라이빗 DNS로 이름을 가로챌 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스에서 사용</th>
+              <td><span class="mark-no">직접 사용 불가</span></td>
+              <td><span class="mark-ok">가능 — 인터페이스가 VPC 안에 있으므로</span></td>
+            </tr>
+            <tr>
+              <th scope="row">요금 성격</th>
+              <td>경로 추가로 동작한다</td>
+              <td>인터페이스와 처리량이 요금 항목이 된다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        S3와 DynamoDB만 쓰는 경우에는 게이트웨이 엔드포인트가 자연스러운 선택입니다.
+        다른 AWS 서비스(예: Systems Manager, Secrets Manager)로 가는 트래픽까지 NAT에서 걷어내려면
+        인터페이스 엔드포인트가 필요하며, 그때는 <strong>엔드포인트 자체의 요금 항목</strong>과
+        <strong>NAT를 지나던 데이터양</strong>을 비교해 판단합니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          엔드포인트는 비용 문항과 보안 문항 양쪽에서 답이 됩니다.
+        </p>
+        <ul>
+          <li>비용: "프라이빗 서브넷에서 S3로 가는 트래픽이 NAT를 지난다" → 게이트웨이 엔드포인트</li>
+          <li>보안: <code>must not traverse the internet</code> → VPC 엔드포인트 · PrivateLink</li>
+        </ul>
+        <p>
+          두 신호가 한 문항에 같이 나오는 경우도 많습니다. 답은 같습니다.
+        </p>
+      </aside>
+
+      <h3 id="az-affinity">2 · 가용 영역을 넘는 트래픽 줄이기</h3>
+      <p>
+        NAT는 가용 영역마다 유지하되, 각 가용 영역의 프라이빗 라우팅 테이블이
+        <strong>자기 가용 영역의 NAT</strong>를 가리키게 합니다.
+        이렇게 하면 가용성이 올라가는 동시에 가용 영역을 넘던 트래픽이 사라집니다.
+        가용성과 비용이 같은 방향으로 개선되는 드문 경우입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>가용 영역 간 트래픽이 생기는 흔한 배치와 처방</caption>
+          <thead>
+            <tr>
+              <th scope="col">배치</th>
+              <th scope="col">무슨 일이 일어나는가</th>
+              <th scope="col">처방</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">NAT 하나 · 프라이빗 서브넷 여럿</th>
+              <td>다른 가용 영역의 트래픽이 전부 경계를 넘는다</td>
+              <td>가용 영역마다 NAT, 라우팅 테이블도 가용 영역별로</td>
+            </tr>
+            <tr>
+              <th scope="row">캐시·데이터베이스가 한 가용 영역에만</th>
+              <td>애플리케이션의 모든 조회가 경계를 넘는다</td>
+              <td>읽기 경로를 같은 가용 영역에 두거나 계층을 함께 다중화</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역별 대상 수 불균형</th>
+              <td>로드 밸런서가 경계를 넘어 분배한다</td>
+              <td>가용 영역별 용량을 맞추고 교차 영역 설정을 의도적으로 정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">퍼블릭 IP로 서로 호출</th>
+              <td>같은 리전 안인데도 경로가 길어진다</td>
+              <td>프라이빗 IP나 내부 이름으로 호출하게 바꾼다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="cross-region">3 · 리전 간 복사 범위 좁히기</h3>
+      <p>
+        원본 로그 전체를 매일 다른 리전으로 복사하고 있다면,
+        <strong>무엇을 위해 옮기는지</strong>를 되물어야 합니다.
+        분석에 필요한 것이 집계 결과라면, 집계를 <strong>원본이 있는 리전에서</strong> 수행하고
+        결과만 옮기는 편이 구조적으로 옳습니다.
+      </p>
+      <ul>
+        <li>옮기기 전에 <strong>압축</strong>하고, 열 지향 형식으로 <strong>변환</strong>합니다.</li>
+        <li>복제가 필요하다면 전체가 아니라 <strong>접두사나 태그로 대상을 한정</strong>합니다.</li>
+        <li>복제 원본이 다른 리전에 있으면 그 전송이 <strong>원본 계정에 청구</strong>됩니다.
+          계정을 나눠 쓰는 조직에서는 누가 부담하는지를 미리 정합니다.</li>
+      </ul>
+
+      <h3 id="cloudfront">4 · 인터넷 송신을 CloudFront로 흡수</h3>
+      <p>
+        같은 파일이 여러 번 요청되는데 매번 오리진에서 내보내고 있다면
+        캐시가 그대로 절감입니다.
+        Amazon CloudFront는 엣지 로케이션에서 콘텐츠를 캐시하고,
+        캐시 미스가 나면 리전 엣지 캐시를 한 번 더 거칠 수 있어
+        <strong>오리진에 도달하는 요청 자체가 줄어듭니다.</strong>
+      </p>
+      <p>
+        절감의 크기는 <strong>캐시 적중률</strong>이 결정하고,
+        적중률은 캐시 키 설계가 결정합니다.
+        불필요한 쿼리 문자열이나 헤더를 캐시 키에 포함시키면
+        같은 콘텐츠가 여러 항목으로 나뉘어 적중률이 떨어집니다.
+      </p>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          CloudFront를 붙이면 오리진 버킷을 <strong>비공개로 유지</strong>할 수 있습니다.
+          오리진 액세스 제어를 쓰면 버킷 정책이 CloudFront 서비스 주체만 허용하고
+          직접 접근은 차단됩니다.
+          비용과 보안이 함께 개선되는 구성이며,
+          <a href="../labs/lab03.html">실습 3 · S3 정적 사이트 + CloudFront + OAC</a>에서 직접 만들어 봅니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost-and-ops">
+      <h2 id="cost-and-ops">비용과 운영에 미치는 영향</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>처방별로 줄어드는 항목과 새로 생기는 항목 — 금액이 아니라 항목의 성격입니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">처방</th>
+              <th scope="col">줄어드는 항목</th>
+              <th scope="col">새로 생기는 항목</th>
+              <th scope="col">언제 유리한가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 게이트웨이 엔드포인트</th>
+              <td>NAT를 지나는 데이터양</td>
+              <td>없음(라우팅 경로가 추가될 뿐)</td>
+              <td>S3 트래픽이 조금이라도 있으면 거의 항상</td>
+            </tr>
+            <tr>
+              <th scope="row">인터페이스 엔드포인트</th>
+              <td>NAT를 지나는 데이터양</td>
+              <td>엔드포인트와 처리량 항목</td>
+              <td>해당 서비스 트래픽이 충분히 클 때</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역별 NAT</th>
+              <td>가용 영역 간 전송</td>
+              <td>NAT 개수만큼의 시간 항목</td>
+              <td>다중 가용 영역이면 사실상 필수</td>
+            </tr>
+            <tr>
+              <th scope="row">리전 간 복사 축소</th>
+              <td>리전 간 전송</td>
+              <td>원본 리전의 처리 자원</td>
+              <td>분석 결과만 필요할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">CloudFront</th>
+              <td>오리진의 인터넷 송신</td>
+              <td>CloudFront 요청·전송 항목</td>
+              <td>같은 콘텐츠가 반복 요청될 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        운영 측면에서는 <strong>가시성</strong>이 남는 과제입니다.
+        비용이 다시 늘어날 때 어디에서 늘어나는지 즉시 알 수 있어야 하므로,
+        태그로 워크로드를 구분하고 예산 알림을 걸어 둡니다.
+        구조를 고쳐도 감시가 없으면 다음 분기에 같은 일이 반복됩니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="checklist">
+      <h2 id="checklist">설계 체크리스트</h2>
+
+      <h3 id="checklist-path">경로 점검</h3>
+      <ul>
+        <li><label><input type="checkbox"> 프라이빗 서브넷에서 Amazon S3·DynamoDB로 가는 트래픽에 <strong>게이트웨이 엔드포인트</strong>가 있다</label></li>
+        <li><label><input type="checkbox"> NAT 게이트웨이가 가용 영역마다 있고, 라우팅 테이블이 자기 가용 영역의 NAT를 가리킨다</label></li>
+        <li><label><input type="checkbox"> 같은 리전 안의 서비스끼리 <strong>퍼블릭 IP로 호출</strong>하고 있지 않다</label></li>
+        <li><label><input type="checkbox"> 트래픽이 큰 계층 사이가 불필요하게 가용 영역을 넘지 않는다</label></li>
+        <li><label><input type="checkbox"> 리전 간으로 옮기는 데이터가 <strong>실제로 그 리전에 필요한 것</strong>으로 한정되어 있다</label></li>
+        <li><label><input type="checkbox"> 인터넷으로 반복 전송되는 콘텐츠 앞에 캐시가 있다</label></li>
+      </ul>
+
+      <h3 id="checklist-visibility">가시성</h3>
+      <ul>
+        <li><label><input type="checkbox"> VPC 흐름 로그로 전송량이 큰 인터페이스를 특정할 수 있다</label></li>
+        <li><label><input type="checkbox"> 리소스에 워크로드·팀 태그가 붙어 비용을 나눠 볼 수 있다</label></li>
+        <li><label><input type="checkbox"> 예산 임계치를 넘으면 알림이 온다</label></li>
+        <li><label><input type="checkbox"> CloudFront 캐시 적중률을 지표로 보고 있다</label></li>
+        <li><label><input type="checkbox"> 절감 조치가 <strong>가용성을 낮추지 않았는지</strong> 함께 확인했다</label></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">관련 시험 포인트</h2>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          비용 문항에서 데이터 전송이 보이면 확인 순서는 셋입니다.
+        </p>
+        <ol>
+          <li><strong>인터넷으로 나가는가</strong> — 그렇다면 CloudFront로 송신량 자체를 줄이는 안이 유력합니다.</li>
+          <li><strong>가용 영역이나 리전을 넘는가</strong> — 넘지 않아도 되는 트래픽이면 배치를 고칩니다.</li>
+          <li><strong>인터넷을 거치지 않아도 되는가</strong> — NAT를 지나 AWS 서비스에 접근하고 있다면
+            VPC 엔드포인트로 경로를 바꿉니다.</li>
+        </ol>
+        <p>
+          SAA는 금액 계산을 요구하지 않습니다.
+          <strong>구조적으로 더 싼 안</strong>을 고르게 할 뿐입니다.
+        </p>
+      </aside>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>문제문의 신호와 정답 방향</caption>
+          <thead>
+            <tr>
+              <th scope="col">문제문의 신호</th>
+              <th scope="col">고르는 것</th>
+              <th scope="col">소거하는 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">프라이빗 서브넷의 S3 접근 비용이 크다</th>
+              <td>S3 게이트웨이 엔드포인트</td>
+              <td>NAT 인스턴스로 교체하는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">인터넷으로 같은 콘텐츠가 반복 전송된다</th>
+              <td>Amazon CloudFront</td>
+              <td>오리진 인스턴스를 키우는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">인터넷을 경유하면 안 된다</th>
+              <td>VPC 엔드포인트 · PrivateLink · Direct Connect</td>
+              <td>NAT 게이트웨이 경유</td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스에서 S3에 프라이빗 경로로 접근</th>
+              <td>Direct Connect + 인터페이스 엔드포인트</td>
+              <td>게이트웨이 엔드포인트(온프레미스에서 직접 쓸 수 없다)</td>
+            </tr>
+            <tr>
+              <th scope="row">비용을 줄이되 가용성은 유지</th>
+              <td>가용 영역별 NAT 유지 + 엔드포인트 도입</td>
+              <td>NAT를 하나로 통합하는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">버킷 소유자가 내려받기 요금을 부담하기 어렵다</th>
+              <td>요청자 지불 설정</td>
+              <td>버킷을 퍼블릭으로 여는 안</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch18.html">
+          <span class="card__title">18장 · 비용 최적화 · 마이그레이션 · 재해 복구</span>
+          <span class="card__desc">비용 도구와 절감 레버 전체 지도, 데이터 전송 요금 구조를 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 4</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch04.html">
+          <span class="card__title">4장 · VPC 연결과 하이브리드</span>
+          <span class="card__desc">게이트웨이 엔드포인트와 인터페이스 엔드포인트의 구현 위치 차이를 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab10.html">
+          <span class="card__title">실습 10 · VPC 엔드포인트로 S3 비공개 접근</span>
+          <span class="card__desc">라우팅 테이블이 어떻게 바뀌는지, 경로가 실제로 옮겨졌는지 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="case03.html">
+          <span class="card__title">케이스 3 · S3 비용이 매달 늘어난다</span>
+          <span class="card__desc">이동이 아니라 저장에서 새는 비용. 같은 청구서의 다른 항목입니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="case04.html">
+          <span class="card__title">케이스 4 · 퍼블릭 서브넷에 데이터베이스를 뒀다</span>
+          <span class="card__desc">같은 엔드포인트 판단이 보안 관점에서는 어떻게 쓰이는지 비교합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-cost.html">
+          <span class="card__title">비용 최적화 아키텍처 설계 (20%)</span>
+          <span class="card__desc">과제 진술 4개와 비용 한정어가 가리키는 선택지를 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html">Amazon VPC 사용 설명서 — NAT 게이트웨이</a>
+          — 지정한 서브넷에 인터페이스를 만든다는 동작과 퍼블릭·프라이빗 NAT의 구분</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpcEndpoint.html">Amazon EC2 API 레퍼런스 — CreateVpcEndpoint</a>
+          — 엔드포인트 유형(<code>Gateway</code> · <code>Interface</code>)과 라우팅 테이블 연결</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html">Amazon VPC 사용 설명서 — VPC 흐름 로그</a>
+          — 기록되는 필드와 바이트 수, 페이로드가 포함되지 않는다는 범위</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html">Amazon S3 API 레퍼런스 — CopyObject</a>
+          — 복사 원본이 다른 리전이면 데이터 전송이 원본 계정에 청구된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/RequesterPaysBuckets.html">Amazon S3 사용 설명서 — 요청자 지불 버킷</a>
+          — 기본적으로 버킷 소유자가 내려받기 요금을 부담한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html">Amazon CloudFront 개발자 안내서 — CloudFront란</a>
+          — 엣지 로케이션에서 콘텐츠를 캐시해 오리진 요청을 줄인다는 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html">Amazon CloudFront 개발자 안내서 — Origin Shield</a>
+          — 엣지 로케이션과 리전 엣지 캐시가 별도의 계층으로 존재한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateFlowLogs.html">Amazon EC2 API 레퍼런스 — CreateFlowLogs</a>
+          — 흐름 로그 대상 유형과 전달 권한 설정</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

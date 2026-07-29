@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>서비스 선택 결정 트리 — AWS SAA Guide</title>
+  <meta name="description" content="요구사항에서 출발해 서비스로 내려가는 결정 트리입니다. 스토리지, 데이터베이스, 컴퓨팅, 네트워크 연결, 데이터 전송, 재해 복구 여섯 갈래를 질문과 분기와 결론의 표로 정리했습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cheatsheet" data-page="decision-tree"></div>
+
+  <main id="main" class="page page--wide" data-page-id="cheatsheet/decision-tree">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">빠른참조</a></li>
+        <li><span aria-current="page">서비스 선택 결정 트리</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">빠른참조 · 4</p>
+      <h1>서비스 선택 결정 트리</h1>
+      <p class="page__lead">
+        요구사항에서 출발해 <strong>질문 → 분기 → 결론</strong>으로 내려가면 서비스가 나옵니다.
+        서비스를 하나씩 아는 것과 요구사항에서 서비스를 뽑아내는 것은 다른 능력이고,
+        시험이 요구하는 것은 후자입니다.
+      </p>
+      <p class="page__meta">
+        갈래는 여섯입니다 — <a href="#storage-tree">스토리지</a> ·
+        <a href="#database-tree">데이터베이스</a> · <a href="#compute-tree">컴퓨팅</a> ·
+        <a href="#network-tree">네트워크 연결</a> · <a href="#transfer-tree">데이터 전송</a> ·
+        <a href="#dr-tree">재해 복구</a>.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">이 페이지 쓰는 법</h2>
+      <ul>
+        <li>표는 위에서 아래로 읽습니다. <strong>결론</strong> 열이 서비스면 거기서 끝, 단계 번호면 그 줄로 이동합니다.</li>
+        <li>문제문을 읽자마자 어느 갈래인지부터 정합니다. 갈래가 정해지면 후보가 절반 이하로 줄어듭니다.</li>
+        <li>마지막 문장의 <strong>한정어</strong>를 확인하고 <a href="#qualifier-effect">한정어가 분기를 바꾸는 지점</a>을 봅니다.</li>
+        <li>내려간 결과가 둘로 갈리면 <a href="compare.html">헷갈리는 쌍 비교</a>에서 속성을 대조합니다.</li>
+        <li>결론에 나온 서비스가 낯설면 <a href="services.html">서비스 한 줄 정의</a>에서 정체를 확인합니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="how-to-read">
+      <h2 id="how-to-read">먼저 갈래를 정합니다</h2>
+
+      <p>
+        시나리오 문항은 대개 첫 두 문장에서 갈래가 드러납니다.
+        "파일을 여러 서버가 공유해야 한다"는 스토리지,
+        "온프레미스 데이터센터와 연결해야 한다"는 네트워크 연결,
+        "리전 장애에 대비해야 한다"는 재해 복구입니다.
+        갈래를 틀리게 잡으면 아무리 세부 지식이 있어도 답이 나오지 않습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>문제문의 표현과 갈래의 대응</caption>
+          <thead>
+            <tr>
+              <th scope="col">문제문에 이런 표현이 있으면</th>
+              <th scope="col">이 갈래로</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">"파일을 저장", "공유 스토리지", "아카이브", "백업 보관"</th>
+              <td><a href="#storage-tree">스토리지</a></td>
+            </tr>
+            <tr>
+              <th scope="row">"질의가 느리다", "스키마", "트랜잭션", "키로 조회"</th>
+              <td><a href="#database-tree">데이터베이스</a></td>
+            </tr>
+            <tr>
+              <th scope="row">"애플리케이션을 실행", "컨테이너", "이벤트에 반응", "인스턴스 비용"</th>
+              <td><a href="#compute-tree">컴퓨팅</a></td>
+            </tr>
+            <tr>
+              <th scope="row">"인터넷을 거치면 안 된다", "온프레미스와 연결", "여러 VPC"</th>
+              <td><a href="#network-tree">네트워크 연결</a></td>
+            </tr>
+            <tr>
+              <th scope="row">"데이터를 옮긴다", "마이그레이션", "테라바이트를 업로드"</th>
+              <td><a href="#transfer-tree">데이터 전송</a></td>
+            </tr>
+            <tr>
+              <th scope="row">"리전 장애", "RTO", "RPO", "재해 복구"</th>
+              <td><a href="#dr-tree">재해 복구</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="storage-tree">
+      <h2 id="storage-tree">스토리지</h2>
+
+      <figure class="diagram" data-diagram="D-190">
+        <figcaption>
+          스토리지 선택 결정 트리 — 접근 방식(블록 · 파일 · 객체)에서 시작해
+          공유 여부, 지속성 요구, 프로토콜, 접근 빈도로 갈라져
+          Amazon EBS · 인스턴스 스토어 · Amazon EFS · Amazon FSx · Amazon S3 스토리지 클래스로 수렴합니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>스토리지 선택 — 질문, 분기, 결론</caption>
+          <thead>
+            <tr>
+              <th scope="col">단계</th>
+              <th scope="col">질문</th>
+              <th scope="col">분기</th>
+              <th scope="col">결론</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S1</th>
+              <td>데이터에 어떻게 접근하는가</td>
+              <td>인스턴스 한 대가 디스크로 붙여서</td>
+              <td>S2로</td>
+            </tr>
+            <tr>
+              <th scope="row">S1</th>
+              <td>데이터에 어떻게 접근하는가</td>
+              <td>여러 서버가 동시에 파일 시스템으로</td>
+              <td>S4로</td>
+            </tr>
+            <tr>
+              <th scope="row">S1</th>
+              <td>데이터에 어떻게 접근하는가</td>
+              <td>HTTP로 객체를 통째로 읽고 쓴다</td>
+              <td>S5로</td>
+            </tr>
+            <tr>
+              <th scope="row">S1</th>
+              <td>데이터에 어떻게 접근하는가</td>
+              <td>온프레미스 애플리케이션이 기존 프로토콜로</td>
+              <td><strong>AWS Storage Gateway</strong> — 파일 공유면 파일 게이트웨이, 블록이면 볼륨 게이트웨이, 백업 소프트웨어면 테이프 게이트웨이</td>
+            </tr>
+            <tr>
+              <th scope="row">S2</th>
+              <td>데이터가 사라져도 되는가</td>
+              <td>사라져도 되고 최고 성능이 필요하다</td>
+              <td><strong>EC2 인스턴스 스토어</strong> — 인스턴스를 중지하면 소실됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S2</th>
+              <td>데이터가 사라져도 되는가</td>
+              <td>인스턴스와 무관하게 유지되어야 한다</td>
+              <td>S3로</td>
+            </tr>
+            <tr>
+              <th scope="row">S3</th>
+              <td>어떤 EBS 볼륨 타입인가</td>
+              <td>대용량을 순차로 읽고 쓴다 (로그, 빅데이터)</td>
+              <td><strong><code>st1</code></strong> — 부트 볼륨으로는 쓸 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3</th>
+              <td>어떤 EBS 볼륨 타입인가</td>
+              <td>거의 읽지 않는 대용량을 가장 싸게</td>
+              <td><strong><code>sc1</code></strong> — 부트 볼륨으로는 쓸 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3</th>
+              <td>어떤 EBS 볼륨 타입인가</td>
+              <td>매우 높은 IOPS와 높은 내구성이 요구된다</td>
+              <td><strong><code>io2</code></strong> — 최대 256,000 IOPS</td>
+            </tr>
+            <tr>
+              <th scope="row">S3</th>
+              <td>어떤 EBS 볼륨 타입인가</td>
+              <td>그 밖의 일반적인 경우</td>
+              <td><strong><code>gp3</code></strong> — 크기와 무관하게 성능을 따로 지정합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S4</th>
+              <td>어떤 프로토콜과 생태계가 필요한가</td>
+              <td>리눅스, NFS, 용량 자동 확장</td>
+              <td><strong>Amazon EFS</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S4</th>
+              <td>어떤 프로토콜과 생태계가 필요한가</td>
+              <td>Windows, SMB, Active Directory</td>
+              <td><strong>Amazon FSx for Windows File Server</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S4</th>
+              <td>어떤 프로토콜과 생태계가 필요한가</td>
+              <td>고성능 컴퓨팅, 기계 학습 학습, S3 데이터셋 연동</td>
+              <td><strong>Amazon FSx for Lustre</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S4</th>
+              <td>어떤 프로토콜과 생태계가 필요한가</td>
+              <td>NFS와 SMB를 한 스토리지에서, 기존 NetApp 운영 유지</td>
+              <td><strong>Amazon FSx for NetApp ONTAP</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S4</th>
+              <td>어떤 프로토콜과 생태계가 필요한가</td>
+              <td>리눅스 NFS를 ZFS 스냅샷 기능과 함께</td>
+              <td><strong>Amazon FSx for OpenZFS</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S5</th>
+              <td>얼마나 자주 읽고, 읽어야 할 때 얼마나 빨리 필요한가</td>
+              <td>자주 읽는다</td>
+              <td><strong>S3 Standard</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S5</th>
+              <td>얼마나 자주 읽고, 읽어야 할 때 얼마나 빨리 필요한가</td>
+              <td><strong>접근 패턴을 모른다</strong></td>
+              <td><strong>S3 Intelligent-Tiering</strong> — 이 분기의 유일한 답입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S5</th>
+              <td>얼마나 자주 읽고, 읽어야 할 때 얼마나 빨리 필요한가</td>
+              <td>드물게 읽지만 즉시 접근해야 한다</td>
+              <td><strong>S3 Standard-IA</strong> — 다시 만들 수 있는 데이터면 S3 One Zone-IA</td>
+            </tr>
+            <tr>
+              <th scope="row">S5</th>
+              <td>얼마나 자주 읽고, 읽어야 할 때 얼마나 빨리 필요한가</td>
+              <td>아카이브인데 밀리초 접근이 필요하다</td>
+              <td><strong>S3 Glacier Instant Retrieval</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S5</th>
+              <td>얼마나 자주 읽고, 읽어야 할 때 얼마나 빨리 필요한가</td>
+              <td>아카이브이고 분에서 시간 단위 복원을 감수할 수 있다</td>
+              <td><strong>S3 Glacier Flexible Retrieval</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">S5</th>
+              <td>얼마나 자주 읽고, 읽어야 할 때 얼마나 빨리 필요한가</td>
+              <td>수년 보존이고 거의 읽지 않는다</td>
+              <td><strong>S3 Glacier Deep Archive</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          S5에서 고른 뒤 <strong>최소 저장 기간</strong>을 반드시 확인하십시오.
+          30일 안에 지워지는 데이터를 90일 최소 기간 클래스에 넣으면 비용이 오히려 늘어납니다.
+          클래스별 최소 기간은 <a href="limits.html#s3-storage-class-limits">한도와 기본값</a>에 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="database-tree">
+      <h2 id="database-tree">데이터베이스</h2>
+
+      <figure class="diagram" data-diagram="D-191">
+        <figcaption>
+          데이터베이스 선택 결정 트리 — 관계형 여부에서 시작해 운영 부담,
+          읽기 확장과 가용성 중 무엇이 요구인지, 비관계형이면 어떤 데이터 모델인지로 갈라져
+          Amazon RDS · Amazon Aurora · Amazon DynamoDB · 목적별 데이터베이스로 수렴합니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>데이터베이스 선택 — 질문, 분기, 결론</caption>
+          <thead>
+            <tr>
+              <th scope="col">단계</th>
+              <th scope="col">질문</th>
+              <th scope="col">분기</th>
+              <th scope="col">결론</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">D1</th>
+              <td>관계형 데이터와 SQL이 필요한가</td>
+              <td>필요하다</td>
+              <td>D2로</td>
+            </tr>
+            <tr>
+              <th scope="row">D1</th>
+              <td>관계형 데이터와 SQL이 필요한가</td>
+              <td>필요 없다</td>
+              <td>D4로</td>
+            </tr>
+            <tr>
+              <th scope="row">D1</th>
+              <td>관계형 데이터와 SQL이 필요한가</td>
+              <td>이미 S3에 있는 데이터에 가끔 SQL을 던지고 싶다</td>
+              <td><strong>Amazon Athena</strong> — 인프라를 두지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">D2</th>
+              <td>엔진과 운영 요구가 무엇인가</td>
+              <td>특정 엔진과 버전을 그대로 써야 한다</td>
+              <td><strong>Amazon RDS</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D2</th>
+              <td>엔진과 운영 요구가 무엇인가</td>
+              <td>MySQL 또는 PostgreSQL 호환이면 되고 읽기 확장과 빠른 장애 조치가 필요하다</td>
+              <td><strong>Amazon Aurora</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D2</th>
+              <td>엔진과 운영 요구가 무엇인가</td>
+              <td>부하가 간헐적이고 용량을 고정하기 어렵다</td>
+              <td><strong>Amazon Aurora Serverless v2</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D2</th>
+              <td>엔진과 운영 요구가 무엇인가</td>
+              <td>대량 데이터에 복잡한 분석 질의를 반복한다</td>
+              <td><strong>Amazon Redshift</strong> — 트랜잭션 데이터베이스가 아닙니다</td>
+            </tr>
+            <tr>
+              <th scope="row">D3</th>
+              <td>관계형 데이터베이스가 이미 있는데 무엇이 문제인가</td>
+              <td>가용 영역 장애를 견뎌야 한다</td>
+              <td><strong>Multi-AZ 배포</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D3</th>
+              <td>관계형 데이터베이스가 이미 있는데 무엇이 문제인가</td>
+              <td>읽기 질의가 많아 느리다</td>
+              <td><strong>읽기 전용 복제본</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D3</th>
+              <td>관계형 데이터베이스가 이미 있는데 무엇이 문제인가</td>
+              <td>같은 질의가 반복되고 애플리케이션을 고칠 수 있다</td>
+              <td><strong>Amazon ElastiCache</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D3</th>
+              <td>관계형 데이터베이스가 이미 있는데 무엇이 문제인가</td>
+              <td>연결 수가 고갈된다 (서버리스 클라이언트)</td>
+              <td><strong>Amazon RDS Proxy</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D3</th>
+              <td>관계형 데이터베이스가 이미 있는데 무엇이 문제인가</td>
+              <td>가용성과 읽기 확장이 <strong>둘 다</strong> 요구된다</td>
+              <td>Multi-AZ 배포와 읽기 전용 복제본을 <strong>함께</strong> 구성합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">D4</th>
+              <td>어떤 데이터 모델인가</td>
+              <td>키로 조회하고 예측 가능한 지연이 필요하다</td>
+              <td><strong>Amazon DynamoDB</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D4</th>
+              <td>어떤 데이터 모델인가</td>
+              <td>문서 데이터베이스이고 MongoDB 호환이 필요하다</td>
+              <td><strong>Amazon DocumentDB</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D4</th>
+              <td>어떤 데이터 모델인가</td>
+              <td>개체 사이의 관계를 탐색한다</td>
+              <td><strong>Amazon Neptune</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D4</th>
+              <td>어떤 데이터 모델인가</td>
+              <td>Apache Cassandra 호환이 필요하다</td>
+              <td><strong>Amazon Keyspaces</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D4</th>
+              <td>어떤 데이터 모델인가</td>
+              <td>시간축으로 쌓이는 측정값이다</td>
+              <td><strong>Amazon Timestream</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D4</th>
+              <td>어떤 데이터 모델인가</td>
+              <td>인메모리 속도가 필요하고 사라져도 된다</td>
+              <td><strong>Amazon ElastiCache</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D4</th>
+              <td>어떤 데이터 모델인가</td>
+              <td>인메모리 속도가 필요하고 사라지면 안 된다</td>
+              <td><strong>Amazon MemoryDB</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D5</th>
+              <td>DynamoDB를 골랐는데 읽기가 느리다</td>
+              <td>코드 변경을 최소화해야 한다</td>
+              <td><strong>Amazon DynamoDB Accelerator (DAX)</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">D5</th>
+              <td>DynamoDB를 골랐는데 새 조회 패턴이 필요하다</td>
+              <td>이미 운영 중인 테이블이다</td>
+              <td><strong>GSI</strong> — LSI는 테이블 생성 후에 만들 수 없습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="compute-tree">
+      <h2 id="compute-tree">컴퓨팅</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>컴퓨팅 선택 — 질문, 분기, 결론</caption>
+          <thead>
+            <tr>
+              <th scope="col">단계</th>
+              <th scope="col">질문</th>
+              <th scope="col">분기</th>
+              <th scope="col">결론</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">C1</th>
+              <td>무엇을 실행하는가</td>
+              <td>이벤트에 반응하는 짧은 처리</td>
+              <td><strong>AWS Lambda</strong> — 한 번 실행이 900초를 넘으면 다른 선택지로</td>
+            </tr>
+            <tr>
+              <th scope="row">C1</th>
+              <td>무엇을 실행하는가</td>
+              <td>컨테이너 이미지</td>
+              <td>C2로</td>
+            </tr>
+            <tr>
+              <th scope="row">C1</th>
+              <td>무엇을 실행하는가</td>
+              <td>운영체제 수준의 제어가 필요한 애플리케이션</td>
+              <td>C3으로</td>
+            </tr>
+            <tr>
+              <th scope="row">C1</th>
+              <td>무엇을 실행하는가</td>
+              <td>대량의 독립 배치 작업</td>
+              <td><strong>AWS Batch</strong> — 스팟 용량과 잘 맞습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">C1</th>
+              <td>무엇을 실행하는가</td>
+              <td>여러 단계를 순서와 재시도로 엮어야 한다</td>
+              <td><strong>AWS Step Functions</strong>로 단계를 조율합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">C2</th>
+              <td>Kubernetes API가 요구되는가</td>
+              <td>요구된다 (기존 클러스터, 표준 도구)</td>
+              <td><strong>Amazon EKS</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">C2</th>
+              <td>Kubernetes API가 요구되는가</td>
+              <td>요구되지 않는다</td>
+              <td><strong>Amazon ECS</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">C2</th>
+              <td>인스턴스를 우리가 관리해야 하는가</td>
+              <td>관리하고 싶지 않다 (운영 부담 최소)</td>
+              <td>시작 유형을 <strong>AWS Fargate</strong>로 — ECS와 EKS 모두에서 고를 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">C2</th>
+              <td>인스턴스를 우리가 관리해야 하는가</td>
+              <td>GPU나 특수 인스턴스 타입이 필요하다</td>
+              <td>EC2 시작 유형</td>
+            </tr>
+            <tr>
+              <th scope="row">C3</th>
+              <td>EC2를 어떤 구매 옵션으로 사는가</td>
+              <td>중단되어도 되고 재시작할 수 있다</td>
+              <td><strong>스팟 인스턴스</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">C3</th>
+              <td>EC2를 어떤 구매 옵션으로 사는가</td>
+              <td>1년 또는 3년간 상시 가동하는 기저 부하다</td>
+              <td><strong>Savings Plans</strong> 또는 예약 인스턴스</td>
+            </tr>
+            <tr>
+              <th scope="row">C3</th>
+              <td>EC2를 어떤 구매 옵션으로 사는가</td>
+              <td>기간과 규모를 예측할 수 없고 짧게 쓴다</td>
+              <td><strong>온디맨드</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">C3</th>
+              <td>EC2를 어떤 구매 옵션으로 사는가</td>
+              <td>물리 서버 단위 라이선스나 규정 요구가 있다</td>
+              <td><strong>전용 호스트</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">C4</th>
+              <td>용량이 부족하다 — 어떻게 늘리는가</td>
+              <td>부하가 변하고 장애도 견뎌야 한다</td>
+              <td><strong>수평 확장</strong> — 여러 가용 영역에 걸친 Auto Scaling 그룹</td>
+            </tr>
+            <tr>
+              <th scope="row">C4</th>
+              <td>용량이 부족하다 — 어떻게 늘리는가</td>
+              <td>단일 프로세스가 메모리나 CPU를 더 필요로 한다</td>
+              <td>수직 확장 — 인스턴스 타입 변경. 탄력성은 얻지 못합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">C4</th>
+              <td>스케일아웃이 트래픽 급증을 따라가지 못한다</td>
+              <td>요청을 즉시 처리하지 않아도 된다</td>
+              <td><strong>Amazon SQS로 완충</strong>하고 큐 길이로 스케일링합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          C3의 분기는 <strong>워크로드 특성</strong>이 결정합니다. 가격이 아닙니다.
+          "가장 저렴한 것을 고르라"는 한정어가 붙어도, 중단되면 안 되는 워크로드에
+          스팟 인스턴스를 고르는 선택지는 제약 위반이므로 오답입니다.
+          <strong>제약을 위반하는 선택지가 가장 빠른 소거 대상</strong>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="network-tree">
+      <h2 id="network-tree">네트워크 연결</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>네트워크 연결 선택 — 질문, 분기, 결론</caption>
+          <thead>
+            <tr>
+              <th scope="col">단계</th>
+              <th scope="col">질문</th>
+              <th scope="col">분기</th>
+              <th scope="col">결론</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">N1</th>
+              <td>무엇과 무엇을 잇는가</td>
+              <td>VPC와 VPC</td>
+              <td>N2로</td>
+            </tr>
+            <tr>
+              <th scope="row">N1</th>
+              <td>무엇과 무엇을 잇는가</td>
+              <td>VPC와 온프레미스</td>
+              <td>N3으로</td>
+            </tr>
+            <tr>
+              <th scope="row">N1</th>
+              <td>무엇과 무엇을 잇는가</td>
+              <td>VPC와 AWS 서비스</td>
+              <td>N4로</td>
+            </tr>
+            <tr>
+              <th scope="row">N1</th>
+              <td>무엇과 무엇을 잇는가</td>
+              <td>프라이빗 서브넷과 인터넷 (나가기만)</td>
+              <td><strong>NAT 게이트웨이</strong> — 가용 영역마다 하나씩 둡니다</td>
+            </tr>
+            <tr>
+              <th scope="row">N2</th>
+              <td>연결할 VPC가 몇 개이고 전이 라우팅이 필요한가</td>
+              <td>소수이고 전이 라우팅이 필요 없다</td>
+              <td><strong>VPC 피어링</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">N2</th>
+              <td>연결할 VPC가 몇 개이고 전이 라우팅이 필요한가</td>
+              <td>다수이거나 전이 라우팅이 필요하다</td>
+              <td><strong>AWS Transit Gateway</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">N2</th>
+              <td>연결할 VPC가 몇 개이고 전이 라우팅이 필요한가</td>
+              <td>네트워크 전체가 아니라 <strong>서비스 하나</strong>만 노출하면 된다</td>
+              <td><strong>AWS PrivateLink</strong> — 인터페이스 엔드포인트로 연결합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">N2</th>
+              <td>연결할 VPC가 몇 개이고 전이 라우팅이 필요한가</td>
+              <td>CIDR이 겹친다</td>
+              <td>피어링과 Transit Gateway 모두 불가 — 주소 설계를 바꿔야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">N3</th>
+              <td>온프레미스 연결에 무엇이 요구되는가</td>
+              <td>빠르게 연결해야 하고 비용을 낮게</td>
+              <td><strong>AWS Site-to-Site VPN</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">N3</th>
+              <td>온프레미스 연결에 무엇이 요구되는가</td>
+              <td>일관된 지연과 대역폭, 인터넷 비경유</td>
+              <td><strong>AWS Direct Connect</strong> — 구축에 시간이 걸립니다</td>
+            </tr>
+            <tr>
+              <th scope="row">N3</th>
+              <td>온프레미스 연결에 무엇이 요구되는가</td>
+              <td>전용 회선을 쓰지만 끊기면 안 된다</td>
+              <td>Direct Connect에 <strong>Site-to-Site VPN을 백업</strong>으로 붙입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">N3</th>
+              <td>온프레미스 연결에 무엇이 요구되는가</td>
+              <td>사무실이 아니라 개별 사용자 단말이다</td>
+              <td><strong>AWS Client VPN</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">N4</th>
+              <td>어떤 AWS 서비스에 비공개로 접근하는가</td>
+              <td>Amazon S3 또는 Amazon DynamoDB이고 VPC 안에서만 쓴다</td>
+              <td><strong>게이트웨이 엔드포인트</strong> — 추가 요금이 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">N4</th>
+              <td>어떤 AWS 서비스에 비공개로 접근하는가</td>
+              <td>그 밖의 서비스이거나, 온프레미스·피어링 상대에서도 접근해야 한다</td>
+              <td><strong>인터페이스 엔드포인트</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">N5</th>
+              <td>전 세계 사용자에게 빠르게 전달해야 한다</td>
+              <td>캐시할 수 있는 HTTP 콘텐츠다</td>
+              <td><strong>Amazon CloudFront</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">N5</th>
+              <td>전 세계 사용자에게 빠르게 전달해야 한다</td>
+              <td>TCP·UDP이거나 고정 IP가 필요하다</td>
+              <td><strong>AWS Global Accelerator</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="transfer-tree">
+      <h2 id="transfer-tree">데이터 전송</h2>
+
+      <p>
+        이 갈래의 첫 계산은 언제나 같습니다 —
+        <strong>전송량을 가용 대역폭으로 나눠 소요 기간을 구합니다.</strong>
+        그 기간이 요구를 만족하면 네트워크 전송이고, 만족하지 못하면 물리 전송입니다.
+        장비 모델을 외우는 것이 아니라 이 계산이 판단입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>데이터 전송 수단 선택 — 질문, 분기, 결론</caption>
+          <thead>
+            <tr>
+              <th scope="col">단계</th>
+              <th scope="col">질문</th>
+              <th scope="col">분기</th>
+              <th scope="col">결론</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">T1</th>
+              <td>일회성인가 상시인가</td>
+              <td>한 번 옮기고 끝난다</td>
+              <td>T2로</td>
+            </tr>
+            <tr>
+              <th scope="row">T1</th>
+              <td>일회성인가 상시인가</td>
+              <td>주기적으로 동기화한다</td>
+              <td><strong>AWS DataSync</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">T1</th>
+              <td>일회성인가 상시인가</td>
+              <td>온프레미스 애플리케이션이 계속 접근한다</td>
+              <td><strong>AWS Storage Gateway</strong> — 이전이 아니라 연장입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">T1</th>
+              <td>일회성인가 상시인가</td>
+              <td>외부 상대가 SFTP 같은 기존 프로토콜을 바꿀 수 없다</td>
+              <td><strong>AWS Transfer Family</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">T2</th>
+              <td>전송량 ÷ 가용 대역폭 = 기간. 이 기간이 요구를 만족하는가</td>
+              <td>만족한다</td>
+              <td><strong>AWS DataSync</strong> — 회선이 부족하면 AWS Direct Connect를 함께 검토합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">T2</th>
+              <td>전송량 ÷ 가용 대역폭 = 기간. 이 기간이 요구를 만족하는가</td>
+              <td>만족하지 못한다 (몇 달이 걸린다)</td>
+              <td><strong>AWS Snow Family</strong> — 물리 배송으로 옮깁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">T3</th>
+              <td>무엇을 옮기는가</td>
+              <td>데이터베이스이고 다운타임을 최소화해야 한다</td>
+              <td><strong>AWS Database Migration Service</strong> — 엔진이 다르면 스키마 변환을 함께 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">T3</th>
+              <td>무엇을 옮기는가</td>
+              <td>서버를 고치지 않고 그대로 옮긴다</td>
+              <td><strong>AWS Application Migration Service (MGN)</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">T3</th>
+              <td>무엇을 옮기는가</td>
+              <td>무엇을 옮길지부터 파악해야 한다</td>
+              <td><strong>AWS Application Discovery Service</strong>로 자산과 의존 관계를 수집합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          Snow Family는 라인업이 축소되었습니다 — Snowmobile은 2024년 3월에 종료되었고,
+          Snowcone은 2024년 11월에 중단되었으며, Snowball Edge는 2025년 11월부터 기존 고객으로 한정되었습니다.
+          그래서 <strong>특정 장비 모델을 정답으로 요구하는 판단은 더 이상 유효하지 않습니다.</strong>
+          T2의 계산만 남기십시오.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="dr-tree">
+      <h2 id="dr-tree">재해 복구</h2>
+
+      <p>
+        재해 복구 문항은 <strong>RTO와 RPO 요구</strong>에서 전략이 결정되고,
+        전략이 정해지면 데이터 복제 수단과 전환 수단이 따라옵니다.
+        비용은 언제나 복구 시간과 교환됩니다 — 빠를수록 상시 가동해야 하는 구성 요소가 늘어납니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>재해 복구 전략과 수단 선택 — 질문, 분기, 결론</caption>
+          <thead>
+            <tr>
+              <th scope="col">단계</th>
+              <th scope="col">질문</th>
+              <th scope="col">분기</th>
+              <th scope="col">결론</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">R1</th>
+              <td>요구되는 복구 시간과 데이터 손실 허용 범위는</td>
+              <td>시간에서 일 단위 복구를 감수할 수 있고 상시 비용을 최소화해야 한다</td>
+              <td><strong>백업 및 복원</strong> — 평상시에는 데이터만 대상 리전에 둡니다</td>
+            </tr>
+            <tr>
+              <th scope="row">R1</th>
+              <td>요구되는 복구 시간과 데이터 손실 허용 범위는</td>
+              <td>수십 분 안에 복구해야 한다</td>
+              <td><strong>파일럿 라이트</strong> — 데이터베이스 등 최소 코어만 상시 가동합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">R1</th>
+              <td>요구되는 복구 시간과 데이터 손실 허용 범위는</td>
+              <td>분 단위로 복구해야 하고 축소 규모로라도 서비스가 살아 있어야 한다</td>
+              <td><strong>웜 스탠바이</strong> — 축소된 전체 스택이 상시 가동됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">R1</th>
+              <td>요구되는 복구 시간과 데이터 손실 허용 범위는</td>
+              <td>사실상 중단이 없어야 한다</td>
+              <td><strong>다중 사이트 액티브-액티브</strong> — 가장 비쌉니다</td>
+            </tr>
+            <tr>
+              <th scope="row">R2</th>
+              <td>데이터를 어떻게 대상 리전으로 옮기는가</td>
+              <td>Amazon S3의 객체</td>
+              <td><strong>교차 리전 복제(CRR)</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">R2</th>
+              <td>데이터를 어떻게 대상 리전으로 옮기는가</td>
+              <td>Amazon RDS 데이터베이스</td>
+              <td>교차 리전 읽기 전용 복제본 또는 스냅샷 복사</td>
+            </tr>
+            <tr>
+              <th scope="row">R2</th>
+              <td>데이터를 어떻게 대상 리전으로 옮기는가</td>
+              <td>Amazon DynamoDB 테이블</td>
+              <td><strong>글로벌 테이블</strong> — 여러 리전에서 읽고 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">R2</th>
+              <td>데이터를 어떻게 대상 리전으로 옮기는가</td>
+              <td>여러 서비스의 백업을 한 정책으로</td>
+              <td><strong>AWS Backup</strong>의 교차 리전 복사</td>
+            </tr>
+            <tr>
+              <th scope="row">R2</th>
+              <td>데이터를 어떻게 대상 리전으로 옮기는가</td>
+              <td>서버 단위로 지속 복제해 두었다가 기동</td>
+              <td><strong>AWS Elastic Disaster Recovery</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">R3</th>
+              <td>트래픽을 어떻게 대상 리전으로 넘기는가</td>
+              <td>DNS 수준에서 전환한다</td>
+              <td><strong>Amazon Route 53 장애 조치 라우팅</strong> + 상태 확인</td>
+            </tr>
+            <tr>
+              <th scope="row">R3</th>
+              <td>트래픽을 어떻게 대상 리전으로 넘기는가</td>
+              <td>DNS 캐시를 기다릴 수 없고 고정 IP가 필요하다</td>
+              <td><strong>AWS Global Accelerator</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">R4</th>
+              <td>가용 영역 하나가 사라져도 되는 구성인가</td>
+              <td>단일 NAT 게이트웨이, 단일 인스턴스, 단일 서브넷이 있다</td>
+              <td>재해 복구 이전에 <strong>단일 장애점부터 제거</strong>합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">R4</th>
+              <td>가용 영역 하나가 사라져도 되는 구성인가</td>
+              <td>이미 다중 가용 영역이다</td>
+              <td>R1로 — 리전 단위 재해를 다룹니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="용어 정리">
+        <p>
+          <strong>RTO(Recovery Time Objective)</strong>는 "얼마나 빨리 다시 동작해야 하는가",
+          <strong>RPO(Recovery Point Objective)</strong>는 "얼마만큼의 데이터 손실까지 허용하는가"입니다.
+          문제문에서 두 값 중 어느 쪽이 강조되는지 보면 처방이 갈립니다 —
+          RPO가 빡세면 <strong>복제 주기</strong>를 줄이는 쪽,
+          RTO가 빡세면 <strong>미리 켜 두는 구성 요소</strong>를 늘리는 쪽입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="qualifier-effect">
+      <h2 id="qualifier-effect">한정어가 분기를 바꾸는 지점</h2>
+
+      <p>
+        같은 요구사항이라도 마지막 문장의 한정어가 분기를 옮깁니다.
+        아래는 위 여섯 갈래에서 한정어가 실제로 결론을 바꾸는 자리입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>한정어별로 분기가 바뀌는 지점</caption>
+          <thead>
+            <tr>
+              <th scope="col">한정어</th>
+              <th scope="col">어느 단계에서</th>
+              <th scope="col">어느 쪽으로 꺾이는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">LEAST operational overhead (운영 부담 최소)</th>
+              <td>C2 · D2</td>
+              <td>AWS Fargate, AWS Lambda, Amazon Aurora Serverless v2, Amazon DynamoDB 쪽으로</td>
+            </tr>
+            <tr>
+              <th scope="row">MOST cost-effective (가장 비용 효율적)</th>
+              <td>C3 · S5</td>
+              <td>스팟 인스턴스와 약정, 그리고 더 차가운 스토리지 클래스 쪽으로. 단 제약을 위반하면 오답입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">MOST highly available (가장 가용성 높은)</th>
+              <td>D3 · R4</td>
+              <td>Multi-AZ 배포와 여러 가용 영역에 걸친 Auto Scaling 쪽으로</td>
+            </tr>
+            <tr>
+              <th scope="row">LOWEST latency (가장 낮은 지연)</th>
+              <td>D3 · N5</td>
+              <td>캐시(ElastiCache · DAX)와 엣지(CloudFront · Global Accelerator) 쪽으로</td>
+            </tr>
+            <tr>
+              <th scope="row">without changing application code (코드 변경 없이)</th>
+              <td>D3 · S4</td>
+              <td>Amazon RDS Proxy, DAX, Amazon EFS 쪽으로. 애플리케이션 수정을 요구하는 선택지는 소거합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">must not traverse the internet (인터넷을 거치면 안 됨)</th>
+              <td>N4</td>
+              <td>VPC 엔드포인트와 AWS PrivateLink, AWS Direct Connect 쪽으로</td>
+            </tr>
+            <tr>
+              <th scope="row">real-time (실시간)</th>
+              <td>데이터 수집</td>
+              <td>Amazon Kinesis Data Streams 쪽으로. 버퍼링과 배치 도구는 소거합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">minimal downtime (다운타임 최소)</th>
+              <td>T3</td>
+              <td>AWS Database Migration Service와 AWS Application Migration Service 쪽으로</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        한정어 전체 목록과 각각이 가리키는 서비스군은
+        <a href="../saa/keywords.html">한정어 키워드 사전</a>에 정리되어 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="compare.html">
+          <span class="card__title">헷갈리는 쌍 비교</span>
+          <span class="card__desc">트리를 내려간 끝에 후보가 둘로 남았을 때 속성을 대조합니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="services.html">
+          <span class="card__title">서비스 한 줄 정의</span>
+          <span class="card__desc">결론에 나온 서비스의 정체와 담당 문제를 확인합니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="network.html">
+          <span class="card__title">네트워크 연결 매트릭스</span>
+          <span class="card__desc">네트워크 갈래를 연결 대상과 요구의 행렬로 다시 봅니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">한정어가 어느 서비스군을 가리키는지 전체 목록으로 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../saa/exam-tips.html">
+          <span class="card__title">시험 당일 전략</span>
+          <span class="card__desc">소거 순서와 시간 배분. 트리를 시험장에서 실제로 굴리는 방법입니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch09.html#storage-families">
+          <span class="card__title">9장 · 파일 스토리지와 데이터 전송</span>
+          <span class="card__desc">블록·파일·객체 계열의 구분과 전송 수단 판단을 설명으로 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">SAA-C03 시험 가이드</a>
+          — 과제 진술이 요구하는 판단의 범위</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVolume.html">Amazon EC2 API 레퍼런스 — CreateVolume</a>
+          — 볼륨 타입별 성능 범위와 부트 볼륨 제약</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 클래스별 접근 시간과 최소 저장 기간</li>
+        <li><a href="https://docs.aws.amazon.com/fsx/latest/APIReference/API_CreateFileSystem.html">Amazon FSx API 레퍼런스 — CreateFileSystem</a>
+          — 파일 시스템 유형 네 가지</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html">Amazon RDS 사용 설명서 — Multi-AZ 배포</a>
+          — 가용성 요구에 대한 처방</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SecondaryIndexes.html">Amazon DynamoDB 개발자 안내서 — 보조 인덱스</a>
+          — 운영 중 인덱스 추가가 GSI에서만 가능한 이유</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html">AWS Lambda 개발자 안내서 — 할당량</a>
+          — 최대 실행 시간 900초</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html">Amazon VPC 피어링 안내서 — 기본 사항</a>
+          — 전이 라우팅 불가와 CIDR 중복 제약</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/tgw/what-is-transit-gateway.html">AWS Transit Gateway 안내서</a>
+          — 허브 구조와 전이 라우팅</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html">AWS PrivateLink 개념</a>
+          — 게이트웨이 엔드포인트와 인터페이스 엔드포인트의 적용 범위</li>
+        <li><a href="https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html">AWS 백서 — 클라우드에서의 재해 복구 옵션</a>
+          — 네 가지 전략과 RTO·RPO의 관계</li>
+        <li><a href="https://aws.amazon.com/blogs/storage/aws-snow-device-updates/">AWS Snow 장비 업데이트</a>
+          — 라인업 축소로 장비 모델 판단이 유효하지 않게 된 근거</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

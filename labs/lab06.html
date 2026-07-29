@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 6 · Lambda + API Gateway REST API — AWS SAA Guide</title>
+  <meta name="description" content="Lambda 함수를 만들고 API Gateway REST API의 프록시 통합으로 연결합니다. 실행 역할과 리소스 기반 권한의 차이, 동시성 설정, 콜드 스타트, 배포 스테이지를 AWS CLI로 구성하고 검증합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab06"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab06">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 6 · Lambda + API Gateway REST API</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 6</p>
+      <h1>Lambda + API Gateway REST API</h1>
+      <p class="page__lead">
+        서버리스 HTTP 엔드포인트를 만듭니다.
+        이 실습에서 반드시 이해하고 넘어갈 것은 <strong>권한이 두 방향</strong>이라는 점입니다 —
+        함수가 다른 서비스를 호출할 때 쓰는 <strong>실행 역할</strong>과,
+        API Gateway가 함수를 호출하도록 허용하는 <strong>리소스 기반 권한</strong>은 서로 다릅니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a> ·
+        <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>Lambda 실행 역할과 리소스 기반 권한의 역할 차이를 설명할 수 있습니다.</li>
+        <li>API Gateway REST API에 프록시 통합으로 함수를 연결할 수 있습니다.</li>
+        <li>스테이지 배포 개념과 변경이 반영되는 시점을 이해할 수 있습니다.</li>
+        <li>제한 시간·메모리·동시성 설정이 무엇을 바꾸는지 설명할 수 있습니다.</li>
+        <li>콜드 스타트가 생기는 조건과 완화 수단을 구분할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        내부 도구용 조회 API를 만듭니다.
+        트래픽은 평소 거의 없다가 특정 시간에만 몰리고,
+        서버를 상시 띄워 두고 싶지 않습니다.
+        이런 형태가 서버리스가 가장 잘 맞는 조건입니다.
+      </p>
+      <ul>
+        <li><code>GET /items</code>로 항목 목록을 반환합니다.</li>
+        <li>인증은 이 실습 범위 밖으로 두고, 나중에 붙일 자리만 확인합니다.</li>
+        <li>배포는 스테이지로 구분합니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>구성 요소와 권한의 방향</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성 요소</th>
+              <th scope="col">역할</th>
+              <th scope="col">권한</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Lambda 함수</th>
+              <td>요청을 처리하고 응답을 만든다</td>
+              <td><strong>실행 역할</strong> — 함수가 로그를 쓰고 다른 서비스를 호출할 권한</td>
+            </tr>
+            <tr>
+              <th scope="row">API Gateway REST API</th>
+              <td>HTTP 요청을 받아 함수를 호출한다</td>
+              <td><strong>리소스 기반 권한</strong> — 함수 쪽에 "이 API가 나를 호출해도 된다"를 기록</td>
+            </tr>
+            <tr>
+              <th scope="row">프록시 통합(<code>AWS_PROXY</code>)</th>
+              <td>요청 전체를 함수에 그대로 전달</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <th scope="row">스테이지</th>
+              <td>배포 단위이자 호출 URL의 일부</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          권한의 두 방향을 구분하는 것은 시험에서도 반복됩니다.
+        </p>
+        <ul>
+          <li><strong>함수가 무엇을 할 수 있는가</strong> → 실행 역할(자격 증명 기반 정책)</li>
+          <li><strong>누가 함수를 호출할 수 있는가</strong> → 함수의 리소스 기반 정책</li>
+        </ul>
+        <p>
+          Amazon ECS에도 같은 구분이 있습니다 —
+          <strong>태스크 역할</strong>과 <strong>태스크 실행 역할</strong>입니다
+          (<a href="lab09.html">실습 9</a>).
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-role">1 · 실행 역할</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">lambda-trust.json</span> — Lambda 서비스만 이 역할을 맡을 수 있게</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "lambda.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-role.sh</span> — 역할 생성과 로그 권한 부여 (계정 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws iam create-role \
+  --role-name Lab06ItemsFnRole \
+  --assume-role-policy-document file://lambda-trust.json
+
+# 로그를 쓸 권한은 AWS 관리형 정책으로 최소한만 붙입니다.
+aws iam attach-role-policy \
+  --role-name Lab06ItemsFnRole \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole</code></pre>
+      </figure>
+
+      <h3 id="step-function">2 · 함수 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">index.mjs</span> — 프록시 통합에 맞춘 응답 형태</figcaption>
+        <pre><code class="lang-javascript">export const handler = async (event) => {
+  const items = [
+    { id: 1, name: "alpha" },
+    { id: 2, name: "beta" }
+  ];
+
+  return {
+    statusCode: 200,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ items, path: event.rawPath ?? event.path })
+  };
+};</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-function.sh</span> — 압축 후 함수 생성 (런타임과 계정 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">zip -q function.zip index.mjs
+
+aws lambda create-function \
+  --function-name lab06-items \
+  --runtime nodejs22.x \
+  --role arn:aws:iam::123456789012:role/Lab06ItemsFnRole \
+  --handler index.handler \
+  --zip-file fileb://function.zip \
+  --timeout 10 \
+  --memory-size 256
+
+aws lambda wait function-active-v2 --function-name lab06-items</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          런타임 이름은 시간이 지나면 지원이 끝납니다.
+          위 값을 그대로 쓰기 전에
+          <code>aws lambda list-runtimes</code> 또는 지원 종료 일정 문서를 확인하고,
+          <strong>현재 지원되는 버전</strong>을 씁니다.
+        </p>
+        <p>
+          제한 시간의 기본값은 <strong>3초</strong>이고 최대는 <strong>900초(15분)</strong>입니다.
+          메모리는 기본 <strong>128 MB</strong>, 최대 <strong>10,240 MB</strong>이며
+          <strong>메모리를 늘리면 CPU 할당도 함께 늘어납니다.</strong>
+          CPU가 부족해 느린 함수는 메모리를 올려 해결되는 경우가 많습니다.
+        </p>
+      </aside>
+
+      <h3 id="step-api">3 · REST API 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-api.sh</span> — 리소스·메서드·프록시 통합 (리전과 계정 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">REGION=ap-northeast-2
+ACCOUNT=123456789012
+FN_ARN="arn:aws:lambda:$REGION:$ACCOUNT:function:lab06-items"
+
+API_ID=$(aws apigateway create-rest-api \
+  --name lab06-items-api \
+  --query 'id' --output text)
+
+ROOT_ID=$(aws apigateway get-resources \
+  --rest-api-id "$API_ID" \
+  --query 'items[?path==`/`].id' --output text)
+
+RES_ID=$(aws apigateway create-resource \
+  --rest-api-id "$API_ID" \
+  --parent-id "$ROOT_ID" \
+  --path-part items \
+  --query 'id' --output text)
+
+aws apigateway put-method \
+  --rest-api-id "$API_ID" \
+  --resource-id "$RES_ID" \
+  --http-method GET \
+  --authorization-type NONE
+
+# 프록시 통합은 항상 POST 로 Lambda 를 호출합니다. 클라이언트의 메서드와는 별개입니다.
+aws apigateway put-integration \
+  --rest-api-id "$API_ID" \
+  --resource-id "$RES_ID" \
+  --http-method GET \
+  --type AWS_PROXY \
+  --integration-http-method POST \
+  --uri "arn:aws:apigateway:$REGION:lambda:path/2015-03-31/functions/$FN_ARN/invocations"</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <code>--integration-http-method</code>는 <strong>항상 <code>POST</code></strong>입니다.
+          클라이언트가 <code>GET</code>을 보내더라도
+          API Gateway가 Lambda를 호출할 때 쓰는 메서드는 <code>POST</code>입니다.
+          여기를 <code>GET</code>으로 적으면 호출이 실패합니다.
+        </p>
+      </aside>
+
+      <h3 id="step-permission">4 · 호출 권한 부여</h3>
+      <p>
+        여기까지 만들어도 호출하면 실패합니다.
+        <strong>함수 쪽에 "이 API가 호출해도 된다"는 권한을 기록</strong>해야 합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">add-permission.sh</span> — 리소스 기반 권한 추가</figcaption>
+        <pre><code class="lang-bash">aws lambda add-permission \
+  --function-name lab06-items \
+  --statement-id apigw-invoke-items \
+  --action lambda:InvokeFunction \
+  --principal apigateway.amazonaws.com \
+  --source-arn "arn:aws:execute-api:$REGION:$ACCOUNT:$API_ID/*/GET/items"
+
+# 실제로 정책이 붙었는지 확인합니다.
+aws lambda get-policy --function-name lab06-items --query 'Policy' --output text</code></pre>
+      </figure>
+
+      <p>
+        <code>--source-arn</code>을 생략하면 <strong>모든 API Gateway가 이 함수를 호출할 수 있게</strong> 됩니다.
+        특정 API와 경로로 좁히는 것이 최소 권한 원칙에 맞습니다.
+      </p>
+
+      <h3 id="step-deploy">5 · 스테이지 배포</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">deploy-api.sh</span> — 스테이지 배포와 호출 URL 확인</figcaption>
+        <pre><code class="lang-bash">aws apigateway create-deployment \
+  --rest-api-id "$API_ID" \
+  --stage-name dev
+
+echo "https://$API_ID.execute-api.$REGION.amazonaws.com/dev/items"</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          REST API는 <strong>배포해야 변경이 반영됩니다.</strong>
+          메서드나 통합을 고쳐도 새 배포를 만들지 않으면 스테이지에는 옛 구성이 남습니다.
+          "고쳤는데 그대로다"의 대부분이 이 원인입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify.sh</span> — 함수 단독 호출과 API 경유 호출 비교</figcaption>
+        <pre><code class="lang-bash"># 1) 함수만 직접 호출해 로직을 확인합니다.
+aws lambda invoke \
+  --function-name lab06-items \
+  --payload '{"path":"/items"}' \
+  --cli-binary-format raw-in-base64-out \
+  response.json
+cat response.json
+
+# 2) API Gateway 의 테스트 호출로 통합 구간을 확인합니다.
+aws apigateway test-invoke-method \
+  --rest-api-id "$API_ID" \
+  --resource-id "$RES_ID" \
+  --http-method GET \
+  --query '[status, body]' --output json
+
+# 3) 함수 설정과 동시성 상태
+aws lambda get-function-configuration \
+  --function-name lab06-items \
+  --query '[Runtime, Timeout, MemorySize, State, LastUpdateStatus]' \
+  --output table</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>실패 지점을 좁히는 순서</caption>
+          <thead>
+            <tr>
+              <th scope="col">증상</th>
+              <th scope="col">확인할 곳</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">함수 직접 호출도 실패</th>
+              <td>코드와 핸들러 이름, 실행 역할의 로그 권한</td>
+            </tr>
+            <tr>
+              <th scope="row">직접 호출은 되고 API가 실패</th>
+              <td>리소스 기반 권한, 통합 URI, 통합 HTTP 메서드</td>
+            </tr>
+            <tr>
+              <th scope="row">테스트 호출은 되고 실제 URL이 실패</th>
+              <td>스테이지 배포 여부</td>
+            </tr>
+            <tr>
+              <th scope="row">응답이 이상한 형태로 나옴</th>
+              <td>프록시 통합이 요구하는 <code>statusCode</code>·<code>body</code> 구조</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요금이 발생하는 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Lambda 호출</th>
+              <td>호출 횟수와 실행 시간(메모리 크기가 곱해진다)</td>
+            </tr>
+            <tr>
+              <th scope="row">API Gateway 요청</th>
+              <td>요청 수와 전송량</td>
+            </tr>
+            <tr>
+              <th scope="row">CloudWatch Logs</th>
+              <td>수집량과 보존 기간. <strong>보존 기간을 정하지 않으면 무기한 쌓인다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">프로비저닝된 동시성</th>
+              <td>사용하지 않아도 준비된 만큼 발생한다</td>
+            </tr>
+            <tr>
+              <th scope="row">유휴 상태</th>
+              <td><span class="mark-ok">호출이 없으면 실행 요금이 없다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        메모리를 올리면 단위 시간당 요금은 오르지만 <strong>실행 시간이 짧아져 총액이 줄어드는</strong> 경우가 있습니다.
+        CPU 바운드 작업이라면 메모리를 몇 단계 바꿔 가며 실행 시간을 재 보는 것이
+        가장 확실한 최적화입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>인증을 붙입니다.</strong> IAM 인증, Lambda 권한 부여자, Amazon Cognito 등
+          요구에 맞는 방식을 고릅니다. <code>authorization-type NONE</code>을 그대로 두지 않습니다.</li>
+        <li><strong>사용량 계획과 API 키</strong>로 클라이언트별 속도를 제한할 수 있습니다.</li>
+        <li><strong>동시성을 관리합니다.</strong>
+          예약 동시성으로 한 함수가 계정 전체 동시성을 잠식하지 않게 막고,
+          지연에 민감한 함수에는 프로비저닝된 동시성으로 콜드 스타트를 줄입니다.</li>
+        <li><strong>로그 보존 기간</strong>을 명시적으로 설정합니다.</li>
+        <li><strong>VPC 연결은 필요할 때만.</strong>
+          VPC에 연결하면 인터넷이나 퍼블릭 AWS 엔드포인트로 나가기 위해
+          NAT 게이트웨이나 VPC 엔드포인트가 필요해집니다.</li>
+        <li><strong>배포는 별칭과 버전으로.</strong>
+          별칭에 가중치를 주면 점진적 전환이 가능합니다.</li>
+        <li><strong>동기 호출 페이로드 상한은 6 MB</strong>입니다.
+          큰 데이터를 주고받아야 하면 Amazon S3에 두고 키만 전달합니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — API, 함수, 역할, 로그 그룹 삭제</figcaption>
+        <pre><code class="lang-bash">aws apigateway delete-rest-api --rest-api-id "$API_ID"
+
+aws lambda delete-function --function-name lab06-items
+
+aws logs delete-log-group --log-group-name /aws/lambda/lab06-items
+
+aws iam detach-role-policy \
+  --role-name Lab06ItemsFnRole \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+aws iam delete-role --role-name Lab06ItemsFnRole</code></pre>
+      </figure>
+
+      <p>
+        <strong>로그 그룹은 함수를 지워도 남습니다.</strong>
+        보존 기간을 설정하지 않았다면 계속 쌓이므로 함께 정리합니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">리소스 기반 권한을 안 붙임</th>
+              <td>API 호출이 내부 서버 오류로 실패한다</td>
+              <td><code>lambda add-permission</code>으로 API를 허용한다</td>
+            </tr>
+            <tr>
+              <th scope="row">통합 HTTP 메서드를 <code>GET</code>으로</th>
+              <td>통합 호출이 실패한다</td>
+              <td>프록시 통합은 항상 <code>POST</code>다</td>
+            </tr>
+            <tr>
+              <th scope="row">스테이지를 배포하지 않음</th>
+              <td>변경이 반영되지 않는다</td>
+              <td><code>create-deployment</code>를 실행한다</td>
+            </tr>
+            <tr>
+              <th scope="row">응답 구조가 프록시 형식과 다름</th>
+              <td>본문이 그대로 나오지 않거나 오류가 난다</td>
+              <td><code>statusCode</code>·<code>headers</code>·<code>body</code>를 반환한다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>--source-arn</code> 생략</th>
+              <td>다른 API도 이 함수를 호출할 수 있다</td>
+              <td>API ID와 경로까지 지정해 좁힌다</td>
+            </tr>
+            <tr>
+              <th scope="row">제한 시간을 기본 3초로 둠</th>
+              <td>느린 의존 호출에서 함수가 잘린다</td>
+              <td>실제 처리 시간을 재고 조정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC에 연결해 두고 NAT 없음</th>
+              <td>외부 API 호출이 갑자기 멈춘다</td>
+              <td>NAT 게이트웨이나 VPC 엔드포인트를 추가한다(<a href="lab10.html">실습 10</a>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch12.html">
+          <span class="card__title">12장 · 서버리스와 애플리케이션 통합</span>
+          <span class="card__desc">Lambda 한도와 동시성, API Gateway, 이벤트 기반 통합을 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2</span>
+        </a></li>
+        <li><a class="card" href="lab07.html">
+          <span class="card__title">실습 7 · SQS + Lambda 비동기 처리</span>
+          <span class="card__desc">같은 함수를 큐로 트리거해 동기와 비동기의 차이를 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="lab08.html">
+          <span class="card__title">실습 8 · EventBridge 이벤트 아키텍처</span>
+          <span class="card__desc">규칙과 대상으로 이벤트를 라우팅하는 또 다른 호출 경로입니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case01.html">
+          <span class="card__title">케이스 1 · EC2에 액세스 키를 심어 배포했다</span>
+          <span class="card__desc">실행 역할이 왜 액세스 키를 대체하는지 사고 사례로 확인합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="lab09.html">
+          <span class="card__title">실습 9 · ECS Fargate 서비스 배포</span>
+          <span class="card__desc">태스크 역할과 태스크 실행 역할로 같은 권한 구분을 다시 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/api/API_CreateFunction.html">AWS Lambda API 레퍼런스 — CreateFunction</a>
+          — 제한 시간 기본 3초·최대 900초, 메모리 기본 128 MB와 CPU 동반 증가, 런타임 값</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/api/API_AddPermission.html">AWS Lambda API 레퍼런스 — AddPermission</a>
+          — 리소스 기반 정책에 호출 주체와 <code>SourceArn</code>을 기록하는 방식</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html">AWS Lambda 개발자 안내서 — 할당량</a>
+          — 실행 시간·메모리·동기 호출 페이로드 상한</li>
+        <li><a href="https://docs.aws.amazon.com/apigateway/latest/api/API_CreateRestApi.html">Amazon API Gateway API 레퍼런스 — CreateRestApi</a>
+          — REST API 생성</li>
+        <li><a href="https://docs.aws.amazon.com/apigateway/latest/api/API_PutIntegration.html">Amazon API Gateway API 레퍼런스 — PutIntegration</a>
+          — 통합 유형(<code>AWS_PROXY</code> 등)과 통합 HTTP 메서드</li>
+        <li><a href="https://docs.aws.amazon.com/apigateway/latest/api/API_CreateDeployment.html">Amazon API Gateway API 레퍼런스 — CreateDeployment</a>
+          — 스테이지 배포가 있어야 변경이 반영된다는 동작</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>한도와 기본값 — AWS SAA Guide</title>
+  <meta name="description" content="확인된 한도와 기본값만 실은 표입니다. S3 단일 객체 50 TB와 단일 PUT 5 GB, 멀티파트 제약, gp3 상한 64 TiB · 80,000 IOPS · 2,000 MiB/s, Lambda 900초, SQS 큐 속성의 범위와 기본값, DynamoDB 인덱스 상한을 근거와 함께 정리하고, 확인하지 못한 값은 싣지 않은 이유와 함께 밝힙니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cheatsheet" data-page="limits"></div>
+
+  <main id="main" class="page page--wide" data-page-id="cheatsheet/limits">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">빠른참조</a></li>
+        <li><span aria-current="page">한도와 기본값</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">빠른참조 · 3</p>
+      <h1>한도와 기본값</h1>
+      <p class="page__lead">
+        외워 두면 선택지 하나를 즉시 소거할 수 있는 한도와 기본값입니다.
+        모든 행에 <strong>근거 문서</strong>를 붙였습니다.
+      </p>
+      <p class="page__meta">
+        시중 자료가 옛 값을 그대로 싣고 있는 항목이 여럿 있습니다.
+        특히 <a href="#s3-limits">S3 단일 객체 최대 크기</a>와
+        <a href="#ebs-limits">gp3 상한</a>은 상향된 값이 정답입니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">이 페이지 쓰는 법</h2>
+      <ul>
+        <li>표마다 있는 검색 상자로 항목을 걸러 낼 수 있습니다. <kbd>Esc</kbd>로 초기화됩니다.</li>
+        <li><strong>기본값</strong>이 적힌 행을 먼저 외웁니다. 시험은 상한보다 기본값을 더 자주 묻습니다.</li>
+        <li>값이 헷갈리면 근거 열의 문서명을 확인하고 <a href="#sources">공식 문서 출처</a>에서 원문을 엽니다.</li>
+        <li><a href="#not-listed">싣지 않은 값</a> 절을 반드시 읽으십시오. 여기 없는 숫자는 외우지 않는 것이 맞습니다.</li>
+        <li>이 값들을 반복 암기하려면 <a href="../saa/flashcards.html">플래시카드</a>로 넘어갑니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="principle">
+      <h2 id="principle">이 페이지의 원칙 — 확인된 값만 싣습니다</h2>
+
+      <aside class="note note--warn" data-label="수록 기준">
+        <p>
+          이 페이지에는 <strong>AWS가 배포하는 1차 소스에서 실제로 확인한 값만</strong> 실었습니다.
+          널리 알려져 있어도 확인하지 못한 숫자는 <strong>일부러 비워 두었습니다.</strong>
+          비워 둔 항목과 그 이유는 <a href="#not-listed">싣지 않은 값</a>에 모아 두었습니다.
+        </p>
+        <p>
+          확인되지 않은 수치를 "대략" 이나 "보통" 이라는 말과 함께 싣는 것이
+          가장 나쁜 선택입니다. 학습자가 그 값을 확인된 값과 구분할 수 없게 되고,
+          시험장에서 근거 없는 숫자를 믿게 되기 때문입니다.
+        </p>
+      </aside>
+
+      <p>
+        <strong>요금 금액은 어떤 항목도 싣지 않습니다.</strong>
+        금액은 리전과 시점에 따라 달라져 학습 자료에 고정할 값이 아니고,
+        시험도 금액을 묻지 않습니다. 비용은 <a href="cost.html">요금 구조와 절감</a>에서
+        과금 축과 상대 비교로만 다룹니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>시중 자료가 옛 값을 싣고 있어 특히 주의할 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">옛 자료의 값</th>
+              <th scope="col">현행 값</th>
+              <th scope="col">변경 시점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 단일 객체 최대 크기</th>
+              <td>5 TB</td>
+              <td><strong>50 TB</strong></td>
+              <td>2025년 12월</td>
+            </tr>
+            <tr>
+              <th scope="row">EBS gp3 최대 크기</th>
+              <td>16 TiB</td>
+              <td><strong>64 TiB</strong></td>
+              <td>2025년 9월</td>
+            </tr>
+            <tr>
+              <th scope="row">EBS gp3 최대 IOPS</th>
+              <td>16,000</td>
+              <td><strong>80,000</strong></td>
+              <td>2025년 9월</td>
+            </tr>
+            <tr>
+              <th scope="row">EBS gp3 최대 처리량</th>
+              <td>1,000 MiB/s</td>
+              <td><strong>2,000 MiB/s</strong></td>
+              <td>2025년 9월</td>
+            </tr>
+            <tr>
+              <th scope="row">Route 53 라우팅 정책 수</th>
+              <td>6가지 또는 7가지</td>
+              <td><strong>8가지</strong></td>
+              <td>지리 근접과 IP 기반이 누락된 것입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="s3-limits">
+      <h2 id="s3-limits">Amazon S3</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-s3">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-s3" data-target="#t-s3" type="search" placeholder="항목 또는 값">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table" id="t-s3">
+          <caption>Amazon S3의 확인된 한도와 기본값</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">함께 기억할 것</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">단일 객체 최대 크기</th>
+              <td><strong>50 TB</strong></td>
+              <td>2025년 12월에 5 TB에서 상향되었습니다. 옛 값을 고르면 오답입니다</td>
+              <td>Amazon S3 API 레퍼런스 — CopyObject</td>
+            </tr>
+            <tr>
+              <th scope="row">단일 PUT 업로드 최대</th>
+              <td>5 GB</td>
+              <td>그 이상은 멀티파트 업로드를 써야 합니다. 50 TB와 혼동하지 않습니다</td>
+              <td>Amazon S3 사용 설명서 — 멀티파트 업로드 개요</td>
+            </tr>
+            <tr>
+              <th scope="row">CopyObject 단일 호출 최대</th>
+              <td>5 GB</td>
+              <td>그 이상은 멀티파트 업로드 복사를 씁니다</td>
+              <td>Amazon S3 API 레퍼런스 — CopyObject</td>
+            </tr>
+            <tr>
+              <th scope="row">멀티파트 파트 최소 크기</th>
+              <td>5 MB</td>
+              <td>마지막 파트는 예외입니다. 더 작으면 <code>EntityTooSmall</code> 오류가 납니다</td>
+              <td>Amazon S3 API 레퍼런스 — UploadPart</td>
+            </tr>
+            <tr>
+              <th scope="row">멀티파트 파트 번호</th>
+              <td>1 ~ 10,000</td>
+              <td>파트 수의 상한이기도 합니다</td>
+              <td>Amazon S3 API 레퍼런스 — UploadPart</td>
+            </tr>
+            <tr>
+              <th scope="row">계정당 범용 버킷 수</th>
+              <td>기본 <strong>10,000개</strong></td>
+              <td>할당량 상향이 가능하며, 상향한 계정은 페이지네이션 요청만 허용됩니다</td>
+              <td>Amazon S3 API 레퍼런스 — ListBuckets</td>
+            </tr>
+            <tr>
+              <th scope="row">버킷 이름 유효 범위</th>
+              <td>파티션 안에서 전역 고유</td>
+              <td>같은 파티션의 모든 계정·모든 리전을 통틀어 이름이 겹칠 수 없습니다</td>
+              <td>Amazon S3 API 레퍼런스 — CreateBucket</td>
+            </tr>
+            <tr>
+              <th scope="row">신규 버킷 기본값 — 퍼블릭 액세스</th>
+              <td>차단 켜짐</td>
+              <td>퍼블릭 ACL로 버킷을 만들려는 요청은 실패합니다</td>
+              <td>Amazon S3 API 레퍼런스 — CreateBucket</td>
+            </tr>
+            <tr>
+              <th scope="row">신규 버킷 기본값 — 객체 소유권</th>
+              <td><code>BucketOwnerEnforced</code></td>
+              <td>ACL이 비활성입니다. 접근 제어는 버킷 정책으로 합니다</td>
+              <td>Amazon S3 API 레퍼런스 — CreateBucket</td>
+            </tr>
+            <tr>
+              <th scope="row">신규 버킷 기본값 — 암호화</th>
+              <td>SSE-S3 자동 적용</td>
+              <td>2023년 1월부터 모든 신규 객체가 자동 암호화됩니다</td>
+              <td>Amazon S3 사용 설명서 — 기본 암호화 FAQ</td>
+            </tr>
+            <tr>
+              <th scope="row">신규 버킷 기본값 — 버전 관리</th>
+              <td>비활성</td>
+              <td>다른 기본값이 강화된 것과 달리 버전 관리는 여전히 꺼져 있습니다</td>
+              <td>Amazon S3 API 레퍼런스 — PutBucketVersioning</td>
+            </tr>
+            <tr>
+              <th scope="row">일관성 모델</th>
+              <td>강력한 읽기 후 쓰기 일관성</td>
+              <td>모든 리전에서 PUT · 덮어쓰기 PUT · DELETE · LIST에 적용됩니다 (2020년 12월부터)</td>
+              <td>Amazon S3 사용 설명서 — Amazon S3란</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="s3-storage-class-limits">스토리지 클래스의 최소 저장 기간과 최소 청구 크기</h3>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>S3 스토리지 클래스별 가용 영역 수 · 최소 저장 기간 · 최소 청구 객체 크기</caption>
+          <thead>
+            <tr>
+              <th scope="col">클래스</th>
+              <th scope="col">가용 영역 수</th>
+              <th scope="col">최소 저장 기간</th>
+              <th scope="col">최소 청구 크기</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 Standard</th>
+              <td>3개 이상</td>
+              <td>없음</td>
+              <td>없음</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Intelligent-Tiering</th>
+              <td>3개 이상</td>
+              <td>없음</td>
+              <td>없음</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Standard-IA</th>
+              <td>3개 이상</td>
+              <td><strong>30일</strong></td>
+              <td>128 KB</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 One Zone-IA</th>
+              <td><strong>1개</strong></td>
+              <td><strong>30일</strong></td>
+              <td>128 KB</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Instant Retrieval</th>
+              <td>3개 이상</td>
+              <td><strong>90일</strong></td>
+              <td>128 KB</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Flexible Retrieval</th>
+              <td>3개 이상</td>
+              <td><strong>90일</strong></td>
+              <td>40 KB</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Deep Archive</th>
+              <td>3개 이상</td>
+              <td><strong>180일</strong></td>
+              <td>40 KB</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>아카이브 복원 시간과 수명 주기 전환 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Glacier Flexible Retrieval 복원 — 신속</th>
+              <td>1 ~ 5분</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">Glacier Flexible Retrieval 복원 — 대량</th>
+              <td>5 ~ 12시간</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">Glacier Deep Archive 복원 — 기본</th>
+              <td>12시간</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">Intelligent-Tiering 아카이브 액세스 티어 이동</th>
+              <td>90일 미접근</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">Intelligent-Tiering 딥 아카이브 액세스 티어 이동</th>
+              <td>180일 미접근</td>
+              <td>Amazon S3 사용 설명서 — 스토리지 클래스</td>
+            </tr>
+            <tr>
+              <th scope="row">Standard-IA · One Zone-IA로 전환 조건</th>
+              <td>객체가 최소 30일 저장되어 있어야 합니다</td>
+              <td>Amazon S3 사용 설명서 — 수명 주기 전환 시 일반 고려 사항</td>
+            </tr>
+            <tr>
+              <th scope="row">전환에서 제외되는 객체</th>
+              <td>128 KB 미만</td>
+              <td>Amazon S3 사용 설명서 — 수명 주기 전환 시 일반 고려 사항</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="ebs-limits">
+      <h2 id="ebs-limits">Amazon EBS</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-ebs">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-ebs" data-target="#t-ebs" type="search" placeholder="볼륨 타입 또는 값">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table" id="t-ebs">
+          <caption>EBS 볼륨 타입별 크기 범위 · IOPS · 처리량</caption>
+          <thead>
+            <tr>
+              <th scope="col">볼륨 타입</th>
+              <th scope="col">분류</th>
+              <th scope="col">크기 범위</th>
+              <th scope="col">IOPS</th>
+              <th scope="col">처리량</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>gp3</code></th>
+              <td>범용 SSD</td>
+              <td>1 ~ <strong>65,536 GiB</strong> (64 TiB)</td>
+              <td><strong>3,000(기본) ~ 80,000</strong></td>
+              <td><strong>125(기본) ~ 2,000 MiB/s</strong></td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>gp2</code></th>
+              <td>범용 SSD</td>
+              <td>1 ~ 16,384 GiB</td>
+              <td>지정 불가 — 크기에 비례합니다</td>
+              <td>지정 불가</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>io1</code></th>
+              <td>프로비저닝된 IOPS SSD</td>
+              <td>4 ~ 16,384 GiB</td>
+              <td>100 ~ <strong>64,000</strong></td>
+              <td>지정 불가</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>io2</code></th>
+              <td>프로비저닝된 IOPS SSD</td>
+              <td>4 ~ 65,536 GiB</td>
+              <td>100 ~ <strong>256,000</strong></td>
+              <td>지정 불가</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>st1</code></th>
+              <td>처리량 최적화 HDD</td>
+              <td>125 ~ 16,384 GiB</td>
+              <td>해당 없음</td>
+              <td>해당 없음</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>sc1</code></th>
+              <td>콜드 HDD</td>
+              <td>125 ~ 16,384 GiB</td>
+              <td>해당 없음</td>
+              <td>해당 없음</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>standard</code></th>
+              <td>마그네틱 (구세대)</td>
+              <td>1 ~ 1,024 GiB</td>
+              <td>해당 없음</td>
+              <td>해당 없음</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>EBS의 그 밖의 확인된 기본값과 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">볼륨 타입 기본값</th>
+              <td><code>gp2</code> — <code>VolumeType</code>을 지정하지 않으면 적용됩니다</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row">부트 볼륨으로 쓸 수 없는 타입</th>
+              <td><code>st1</code>과 <code>sc1</code></td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 측 IOPS 상한 — Nitro 시스템</th>
+              <td>최대 256,000</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 측 IOPS 상한 — 그 외</th>
+              <td>최대 32,000</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateVolume</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          <code>gp3</code>의 상한은 2025년 9월에 크게 올랐습니다.
+          최대 크기 16 TiB에서 <strong>64 TiB</strong>로,
+          최대 IOPS 16,000에서 <strong>80,000</strong>으로,
+          최대 처리량 1,000 MiB/s에서 <strong>2,000 MiB/s</strong>로 상향되었습니다.
+          기준값(3,000 IOPS · 125 MiB/s)은 그대로입니다.
+          한국어 자료 대부분이 아직 옛 값을 싣고 있으므로 특히 주의하십시오.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="lambda-limits">
+      <h2 id="lambda-limits">AWS Lambda</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-lambda">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-lambda" data-target="#t-lambda" type="search" placeholder="항목 또는 값">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table" id="t-lambda">
+          <caption>AWS Lambda의 확인된 한도와 기본값</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">기본값</th>
+              <th scope="col">범위</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">실행 시간(타임아웃)</th>
+              <td>3초</td>
+              <td>최대 <strong>900초(15분)</strong></td>
+              <td>AWS Lambda 개발자 안내서 — 할당량</td>
+            </tr>
+            <tr>
+              <th scope="row">메모리</th>
+              <td>128 MB</td>
+              <td>128 MB ~ <strong>10,240 MB</strong>, 1 MB 단위</td>
+              <td>AWS Lambda API 레퍼런스 — CreateFunction</td>
+            </tr>
+            <tr>
+              <th scope="row">임시 스토리지 <code>/tmp</code></th>
+              <td>512 MB</td>
+              <td>512 MB ~ 10,240 MB</td>
+              <td>AWS Lambda API 레퍼런스 — CreateFunction</td>
+            </tr>
+            <tr>
+              <th scope="row">동기 호출 페이로드</th>
+              <td>해당 없음</td>
+              <td>최대 6 MB</td>
+              <td>AWS Lambda 개발자 안내서 — 할당량</td>
+            </tr>
+            <tr>
+              <th scope="row">메모리와 CPU의 관계</th>
+              <td colspan="2">메모리를 늘리면 <strong>CPU 할당도 함께 증가</strong>합니다. 이것이 "함수가 느리다"에 대한 첫 처방인 이유입니다</td>
+              <td>AWS Lambda API 레퍼런스 — CreateFunction</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          실행 시간이 <strong>900초</strong>라는 사실은 문항에서 자주 소거 근거가 됩니다.
+          "몇 시간 걸리는 배치 처리" 시나리오에서 AWS Lambda가 보이면 그 자리에서 뺄 수 있습니다.
+          답은 AWS Batch, Amazon ECS, AWS Step Functions로 쪼갠 워크플로 쪽입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sqs-limits">
+      <h2 id="sqs-limits">Amazon SQS</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-sqs">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-sqs" data-target="#t-sqs" type="search" placeholder="속성 또는 값">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table" id="t-sqs">
+          <caption>Amazon SQS 큐 속성의 범위와 기본값</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">범위</th>
+              <th scope="col">기본값</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>VisibilityTimeout</code> (가시성 제한 시간)</th>
+              <td>0초 ~ <strong>12시간</strong></td>
+              <td><strong>30초</strong></td>
+              <td>Amazon SQS API 레퍼런스 — CreateQueue</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>MessageRetentionPeriod</code> (보존 기간)</th>
+              <td>60초 ~ <strong>14일</strong></td>
+              <td><strong>4일</strong></td>
+              <td>Amazon SQS API 레퍼런스 — CreateQueue</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>MaximumMessageSize</code> (메시지 크기)</th>
+              <td>1 KiB ~ <strong>1 MiB</strong></td>
+              <td>1 MiB</td>
+              <td>Amazon SQS API 레퍼런스 — CreateQueue</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>DelaySeconds</code> (지연 큐)</th>
+              <td>0초 ~ 900초(15분)</td>
+              <td>0초</td>
+              <td>Amazon SQS API 레퍼런스 — CreateQueue</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>ReceiveMessageWaitTimeSeconds</code> (롱 폴링)</th>
+              <td>0초 ~ 20초</td>
+              <td>0초 — 기본은 숏 폴링입니다</td>
+              <td>Amazon SQS API 레퍼런스 — CreateQueue</td>
+            </tr>
+            <tr>
+              <th scope="row">한 번에 받는 메시지 수</th>
+              <td>1 ~ 10개</td>
+              <td>1개</td>
+              <td>Amazon SQS API 레퍼런스 — ReceiveMessage</td>
+            </tr>
+            <tr>
+              <th scope="row">배치 전송 메시지 수</th>
+              <td>최대 10개</td>
+              <td>해당 없음</td>
+              <td>Amazon SQS API 레퍼런스 — SendMessageBatch</td>
+            </tr>
+            <tr>
+              <th scope="row">큐 삭제 후 같은 이름 재생성</th>
+              <td>최소 60초 대기</td>
+              <td>해당 없음</td>
+              <td>Amazon SQS API 레퍼런스 — DeleteQueue</td>
+            </tr>
+            <tr>
+              <th scope="row">FIFO 큐 처리량 — 배치 없이</th>
+              <td>초당 300개</td>
+              <td>해당 없음</td>
+              <td>Amazon SQS 개발자 안내서 — 고처리량 FIFO 큐</td>
+            </tr>
+            <tr>
+              <th scope="row">FIFO 큐 처리량 — 배치 사용</th>
+              <td>초당 3,000개</td>
+              <td>해당 없음</td>
+              <td>Amazon SQS 개발자 안내서 — 고처리량 FIFO 큐</td>
+            </tr>
+            <tr>
+              <th scope="row">표준 큐 처리량</th>
+              <td>거의 무제한 — 수치로 정해져 있지 않습니다</td>
+              <td>해당 없음</td>
+              <td>Amazon SQS 개발자 안내서 — 고처리량 FIFO 큐</td>
+            </tr>
+            <tr>
+              <th scope="row">큐 타입 기본값</th>
+              <td><code>FifoQueue</code>를 지정하지 않으면 표준 큐입니다</td>
+              <td>표준 큐</td>
+              <td>Amazon SQS API 레퍼런스 — CreateQueue</td>
+            </tr>
+            <tr>
+              <th scope="row">큐 타입 변경</th>
+              <td>생성 후 변경할 수 없습니다 — 표준 큐를 FIFO로 바꿀 수 없습니다</td>
+              <td>해당 없음</td>
+              <td>Amazon SQS API 레퍼런스 — CreateQueue</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          가시성 제한 시간 문항의 판단은 하나입니다 —
+          <strong>가시성 제한 시간이 처리 시간보다 짧으면 같은 메시지가 중복 처리</strong>됩니다.
+          기본값 30초로 두고 5분 걸리는 작업을 시키면 정확히 이 현상이 납니다.
+          처방은 가시성 제한 시간을 처리 시간보다 길게 잡거나,
+          처리 중에 연장하는 것입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="dynamodb-limits">
+      <h2 id="dynamodb-limits">Amazon DynamoDB</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-ddb">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-ddb" data-target="#t-ddb" type="search" placeholder="항목 또는 값">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table" id="t-ddb">
+          <caption>Amazon DynamoDB의 확인된 한도와 기본값</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">함께 기억할 것</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">테이블당 LSI 최대 개수</th>
+              <td><strong>5개</strong></td>
+              <td>테이블 생성 시에만 만들 수 있습니다</td>
+              <td>Amazon DynamoDB API 레퍼런스 — CreateTable</td>
+            </tr>
+            <tr>
+              <th scope="row">테이블당 GSI 최대 개수</th>
+              <td><strong>20개</strong></td>
+              <td>운영 중에 추가·삭제할 수 있습니다</td>
+              <td>Amazon DynamoDB API 레퍼런스 — CreateTable</td>
+            </tr>
+            <tr>
+              <th scope="row">LSI 크기 제약</th>
+              <td>파티션 키 값당 <strong>10 GB</strong></td>
+              <td>GSI에는 이 제약이 없습니다</td>
+              <td>Amazon DynamoDB API 레퍼런스 — CreateTable</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>INCLUDE</code> 프로젝션의 비키 속성 총합</th>
+              <td>모든 보조 인덱스를 통틀어 100개</td>
+              <td>같은 속성을 두 인덱스에 넣으면 2개로 셉니다</td>
+              <td>Amazon DynamoDB API 레퍼런스 — CreateTable</td>
+            </tr>
+            <tr>
+              <th scope="row">프로젝션 타입</th>
+              <td><code>KEYS_ONLY</code> · <code>INCLUDE</code> · <code>ALL</code></td>
+              <td>LSI와 GSI가 동일합니다</td>
+              <td>Amazon DynamoDB API 레퍼런스 — CreateTable</td>
+            </tr>
+            <tr>
+              <th scope="row">용량 모드 변경</th>
+              <td>생성 후 변경할 수 있습니다</td>
+              <td>"변경할 수 없다"는 선택지는 오답입니다</td>
+              <td>Amazon DynamoDB API 레퍼런스 — CreateTable</td>
+            </tr>
+            <tr>
+              <th scope="row">용량 모드 권장</th>
+              <td>대부분의 워크로드에 온디맨드(<code>PAY_PER_REQUEST</code>)</td>
+              <td>예측 가능한 안정적 부하에는 프로비저닝을 권합니다</td>
+              <td>Amazon DynamoDB API 레퍼런스 — CreateTable</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="vpc-limits">
+      <h2 id="vpc-limits">Amazon VPC</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-vpc">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-vpc" data-target="#t-vpc" type="search" placeholder="항목 또는 값">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table" id="t-vpc">
+          <caption>Amazon VPC의 확인된 크기 제약과 예약 주소</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">함께 기억할 것</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">VPC IPv4 CIDR 크기</th>
+              <td><code>/16</code> ~ <code>/28</code></td>
+              <td>CIDR 블록은 최대 5개까지 붙일 수 있고, 이 개수는 조정 가능한 할당량입니다</td>
+              <td>Amazon VPC 사용 설명서 — VPC와 서브넷</td>
+            </tr>
+            <tr>
+              <th scope="row">서브넷 IPv4 CIDR 크기</th>
+              <td><code>/16</code> ~ <code>/28</code></td>
+              <td>만든 뒤에는 바꿀 수 없습니다</td>
+              <td>Amazon VPC 사용 설명서 — VPC와 서브넷</td>
+            </tr>
+            <tr>
+              <th scope="row">IPv6 CIDR 크기</th>
+              <td>VPC는 <code>/56</code> 고정, 서브넷은 <code>/64</code> 고정</td>
+              <td>VPC의 IPv6 블록 최대 5개는 조정할 수 없습니다</td>
+              <td>Amazon VPC 사용 설명서 — VPC와 서브넷</td>
+            </tr>
+            <tr>
+              <th scope="row">서브넷마다 예약되는 주소</th>
+              <td><strong>5개</strong></td>
+              <td>처음 네 개와 마지막 하나입니다. <code>/24</code>는 251개, <code>/28</code>은 11개만 씁니다</td>
+              <td>Amazon VPC 사용 설명서 — 서브넷의 IP 주소 지정</td>
+            </tr>
+            <tr>
+              <th scope="row">기본 VPC의 CIDR</th>
+              <td><code>172.31.0.0/16</code></td>
+              <td>가용 영역마다 <code>/20</code> 기본 서브넷이 만들어집니다</td>
+              <td>Amazon VPC 사용 설명서 — 기본 VPC</td>
+            </tr>
+            <tr>
+              <th scope="row">서브넷과 가용 영역</th>
+              <td>서브넷 하나는 가용 영역 하나에만 존재합니다</td>
+              <td>다중 가용 영역 설계는 곧 서브넷을 여러 개 만드는 일입니다</td>
+              <td>Amazon VPC 사용 설명서 — VPC와 서브넷</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="other-limits">
+      <h2 id="other-limits">그 밖의 확인된 값</h2>
+
+      <div class="toolbar">
+        <div class="field">
+          <label for="filter-other">이 표에서 찾기</label>
+          <input class="cheat-filter" id="filter-other" data-target="#t-other" type="search" placeholder="서비스 또는 항목">
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table" id="t-other">
+          <caption>그 밖의 서비스에서 확인된 기본값과 개수</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Elastic Load Balancing</th>
+              <td>교차 영역 로드 밸런싱 기본값 — ALB</td>
+              <td>켜짐. <strong>끌 수 없습니다</strong></td>
+              <td>Elastic Load Balancing API 레퍼런스 — LoadBalancerAttribute</td>
+            </tr>
+            <tr>
+              <th scope="row">Elastic Load Balancing</th>
+              <td>교차 영역 로드 밸런싱 기본값 — NLB · GWLB</td>
+              <td>꺼짐. 변경할 수 있습니다</td>
+              <td>Elastic Load Balancing API 레퍼런스 — LoadBalancerAttribute</td>
+            </tr>
+            <tr>
+              <th scope="row">Elastic Load Balancing</th>
+              <td>로드 밸런서 타입</td>
+              <td><code>application</code> · <code>network</code> · <code>gateway</code> 세 가지</td>
+              <td>Elastic Load Balancing API 레퍼런스 — CreateLoadBalancer</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Route 53</th>
+              <td>라우팅 정책 개수</td>
+              <td><strong>8가지</strong> — 단순 · 가중치 · 지연 시간 · 장애 조치 · 지리 위치 · 지리 근접 · 다중값 응답 · IP 기반</td>
+              <td>Amazon Route 53 API 레퍼런스 — ResourceRecordSet</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Route 53</th>
+              <td><code>SetIdentifier</code> 필요 여부</td>
+              <td>단순 라우팅을 제외한 모든 정책에 필요합니다</td>
+              <td>Amazon Route 53 API 레퍼런스 — ResourceRecordSet</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS KMS</th>
+              <td>고객 관리형 키 자동 교체 주기</td>
+              <td>기본 365일. <code>RotationPeriodInDays</code>로 조정할 수 있습니다</td>
+              <td>AWS KMS API 레퍼런스 — EnableKeyRotation</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS KMS</th>
+              <td>AWS 관리형 키 교체</td>
+              <td>매년 자동 교체되며 켜고 끌 수 없습니다</td>
+              <td>AWS KMS API 레퍼런스 — EnableKeyRotation</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS KMS</th>
+              <td>자동 교체 지원 대상</td>
+              <td>대칭 암호화 키만 — 비대칭 · HMAC · 가져온 키 재료 · 사용자 지정 키 스토어는 제외</td>
+              <td>AWS KMS API 레퍼런스 — EnableKeyRotation</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon RDS</th>
+              <td>Multi-AZ 배포에서 가용 영역 지정</td>
+              <td>지정할 수 없습니다</td>
+              <td>Amazon RDS API 레퍼런스 — CreateDBInstance</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon RDS</th>
+              <td>읽기 전용 복제본 생성 조건</td>
+              <td>원본의 백업 보존이 켜져 있어야 하고, 복제본은 백업이 비활성 상태로 만들어집니다</td>
+              <td>Amazon RDS API 레퍼런스 — CreateDBInstanceReadReplica</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EC2</th>
+              <td>기본 보안 그룹의 규칙</td>
+              <td>같은 그룹에 속한 인스턴스끼리 제한 없는 접근을 허용합니다</td>
+              <td>Amazon EC2 API 레퍼런스 — CreateSecurityGroup</td>
+            </tr>
+            <tr>
+              <th scope="row">SAA-C03 시험</th>
+              <td>문항 수 · 시간 · 합격 점수</td>
+              <td>65문항(채점 50 + 비채점 15) · 130분 · 720점 / 100–1000 스케일</td>
+              <td>SAA-C03 시험 가이드</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="not-listed">
+      <h2 id="not-listed">싣지 않은 값과 그 이유</h2>
+
+      <p>
+        아래 항목은 널리 알려져 있고 다른 자료에서 흔히 보이지만,
+        이 사이트가 접근할 수 있는 <strong>AWS 1차 소스에서 현행 값으로 확인하지 못했습니다.</strong>
+        그래서 싣지 않았습니다. <strong>여기 있는 항목은 외우지 않는 편이 낫습니다.</strong>
+        시험에서 그 값을 직접 묻는 문항이 나온다면 다른 근거로 소거하십시오.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>확인하지 못해 이 페이지에 싣지 않은 값</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">싣지 않은 이유</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">모든 요금 금액</th>
+              <td>GB당 · 시간당 · 요청 100만 건당 금액을 포함해 <strong>전면 제외</strong>합니다. 리전과 시점에 따라 달라져 학습 자료에 고정할 값이 아닙니다</td>
+            </tr>
+            <tr>
+              <th scope="row">무료 티어 한도, 약정·스팟 할인율</th>
+              <td>요금과 같은 이유입니다. "최대 몇 퍼센트 절감" 같은 수치도 쓰지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>gp2</code> 최대 IOPS와 GiB당 IOPS 비율</th>
+              <td><code>gp2</code>는 <code>Iops</code> 파라미터를 받지 않아 API 모델에 수치가 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>st1</code> · <code>sc1</code>의 기준 처리량과 버스트 처리량</th>
+              <td>API 모델에 수치가 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Lambda 배포 패키지 크기 상한, 기본 동시 실행 한도, 비동기 호출 페이로드</th>
+              <td>동기 호출 페이로드 6 MB만 확인했습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">SQS 고처리량 FIFO 모드의 정확한 초당 메시지 수</th>
+              <td>리전마다 다릅니다. 배치 유무에 따른 300과 3,000만 확정된 값입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">SQS 인플라이트 메시지 상한</th>
+              <td>API 문서가 상한의 존재만 언급하고 수치를 주지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 게이트웨이 대역폭 상한</th>
+              <td>확인하지 못했습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">계정당 VPC 수, VPC당 서브넷 수 같은 VPC 쿼터</th>
+              <td>API 문서가 별도의 할당량 페이지로 연결만 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Aurora 복제본 최대 개수, Aurora 스토리지 최대 크기</th>
+              <td>확인하지 못했습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">EFS · FSx의 성능 모드별 처리량 수치</th>
+              <td>확인하지 못했습니다. 선택 판단에는 프로토콜과 워크로드 종류가 쓰이므로 <a href="compare.html#efs-vs-fsx">그쪽 비교표</a>를 보십시오</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 스토리지 클래스별 설계 가용성 수치</th>
+              <td>현행 값으로 교차 확인하지 못했습니다. 판단에 쓰이는 <strong>가용 영역 수</strong>는 확인된 값이라 실었습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">CloudFront 엣지 로케이션 개수</th>
+              <td>수시로 바뀝니다. 애초에 외울 값이 아닙니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS 전체 리전 수와 가용 영역 수</th>
+              <td>집계 기준에 따라 달라집니다. "AWS는 총 몇 개 리전을 운영한다" 형태의 문장은 쓰지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">SAA-C03 은퇴 예정일</th>
+              <td>발표되지 않았습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="이 원칙이 학습에 주는 이득">
+        <p>
+          한도 문항의 상당수는 숫자를 정확히 아는지가 아니라
+          <strong>자릿수 감각으로 소거할 수 있는지</strong>를 봅니다.
+          "Lambda로 세 시간짜리 배치를 돌린다"는 900초만 알면 걸러지고,
+          "SQS 메시지에 500 MB 파일을 넣는다"는 1 MiB만 알면 걸러집니다.
+          확인된 값 몇 개를 정확히 아는 것이, 확인되지 않은 값 수십 개를 흐릿하게 아는 것보다 강합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../saa/flashcards.html">
+          <span class="card__title">플래시카드</span>
+          <span class="card__desc">한도와 값을 간격 반복으로 외웁니다. 세 번 연속 맞히면 졸업합니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="compare.html">
+          <span class="card__title">헷갈리는 쌍 비교</span>
+          <span class="card__desc">여기 실린 숫자가 어느 비교에서 결정적인지 속성 대조표로 확인합니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/cram.html">
+          <span class="card__title">벼락치기 요약</span>
+          <span class="card__desc">시험 전날 한 번에 훑는 단일 페이지입니다. 이 페이지의 값 중 자주 나오는 것만 추렸습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch06.html">
+          <span class="card__title">6장 · EBS와 블록 스토리지</span>
+          <span class="card__desc">gp3 상한이 왜 그렇게 바뀌었는지, 볼륨 타입 선택이 어떤 판단인지 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch08.html#storage-classes">
+          <span class="card__title">8장 · S3와 오브젝트 스토리지</span>
+          <span class="card__desc">최소 저장 기간과 최소 청구 크기가 실제 비용에 어떻게 작용하는지 설명합니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="services.html">
+          <span class="card__title">서비스 한 줄 정의</span>
+          <span class="card__desc">한도를 확인하기 전에 서비스의 정체와 담당 문제를 먼저 잡습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 페이지의 모든 값은 아래 문서에서 확인했습니다. 표의 근거 열이 이 목록의 항목을 가리킵니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html">Amazon S3 API 레퍼런스 — CopyObject</a>
+          — 단일 객체 최대 50 TB, 단일 복사 호출 최대 5 GB</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html">Amazon S3 사용 설명서 — 멀티파트 업로드 개요</a>
+          — 단일 업로드 요청의 상한과 그 이상에서 멀티파트 업로드를 써야 한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html">Amazon S3 API 레퍼런스 — UploadPart</a>
+          — 파트 최소 크기 5 MB, 파트 번호 1~10,000</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html">Amazon S3 API 레퍼런스 — ListBuckets</a>
+          — 계정당 범용 버킷 기본 할당량 10,000개</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">Amazon S3 API 레퍼런스 — CreateBucket</a>
+          — 전역 고유 이름, 퍼블릭 액세스 차단 기본값, 객체 소유권 기본값</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketVersioning.html">Amazon S3 API 레퍼런스 — PutBucketVersioning</a>
+          — 버전 관리가 기본 비활성이라는 사실</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html">Amazon S3 사용 설명서 — 기본 암호화 FAQ</a>
+          — 모든 신규 객체의 SSE-S3 자동 암호화</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html">Amazon S3 사용 설명서 — Amazon S3란</a>
+          — 강력한 읽기 후 쓰기 일관성</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 가용 영역 수, 최소 저장 기간, 최소 청구 크기, 복원 시간, 자동 계층 이동 기간</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html">Amazon S3 사용 설명서 — 수명 주기 전환 시 일반 고려 사항</a>
+          — 30일 전환 제약과 128 KB 미만 객체 제외</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVolume.html">Amazon EC2 API 레퍼런스 — CreateVolume</a>
+          — 볼륨 타입별 크기·IOPS·처리량 범위, 기본 볼륨 타입, 부트 볼륨 제약, 인스턴스 측 IOPS 상한</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateSecurityGroup.html">Amazon EC2 API 레퍼런스 — CreateSecurityGroup</a>
+          — 기본 보안 그룹의 기본 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html">AWS Lambda 개발자 안내서 — 할당량</a>
+          — 최대 실행 시간 900초, 동기 호출 페이로드 6 MB</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/api/API_CreateFunction.html">AWS Lambda API 레퍼런스 — CreateFunction</a>
+          — 타임아웃 기본 3초, 메모리 기본 128 MB와 상한, 임시 스토리지 범위, 메모리와 CPU의 관계</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html">Amazon SQS API 레퍼런스 — CreateQueue</a>
+          — 큐 속성별 범위와 기본값, 큐 타입 기본값과 변경 불가</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html">Amazon SQS API 레퍼런스 — ReceiveMessage</a>
+          — 한 번에 최대 10개 수신</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessageBatch.html">Amazon SQS API 레퍼런스 — SendMessageBatch</a>
+          — 배치 최대 10개 전송</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteQueue.html">Amazon SQS API 레퍼런스 — DeleteQueue</a>
+          — 같은 이름 재생성까지 최소 60초 대기</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html">Amazon SQS 개발자 안내서 — 고처리량 FIFO 큐</a>
+          — 배치 유무에 따른 초당 메시지 수와 표준 큐의 처리량 성격</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html">Amazon DynamoDB API 레퍼런스 — CreateTable</a>
+          — LSI·GSI 개수 상한, 10 GB 제약, 프로젝션 타입, 용량 모드</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/configure-your-vpc.html">Amazon VPC 사용 설명서 — VPC와 서브넷</a>
+          — CIDR 크기 범위와 블록 개수, 기본 VPC의 CIDR</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/subnet-sizing.html">Amazon VPC 사용 설명서 — 서브넷의 IP 주소 지정</a>
+          — 서브넷마다 예약되는 다섯 개 주소</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html">Elastic Load Balancing API 레퍼런스 — LoadBalancerAttribute</a>
+          — 교차 영역 로드 밸런싱 기본값과 ALB의 변경 불가</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateLoadBalancer.html">Elastic Load Balancing API 레퍼런스 — CreateLoadBalancer</a>
+          — 로드 밸런서 세 유형</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html">Amazon Route 53 API 레퍼런스 — ResourceRecordSet</a>
+          — 라우팅 정책 여덟 가지와 <code>SetIdentifier</code> 요구 조건</li>
+        <li><a href="https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html">AWS KMS API 레퍼런스 — EnableKeyRotation</a>
+          — 자동 교체 주기와 지원 대상 키 종류</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html">Amazon RDS API 레퍼런스 — CreateDBInstance</a>
+          — Multi-AZ 배포에서 가용 영역을 지정할 수 없다는 제약</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstanceReadReplica.html">Amazon RDS API 레퍼런스 — CreateDBInstanceReadReplica</a>
+          — 읽기 전용 복제본 생성 조건</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">SAA-C03 시험 가이드</a>
+          — 문항 수, 시간, 합격 점수</li>
+        <li><a href="https://aws.amazon.com/about-aws/whats-new/2025/12/amazon-s3-maximum-object-size-50-tb/">Amazon S3 최대 객체 크기 50 TB 상향</a>
+          — 2025년 12월 변경 발표</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 4 · RDS Multi-AZ와 읽기 전용 복제본 — AWS SAA Guide</title>
+  <meta name="description" content="Multi-AZ 배포와 읽기 전용 복제본을 같은 데이터베이스에 구성하고, 강제 장애 조치를 일으켜 엔드포인트가 어떻게 움직이는지 관찰합니다. 동기·비동기 복제의 차이와 복제본 승격 절차를 AWS CLI로 확인합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab04"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab04">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 4 · RDS Multi-AZ와 읽기 전용 복제본</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 4</p>
+      <h1>RDS Multi-AZ와 읽기 전용 복제본</h1>
+      <p class="page__lead">
+        시험이 가장 집요하게 노리는 쌍을 손으로 확인하는 실습입니다.
+        같은 데이터베이스에 Multi-AZ와 읽기 전용 복제본을 함께 구성하고,
+        <strong>장애 조치를 직접 일으켜</strong> 엔드포인트가 어떻게 움직이는지 봅니다.
+        표로 외우는 것과 실제로 보는 것은 다릅니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a> ·
+        <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>프라이빗 서브넷만으로 DB 서브넷 그룹을 만들어 데이터베이스를 배치할 수 있습니다.</li>
+        <li>Multi-AZ를 켜고 강제 장애 조치를 일으켜 엔드포인트 유지 여부를 확인할 수 있습니다.</li>
+        <li>읽기 전용 복제본을 만들고 별도 엔드포인트가 생기는 것을 확인할 수 있습니다.</li>
+        <li>복제본 승격이 자동이 아니라는 사실을 실행으로 확인할 수 있습니다.</li>
+        <li>실습 후 스냅샷 처리까지 포함해 리소스를 정리할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        <a href="lab01.html">실습 1</a>의 데이터베이스 서브넷에 관계형 데이터베이스를 만듭니다.
+        확인할 것은 둘입니다.
+      </p>
+      <ul>
+        <li>Multi-AZ 장애 조치가 일어나면 <strong>애플리케이션이 쓰는 엔드포인트 주소가 바뀌는가.</strong></li>
+        <li>읽기 전용 복제본은 <strong>어떤 주소로 접근하고, 프라이머리가 죽으면 어떻게 되는가.</strong></li>
+      </ul>
+      <p>
+        배경 개념은 <a href="../basics/ch10.html">10장 RDS와 관계형 데이터베이스</a>에 있고,
+        어느 처방이 어떤 문제를 푸는지는
+        <a href="../cases/case02.html">케이스 2 · 읽기 부하로 데이터베이스가 죽었다</a>에서 다룹니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Multi-AZ와 읽기 전용 복제본의 성질 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Multi-AZ 배포</th>
+              <th scope="col">읽기 전용 복제본</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">복제 방식</th>
+              <td><strong>동기(synchronous)</strong></td>
+              <td><strong>비동기(asynchronous)</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">목적</th>
+              <td>고가용성</td>
+              <td>읽기 확장</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트</th>
+              <td>동일하게 유지</td>
+              <td><span class="mark-ok">별도 엔드포인트</span></td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 처리</th>
+              <td><span class="mark-no">대기 인스턴스는 받지 않는다</span></td>
+              <td>받는다</td>
+            </tr>
+            <tr>
+              <th scope="row">리전</th>
+              <td>같은 리전의 다른 가용 영역</td>
+              <td>같은 리전 또는 <strong>다른 리전</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">장애 시 전환</th>
+              <td><span class="mark-ok">자동</span></td>
+              <td><span class="mark-no">수동 승격이 필요</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        읽기 전용 복제본 개수에는 상한이 있습니다.
+        MySQL · MariaDB · PostgreSQL은 인스턴스당 <strong>최대 15개</strong>,
+        Oracle과 SQL Server는 <strong>5개</strong>, Db2는 <strong>3개</strong>입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-subnet-group">1 · DB 서브넷 그룹</h3>
+      <p>
+        서로 다른 가용 영역의 <strong>프라이빗 서브넷</strong>만 넣습니다.
+        퍼블릭 서브넷을 넣으면 나중에 퍼블릭 액세스 설정 실수가 곧바로 노출로 이어집니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-subnet-group.sh</span> — 프라이빗 서브넷만으로 구성 (서브넷 ID는 실습 1의 출력값입니다)</figcaption>
+        <pre><code class="lang-bash">aws rds create-db-subnet-group \
+  --db-subnet-group-name lab04-db-subnets \
+  --db-subnet-group-description "private db subnets" \
+  --subnet-ids subnet-0db00000000000a subnet-0db00000000000b</code></pre>
+      </figure>
+
+      <h3 id="step-create">2 · Multi-AZ 데이터베이스 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-db.sh</span> — Multi-AZ 인스턴스 생성 (식별자·클래스·엔진 버전은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws rds create-db-instance \
+  --db-instance-identifier lab04-primary \
+  --db-instance-class db.t3.micro \
+  --engine mysql \
+  --allocated-storage 20 \
+  --master-username admin \
+  --manage-master-user-password \
+  --db-subnet-group-name lab04-db-subnets \
+  --vpc-security-group-ids sg-0db0000000000000d \
+  --multi-az \
+  --no-publicly-accessible \
+  --storage-encrypted \
+  --backup-retention-period 7
+
+aws rds wait db-instance-available --db-instance-identifier lab04-primary</code></pre>
+      </figure>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          <code>--manage-master-user-password</code>를 쓰면 마스터 비밀번호를
+          AWS Secrets Manager가 관리하고 교체까지 처리합니다.
+          비밀번호를 명령줄에 직접 적으면 셸 기록에 남으므로 피합니다.
+        </p>
+        <p>
+          <code>--storage-encrypted</code>는 <strong>생성 시점에만</strong> 지정할 수 있습니다.
+          암호화되지 않은 인스턴스를 나중에 암호화하려면
+          스냅샷을 만들어 <strong>암호화 옵션으로 복사한 뒤 복원</strong>해야 합니다.
+        </p>
+      </aside>
+
+      <h3 id="step-replica">3 · 읽기 전용 복제본 만들기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-replica.sh</span> — 같은 리전에 복제본 생성</figcaption>
+        <pre><code class="lang-bash">aws rds create-db-instance-read-replica \
+  --db-instance-identifier lab04-replica-1 \
+  --source-db-instance-identifier lab04-primary
+
+aws rds wait db-instance-available --db-instance-identifier lab04-replica-1</code></pre>
+      </figure>
+
+      <p>
+        원본 인스턴스는 <strong>자동 백업이 활성화</strong>되어 있어야 복제본을 만들 수 있습니다.
+        위에서 <code>--backup-retention-period 7</code>을 준 이유가 이것입니다.
+        만들어진 복제본은 <strong>백업이 비활성화된 상태</strong>로 생성됩니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <h3 id="verify-endpoints">엔드포인트 비교</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">show-endpoints.sh</span> — 프라이머리와 복제본의 엔드포인트·가용 영역 확인</figcaption>
+        <pre><code class="lang-bash">aws rds describe-db-instances \
+  --query 'DBInstances[?starts_with(DBInstanceIdentifier, `lab04`)].[
+             DBInstanceIdentifier, MultiAZ, AvailabilityZone,
+             SecondaryAvailabilityZone, Endpoint.Address,
+             ReadReplicaSourceDBInstanceIdentifier]' \
+  --output table</code></pre>
+      </figure>
+
+      <p>
+        여기서 확인할 것은 셋입니다.
+        프라이머리에 <strong>보조 가용 영역</strong>이 채워져 있고,
+        복제본은 <strong>다른 엔드포인트 주소</strong>를 가지며,
+        복제본에는 원본 식별자가 표시된다는 점입니다.
+      </p>
+
+      <h3 id="verify-failover">강제 장애 조치</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">force-failover.sh</span> — 장애 조치를 일으키고 전후를 비교</figcaption>
+        <pre><code class="lang-bash"># 장애 조치 전 주소와 가용 영역을 기록해 둡니다.
+aws rds describe-db-instances --db-instance-identifier lab04-primary \
+  --query 'DBInstances[0].[Endpoint.Address,AvailabilityZone]' --output text
+
+aws rds reboot-db-instance \
+  --db-instance-identifier lab04-primary \
+  --force-failover
+
+aws rds wait db-instance-available --db-instance-identifier lab04-primary
+
+# 장애 조치 후 다시 확인합니다.
+aws rds describe-db-instances --db-instance-identifier lab04-primary \
+  --query 'DBInstances[0].[Endpoint.Address,AvailabilityZone]' --output text
+
+# 이벤트 기록으로 무슨 일이 있었는지 봅니다.
+aws rds describe-events \
+  --source-identifier lab04-primary \
+  --source-type db-instance \
+  --duration 60 \
+  --query 'Events[].[Date,Message]' --output table</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>장애 조치 전후에 무엇이 바뀌고 무엇이 그대로인가</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">결과</th>
+              <th scope="col">의미</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">엔드포인트 주소</th>
+              <td><span class="mark-ok">그대로</span></td>
+              <td>애플리케이션 설정을 고칠 필요가 없다. DNS가 새 인스턴스를 가리킨다</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역</th>
+              <td>바뀐다</td>
+              <td>대기 인스턴스가 있던 가용 영역으로 이동했다</td>
+            </tr>
+            <tr>
+              <th scope="row">연결</th>
+              <td>일시적으로 끊긴다</td>
+              <td><strong>애플리케이션에 재연결 로직이 필요하다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">복제본 엔드포인트</th>
+              <td>그대로</td>
+              <td>복제본은 장애 조치와 무관하게 자기 주소를 유지한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          엔드포인트 주소가 유지된다고 <strong>연결이 유지되는 것은 아닙니다.</strong>
+          기존 연결은 끊기고 재연결이 필요합니다.
+          그리고 클라이언트나 JVM 같은 런타임이 DNS 결과를 오래 캐시하면
+          전환 후에도 옛 주소로 접속을 시도합니다.
+          <strong>DNS 캐시 시간을 짧게</strong> 두는 것이 장애 조치 시간을 실제로 줄입니다.
+        </p>
+      </aside>
+
+      <h3 id="verify-promote">복제본은 자동 승격되지 않는다</h3>
+      <p>
+        읽기 전용 복제본이 재해 복구 수단이 되려면 <strong>승격</strong>이 필요하고,
+        이 작업은 자동으로 일어나지 않습니다.
+        승격하면 복제 관계가 끊기고 독립 인스턴스가 됩니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">promote.sh</span> — 복제본 승격 (되돌릴 수 없으므로 실습 마지막에 수행합니다)</figcaption>
+        <pre><code class="lang-bash">aws rds promote-read-replica \
+  --db-instance-identifier lab04-replica-1
+
+aws rds wait db-instance-available --db-instance-identifier lab04-replica-1
+
+# 승격 후에는 원본 식별자가 사라집니다.
+aws rds describe-db-instances --db-instance-identifier lab04-replica-1 \
+  --query 'DBInstances[0].ReadReplicaSourceDBInstanceIdentifier'</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요금이 발생하는 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Multi-AZ 대기 인스턴스</th>
+              <td>인스턴스가 한 벌 더 필요하다. <strong>읽기 처리량은 늘지 않는다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 간 복제 트래픽</th>
+              <td>동기 복제가 가용 영역 경계를 넘는다</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 전용 복제본</th>
+              <td>복제본 수만큼 인스턴스와 스토리지</td>
+            </tr>
+            <tr>
+              <th scope="row">교차 리전 복제본</th>
+              <td>위에 더해 <strong>리전 간 전송</strong>이 붙는다</td>
+            </tr>
+            <tr>
+              <th scope="row">스토리지와 백업</th>
+              <td>할당 용량과 보존 기간을 넘는 백업</td>
+            </tr>
+            <tr>
+              <th scope="row">스냅샷</th>
+              <td>수동 스냅샷은 인스턴스를 지워도 남는다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        비용 판단의 요점은 <strong>무엇을 사는가</strong>입니다.
+        Multi-AZ는 가용성을 사고, 복제본은 읽기 처리량을 삽니다.
+        읽기가 문제인데 Multi-AZ를 켜면 비용만 늘고 문제는 남습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>애플리케이션에 재연결과 재시도.</strong> 장애 조치는 짧은 중단을 동반합니다.</li>
+        <li><strong>읽기 경로를 분리하되 전부 보내지 않습니다.</strong>
+          복제 지연을 허용할 수 없는 쿼리는 프라이머리로 고정합니다.</li>
+        <li><strong>복제 지연을 지표로 감시합니다.</strong> 지연이 커지면 읽기 경로를 되돌릴 수 있어야 합니다.</li>
+        <li><strong>연결 수가 병목이면 RDS Proxy.</strong>
+          서버리스 워크로드에서 연결 고갈은 인스턴스 크기로 풀리지 않습니다.</li>
+        <li><strong>암호화는 생성 시점에.</strong> 나중에 켜려면 스냅샷 복사 경로가 필요합니다.</li>
+        <li><strong>매개변수 그룹과 유지 관리 창</strong>을 명시적으로 관리합니다.
+          기본 매개변수 그룹은 수정할 수 없습니다.</li>
+        <li><strong>삭제 보호</strong>를 켜 두면 실수로 인스턴스를 지우는 사고를 막습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          삭제할 때 최종 스냅샷을 만들면 <strong>인스턴스를 지운 뒤에도 스냅샷 요금이 남습니다.</strong>
+          실습 리소스라면 최종 스냅샷을 만들지 않도록 명시합니다.
+          반대로 운영 환경에서는 최종 스냅샷 생략이 위험합니다.
+        </p>
+      </aside>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 복제본부터 삭제한 뒤 프라이머리 삭제</figcaption>
+        <pre><code class="lang-bash">aws rds delete-db-instance \
+  --db-instance-identifier lab04-replica-1 \
+  --skip-final-snapshot
+
+aws rds wait db-instance-deleted --db-instance-identifier lab04-replica-1
+
+aws rds delete-db-instance \
+  --db-instance-identifier lab04-primary \
+  --skip-final-snapshot \
+  --delete-automated-backups
+
+aws rds wait db-instance-deleted --db-instance-identifier lab04-primary
+
+aws rds delete-db-subnet-group --db-subnet-group-name lab04-db-subnets
+
+# 남아 있는 수동 스냅샷이 없는지 확인합니다.
+aws rds describe-db-snapshots \
+  --snapshot-type manual \
+  --query 'DBSnapshots[].[DBSnapshotIdentifier,SnapshotCreateTime]' \
+  --output table</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">읽기 부하 해결로 Multi-AZ를 켬</th>
+              <td>비용만 늘고 읽기 성능은 그대로</td>
+              <td>읽기 전용 복제본이나 캐시를 쓴다</td>
+            </tr>
+            <tr>
+              <th scope="row">모든 읽기를 복제본으로 보냄</th>
+              <td>방금 쓴 데이터가 조회되지 않는다</td>
+              <td>쓰기 직후 읽기는 프라이머리로 고정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">DB 서브넷 그룹에 퍼블릭 서브넷 포함</th>
+              <td>퍼블릭 액세스 설정 실수가 곧바로 노출로 이어진다</td>
+              <td>프라이빗 서브넷만 넣는다(<a href="../cases/case04.html">케이스 4</a>)</td>
+            </tr>
+            <tr>
+              <th scope="row">자동 백업이 꺼진 상태에서 복제본 생성 시도</th>
+              <td>생성이 거부된다</td>
+              <td>원본의 백업 보존 기간을 1 이상으로 설정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">복제본이 자동으로 승격될 것이라 가정</th>
+              <td>프라이머리 장애 시 쓰기가 계속 실패한다</td>
+              <td>승격은 별도 작업임을 절차서에 반영한다</td>
+            </tr>
+            <tr>
+              <th scope="row">생성 후 암호화를 켜려 함</th>
+              <td>설정을 바꿀 수 없다</td>
+              <td>스냅샷을 암호화 옵션으로 복사해 복원한다</td>
+            </tr>
+            <tr>
+              <th scope="row">DNS 캐시가 긴 클라이언트</th>
+              <td>장애 조치 후에도 옛 주소로 접속한다</td>
+              <td>클라이언트의 DNS 캐시 시간을 짧게 조정한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch10.html">
+          <span class="card__title">10장 · RDS와 관계형 데이터베이스</span>
+          <span class="card__desc">Multi-AZ와 읽기 전용 복제본, Aurora 클러스터, 백업과 PITR을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2</span>
+        </a></li>
+        <li><a class="card" href="../cases/case02.html">
+          <span class="card__title">케이스 2 · 읽기 부하로 데이터베이스가 죽었다</span>
+          <span class="card__desc">어느 처방이 실제로 부하를 덜어 주는지 네 후보로 비교합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cases/case08.html">
+          <span class="card__title">케이스 8 · 리전 장애에 대비한 DR을 설계하라</span>
+          <span class="card__desc">교차 리전 복제본이 DR 구성에서 어떤 자리에 놓이는지 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="lab01.html">
+          <span class="card__title">실습 1 · 3계층 VPC 직접 구성</span>
+          <span class="card__desc">이 실습이 전제하는 데이터베이스 서브넷을 먼저 만듭니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="lab12.html">
+          <span class="card__title">실습 12 · CloudWatch 알람 + SNS 알림</span>
+          <span class="card__desc">복제 지연과 연결 수에 알람을 걸어 이상을 조기에 잡습니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html">Amazon RDS 사용 설명서 — 단일 대기 인스턴스를 사용하는 Multi-AZ 배포</a>
+          — 동기식 복제와 장애 조치 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html">Amazon RDS 사용 설명서 — 읽기 전용 복제본 사용</a>
+          — 비동기 복제, 별도 엔드포인트, 승격이 별도 작업이라는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html">Amazon RDS API 레퍼런스 — CreateDBInstance</a>
+          — <code>MultiAZ</code>, <code>PubliclyAccessible</code>, <code>StorageEncrypted</code>,
+          DB 서브넷 그룹에 따른 기본 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstanceReadReplica.html">Amazon RDS API 레퍼런스 — CreateDBInstanceReadReplica</a>
+          — 엔진별 복제본 개수 상한과 원본의 백업 활성화 요구</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_RebootDBInstance.html">Amazon RDS API 레퍼런스 — RebootDBInstance</a>
+          — <code>ForceFailover</code>로 장애 조치를 유도하는 방법</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html">Amazon RDS 사용 설명서 — VPC의 DB 인스턴스</a>
+          — DB 서브넷 그룹이 서로 다른 가용 영역의 서브넷을 포함해야 한다는 요건</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_BestPractices.html">Amazon RDS 사용 설명서 — 모범 사례</a>
+          — 재연결 처리와 모니터링 지표에 대한 권고</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

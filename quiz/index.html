@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>문제 풀이 허브 — AWS SAA Guide</title>
+  <meta name="description" content="학습·시험·도메인 연습·오답 노트·약점 집중·랜덤 챌린지 모드로 AWS Certified Solutions Architect – Associate(SAA-C03) 문제은행을 응시합니다. 실제 시험과 같은 65문항 130분 모의고사를 지원합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="quiz" data-page="index"></div>
+
+  <main id="main" class="page" data-page-id="quiz/index" data-quiz-page="hub">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><span aria-current="page">문제 풀이</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">문제 풀이</p>
+      <h1>문제 풀이 허브</h1>
+      <p class="page__lead">
+        모드를 고르고 시작하세요. 모든 모드는 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지 토글, <kbd>Enter</kbd>로 제출·다음,
+        시험 모드에서는 <kbd>F</kbd>로 문항 표시, <kbd>←</kbd><kbd>→</kbd>로 이동입니다.
+      </p>
+    </header>
+
+    <section aria-labelledby="modes">
+      <h2 id="modes">모드 선택</h2>
+      <div data-quiz-panel></div>
+    </section>
+
+    <section aria-labelledby="quiz-area">
+      <h2 id="quiz-area">응시</h2>
+      <div data-quiz-host></div>
+    </section>
+
+    <section aria-labelledby="question-types">
+      <h2 id="question-types">문항 유형 — SAA-C03은 두 가지입니다</h2>
+      <p>
+        AWS Certified Solutions Architect – Associate 시험의 문항 형식은
+        <strong>객관식(단일 정답)</strong> 과 <strong>복수 응답</strong> 두 가지뿐입니다.
+        복수 응답은 다섯 개 이상의 선택지 중 둘 이상을 고르며, <strong>부분 점수가 없습니다.</strong>
+      </p>
+      <div class="table-scroll">
+        <table>
+          <caption>문항 유형별 조작 방법과 채점 규칙</caption>
+          <thead>
+            <tr><th scope="col">유형</th><th scope="col">시험 출제</th><th scope="col">조작</th><th scope="col">채점</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">단일 선택</th><td class="mark-ok">출제됨</td><td>라디오 버튼 · 숫자키</td><td>정답 1개 일치</td></tr>
+            <tr><th scope="row">복수 응답</th><td class="mark-ok">출제됨</td><td>체크박스 · 숫자키로 토글</td><td>전부 일치 (부분 점수 없음)</td></tr>
+            <tr><th scope="row">연결형</th><td class="mark-no">출제 안 됨 · 학습용</td><td>왼쪽 항목마다 <code>select</code> 로 대응값 선택</td><td>모든 쌍 일치</td></tr>
+            <tr><th scope="row">순서 배열</th><td class="mark-no">출제 안 됨 · 학습용</td><td>각 항목의 <kbd>▲</kbd><kbd>▼</kbd> 버튼으로 이동</td><td>순서 완전 일치</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside class="note note--warn" data-label="학습용 유형에 대하여">
+        <p>
+          <strong>연결형과 순서 배열은 SAA-C03 시험에 출제되지 않습니다.</strong>
+          AWS는 2024년부터 일부 신규 자격증에 이 형식을 도입했지만 SAA-C03에는 적용하지 않았습니다.
+          다만 서비스와 용도를 짝짓거나 절차의 순서를 익히는 데는 객관식보다 효율이 좋아서,
+          <strong>기본개념 챕터의 확인 문제에서만</strong> 학습 도구로 씁니다.
+          해당 문항에는 <span class="badge badge--study">학습용 유형</span> 배지가 붙습니다.
+        </p>
+      </aside>
+      <aside class="note" data-label="접근성">
+        <p>
+          연결형과 순서 배열에 <strong>드래그 앤 드롭을 필수 조작으로 두지 않았습니다.</strong>
+          실제 <code>select</code> 와 <code>button</code> 요소만 사용하므로 키보드·스크린리더로 완주할 수 있고,
+          순서 변경과 채점 결과는 <code>aria-live</code> 로 안내됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <section aria-labelledby="bank-composition">
+      <h2 id="bank-composition">문제은행 구성</h2>
+      <figure class="chart" data-chart="C-005">
+        <figcaption>
+          문제은행 구성. 도메인 연습은 실제 시험과 같은
+          <strong>30 : 26 : 24 : 20</strong> 비율로 배분했고, 모의고사 4세트는
+          도메인 연습과 겹치지 않는 별도 문항입니다
+        </figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="tools">
+      <h2 id="tools">전용 학습 도구</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="diagnostic.html">
+          <span class="card__title">진단 테스트</span>
+          <span class="card__desc">40문항으로 4개 도메인 취약점을 진단하고, 가중치 × 부족분 순으로 개인별 학습 순서를 자동 생성합니다.</span>
+          <span class="card__meta">가장 먼저 하세요</span>
+        </a></li>
+        <li><a class="card" href="review.html">
+          <span class="card__title">오답 노트</span>
+          <span class="card__desc">틀린 문항만 다시 출제합니다. 3회 연속 정답이면 졸업 처리되어 목록에서 빠집니다.</span>
+          <span class="card__meta">간격 반복</span>
+        </a></li>
+        <li><a class="card" href="result.html">
+          <span class="card__title">결과 리포트</span>
+          <span class="card__desc">도메인별·유형별 정답률, 취약 도메인 순위, 복습 챕터 링크, 응시 이력 추이.</span>
+          <span class="card__meta">마지막 채점 결과</span>
+        </a></li>
+        <li><a class="card" href="../saa/keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">MOST cost-effective, LEAST operational overhead 같은 한정어가 어떤 답을 가리키는지 정리했습니다.</span>
+          <span class="card__meta">SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../saa/traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">Multi-AZ와 읽기 전용 복제본처럼 헷갈리는 쌍 비교표와 오답 유도 패턴 분석.</span>
+          <span class="card__meta">SAA</span>
+        </a></li>
+        <li><a class="card" href="../saa/flashcards.html">
+          <span class="card__title">플래시카드</span>
+          <span class="card__desc">상황에 맞는 서비스 고르기, 반드시 외울 한도를 간격 반복으로 암기합니다.</span>
+          <span class="card__meta">SAA</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="scoring-notes">
+      <h2 id="scoring-notes">채점과 점수에 대한 주의</h2>
+      <aside class="note note--warn" data-label="720점은 정답률이 아닙니다">
+        <p>
+          SAA-C03의 합격선 <strong>720점</strong>은 <strong>100~1000 범위의 스케일 점수</strong>이며,
+          맞힌 문항 비율과 1:1로 대응하지 않습니다. 문항마다 난이도 가중이 다르기 때문입니다.
+          <strong>"정답률 72%면 합격"이라는 계산은 성립하지 않습니다.</strong>
+          이 사이트의 결과 리포트는 정답률만 보여주며, 스케일 점수를 추정하지 않습니다.
+        </p>
+        <p>
+          또한 실제 시험 65문항 중 <strong>15문항은 채점되지 않는 시험용 문항</strong>이고
+          응시자는 어느 것이 그것인지 알 수 없습니다. 낯선 문항이 나와도 당황할 이유가 없습니다.
+          이 사이트의 모의고사는 65문항을 전부 채점합니다.
+        </p>
+      </aside>
+      <aside class="note" data-label="시험 운영 정보">
+        <p>
+          모의고사는 실제 시험과 같은 <strong>65문항 / 130분</strong>으로 구성했습니다.
+          도메인 비율도 실제와 같은 <strong>30 : 26 : 24 : 20</strong>을 따릅니다.
+          <strong>오답 감점이 없으므로 빈칸으로 두지 말고 반드시 찍으세요.</strong>
+        </p>
+      </aside>
+      <aside class="note" data-label="진도 저장">
+        <p>
+          응시 기록은 브라우저의 <code>localStorage</code> 에만 저장됩니다. 서버로 전송되지 않으며,
+          브라우저 데이터를 지우면 함께 사라집니다. 시험 모드는 새로고침에 대비해 진행 상태를 임시 저장하고,
+          같은 세트로 다시 들어오면 이어서 응시할 수 있습니다(12시간 이내).
+        </p>
+      </aside>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

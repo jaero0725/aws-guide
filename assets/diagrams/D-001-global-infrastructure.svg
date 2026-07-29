@@ -1,0 +1,82 @@
+<svg viewBox="0 0 720 460" role="img" aria-labelledby="d001-title d001-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d001-title">리전 · 가용 영역 · 엣지 로케이션의 포함 관계</title>
+  <desc id="d001-desc">AWS 글로벌 인프라의 포함 관계를 그린 그림입니다.
+    하나의 리전 안에 여러 개의 가용 영역이 들어 있고, 가용 영역 하나는 다시 전력과 네트워크가 분리된
+    여러 데이터센터로 이루어집니다. 로컬 존과 Wavelength 존은 물리적으로는 리전 밖에 있지만
+    부모 리전에 딸린 확장으로 취급됩니다.
+    오른쪽의 엣지 로케이션과 리전 엣지 캐시는 리전 바깥에서 최종 사용자에게 가장 가까운 계층이며
+    콘텐츠를 캐시해 응답 거리를 줄입니다.
+    아래 두 카드는 이 그림이 직접 부정하는 흔한 오해입니다.
+    가용 영역은 데이터센터 한 동이 아니고, 리전 사이에는 데이터가 자동으로 복제되지 않습니다.</desc>
+
+  <defs>
+    <marker id="d001-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 리전 -->
+  <rect class="dg-panel" x="20" y="56" width="440" height="290" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="76">AWS 리전 · ap-northeast-2</text>
+
+  <rect class="dg-node dg-node--alt" x="34" y="88" width="204" height="150" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="106">가용 영역 a</text>
+  <rect class="dg-node" x="44" y="114" width="184" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="136" y="135" text-anchor="middle">데이터센터 1</text>
+  <rect class="dg-node" x="44" y="150" width="184" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="136" y="171" text-anchor="middle">데이터센터 2</text>
+  <rect class="dg-node" x="44" y="186" width="184" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="136" y="207" text-anchor="middle">데이터센터 3</text>
+
+  <rect class="dg-node dg-node--alt" x="246" y="88" width="200" height="150" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="256" y="106">가용 영역 b</text>
+  <rect class="dg-node" x="256" y="114" width="180" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="346" y="135" text-anchor="middle">데이터센터 1</text>
+  <rect class="dg-node" x="256" y="150" width="180" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="346" y="171" text-anchor="middle">데이터센터 2</text>
+  <rect class="dg-node" x="256" y="186" width="180" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="346" y="207" text-anchor="middle">데이터센터 3</text>
+
+  <rect class="dg-node dg-node--empty" x="34" y="250" width="412" height="82" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="268">부모 리전에 딸린 확장 — 물리적으로는 리전 밖</text>
+  <rect class="dg-node" x="44" y="276" width="196" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="142" y="296" text-anchor="middle">로컬 존</text>
+  <text class="dg-fs-sm dg-muted" x="142" y="314" text-anchor="middle">지연에 민감한 워크로드</text>
+  <rect class="dg-node" x="250" y="276" width="190" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="345" y="296" text-anchor="middle">Wavelength 존</text>
+  <text class="dg-fs-sm dg-muted" x="345" y="314" text-anchor="middle">통신사 5G 네트워크 안</text>
+
+  <!-- 리전 밖 -->
+  <rect class="dg-panel" x="480" y="56" width="220" height="290" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="490" y="76">리전 밖 — 사용자에 가까운 계층</text>
+
+  <rect class="dg-node" x="492" y="88" width="196" height="76" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="590" y="112" text-anchor="middle">리전 엣지 캐시</text>
+  <text class="dg-fs-sm dg-muted" x="590" y="132" text-anchor="middle">엣지와 오리진 사이의</text>
+  <text class="dg-fs-sm dg-muted" x="590" y="152" text-anchor="middle">더 넓은 캐시 계층</text>
+
+  <rect class="dg-node dg-node--accent" x="492" y="192" width="196" height="76" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="590" y="216" text-anchor="middle">엣지 로케이션</text>
+  <text class="dg-fs-sm dg-muted" x="590" y="236" text-anchor="middle">CloudFront 캐시가</text>
+  <text class="dg-fs-sm dg-muted" x="590" y="256" text-anchor="middle">놓이는 가장 앞단</text>
+
+  <rect class="dg-node dg-node--alt" x="530" y="296" width="120" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="590" y="318" text-anchor="middle">최종 사용자</text>
+
+  <path class="dg-edge dg-edge--accent" d="M460 126 L488 126" marker-end="url(#d001-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M590 164 L590 188" marker-end="url(#d001-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M590 268 L590 292" marker-end="url(#d001-ar)"/>
+
+  <!-- 오해 교정 -->
+  <rect class="dg-node dg-node--danger" x="20" y="364" width="340" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="386">오해 1 — "AZ = 데이터센터 한 동"</text>
+  <text class="dg-fs-sm" x="34" y="408">가용 영역 하나가 전력·네트워크가 분리된</text>
+  <text class="dg-fs-sm" x="34" y="430">여러 데이터센터로 구성됩니다</text>
+
+  <rect class="dg-node dg-node--danger" x="380" y="364" width="320" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="394" y="386">오해 2 — "리전 간 자동 복제"</text>
+  <text class="dg-fs-sm" x="394" y="408">리전은 서로 격리되어 있어 교차 리전</text>
+  <text class="dg-fs-sm" x="394" y="430">복제는 직접 구성해야 일어납니다</text>
+</svg>

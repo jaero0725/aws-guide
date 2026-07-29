@@ -1,0 +1,73 @@
+<svg viewBox="0 0 720 430" role="img" aria-labelledby="d051-title d051-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d051-title">스냅샷 · AMI · 볼륨의 관계</title>
+  <desc id="d051-desc">EBS 볼륨에서 출발해 스냅샷과 AMI 가 만들어지고 다시 볼륨으로 돌아오는 관계도입니다.
+    첫 스냅샷은 볼륨의 모든 블록을 담고, 이후 스냅샷은 직전 스냅샷 이후 바뀐 블록만 담는 증분입니다.
+    다만 증분이라는 것은 저장 방식일 뿐이어서 어떤 스냅샷 하나로도 볼륨 전체를 복원할 수 있습니다.
+    AMI 는 스냅샷 하나 이상에 인스턴스를 시작하는 데 필요한 메타데이터, 즉 블록 디바이스 매핑과 아키텍처, 커널 정보를 더한 것입니다.
+    리전 사이의 이동은 스냅샷 단위로 일어나며, 복사된 스냅샷은 대상 리전에서 독립된 스냅샷이 됩니다.
+    AMI 를 등록 취소해도 그 AMI 가 참조하던 스냅샷은 자동으로 지워지지 않으므로 따로 지워야 합니다.</desc>
+
+  <defs>
+    <marker id="d051-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d051-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node" x="20" y="80" width="130" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="85" y="108" text-anchor="middle">EBS 볼륨</text>
+  <text class="dg-fs-sm dg-muted" x="85" y="130" text-anchor="middle">인스턴스에 연결</text>
+
+  <rect class="dg-node dg-node--accent" x="190" y="46" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="255" y="70" text-anchor="middle">스냅샷 1</text>
+  <text class="dg-fs-sm" x="255" y="92" text-anchor="middle">전체 블록</text>
+
+  <rect class="dg-node dg-node--accent" x="190" y="118" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="255" y="142" text-anchor="middle">스냅샷 2</text>
+  <text class="dg-fs-sm" x="255" y="164" text-anchor="middle">바뀐 블록만 (증분)</text>
+
+  <rect class="dg-node dg-node--accent" x="190" y="190" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="255" y="214" text-anchor="middle">스냅샷 3</text>
+  <text class="dg-fs-sm" x="255" y="236" text-anchor="middle">바뀐 블록만 (증분)</text>
+
+  <path class="dg-edge dg-edge--accent" d="M150 106 L186 76" marker-end="url(#d051-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M150 115 L186 148" marker-end="url(#d051-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M150 124 L186 220" marker-end="url(#d051-ar-accent)"/>
+
+  <rect class="dg-node" x="380" y="46" width="150" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="455" y="72" text-anchor="middle">시작 메타데이터</text>
+  <text class="dg-fs-sm dg-muted" x="455" y="94" text-anchor="middle">블록 매핑 · 아키텍처</text>
+
+  <rect class="dg-node dg-node--ok" x="560" y="46" width="140" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="76" text-anchor="middle">AMI</text>
+  <text class="dg-fs-sm" x="630" y="98" text-anchor="middle">스냅샷 + 메타데이터</text>
+  <path class="dg-edge" d="M320 76 L376 76" marker-end="url(#d051-ar)"/>
+  <path class="dg-edge" d="M530 81 L556 81" marker-end="url(#d051-ar)"/>
+
+  <rect class="dg-node" x="380" y="140" width="150" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="455" y="166" text-anchor="middle">다른 리전으로 복사</text>
+  <text class="dg-fs-sm dg-muted" x="455" y="188" text-anchor="middle">스냅샷 단위로만</text>
+  <path class="dg-edge" d="M320 150 L376 165" marker-end="url(#d051-ar)"/>
+
+  <rect class="dg-node" x="380" y="234" width="150" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="455" y="260" text-anchor="middle">새 볼륨 생성</text>
+  <text class="dg-fs-sm dg-muted" x="455" y="282" text-anchor="middle">다른 AZ 에도 가능</text>
+  <path class="dg-edge" d="M320 226 L376 258" marker-end="url(#d051-ar)"/>
+
+  <rect class="dg-node dg-node--ok" x="560" y="234" width="140" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="264" text-anchor="middle">EBS 볼륨</text>
+  <text class="dg-fs-sm dg-muted" x="630" y="286" text-anchor="middle">복원 완료</text>
+  <path class="dg-edge" d="M530 269 L556 269" marker-end="url(#d051-ar)"/>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="330">증분은 저장 방식일 뿐입니다 — 어느 스냅샷 하나로도 볼륨 전체를 복원할 수 있습니다</text>
+
+  <rect class="dg-node dg-node--warn" x="20" y="344" width="680" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="368">AMI 를 등록 취소해도 스냅샷은 지워지지 않습니다</text>
+  <text class="dg-fs-sm" x="34" y="390">AMI 등록 취소(deregister)와 스냅샷 삭제는 별개의 동작이므로 스냅샷을 따로 지워야 저장 공간이 회수됩니다</text>
+  <text class="dg-fs-sm" x="34" y="412">리전 간 이동은 항상 스냅샷 복사로 일어나며, 복사본은 대상 리전의 독립된 스냅샷이 됩니다</text>
+</svg>

@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 8 · EventBridge 이벤트 아키텍처 — AWS SAA Guide</title>
+  <meta name="description" content="사용자 지정 이벤트 버스를 만들고 이벤트 패턴 규칙으로 대상을 라우팅합니다. 이벤트 패턴 테스트, 대상별 재시도와 배달 못한 편지 대기열, 아카이브와 재생, 예약 규칙을 AWS CLI로 구성합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab08"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab08">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 8 · EventBridge 이벤트 아키텍처</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 8</p>
+      <h1>EventBridge 이벤트 아키텍처</h1>
+      <p class="page__lead">
+        큐가 <strong>한 소비자에게 일을 넘기는</strong> 구조라면,
+        이벤트 버스는 <strong>일어난 사실을 알리고 관심 있는 쪽이 각자 반응하는</strong> 구조입니다.
+        생산자는 소비자가 몇인지 알 필요가 없고,
+        소비자를 늘려도 생산자를 고치지 않습니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>사용자 지정 이벤트 버스를 만들고 이벤트를 게시할 수 있습니다.</li>
+        <li>이벤트 패턴으로 필요한 이벤트만 골라 대상에 전달할 수 있습니다.</li>
+        <li>대상별 재시도 정책과 배달 못한 편지 대기열을 설정할 수 있습니다.</li>
+        <li>SNS 팬아웃과 EventBridge 라우팅의 구조적 차이를 설명할 수 있습니다.</li>
+        <li>예약 규칙으로 주기적인 작업을 트리거할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>주문 서비스가 이벤트를 게시하고, 여러 팀이 각자 반응합니다.</p>
+      <ul>
+        <li>주문이 <strong>생성</strong>되면 알림 팀이 메일을 보냅니다.</li>
+        <li>주문이 <strong>취소</strong>되면 정산 팀이 환불을 처리합니다.</li>
+        <li>금액이 <strong>일정 기준을 넘는</strong> 주문은 심사 팀이 검토합니다.</li>
+        <li>새 팀이 생겨도 <strong>주문 서비스 코드를 고치지 않아야</strong> 합니다.</li>
+      </ul>
+      <p>
+        마지막 조건이 이벤트 버스를 고르는 이유입니다.
+        구독자를 추가하는 일이 <strong>규칙 하나를 만드는 일</strong>로 끝납니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>SNS 팬아웃과 EventBridge 라우팅의 구조 차이</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Amazon SNS 팬아웃</th>
+              <th scope="col">Amazon EventBridge</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">전달 방식</th>
+              <td>주제를 구독한 모든 대상에 브로드캐스트</td>
+              <td>이벤트 패턴에 맞는 규칙의 대상에만 전달</td>
+            </tr>
+            <tr>
+              <th scope="row">필터링</th>
+              <td>구독 필터 정책으로 메시지 속성 기준</td>
+              <td><strong>이벤트 본문 구조 전체</strong>를 패턴으로 매칭</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 종류</th>
+              <td>큐·함수·HTTP·이메일 등</td>
+              <td>훨씬 다양한 AWS 서비스</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS 서비스 이벤트</th>
+              <td>직접 받지 않는다</td>
+              <td><span class="mark-ok">기본 버스로 들어온다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">스키마</th>
+              <td>정의되지 않는다</td>
+              <td>스키마 레지스트리로 관리할 수 있다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        이 실습은 사용자 지정 버스를 씁니다.
+        AWS 서비스가 내보내는 이벤트는 <strong>기본 버스</strong>로 들어오므로,
+        애플리케이션 이벤트를 섞지 않으려면 버스를 나누는 편이 관리하기 쉽습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-bus">1 · 사용자 지정 이벤트 버스</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-bus.sh</span> — 버스 생성</figcaption>
+        <pre><code class="lang-bash">aws events create-event-bus \
+  --name lab08-orders-bus \
+  --query 'EventBusArn' --output text</code></pre>
+      </figure>
+
+      <h3 id="step-event">2 · 이벤트 형태 정하기</h3>
+      <p>
+        EventBridge 이벤트는 <code>Source</code> · <code>DetailType</code> · <code>Detail</code> 세 가지가 핵심입니다.
+        <strong>이 셋을 규칙에서 매칭</strong>하므로, 처음에 명명 규칙을 정해 두면 나중이 편합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">put-events.sh</span> — 주문 생성 이벤트 게시</figcaption>
+        <pre><code class="lang-bash">aws events put-events --entries '[
+  {
+    "EventBusName": "lab08-orders-bus",
+    "Source": "example.orders",
+    "DetailType": "OrderCreated",
+    "Detail": "{\"orderId\":\"ord-1001\",\"customerId\":\"cust-001\",\"totalAmount\":42000}"
+  }
+]'</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <code>Detail</code>은 <strong>JSON 객체를 문자열로 인코딩한 값</strong>입니다.
+          객체를 그대로 넣으면 게시가 실패합니다.
+          응답의 <code>FailedEntryCount</code>가 0인지 반드시 확인합니다 —
+          <strong>일부 항목만 실패해도 API 호출 자체는 성공으로 반환</strong>됩니다.
+        </p>
+      </aside>
+
+      <h3 id="step-rules">3 · 규칙과 대상</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">rule-created.json</span> — 주문 생성 이벤트만 매칭하는 패턴</figcaption>
+        <pre><code class="lang-json">{
+  "source": ["example.orders"],
+  "detail-type": ["OrderCreated"]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">rule-high-value.json</span> — 금액 기준을 넘는 주문만 매칭</figcaption>
+        <pre><code class="lang-json">{
+  "source": ["example.orders"],
+  "detail-type": ["OrderCreated"],
+  "detail": {
+    "totalAmount": [{ "numeric": [">=", 1000000] }]
+  }
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-rules.sh</span> — 규칙 생성과 대상 연결 (ARN은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws events put-rule \
+  --name lab08-order-created \
+  --event-bus-name lab08-orders-bus \
+  --event-pattern file://rule-created.json \
+  --state ENABLED
+
+aws events put-targets \
+  --rule lab08-order-created \
+  --event-bus-name lab08-orders-bus \
+  --targets '[
+    {
+      "Id": "notify-fn",
+      "Arn": "arn:aws:lambda:ap-northeast-2:123456789012:function:lab08-notify",
+      "RetryPolicy": { "MaximumRetryAttempts": 2, "MaximumEventAgeInSeconds": 3600 },
+      "DeadLetterConfig": {
+        "Arn": "arn:aws:sqs:ap-northeast-2:123456789012:lab08-events-dlq"
+      }
+    }
+  ]'
+
+aws events put-rule \
+  --name lab08-high-value \
+  --event-bus-name lab08-orders-bus \
+  --event-pattern file://rule-high-value.json \
+  --state ENABLED
+
+aws events put-targets \
+  --rule lab08-high-value \
+  --event-bus-name lab08-orders-bus \
+  --targets '[
+    {
+      "Id": "review-queue",
+      "Arn": "arn:aws:sqs:ap-northeast-2:123456789012:lab08-review"
+    }
+  ]'</code></pre>
+      </figure>
+
+      <h3 id="step-permission">4 · 대상 호출 권한</h3>
+      <p>
+        <a href="lab06.html">실습 6</a>과 같은 구조입니다.
+        <strong>대상 쪽에 "EventBridge가 호출해도 된다"</strong>는 권한이 있어야 합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">grant-invoke.sh</span> — Lambda 대상에 리소스 기반 권한 추가</figcaption>
+        <pre><code class="lang-bash">RULE_ARN=$(aws events describe-rule \
+  --name lab08-order-created \
+  --event-bus-name lab08-orders-bus \
+  --query 'Arn' --output text)
+
+aws lambda add-permission \
+  --function-name lab08-notify \
+  --statement-id eventbridge-order-created \
+  --action lambda:InvokeFunction \
+  --principal events.amazonaws.com \
+  --source-arn "$RULE_ARN"</code></pre>
+      </figure>
+
+      <p>
+        SQS 큐가 대상이면 <strong>큐 정책</strong>에
+        <code>events.amazonaws.com</code>의 <code>sqs:SendMessage</code>를 허용하고,
+        조건으로 규칙 ARN을 지정합니다.
+      </p>
+
+      <h3 id="step-schedule">5 · 예약 규칙</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-schedule.sh</span> — 주기적으로 대상을 호출하는 규칙 (기본 버스에서만 동작합니다)</figcaption>
+        <pre><code class="lang-bash">aws events put-rule \
+  --name lab08-nightly-reconcile \
+  --schedule-expression "cron(0 18 * * ? *)" \
+  --state ENABLED
+
+aws events put-targets \
+  --rule lab08-nightly-reconcile \
+  --targets '[{
+      "Id": "reconcile-fn",
+      "Arn": "arn:aws:lambda:ap-northeast-2:123456789012:function:lab08-reconcile"
+    }]'</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          일정 표현식은 <strong>UTC 기준</strong>으로 해석됩니다.
+          위의 <code>cron(0 18 * * ? *)</code>은 한국 표준시로 다음 날 오전 3시입니다.
+          현지 시각을 그대로 적어 두면 엉뚱한 시각에 실행됩니다.
+        </p>
+        <p>
+          그리고 예약 규칙은 <strong>기본 이벤트 버스에서만</strong> 동작합니다.
+          사용자 지정 버스에 일정 표현식을 붙일 수 없습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <h3 id="verify-pattern">패턴을 먼저 시험한다</h3>
+      <p>
+        규칙을 만들기 전에 <strong>패턴이 실제 이벤트와 맞는지</strong> 확인할 수 있습니다.
+        이벤트가 전달되지 않는 문제의 대부분은 패턴 불일치입니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">test-pattern.sh</span> — 패턴과 이벤트를 대조</figcaption>
+        <pre><code class="lang-bash">aws events test-event-pattern \
+  --event-pattern '{"source":["example.orders"],"detail-type":["OrderCreated"]}' \
+  --event '{
+      "id": "test-1",
+      "source": "example.orders",
+      "detail-type": "OrderCreated",
+      "account": "123456789012",
+      "region": "ap-northeast-2",
+      "time": "2026-07-29T10:00:00Z",
+      "resources": [],
+      "detail": { "orderId": "ord-1001", "totalAmount": 42000 }
+    }' \
+  --query 'Result'</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify.sh</span> — 규칙·대상 확인과 게시 결과</figcaption>
+        <pre><code class="lang-bash">aws events list-rules \
+  --event-bus-name lab08-orders-bus \
+  --query 'Rules[].[Name,State,EventPattern]' --output table
+
+aws events list-targets-by-rule \
+  --rule lab08-order-created \
+  --event-bus-name lab08-orders-bus \
+  --query 'Targets[].[Id,Arn]' --output table
+
+# 게시 결과에서 실패 항목 수를 확인합니다.
+aws events put-events --entries '[{
+    "EventBusName":"lab08-orders-bus",
+    "Source":"example.orders",
+    "DetailType":"OrderCreated",
+    "Detail":"{\"orderId\":\"ord-1002\",\"totalAmount\":2000000}"
+  }]' \
+  --query '[FailedEntryCount, Entries]'</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>검증 항목과 기대 결과</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">기대 결과</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">일반 주문 이벤트</th>
+              <td>알림 대상만 호출된다</td>
+            </tr>
+            <tr>
+              <th scope="row">고액 주문 이벤트</th>
+              <td>알림과 심사 <strong>양쪽 규칙에 모두</strong> 매칭된다</td>
+            </tr>
+            <tr>
+              <th scope="row">다른 <code>Source</code>의 이벤트</th>
+              <td>어느 규칙에도 매칭되지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">권한이 없는 대상</th>
+              <td>전달이 실패하고 재시도 후 DLQ로 간다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>FailedEntryCount</code></th>
+              <td>0이어야 한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="참고">
+        <p>
+          이벤트가 전달되는지 눈으로 보고 싶다면
+          규칙의 대상으로 <strong>CloudWatch Logs 로그 그룹</strong>을 하나 추가하면 됩니다.
+          어떤 이벤트가 어떤 형태로 도착했는지 그대로 남으므로 디버깅에 유용합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요금이 발생하는 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">사용자 지정 이벤트</th>
+              <td>게시한 이벤트 수</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS 서비스 이벤트</th>
+              <td>기본 버스로 들어오는 이벤트의 취급이 다르다</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 호출</th>
+              <td>호출되는 대상 서비스(Lambda·SQS 등)의 요금이 별도로 발생한다</td>
+            </tr>
+            <tr>
+              <th scope="row">아카이브와 재생</th>
+              <td>보관한 이벤트 양과 재생한 이벤트 수</td>
+            </tr>
+            <tr>
+              <th scope="row">재시도</th>
+              <td>실패가 반복되면 대상 호출이 늘어난다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        비용을 좌우하는 것은 <strong>이벤트 수</strong>입니다.
+        모든 상태 변화를 이벤트로 만들면 양이 빠르게 늘어납니다.
+        "누군가 반응해야 하는 사실"만 이벤트로 만들고,
+        내부 상태 변화는 이벤트로 올리지 않는 편이 좋습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>이벤트 이름 규칙을 먼저 정합니다.</strong>
+          <code>Source</code>는 도메인, <code>DetailType</code>은 과거형 사실
+          (<code>OrderCreated</code>, <code>PaymentFailed</code>)로 통일하면 규칙이 단순해집니다.</li>
+        <li><strong>스키마를 관리합니다.</strong> 생산자가 필드를 바꾸면 소비자가 조용히 깨집니다.
+          필드는 추가만 하고 제거·의미 변경은 새 <code>DetailType</code>으로 처리합니다.</li>
+        <li><strong>대상마다 DLQ를 붙입니다.</strong> 전달 실패는 조용히 사라지는 것이 가장 나쁩니다.</li>
+        <li><strong>아카이브와 재생</strong>을 켜 두면 소비자 버그를 고친 뒤
+          과거 이벤트를 다시 흘려보낼 수 있습니다.</li>
+        <li><strong>버스를 나눕니다.</strong> AWS 서비스 이벤트와 애플리케이션 이벤트를 섞지 않습니다.</li>
+        <li><strong>교차 계정 전달</strong>이 필요하면 버스 리소스 정책으로 다른 계정의 게시를 허용합니다.</li>
+        <li><strong>순서가 필요하면 이벤트 버스가 아닙니다.</strong>
+          EventBridge는 순서를 보장하지 않습니다. 순서가 요구되면 FIFO 큐나 스트림을 씁니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>대상이 남아 있으면 규칙을 삭제할 수 없습니다.</strong>
+          대상을 먼저 제거한 뒤 규칙을 지우고, 마지막에 버스를 삭제합니다.
+        </p>
+      </aside>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 대상 · 규칙 · 버스 순서로 삭제</figcaption>
+        <pre><code class="lang-bash">aws events remove-targets \
+  --rule lab08-order-created \
+  --event-bus-name lab08-orders-bus \
+  --ids notify-fn
+
+aws events delete-rule \
+  --name lab08-order-created \
+  --event-bus-name lab08-orders-bus
+
+aws events remove-targets \
+  --rule lab08-high-value \
+  --event-bus-name lab08-orders-bus \
+  --ids review-queue
+
+aws events delete-rule \
+  --name lab08-high-value \
+  --event-bus-name lab08-orders-bus
+
+aws events remove-targets --rule lab08-nightly-reconcile --ids reconcile-fn
+aws events delete-rule --name lab08-nightly-reconcile
+
+aws events delete-event-bus --name lab08-orders-bus</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>EventBusName</code>을 빠뜨림</th>
+              <td>이벤트가 기본 버스로 가서 규칙에 잡히지 않는다</td>
+              <td>게시와 규칙 양쪽에 버스 이름을 명시한다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Detail</code>을 객체로 전달</th>
+              <td>게시가 실패한다</td>
+              <td>JSON을 문자열로 인코딩한다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>FailedEntryCount</code>를 확인하지 않음</th>
+              <td>일부 이벤트가 조용히 유실된다</td>
+              <td>응답을 확인하고 실패 시 재시도한다</td>
+            </tr>
+            <tr>
+              <th scope="row">대상에 호출 권한이 없음</th>
+              <td>규칙은 매칭되는데 아무 일도 일어나지 않는다</td>
+              <td>리소스 기반 정책이나 큐 정책을 추가한다</td>
+            </tr>
+            <tr>
+              <th scope="row">사용자 지정 버스에 일정 표현식</th>
+              <td>동작하지 않는다</td>
+              <td>예약 규칙은 기본 버스에 만든다</td>
+            </tr>
+            <tr>
+              <th scope="row">일정 표현식을 현지 시각으로 작성</th>
+              <td>의도한 시각과 다르게 실행된다</td>
+              <td>UTC로 환산하거나 시간대를 명시한다</td>
+            </tr>
+            <tr>
+              <th scope="row">DLQ 없이 운영</th>
+              <td>전달 실패가 흔적 없이 사라진다</td>
+              <td>대상마다 배달 못한 편지 대기열을 지정한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch12.html">
+          <span class="card__title">12장 · 서버리스와 애플리케이션 통합</span>
+          <span class="card__desc">EventBridge와 SNS·SQS의 역할 구분, 호출 모델 3종을 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2</span>
+        </a></li>
+        <li><a class="card" href="lab07.html">
+          <span class="card__title">실습 7 · SQS + Lambda 비동기 처리</span>
+          <span class="card__desc">큐로 결합을 끊는 방식과 비교해 보면 두 패턴의 용도가 분명해집니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="lab06.html">
+          <span class="card__title">실습 6 · Lambda + API Gateway REST API</span>
+          <span class="card__desc">동기 호출 경로의 권한 구성과 비교합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case07.html">
+          <span class="card__title">케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다</span>
+          <span class="card__desc">느슨한 결합이 확장성과 장애 격리에 어떻게 기여하는지 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="lab12.html">
+          <span class="card__title">실습 12 · CloudWatch 알람 + SNS 알림</span>
+          <span class="card__desc">이벤트 전달 실패를 지표와 알람으로 감시하는 구성을 만듭니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutRule.html">Amazon EventBridge API 레퍼런스 — PutRule</a>
+          — 이벤트 패턴과 일정 표현식, 버스 지정</li>
+        <li><a href="https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutTargets.html">Amazon EventBridge API 레퍼런스 — PutTargets</a>
+          — 대상별 재시도 정책과 배달 못한 편지 대기열 설정</li>
+        <li><a href="https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutEvents.html">Amazon EventBridge API 레퍼런스 — PutEvents</a>
+          — 항목의 <code>Source</code>·<code>DetailType</code>·<code>Detail</code> 구조와
+          <code>FailedEntryCount</code> 응답</li>
+        <li><a href="https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_TestEventPattern.html">Amazon EventBridge API 레퍼런스 — TestEventPattern</a>
+          — 패턴과 이벤트의 매칭 여부 확인</li>
+        <li><a href="https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateEventBus.html">Amazon EventBridge API 레퍼런스 — CreateEventBus</a>
+          — 사용자 지정 버스 생성</li>
+        <li><a href="https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_CreateArchive.html">Amazon EventBridge API 레퍼런스 — CreateArchive</a>
+          — 이벤트 아카이브와 보존 기간</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/api/API_AddPermission.html">AWS Lambda API 레퍼런스 — AddPermission</a>
+          — 대상 함수에 호출 주체를 허용하는 방식</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

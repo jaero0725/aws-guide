@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 2 · ALB + ASG 웹 티어 — AWS SAA Guide</title>
+  <meta name="description" content="Application Load Balancer와 Auto Scaling 그룹으로 다중 가용 영역 웹 티어를 구성합니다. 시작 템플릿, 대상 그룹 상태 확인, ELB 상태 확인 유형, 대상 추적 스케일링 정책을 AWS CLI로 만들고 검증합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab02"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab02">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 2 · ALB + ASG 웹 티어</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 2</p>
+      <h1>ALB + ASG 웹 티어</h1>
+      <p class="page__lead">
+        <a href="lab01.html">실습 1</a>에서 만든 네트워크 위에
+        Application Load Balancer와 Auto Scaling 그룹을 얹습니다.
+        핵심은 대수를 늘리는 것이 아니라
+        <strong>여러 가용 영역에 퍼뜨리고, 상태 확인으로 자동 교체되게 만드는 것</strong>입니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>시작 템플릿과 Auto Scaling 그룹을 만들어 여러 가용 영역에 인스턴스를 분산할 수 있습니다.</li>
+        <li>대상 그룹의 상태 확인과 Auto Scaling의 상태 확인 유형 차이를 구분할 수 있습니다.</li>
+        <li>대상 추적 스케일링 정책을 붙이고 목표 지표를 고를 수 있습니다.</li>
+        <li>상태 확인 실패가 인스턴스 교체로 이어지는 과정을 관찰할 수 있습니다.</li>
+        <li>삭제 순서를 지켜 리소스를 남김없이 정리할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        HTTP로 응답하는 웹 애플리케이션을 배포합니다. 요구는 이렇습니다.
+      </p>
+      <ul>
+        <li>인터넷에서 로드 밸런서를 통해서만 접근할 수 있어야 합니다.</li>
+        <li>인스턴스는 프라이빗 서브넷에 있어야 합니다.</li>
+        <li>가용 영역 하나가 손실돼도 서비스가 계속되어야 합니다.</li>
+        <li>애플리케이션이 응답하지 못하는 인스턴스는 <strong>자동으로 교체</strong>되어야 합니다.</li>
+        <li>부하에 따라 대수가 조절되어야 합니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>구성 요소와 배치</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성 요소</th>
+              <th scope="col">배치</th>
+              <th scope="col">역할</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Application Load Balancer</th>
+              <td>퍼블릭 서브넷(가용 영역 2곳)</td>
+              <td>인터넷 요청을 받아 대상 그룹으로 분배</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 그룹</th>
+              <td>—</td>
+              <td>상태 확인으로 정상 인스턴스만 트래픽 대상에 유지</td>
+            </tr>
+            <tr>
+              <th scope="row">Auto Scaling 그룹</th>
+              <td>프라이빗 서브넷(가용 영역 2곳)</td>
+              <td>용량 유지와 확장·축소, 비정상 인스턴스 교체</td>
+            </tr>
+            <tr>
+              <th scope="row">시작 템플릿</th>
+              <td>—</td>
+              <td>인스턴스 사양·이미지·보안 그룹·사용자 데이터 정의</td>
+            </tr>
+            <tr>
+              <th scope="row">보안 그룹 2개</th>
+              <td>—</td>
+              <td>로드 밸런서용(인터넷 허용) · 인스턴스용(<strong>로드 밸런서 보안 그룹만</strong> 허용)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        보안 그룹을 두 개로 나누고 인스턴스 쪽 소스를 <strong>로드 밸런서 보안 그룹 ID</strong>로 지정하는 것이
+        이 실습의 설계 요점입니다. 인스턴스가 늘거나 서브넷이 바뀌어도 규칙을 고칠 필요가 없습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-sg">1 · 보안 그룹 두 개</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-security-groups.sh</span> — 로드 밸런서용과 인스턴스용 (VPC ID는 실습 1의 출력값을 씁니다)</figcaption>
+        <pre><code class="lang-bash">VPC_ID=vpc-0123456789abcdef0
+
+ALB_SG=$(aws ec2 create-security-group \
+  --group-name lab02-alb-sg \
+  --description "ALB ingress from internet" \
+  --vpc-id "$VPC_ID" \
+  --query 'GroupId' --output text)
+
+aws ec2 authorize-security-group-ingress \
+  --group-id "$ALB_SG" \
+  --protocol tcp --port 80 --cidr 0.0.0.0/0
+
+APP_SG=$(aws ec2 create-security-group \
+  --group-name lab02-app-sg \
+  --description "App ingress from ALB only" \
+  --vpc-id "$VPC_ID" \
+  --query 'GroupId' --output text)
+
+# 소스를 CIDR 이 아니라 보안 그룹으로 지정합니다.
+aws ec2 authorize-security-group-ingress \
+  --group-id "$APP_SG" \
+  --ip-permissions "[{
+      \"IpProtocol\": \"tcp\", \"FromPort\": 80, \"ToPort\": 80,
+      \"UserIdGroupPairs\": [{\"GroupId\": \"$ALB_SG\"}]
+    }]"</code></pre>
+      </figure>
+
+      <h3 id="step-lt">2 · 시작 템플릿</h3>
+      <p>
+        인스턴스에는 <strong>액세스 키를 심지 않습니다.</strong>
+        필요한 권한은 IAM 역할을 인스턴스 프로파일로 연결해 전달하고,
+        메타데이터는 IMDSv2를 요구하도록 설정합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">launch-template.json</span> — 시작 템플릿 데이터 (AMI ID와 인스턴스 타입은 리전·용도에 맞춰 정합니다)</figcaption>
+        <pre><code class="lang-json">{
+  "ImageId": "ami-0123456789abcdef0",
+  "InstanceType": "t3.micro",
+  "SecurityGroupIds": ["sg-0app000000000000"],
+  "IamInstanceProfile": { "Name": "Lab02WebProfile" },
+  "MetadataOptions": {
+    "HttpTokens": "required",
+    "HttpEndpoint": "enabled",
+    "HttpPutResponseHopLimit": 1
+  },
+  "TagSpecifications": [
+    {
+      "ResourceType": "instance",
+      "Tags": [{ "Key": "Name", "Value": "lab02-web" }]
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-launch-template.sh</span> — 시작 템플릿 생성</figcaption>
+        <pre><code class="lang-bash">aws ec2 create-launch-template \
+  --launch-template-name lab02-web-lt \
+  --launch-template-data file://launch-template.json \
+  --query 'LaunchTemplate.[LaunchTemplateId,LatestVersionNumber]' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          사용자 데이터로 애플리케이션을 설치하면 기동이 느려지고
+          Auto Scaling의 워밍업 값도 그만큼 커져야 합니다.
+          프로덕션에서는 필요한 것을 <strong>미리 구운 이미지</strong>를 쓰고
+          사용자 데이터는 설정 주입 정도로만 쓰는 편이 낫습니다.
+        </p>
+      </aside>
+
+      <h3 id="step-alb">3 · 로드 밸런서와 대상 그룹</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-alb.sh</span> — 로드 밸런서 · 대상 그룹 · 리스너 (서브넷 ID는 실습 1의 출력값을 씁니다)</figcaption>
+        <pre><code class="lang-bash">ALB_ARN=$(aws elbv2 create-load-balancer \
+  --name lab02-alb \
+  --type application \
+  --scheme internet-facing \
+  --subnets subnet-0pub00000000000a subnet-0pub00000000000b \
+  --security-groups "$ALB_SG" \
+  --query 'LoadBalancers[0].LoadBalancerArn' --output text)
+
+TG_ARN=$(aws elbv2 create-target-group \
+  --name lab02-tg \
+  --protocol HTTP --port 80 \
+  --vpc-id "$VPC_ID" \
+  --target-type instance \
+  --health-check-protocol HTTP \
+  --health-check-path /health \
+  --health-check-interval-seconds 15 \
+  --health-check-timeout-seconds 5 \
+  --healthy-threshold-count 2 \
+  --unhealthy-threshold-count 2 \
+  --query 'TargetGroups[0].TargetGroupArn' --output text)
+
+aws elbv2 create-listener \
+  --load-balancer-arn "$ALB_ARN" \
+  --protocol HTTP --port 80 \
+  --default-actions "Type=forward,TargetGroupArn=$TG_ARN"</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          상태 확인 경로(<code>/health</code>)는 <strong>애플리케이션이 실제로 일할 수 있는지</strong>를
+          반영해야 의미가 있습니다.
+          정적 파일 하나를 돌려주는 경로로 두면
+          데이터베이스가 끊긴 인스턴스도 계속 정상으로 판정됩니다.
+        </p>
+        <p>
+          반대로 상태 확인이 무거운 의존 관계를 전부 확인하면
+          의존 서비스의 일시적 문제가 <strong>전체 인스턴스 교체</strong>로 번질 수 있습니다.
+          어디까지 확인할지는 의도적으로 정합니다.
+        </p>
+      </aside>
+
+      <h3 id="step-asg">4 · Auto Scaling 그룹</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-asg.sh</span> — 다중 가용 영역 Auto Scaling 그룹과 ELB 상태 확인</figcaption>
+        <pre><code class="lang-bash">aws autoscaling create-auto-scaling-group \
+  --auto-scaling-group-name lab02-asg \
+  --launch-template "LaunchTemplateName=lab02-web-lt,Version=\$Latest" \
+  --min-size 2 --max-size 6 --desired-capacity 2 \
+  --vpc-zone-identifier "subnet-0prv00000000000a,subnet-0prv00000000000b" \
+  --target-group-arns "$TG_ARN" \
+  --health-check-type ELB \
+  --health-check-grace-period 300 \
+  --default-instance-warmup 180</code></pre>
+      </figure>
+
+      <p>
+        상태 확인 유형에는 <code>EC2</code>, <code>EBS</code>, <code>ELB</code>,
+        <code>VPC_LATTICE</code>가 있고 <code>EC2</code>는 기본이며 끌 수 없습니다.
+        <code>ELB</code>를 추가해야 <strong>인스턴스는 살아 있는데 애플리케이션이 응답하지 못하는 상태</strong>가
+        교체 대상이 됩니다.
+      </p>
+
+      <h3 id="step-policy">5 · 스케일링 정책</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">scaling-policy.sh</span> — 대상당 요청 수를 목표로 하는 대상 추적 정책 (목표값은 애플리케이션 특성에 맞춰 정합니다)</figcaption>
+        <pre><code class="lang-bash">ALB_LABEL=$(aws elbv2 describe-load-balancers --load-balancer-arns "$ALB_ARN" \
+  --query 'LoadBalancers[0].LoadBalancerArn' --output text | cut -d: -f6)
+TG_LABEL=$(echo "$TG_ARN" | cut -d: -f6)
+
+aws autoscaling put-scaling-policy \
+  --auto-scaling-group-name lab02-asg \
+  --policy-name lab02-track-requests \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-configuration "{
+      \"TargetValue\": 500.0,
+      \"PredefinedMetricSpecification\": {
+        \"PredefinedMetricType\": \"ALBRequestCountPerTarget\",
+        \"ResourceLabel\": \"$ALB_LABEL/$TG_LABEL\"
+      }
+    }"</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          대상 추적 정책이 쓸 수 있는 사전 정의 지표는
+          <code>ASGAverageCPUUtilization</code>, <code>ASGAverageNetworkIn</code>,
+          <code>ASGAverageNetworkOut</code>, <code>ALBRequestCountPerTarget</code>입니다.
+          CPU는 요청이 몰린 뒤에야 오르므로,
+          웹 티어에서는 대상당 요청 수가 더 빨리 반응합니다.
+        </p>
+        <p>
+          <code>ResourceLabel</code>은 로드 밸런서와 대상 그룹을 가리키는 문자열이며
+          형식이 정확해야 합니다. 위 스크립트처럼 ARN에서 뽑아 쓰면 오타를 줄일 수 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify.sh</span> — 분산 상태와 대상 건강 상태 확인</figcaption>
+        <pre><code class="lang-bash"># 1) 인스턴스가 두 가용 영역에 나뉘어 있는지
+aws autoscaling describe-auto-scaling-groups \
+  --auto-scaling-group-names lab02-asg \
+  --query 'AutoScalingGroups[0].Instances[].[InstanceId,AvailabilityZone,LifecycleState,HealthStatus]' \
+  --output table
+
+# 2) 대상 그룹의 상태 확인 결과
+aws elbv2 describe-target-health \
+  --target-group-arn "$TG_ARN" \
+  --query 'TargetHealthDescriptions[].[Target.Id,TargetHealth.State,TargetHealth.Reason]' \
+  --output table
+
+# 3) 로드 밸런서의 DNS 이름으로 실제 응답 확인
+aws elbv2 describe-load-balancers \
+  --load-balancer-arns "$ALB_ARN" \
+  --query 'LoadBalancers[0].[DNSName,State.Code,AvailabilityZones[].ZoneName]' \
+  --output json</code></pre>
+      </figure>
+
+      <h3 id="verify-failure">장애를 일부러 만들어 본다</h3>
+      <p>
+        구성이 실제로 동작하는지는 <strong>실패를 만들어 봐야</strong> 압니다.
+      </p>
+      <ol>
+        <li>인스턴스 하나에서 애플리케이션 프로세스를 중지시킵니다.</li>
+        <li>대상 그룹의 상태가 <code>unhealthy</code>로 바뀌는지 봅니다.</li>
+        <li>Auto Scaling이 그 인스턴스를 종료하고 새로 시작하는지 봅니다.</li>
+        <li>그동안 로드 밸런서가 남은 인스턴스로만 트래픽을 보내는지 확인합니다.</li>
+      </ol>
+
+      <figure class="code">
+        <figcaption><span class="code__name">force-replace.sh</span> — 인스턴스를 비정상으로 표시해 교체를 관찰 (인스턴스 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws autoscaling set-instance-health \
+  --instance-id i-0123456789abcdef0 \
+  --health-status Unhealthy \
+  --no-should-respect-grace-period
+
+aws autoscaling describe-scaling-activities \
+  --auto-scaling-group-name lab02-asg \
+  --max-items 5 \
+  --query 'Activities[].[StartTime,StatusCode,Description]' \
+  --output table</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요금이 발생하는 구성 요소</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성 요소</th>
+              <th scope="col">요금 항목의 성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Application Load Balancer</th>
+              <td>가동 시간과 처리한 용량 단위</td>
+            </tr>
+            <tr>
+              <th scope="row">EC2 인스턴스</th>
+              <td>실행 시간. <strong>최소 용량이 곧 하한 비용</strong>이다</td>
+            </tr>
+            <tr>
+              <th scope="row">EBS 볼륨</th>
+              <td>인스턴스를 중지해도 계속 발생한다</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 간 전송</th>
+              <td>교차 영역 분배로 경계를 넘는 트래픽에 붙는다</td>
+            </tr>
+            <tr>
+              <th scope="row">Auto Scaling</th>
+              <td>서비스 자체로는 항목이 늘지 않는다. 늘어난 인스턴스가 항목이다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        비용 관점에서 중요한 설정은 <strong>최소 용량</strong>입니다.
+        가용성을 위해 최소 2대를 유지한다면 그것이 상시 비용의 바닥이 됩니다.
+        예측 가능한 한산한 시간대가 있다면 예약 스케일링으로 최소 용량을 낮출 수 있습니다
+        (<a href="../cases/case07.html">케이스 7</a>).
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>HTTPS로 종료합니다.</strong> ACM 인증서를 로드 밸런서 리스너에 붙이고
+          HTTP 요청은 HTTPS로 리디렉션합니다.</li>
+        <li><strong>가용 영역 셋 이상.</strong> 두 곳이면 하나가 빠질 때 남은 한 곳이 전부를 감당해야 합니다.</li>
+        <li><strong>상태를 인스턴스 밖으로.</strong> 세션과 업로드 파일이 인스턴스에 있으면
+          자동 교체가 사용자에게 장애로 보입니다(<a href="../cases/case05.html">케이스 5</a>).</li>
+        <li><strong>워밍업과 유예 기간을 실제 기동 시간으로.</strong>
+          너무 짧으면 준비 중인 인스턴스가 교체되어 기동과 종료가 반복됩니다.</li>
+        <li><strong>배포는 인스턴스 새로 고침으로.</strong>
+          시작 템플릿의 새 버전을 만들고 점진적으로 교체하면 중단 없이 배포할 수 있습니다.</li>
+        <li><strong>수명주기 훅</strong>으로 종료 직전에 로그를 회수하거나
+          연결 드레이닝을 기다릴 수 있습니다.</li>
+        <li><strong>접근 로그를 켭니다.</strong> 로드 밸런서 접근 로그는 기본이 꺼짐이며,
+          문제가 생긴 뒤에 켜면 이전 기록이 없습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          Auto Scaling 그룹을 먼저 지우지 않고 인스턴스만 종료하면
+          그룹이 곧바로 새 인스턴스를 만듭니다.
+          <strong>그룹을 먼저 없애거나 최소 용량을 0으로</strong> 만든 뒤 진행합니다.
+        </p>
+      </aside>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 삭제 순서</figcaption>
+        <pre><code class="lang-bash">aws autoscaling delete-auto-scaling-group \
+  --auto-scaling-group-name lab02-asg \
+  --force-delete
+
+aws elbv2 delete-listener --listener-arn "$LISTENER_ARN"
+aws elbv2 delete-load-balancer --load-balancer-arn "$ALB_ARN"
+aws elbv2 delete-target-group --target-group-arn "$TG_ARN"
+
+aws ec2 delete-launch-template --launch-template-name lab02-web-lt
+
+# 보안 그룹은 참조가 모두 사라진 뒤에야 삭제됩니다.
+aws ec2 delete-security-group --group-id "$APP_SG"
+aws ec2 delete-security-group --group-id "$ALB_SG"</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">로드 밸런서를 서브넷 하나에만 등록</th>
+              <td>가용 영역 장애 시 전면 중단</td>
+              <td>둘 이상의 가용 영역 서브넷을 지정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">Auto Scaling 그룹의 서브넷이 한 가용 영역에만</th>
+              <td>인스턴스가 전부 같은 곳에 몰린다</td>
+              <td><code>--vpc-zone-identifier</code>에 여러 가용 영역 서브넷을 넣는다</td>
+            </tr>
+            <tr>
+              <th scope="row">상태 확인 유형을 <code>EC2</code>만 사용</th>
+              <td>애플리케이션이 죽어도 교체되지 않는다</td>
+              <td><code>--health-check-type ELB</code></td>
+            </tr>
+            <tr>
+              <th scope="row">유예 기간이 기동 시간보다 짧음</th>
+              <td>새 인스턴스가 준비 전에 비정상으로 교체되어 반복된다</td>
+              <td>기동 시간을 재고 유예 기간을 늘린다</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 보안 그룹이 <code>0.0.0.0/0</code> 허용</th>
+              <td>로드 밸런서를 우회한 직접 접근이 가능해진다</td>
+              <td>소스를 로드 밸런서 보안 그룹 ID로 지정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">상태 확인 경로가 정적 파일</th>
+              <td>의존 서비스가 끊긴 인스턴스가 계속 정상으로 남는다</td>
+              <td>애플리케이션이 실제로 일할 수 있는지 반환하는 경로로 바꾼다</td>
+            </tr>
+            <tr>
+              <th scope="row">단순 조정 정책으로 1대씩 확장</th>
+              <td>급증을 따라가지 못한다</td>
+              <td>대상 추적 정책으로 바꾼다(<a href="../cases/case07.html">케이스 7</a>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch07.html">
+          <span class="card__title">7장 · 로드 밸런싱과 오토스케일링</span>
+          <span class="card__desc">ALB·NLB·GWLB 선택 기준, 대상 그룹, 스케일링 정책과 수명주기 훅을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2</span>
+        </a></li>
+        <li><a class="card" href="lab01.html">
+          <span class="card__title">실습 1 · 3계층 VPC 직접 구성</span>
+          <span class="card__desc">이 실습이 전제하는 네트워크를 먼저 만듭니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case05.html">
+          <span class="card__title">케이스 5 · 단일 AZ 설계가 장애로 전면 중단됐다</span>
+          <span class="card__desc">이 구성이 없을 때 무엇이 순서대로 끊기는지 확인합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cases/case07.html">
+          <span class="card__title">케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다</span>
+          <span class="card__desc">스케일링 정책과 워밍업 설정이 반응 속도를 어떻게 바꾸는지 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="lab12.html">
+          <span class="card__title">실습 12 · CloudWatch 알람 + SNS 알림</span>
+          <span class="card__desc">이 웹 티어의 지표에 알람을 걸어 이상을 알리는 파이프라인을 만듭니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateLoadBalancer.html">Elastic Load Balancing API 레퍼런스 — CreateLoadBalancer</a>
+          — 유형(<code>application</code> · <code>network</code> · <code>gateway</code>)과 체계, 서브넷 지정</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateTargetGroup.html">Elastic Load Balancing API 레퍼런스 — CreateTargetGroup</a>
+          — 대상 유형(<code>instance</code> · <code>ip</code> · <code>lambda</code> · <code>alb</code>)과 상태 확인 파라미터</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateListener.html">Elastic Load Balancing API 레퍼런스 — CreateListener</a>
+          — 기본 작업으로 대상 그룹에 전달하는 구성</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_CreateAutoScalingGroup.html">Amazon EC2 Auto Scaling API 레퍼런스 — CreateAutoScalingGroup</a>
+          — <code>VPCZoneIdentifier</code>, <code>TargetGroupARNs</code>,
+          상태 확인 유형과 유예 기간, 기본 인스턴스 워밍업</li>
+        <li><a href="https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PutScalingPolicy.html">Amazon EC2 Auto Scaling API 레퍼런스 — PutScalingPolicy</a>
+          — 대상 추적 정책과 사전 정의 지표</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateLaunchTemplate.html">Amazon EC2 API 레퍼런스 — CreateLaunchTemplate</a>
+          — 시작 템플릿 데이터의 구성 요소</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-options.html">Amazon EC2 사용 설명서 — 인스턴스 메타데이터 옵션</a>
+          — <code>HttpTokens</code>와 홉 제한 설정</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

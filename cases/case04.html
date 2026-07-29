@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>케이스 4 · 퍼블릭 서브넷에 데이터베이스를 뒀다 — AWS SAA Guide</title>
+  <meta name="description" content="라우팅 테이블, 퍼블릭 주소, 보안 그룹 세 조건이 어떻게 결합해 데이터베이스 노출이 성립하는지 분해하고, 보안 그룹만 조이는 안과 프라이빗 서브넷으로 옮기는 안을 비교합니다. RDS의 퍼블릭 액세스 기본 동작과 DB 서브넷 그룹 설계까지 다룹니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cases" data-page="case04"></div>
+
+  <main id="main" class="page" data-page-id="cases/case04">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">아키텍처 케이스</a></li>
+        <li><span aria-current="page">케이스 4 · 퍼블릭 서브넷에 데이터베이스를 뒀다</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">아키텍처 케이스 · 4</p>
+      <h1>퍼블릭 서브넷에 데이터베이스를 뒀다</h1>
+      <p class="page__lead">
+        "보안 그룹으로 내 IP만 열어 뒀으니 괜찮다"는 판단이 왜 부족한지 분해합니다.
+        노출은 <strong>라우팅 테이블 · 퍼블릭 주소 · 보안 그룹</strong> 세 조건이
+        동시에 성립할 때 생기고, 그중 하나만 실수로 넓어져도 즉시 인터넷에 열립니다.
+        이 케이스는 세 조건을 하나씩 제거하면서 무엇이 남는지 확인합니다.
+      </p>
+      <p class="page__meta">
+        주 도메인: <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a> ·
+        과제 진술 1.2 보안 워크로드·애플리케이션 설계
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>퍼블릭 서브넷을 정의하는 것이 이름이 아니라 <strong>라우팅 테이블</strong>이라는 점을 설명할 수 있습니다.</li>
+        <li>노출이 성립하는 세 조건을 분리하고, 각각을 어떻게 제거하는지 설계할 수 있습니다.</li>
+        <li>보안 그룹과 네트워크 ACL의 적용 계층과 상태 저장 여부를 구분해 배치할 수 있습니다.</li>
+        <li>Amazon RDS의 퍼블릭 액세스 설정과 DB 서브넷 그룹의 관계를 설명할 수 있습니다.</li>
+        <li>시험 문항에서 "보안 그룹으로 특정 IP를 차단한다"류 선택지를 즉시 소거할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="situation">
+      <h2 id="situation">상황</h2>
+
+      <p>
+        스타트업의 초기 인프라를 그대로 쓰고 있는 서비스입니다.
+        VPC에 서브넷이 두 개뿐이고, 둘 다 라우팅 테이블에
+        <strong>인터넷 게이트웨이로 향하는 기본 경로</strong>가 있습니다.
+        애플리케이션 서버와 Amazon RDS 인스턴스가 같은 서브넷에 있습니다.
+      </p>
+
+      <p>
+        RDS 인스턴스는 <strong>퍼블릭 액세스가 켜진 상태</strong>로 만들어졌습니다.
+        당시 개발자가 사무실 노트북에서 직접 접속해 스키마를 만들어야 했기 때문입니다.
+        보안 그룹은 데이터베이스 포트에 대해 사무실 고정 IP 하나만 허용하고 있었고,
+        여기까지는 팀도 알고 있었습니다.
+      </p>
+
+      <p>
+        문제는 지난 분기에 생겼습니다.
+      </p>
+
+      <ul>
+        <li>재택근무가 늘면서 "임시로" 보안 그룹에 <code>0.0.0.0/0</code> 규칙이 추가되었고,
+          그 규칙이 지워지지 않았습니다.</li>
+        <li>서브넷의 <code>MapPublicIpOnLaunch</code>가 켜져 있어
+          새로 만든 인스턴스마다 퍼블릭 주소가 붙습니다.</li>
+        <li>데이터베이스 사용자 하나가 여전히 초기 설정 비밀번호를 쓰고 있었습니다.</li>
+      </ul>
+
+      <p>
+        보안 점검에서 데이터베이스 엔드포인트가 <strong>인터넷에서 조회 가능한 주소로 해석된다</strong>는
+        사실이 확인되었습니다. 유출 여부는 아직 확인되지 않았습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-182">
+        <figcaption>
+          라우팅 테이블의 인터넷 게이트웨이 경로, 인스턴스에 붙은 퍼블릭 주소,
+          보안 그룹의 개방 규칙 세 조건이 결합해 데이터베이스 노출이 성립하는 경로와,
+          조건을 하나씩 제거했을 때 어디까지 막히는지의 대비
+        </figcaption>
+      </figure>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>서브넷 이름은 아무것도 결정하지 않습니다.</strong>
+          <code>private-subnet-1</code>이라고 이름 붙여도
+          라우팅 테이블에 인터넷 게이트웨이 경로가 있으면 그것은 퍼블릭 서브넷입니다.
+          점검할 때는 이름이 아니라 <strong>연결된 라우팅 테이블의 경로</strong>를 봅니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="anatomy">
+      <h2 id="anatomy">노출은 세 조건의 결합이다</h2>
+
+      <p>
+        인터넷에서 데이터베이스에 도달하려면 아래 셋이 <strong>모두</strong> 성립해야 합니다.
+        하나만 끊어도 경로는 성립하지 않습니다.
+        그래서 처방을 고를 때 "어느 조건을 끊는가"로 이야기하면 논의가 명확해집니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>노출 성립 조건 3종과 각각의 확인·제거 방법</caption>
+          <thead>
+            <tr>
+              <th scope="col">조건</th>
+              <th scope="col">무엇을 의미하는가</th>
+              <th scope="col">어떻게 확인하는가</th>
+              <th scope="col">어떻게 제거하는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1. 경로</th>
+              <td>서브넷의 라우팅 테이블에 인터넷 게이트웨이로 가는 경로가 있다</td>
+              <td>라우팅 테이블의 <code>0.0.0.0/0</code> 대상이 <code>igw-</code>인지</td>
+              <td>인터넷 게이트웨이 경로가 없는 서브넷으로 옮긴다</td>
+            </tr>
+            <tr>
+              <th scope="row">2. 주소</th>
+              <td>리소스에 퍼블릭 IP 또는 퍼블릭으로 해석되는 엔드포인트가 있다</td>
+              <td>RDS의 퍼블릭 액세스 설정, 서브넷의 <code>MapPublicIpOnLaunch</code></td>
+              <td>퍼블릭 액세스를 끄고, 자동 퍼블릭 IP 할당을 끈다</td>
+            </tr>
+            <tr>
+              <th scope="row">3. 허용</th>
+              <td>보안 그룹이 그 출발지에서의 접속을 허용한다</td>
+              <td>인바운드 규칙의 소스가 CIDR인지 보안 그룹인지</td>
+              <td>소스를 애플리케이션 계층의 <strong>보안 그룹 ID</strong>로 바꾼다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">inspect-exposure.sh</span> — 세 조건을 순서대로 확인 (리소스 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 1) 이 서브넷이 실제로 퍼블릭인지 — 라우팅 테이블의 경로를 본다
+aws ec2 describe-route-tables \
+  --filters Name=association.subnet-id,Values=subnet-0123456789abcdef0 \
+  --query 'RouteTables[].Routes[].[DestinationCidrBlock,GatewayId]' \
+  --output table
+
+# 2) 서브넷이 시작 시 퍼블릭 IP 를 자동 할당하는지
+aws ec2 describe-subnets \
+  --subnet-ids subnet-0123456789abcdef0 \
+  --query 'Subnets[0].[SubnetId,MapPublicIpOnLaunch,AvailabilityZone]' \
+  --output table
+
+# 3) 데이터베이스가 퍼블릭 액세스로 설정되어 있는지
+aws rds describe-db-instances \
+  --db-instance-identifier shop-prod \
+  --query 'DBInstances[0].[PubliclyAccessible,DBSubnetGroup.DBSubnetGroupName,Endpoint.Address]' \
+  --output table
+
+# 4) 어떤 소스가 데이터베이스 포트에 허용되어 있는지
+aws ec2 describe-security-groups \
+  --group-ids sg-0123456789abcdef0 \
+  --query 'SecurityGroups[0].IpPermissions'</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          Amazon RDS의 퍼블릭 액세스 설정은 <strong>주소가 어떻게 해석되는가</strong>를 정합니다.
+          API 문서는 이렇게 설명합니다 —
+          퍼블릭 액세스가 켜져 있으면 VPC 밖에서 접속할 때 엔드포인트가 퍼블릭 IP로 해석되고,
+          같은 VPC 안에서 접속하면 프라이빗 IP로 해석됩니다.
+          퍼블릭 액세스가 꺼져 있으면 그 인스턴스는 내부 전용이며
+          엔드포인트가 항상 프라이빗 IP로 해석됩니다.
+        </p>
+        <p>
+          기본값도 함정입니다.
+          DB 서브넷 그룹을 지정하지 않으면 Aurora가 아닌 인스턴스에서
+          퍼블릭 액세스가 <strong>켜진 것이 기본</strong>입니다.
+          DB 서브넷 그룹을 지정하면 기본이 꺼짐으로 바뀝니다
+          (단 그 그룹의 이름이 <code>default</code>이면 다시 켜짐이 기본입니다).
+          "명시하지 않으면 안전하겠지"라는 가정이 성립하지 않습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="requirements">
+      <h2 id="requirements">요구사항과 제약</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구사항과 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">내용</th>
+              <th scope="col">설계에 주는 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">요구 1</th>
+              <td>데이터베이스가 <strong>인터넷에서 도달 불가능</strong>해야 한다</td>
+              <td>세 조건 중 최소 두 개(경로·주소)를 구조적으로 제거한다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 2</th>
+              <td>애플리케이션 서버는 계속 접속할 수 있어야 한다</td>
+              <td>같은 VPC 안의 경로는 유지된다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 3</th>
+              <td>개발자의 <strong>임시 접속 경로</strong>가 필요하다</td>
+              <td>인터넷 개방이 아닌 다른 수단으로 제공한다</td>
+            </tr>
+            <tr>
+              <th scope="row">요구 4</th>
+              <td>같은 실수가 <strong>재발하지 않아야</strong> 한다</td>
+              <td>규칙 준수가 아니라 구조와 자동 탐지로 막는다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 1</th>
+              <td>데이터베이스 <strong>다운타임을 최소화</strong>한다</td>
+              <td>서브넷 이동은 계획된 창에서 수행한다</td>
+            </tr>
+            <tr>
+              <th scope="row">제약 2</th>
+              <td>애플리케이션은 <strong>엔드포인트 이름</strong>으로 접속한다</td>
+              <td>IP가 바뀌어도 설정 변경이 필요 없다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        배경 개념은 <a href="../basics/ch03.html">3장 VPC 네트워킹 기초</a>와
+        <a href="../basics/ch04.html">4장 VPC 연결과 하이브리드</a>에 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="options">
+      <h2 id="options">후보 설계안 비교</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>후보 설계안 4종 비교 — 어느 조건을 끊는가로 판정</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">A · 보안 그룹만 조인다</th>
+              <th scope="col">B · 네트워크 ACL로 인터넷 대역을 거부</th>
+              <th scope="col">C · 프라이빗 서브넷으로 이전 + 퍼블릭 액세스 해제</th>
+              <th scope="col">D · C + 세션 기반 접속 경로</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">끊는 조건</th>
+              <td>3(허용)만</td>
+              <td>3의 보강</td>
+              <td><span class="mark-ok">1(경로)과 2(주소)</span></td>
+              <td><span class="mark-ok">1·2 + 요구 3까지 해결</span></td>
+            </tr>
+            <tr>
+              <th scope="row">규칙 하나 실수의 영향</th>
+              <td><span class="mark-no">즉시 인터넷 노출</span></td>
+              <td>두 겹이라 완화되지만 여전히 규칙 의존</td>
+              <td><span class="mark-ok">경로가 없어 노출되지 않는다</span></td>
+              <td><span class="mark-ok">동일</span></td>
+            </tr>
+            <tr>
+              <th scope="row">개발자 임시 접속</th>
+              <td>규칙 추가로 처리 — 재발 원인</td>
+              <td>동일</td>
+              <td>별도 수단이 필요하다</td>
+              <td><span class="mark-ok">세션 기반 접속으로 제공</span></td>
+            </tr>
+            <tr>
+              <th scope="row">다운타임</th>
+              <td><span class="mark-ok">없음</span></td>
+              <td><span class="mark-ok">없음</span></td>
+              <td>서브넷 그룹 변경 시 계획된 창이 필요</td>
+              <td>동일</td>
+            </tr>
+            <tr>
+              <th scope="row">운영 부담</th>
+              <td>규칙을 계속 감시해야 한다</td>
+              <td>상태 비저장이라 규칙 설계가 까다롭다</td>
+              <td>초기 구성 후 낮다</td>
+              <td>접속 도구 운영이 추가된다</td>
+            </tr>
+            <tr>
+              <th scope="row">판정</th>
+              <td><span class="mark-no">불충분 — 원인을 그대로 둔다</span></td>
+              <td>보조 수단으로만</td>
+              <td><span class="mark-ok">필수 조치</span></td>
+              <td><span class="mark-ok">선택 — 요구 3까지 만족</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="sg-vs-nacl">보안 그룹과 네트워크 ACL의 역할 구분</h3>
+      <p>
+        B안이 왜 단독 해법이 아닌지는 두 통제의 성질 차이에서 나옵니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>보안 그룹과 네트워크 ACL 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">보안 그룹</th>
+              <th scope="col">네트워크 ACL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">적용 계층</th>
+              <td>인스턴스(네트워크 인터페이스)</td>
+              <td>서브넷</td>
+            </tr>
+            <tr>
+              <th scope="row">적용 범위</th>
+              <td>연결된 리소스에만</td>
+              <td>서브넷 안의 모든 리소스에</td>
+            </tr>
+            <tr>
+              <th scope="row">규칙 종류</th>
+              <td><span class="mark-no">허용 규칙만</span></td>
+              <td><span class="mark-ok">허용과 거부 모두</span></td>
+            </tr>
+            <tr>
+              <th scope="row">평가 방식</th>
+              <td>모든 규칙을 평가</td>
+              <td>번호가 낮은 규칙부터 순서대로</td>
+            </tr>
+            <tr>
+              <th scope="row">상태</th>
+              <td><span class="mark-ok">상태 저장 — 반환 트래픽 자동 허용</span></td>
+              <td><span class="mark-no">상태 비저장 — 반환 트래픽을 명시 허용해야 함</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>보안 그룹에는 거부 규칙이 없습니다.</strong>
+          그러므로 "보안 그룹으로 특정 IP를 차단한다"는 선택지는 항상 오답입니다.
+          차단이 필요하면 네트워크 ACL이거나, 상위 계층의 AWS WAF입니다.
+        </p>
+        <p>
+          반대로 네트워크 ACL은 상태 비저장이라
+          아웃바운드만 허용하고 인바운드 임시 포트 범위를 열지 않으면
+          <strong>응답이 돌아오지 못합니다.</strong>
+          "요청은 나가는데 응답이 안 온다"는 시나리오의 전형적인 원인입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision">
+      <h2 id="decision">선택과 근거</h2>
+
+      <p>
+        <strong>D안 — 프라이빗 서브넷으로 옮기고, 퍼블릭 액세스를 끄고,
+        개발자 접속은 세션 기반 경로로 제공</strong>합니다.
+      </p>
+
+      <p>
+        근거는 하나로 요약됩니다.
+        <strong>A안과 B안은 규칙에 의존하고, C·D안은 구조에 의존합니다.</strong>
+        규칙은 사람이 바꿀 수 있고 실제로 이 케이스에서 바뀌었습니다.
+        경로 자체가 없으면 규칙이 잘못 열려도 인터넷에서 도달할 수 없습니다.
+      </p>
+
+      <h3 id="target-topology">목표 구성</h3>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>계층별 서브넷 배치와 라우팅</caption>
+          <thead>
+            <tr>
+              <th scope="col">계층</th>
+              <th scope="col">서브넷</th>
+              <th scope="col">아웃바운드 경로</th>
+              <th scope="col">인바운드 허용 소스</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">로드 밸런서</th>
+              <td>퍼블릭 (가용 영역마다 하나)</td>
+              <td>인터넷 게이트웨이</td>
+              <td>인터넷 (HTTPS)</td>
+            </tr>
+            <tr>
+              <th scope="row">애플리케이션</th>
+              <td>프라이빗</td>
+              <td>NAT 게이트웨이 (가용 영역마다 하나)</td>
+              <td>로드 밸런서의 보안 그룹</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터베이스</th>
+              <td>프라이빗 (인터넷 경로 없음)</td>
+              <td><span class="mark-ok">없음</span></td>
+              <td>애플리케이션의 보안 그룹</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        데이터베이스 계층 서브넷에는 <strong>NAT 게이트웨이 경로조차 두지 않는 것</strong>이 기본입니다.
+        데이터베이스가 인터넷으로 나갈 이유가 없기 때문입니다.
+        패치는 관리형 서비스가 처리하고, 백업은 서비스 내부 경로로 갑니다.
+      </p>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          NAT 게이트웨이는 <strong>지정한 서브넷의 가용 영역 안에서만</strong> 동작합니다.
+          관리형이라는 이유로 다중 가용 영역을 자동으로 커버하지 않습니다.
+          가용 영역마다 하나씩 만들고, 각 가용 영역의 프라이빗 라우팅 테이블이
+          자기 가용 영역의 NAT를 가리키게 해야 합니다.
+          그러지 않으면 가용 영역 장애 시 전면 중단이 나고,
+          평상시에도 가용 영역을 넘는 데이터 전송 요금이 붙습니다.
+        </p>
+        <p>
+          또한 <strong>NAT 게이트웨이에는 보안 그룹을 연결할 수 없습니다.</strong>
+          통제가 필요하면 라우팅과 대상 측 보안 그룹으로 설계합니다.
+        </p>
+      </aside>
+
+      <h3 id="security-group-chaining">보안 그룹을 CIDR이 아니라 보안 그룹으로 참조한다</h3>
+      <p>
+        데이터베이스 보안 그룹의 인바운드 소스를 애플리케이션 서버의 CIDR로 적으면,
+        서브넷을 늘리거나 인스턴스를 옮길 때마다 규칙을 고쳐야 합니다.
+        <strong>소스를 보안 그룹 ID로 지정</strong>하면 그 보안 그룹에 속한 리소스가
+        늘어나도 규칙은 그대로입니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">chain-security-groups.sh</span> — 애플리케이션 보안 그룹만 데이터베이스 포트를 허용 (리소스 ID와 포트는 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 잘못 추가된 전체 개방 규칙을 제거합니다.
+aws ec2 revoke-security-group-ingress \
+  --group-id sg-0db0000000000000d \
+  --protocol tcp --port 3306 --cidr 0.0.0.0/0
+
+# 소스를 CIDR 이 아니라 애플리케이션 계층의 보안 그룹으로 지정합니다.
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-0db0000000000000d \
+  --ip-permissions '[{
+      "IpProtocol": "tcp",
+      "FromPort": 3306,
+      "ToPort": 3306,
+      "UserIdGroupPairs": [{"GroupId": "sg-0app000000000000"}]
+    }]'</code></pre>
+      </figure>
+
+      <h3 id="move-to-private">프라이빗 서브넷으로 옮기기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">move-db-private.sh</span> — DB 서브넷 그룹 교체와 퍼블릭 액세스 해제 (식별자는 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 프라이빗 서브넷만으로 DB 서브넷 그룹을 만듭니다.
+# 서로 다른 가용 영역의 서브넷을 최소 두 개 넣습니다.
+aws rds create-db-subnet-group \
+  --db-subnet-group-name shop-private-subnets \
+  --db-subnet-group-description "private subnets only" \
+  --subnet-ids subnet-0aaa000000000000a subnet-0bbb000000000000b
+
+# 퍼블릭 액세스를 끄고 서브넷 그룹을 교체합니다.
+# 적용 시점은 유지 관리 창을 이용하거나 계획된 창에서 즉시 적용합니다.
+aws rds modify-db-instance \
+  --db-instance-identifier shop-prod \
+  --no-publicly-accessible \
+  --db-subnet-group-name shop-private-subnets \
+  --apply-immediately
+
+# 새로 만드는 서브넷이 퍼블릭 IP 를 자동 할당하지 않게 합니다.
+aws ec2 modify-subnet-attribute \
+  --subnet-id subnet-0aaa000000000000a \
+  --no-map-public-ip-on-launch</code></pre>
+      </figure>
+
+      <h3 id="developer-access">개발자 접속 경로 (요구 3)</h3>
+      <p>
+        "임시로 열어 두는" 규칙이 재발의 원인이므로,
+        <strong>규칙을 열지 않고도 접속할 수 있는 경로</strong>를 미리 제공합니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>개발자 접속 경로 후보 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">방법</th>
+              <th scope="col">인바운드 포트 개방</th>
+              <th scope="col">감사</th>
+              <th scope="col">비고</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">퍼블릭 배스천 호스트(SSH)</th>
+              <td><span class="mark-no">필요 — 22번 포트를 인터넷에 연다</span></td>
+              <td>호스트 로그에 의존</td>
+              <td>관리 대상 인스턴스가 하나 늘어난다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Systems Manager 세션 기반 접속</th>
+              <td><span class="mark-ok">불필요 — 아웃바운드만으로 동작</span></td>
+              <td>세션 기록과 API 호출 기록이 남는다</td>
+              <td>포트 전달로 데이터베이스까지 연결할 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">Site-to-Site VPN 또는 Client VPN</th>
+              <td><span class="mark-ok">불필요</span></td>
+              <td>연결 로그</td>
+              <td>사내망 연동이 이미 있으면 자연스럽다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        어느 쪽을 고르든 원칙은 같습니다 —
+        <strong>사람이 접속하기 위해 인터넷 인바운드 포트를 열지 않습니다.</strong>
+      </p>
+
+      <h3 id="prevent-recurrence">재발 방지 (요구 4)</h3>
+      <ul>
+        <li><strong>탐지</strong> — AWS Config 규칙으로 퍼블릭 액세스가 켜진 데이터베이스와
+          <code>0.0.0.0/0</code>이 허용된 보안 그룹을 상시 감시합니다.</li>
+        <li><strong>차단</strong> — 조직 수준에서 서비스 제어 정책으로
+          퍼블릭 액세스를 켜는 변경을 막는 것도 가능합니다.</li>
+        <li><strong>가시성</strong> — VPC 흐름 로그로 데이터베이스 인터페이스에 대한
+          거부·수락 기록을 남겨 둡니다. 다만 흐름 로그는 5-튜플과 수락·거부만 기록하고
+          <strong>페이로드는 남기지 않습니다.</strong>
+          "통신 내용을 감사하라"는 요구에는 답이 되지 않습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost-and-ops">
+      <h2 id="cost-and-ops">비용과 운영에 미치는 영향</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>구조 변경이 만드는 비용·운영 항목의 변화</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">변화</th>
+              <th scope="col">설명</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">NAT 게이트웨이</th>
+              <td>늘어난다</td>
+              <td>애플리케이션 계층의 아웃바운드용으로 가용 영역마다 필요하다. 시간과 처리량 모두 과금 항목이다</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC 엔드포인트</th>
+              <td>선택적으로 늘어난다</td>
+              <td>Amazon S3·DynamoDB 트래픽을 NAT에서 걷어내면 <strong>NAT 처리량이 줄어든다</strong>. 게이트웨이 엔드포인트 경로가 자주 유리하다</td>
+            </tr>
+            <tr>
+              <th scope="row">배스천 호스트</th>
+              <td>줄어들거나 사라진다</td>
+              <td>세션 기반 접속을 쓰면 상시 인스턴스가 필요 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 간 전송</th>
+              <td>설계에 따라 달라진다</td>
+              <td>NAT를 하나만 두고 다중 가용 영역에서 쓰면 가용 영역을 넘는 전송이 발생한다</td>
+            </tr>
+            <tr>
+              <th scope="row">사고 대응 시간</th>
+              <td>줄어든다</td>
+              <td>노출 경로가 구조적으로 없으므로 규칙 감사 범위가 좁아진다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        데이터 전송 요금의 구조는
+        <a href="case06.html">케이스 6 · 데이터 전송 요금이 예산을 넘겼다</a>에서 자세히 다룹니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="checklist">
+      <h2 id="checklist">설계 체크리스트</h2>
+
+      <h3 id="checklist-network">네트워크 배치</h3>
+      <ul>
+        <li><label><input type="checkbox"> 서브넷이 퍼블릭인지 <strong>이름이 아니라 라우팅 테이블</strong>로 확인했다</label></li>
+        <li><label><input type="checkbox"> 데이터베이스 서브넷의 라우팅 테이블에 인터넷 게이트웨이 경로가 없다</label></li>
+        <li><label><input type="checkbox"> 데이터베이스 서브넷에 NAT 경로도 두지 않았다 (필요한 이유가 없다면)</label></li>
+        <li><label><input type="checkbox"> DB 서브넷 그룹이 <strong>프라이빗 서브넷만</strong>, 서로 다른 가용 영역으로 구성되어 있다</label></li>
+        <li><label><input type="checkbox"> 서브넷의 <code>MapPublicIpOnLaunch</code>가 프라이빗 계층에서 꺼져 있다</label></li>
+        <li><label><input type="checkbox"> NAT 게이트웨이를 가용 영역마다 두고 라우팅을 가용 영역별로 분리했다</label></li>
+      </ul>
+
+      <h3 id="checklist-access">접근 제어</h3>
+      <ul>
+        <li><label><input type="checkbox"> 데이터베이스의 퍼블릭 액세스 설정이 꺼져 있다</label></li>
+        <li><label><input type="checkbox"> 데이터베이스 보안 그룹의 인바운드 소스가 <strong>보안 그룹 ID</strong>다 (CIDR이 아니다)</label></li>
+        <li><label><input type="checkbox"> <code>0.0.0.0/0</code> 인바운드 규칙이 데이터베이스·관리 포트에 없다</label></li>
+        <li><label><input type="checkbox"> 사람이 접속하는 경로가 인터넷 인바운드 포트를 열지 않는다</label></li>
+        <li><label><input type="checkbox"> 데이터베이스 사용자 비밀번호가 초기값이 아니며 관리 수단이 정해져 있다</label></li>
+        <li><label><input type="checkbox"> 저장 데이터 암호화와 전송 중 암호화가 켜져 있다</label></li>
+      </ul>
+
+      <h3 id="checklist-detect">탐지와 재발 방지</h3>
+      <ul>
+        <li><label><input type="checkbox"> 퍼블릭 액세스와 전체 개방 규칙을 상시 감시하는 규칙이 있다</label></li>
+        <li><label><input type="checkbox"> VPC 흐름 로그를 켜고 보존 위치를 정했다</label></li>
+        <li><label><input type="checkbox"> "임시로 여는" 변경에 만료가 있다 (수동 규칙이 영구히 남지 않는다)</label></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">관련 시험 포인트</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>문제문의 신호와 정답 방향</caption>
+          <thead>
+            <tr>
+              <th scope="col">문제문의 신호</th>
+              <th scope="col">고르는 것</th>
+              <th scope="col">소거하는 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">데이터베이스가 인터넷에서 접근 가능하다</th>
+              <td>프라이빗 서브넷 이전 + 퍼블릭 액세스 해제</td>
+              <td>보안 그룹만 좁히는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">특정 IP 대역을 차단해야 한다</th>
+              <td>네트워크 ACL의 거부 규칙</td>
+              <td>보안 그룹으로 차단하는 안(거부 규칙이 없다)</td>
+            </tr>
+            <tr>
+              <th scope="row">요청은 나가는데 응답이 오지 않는다</th>
+              <td>네트워크 ACL 인바운드에 임시 포트 범위 허용</td>
+              <td>보안 그룹을 의심하는 안(상태 저장이라 자동 허용된다)</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스가 늘어도 규칙을 고치고 싶지 않다</th>
+              <td>소스를 보안 그룹 ID로 지정</td>
+              <td>CIDR로 지정하는 안</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>must not traverse the internet</code></th>
+              <td>VPC 엔드포인트 · PrivateLink</td>
+              <td>NAT 게이트웨이 경유(인터넷을 지난다)</td>
+            </tr>
+            <tr>
+              <th scope="row">SSH 포트를 열지 않고 인스턴스에 접속</th>
+              <td>Systems Manager 세션 기반 접속</td>
+              <td>퍼블릭 배스천 호스트</td>
+            </tr>
+            <tr>
+              <th scope="row">통신 <strong>내용</strong>을 감사해야 한다</th>
+              <td>패킷 미러링 등 별도 수단</td>
+              <td>VPC 흐름 로그(페이로드를 남기지 않는다)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          3계층 구조(퍼블릭 로드 밸런서 → 프라이빗 애플리케이션 → 프라이빗 데이터베이스)는
+          SAA의 <strong>기본 정답 형태</strong>입니다.
+          시나리오가 무엇이든 이 배치에서 벗어난 선택지는 먼저 의심합니다.
+          직접 만들어 보려면 <a href="../labs/lab01.html">실습 1 · 3계층 VPC 직접 구성</a>을 따라 합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch03.html">
+          <span class="card__title">3장 · VPC 네트워킹 기초</span>
+          <span class="card__desc">CIDR 설계, 라우팅 테이블, 보안 그룹과 네트워크 ACL, 흐름 로그를 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 1</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch04.html">
+          <span class="card__title">4장 · VPC 연결과 하이브리드</span>
+          <span class="card__desc">VPC 엔드포인트와 PrivateLink로 인터넷을 거치지 않는 경로를 만드는 방법입니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab01.html">
+          <span class="card__title">실습 1 · 3계층 VPC 직접 구성</span>
+          <span class="card__desc">퍼블릭·프라이빗 서브넷과 NAT, 라우팅을 CLI로 직접 만들어 봅니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab10.html">
+          <span class="card__title">실습 10 · VPC 엔드포인트로 S3 비공개 접근</span>
+          <span class="card__desc">게이트웨이 엔드포인트와 인터페이스 엔드포인트의 구현 위치 차이를 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="case01.html">
+          <span class="card__title">케이스 1 · EC2에 액세스 키를 심어 배포했다</span>
+          <span class="card__desc">네트워크가 아니라 자격 증명 쪽에서 같은 종류의 노출이 어떻게 생기는지 비교합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-secure.html">
+          <span class="card__title">보안 아키텍처 설계 (30%)</span>
+          <span class="card__desc">가중치가 가장 큰 도메인의 출제 포인트와 함정을 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html">Amazon VPC 사용 설명서 — VPC의 보안</a>
+          — 보안 그룹과 네트워크 ACL의 적용 계층, 허용·거부 규칙 지원 여부, 상태 저장 여부 비교표</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html">Amazon VPC 사용 설명서 — 네트워크 ACL</a>
+          — 규칙이 번호 순서로 평가되고 반환 트래픽을 명시 허용해야 한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html">Amazon VPC 사용 설명서 — NAT 게이트웨이</a>
+          — 지정한 서브넷에 네트워크 인터페이스를 만든다는 동작과 퍼블릭·프라이빗 NAT의 구분</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html">Amazon VPC 사용 설명서 — VPC 흐름 로그</a>
+          — 기록되는 필드와 수락·거부 표시, 페이로드가 포함되지 않는다는 범위</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.WorkingWithRDSInstanceinaVPC.html">Amazon RDS 사용 설명서 — VPC의 DB 인스턴스</a>
+          — DB 서브넷 그룹이 서로 다른 가용 영역의 서브넷을 포함해야 한다는 요건</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html">Amazon RDS API 레퍼런스 — CreateDBInstance</a>
+          — <code>PubliclyAccessible</code>의 엔드포인트 해석 동작과 DB 서브넷 그룹에 따른 기본값</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifySubnetAttribute.html">Amazon EC2 API 레퍼런스 — ModifySubnetAttribute</a>
+          — <code>MapPublicIpOnLaunch</code> 속성의 의미</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AuthorizeSecurityGroupIngress.html">Amazon EC2 API 레퍼런스 — AuthorizeSecurityGroupIngress</a>
+          — 인바운드 소스를 CIDR 대신 보안 그룹으로 지정하는 방법</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

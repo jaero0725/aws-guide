@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>14장 · 엣지와 DNS — AWS SAA Guide</title>
+  <meta name="description" content="Amazon CloudFront의 오리진과 캐시 동작, 원본 액세스 제어(OAC)로 S3 버킷을 비공개로 유지하는 방법, 서명 URL과 서명 쿠키, Lambda@Edge와 CloudFront Functions의 차이. Amazon Route 53 라우팅 정책 8종과 상태 확인·장애 조치, 그리고 AWS Global Accelerator와 CloudFront의 선택 기준을 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch14"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch14">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">14장 · 엣지와 DNS</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 14장</p>
+      <h1>엣지와 DNS</h1>
+      <p class="page__lead">
+        이 장은 <strong>요청이 리전에 닿기 전에 일어나는 일</strong>을 다룹니다.
+        어느 IP로 응답할지 정하는 Amazon Route 53, 응답을 엣지에서 대신 돌려주는 Amazon CloudFront,
+        캐시가 통하지 않는 트래픽을 AWS 백본에 빨리 태우는 AWS Global Accelerator입니다.
+        셋은 목적이 다르고, 시험은 <strong>요구사항의 성격으로 셋 중 하나를 지목</strong>합니다.
+      </p>
+      <p class="page__meta">
+        주 도메인은 <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>이지만,
+        오리진 보호와 WAF 연결 지점은 <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a>,
+        장애 조치 라우팅은 <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>에 걸칩니다.
+        분량 대비 출제 밀도가 높은 장입니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>CloudFront 배포의 오리진과 캐시 동작을 구분하고, 캐시 키를 무엇이 결정하는지 설명할 수 있습니다.</li>
+        <li>원본 액세스 제어(Origin Access Control, OAC)로 Amazon S3 버킷을 비공개로 유지하는 구성을 버킷 정책 수준에서 작성할 수 있습니다.</li>
+        <li>서명 URL과 서명 쿠키, 지리적 제한 중 어느 것이 요구사항에 맞는지 판단할 수 있습니다.</li>
+        <li>Route 53 라우팅 정책 <strong>8종</strong>을 나열하고, 지연 시간 기반 · 지리적 위치 · 지리 근접의 차이를 설명할 수 있습니다.</li>
+        <li>상태 확인과 장애 조치 라우팅으로 리전 장애에 대응하는 설계를 구성할 수 있습니다.</li>
+        <li>Global Accelerator와 CloudFront 중 무엇을 고를지 프로토콜과 캐시 가능성으로 판단할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cloudfront-overview">
+      <h2 id="cloudfront-overview">Amazon CloudFront — 배포, 오리진, 캐시 동작</h2>
+
+      <p>
+        CloudFront는 <strong>배포(distribution)</strong> 단위로 구성합니다.
+        배포 하나는 콘텐츠를 가져올 <strong>오리진(origin)</strong> 목록과,
+        요청 경로에 따라 어떻게 처리할지 정하는 <strong>캐시 동작(cache behavior)</strong> 목록을 가집니다.
+        배포를 만들면 <code>d111111abcdef8.cloudfront.net</code> 형태의 도메인 이름이 생기고,
+        자체 도메인을 쓰려면 <strong>대체 도메인 이름</strong>(alternate domain name, CNAME)을 등록합니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-130">
+        <figcaption>
+          CloudFront 요청 처리 경로 — 뷰어 요청이 엣지 로케이션에 도착해 캐시 적중이면 즉시 응답하고,
+          미스면 리전 엣지 캐시를 거쳐 오리진까지 올라갑니다. 어느 단계에서 돌려주는지를 결정하는 것이
+          캐시 키와 TTL 설계입니다
+        </figcaption>
+      </figure>
+
+      <h3 id="origins">오리진 — S3, ALB, 그리고 커스텀 오리진</h3>
+      <p>
+        CloudFront는 오리진을 <strong>두 부류</strong>로 취급합니다.
+        S3 REST 엔드포인트를 가리키는 <strong>S3 오리진</strong>과, 그 밖의 모든 것을 가리키는
+        <strong>커스텀 오리진</strong>입니다. API 문서는 커스텀 오리진을
+        "S3 버킷이 아닌 모든 오리진, 단 한 가지 예외가 있다"고 정의하는데,
+        그 예외가 <strong>정적 웹사이트 호스팅으로 구성된 S3 버킷</strong>입니다.
+        웹사이트 엔드포인트는 S3 오리진이 아니라 <strong>커스텀 오리진</strong>으로 등록해야 합니다.
+      </p>
+      <p>
+        이 구분이 시험에서 중요한 이유는 <strong>OAC를 쓸 수 있는지가 여기서 갈리기</strong> 때문입니다.
+        웹사이트 엔드포인트로 등록한 버킷에는 OAC도 OAI도 붙일 수 없습니다.
+        S3를 비공개로 유지하면서 CloudFront로만 노출하려면 <strong>REST 엔드포인트 + OAC</strong> 조합이어야 합니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>오리진 유형별 구성과 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">오리진</th>
+              <th scope="col">API에서의 구성</th>
+              <th scope="col">오리진 보호 방법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 버킷 (REST 엔드포인트)</th>
+              <td><code>S3OriginConfig</code></td>
+              <td><span class="mark-ok">OAC 사용 가능</span> — 버킷을 비공개로 두고 버킷 정책으로 CloudFront만 허용</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 버킷 (정적 웹사이트 엔드포인트)</th>
+              <td><code>CustomOriginConfig</code></td>
+              <td><span class="mark-no">OAC 사용 불가</span> — 커스텀 헤더를 요구하도록 구성해 우회</td>
+            </tr>
+            <tr>
+              <th scope="row">Application Load Balancer</th>
+              <td><code>CustomOriginConfig</code></td>
+              <td>커스텀 헤더 검증, 보안 그룹, WAF 규칙 조합</td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스 HTTP 서버</th>
+              <td><code>CustomOriginConfig</code></td>
+              <td>커스텀 헤더 검증 + 방화벽에서 CloudFront 대역만 허용</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC 내부 리소스</th>
+              <td><code>VpcOriginConfig</code></td>
+              <td>퍼블릭 노출 없이 VPC 오리진으로 연결</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        오리진과의 연결 방식은 <code>OriginProtocolPolicy</code>가 정합니다.
+        값은 <code>http-only</code> · <code>https-only</code> · <code>match-viewer</code> 세 가지이며,
+        엔드투엔드 암호화가 요구되면 <code>https-only</code>를 씁니다.
+        오리진 응답 타임아웃은 기본 <strong>30초</strong>(1~120초),
+        연결 유지(keep-alive) 타임아웃은 기본 <strong>5초</strong>(1~120초)입니다.
+      </p>
+      <p>
+        오리진을 <strong>오리진 그룹(origin group)</strong>으로 묶으면 기본 오리진이 지정한 상태 코드를 반환할 때
+        보조 오리진으로 넘어갑니다. 이것이 CloudFront 수준의 오리진 장애 조치이며,
+        DNS 수준의 장애 조치인 Route 53 장애 조치 라우팅과는 계층이 다릅니다.
+      </p>
+
+      <h3 id="cache-behaviors">캐시 동작과 경로 패턴</h3>
+      <p>
+        배포에는 <strong>기본 캐시 동작이 정확히 하나</strong> 있어야 하고,
+        경로 패턴(<code>images/*.jpg</code> 같은)을 가진 추가 캐시 동작을 여러 개 둘 수 있습니다.
+        요청 경로는 <strong>캐시 동작이 나열된 순서대로</strong> 비교되며, 처음 일치한 동작이 적용됩니다.
+        정적 자산과 동적 API를 한 배포에서 다루려면 이 순서를 설계해야 합니다.
+      </p>
+      <p>
+        캐시 동작마다 대상 오리진, <code>ViewerProtocolPolicy</code>(<code>allow-all</code> ·
+        <code>https-only</code> · <code>redirect-to-https</code>), 허용 HTTP 메서드, 압축 여부,
+        그리고 <strong>세 가지 정책</strong>을 붙입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>캐시 동작에 붙는 세 가지 정책의 역할</caption>
+          <thead>
+            <tr>
+              <th scope="col">정책</th>
+              <th scope="col">무엇을 정하는가</th>
+              <th scope="col">잘못 쓰면</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">캐시 정책<br><code>CachePolicyId</code></th>
+              <td><strong>캐시 키</strong>에 포함할 헤더 · 쿠키 · 쿼리 문자열과 <code>MinTTL</code> · <code>DefaultTTL</code> · <code>MaxTTL</code></td>
+              <td>불필요한 값을 캐시 키에 넣으면 같은 콘텐츠가 여러 벌로 쪼개져 <strong>캐시 적중률이 무너집니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">오리진 요청 정책<br><code>OriginRequestPolicyId</code></th>
+              <td>캐시 키와 <strong>무관하게</strong> 오리진으로 전달할 헤더 · 쿠키 · 쿼리 문자열</td>
+              <td>오리진이 필요로 하는 헤더를 빠뜨리면 오리진에서 오동작합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">응답 헤더 정책<br><code>ResponseHeadersPolicyId</code></th>
+              <td>CORS 헤더, 보안 헤더, 사용자 지정 응답 헤더</td>
+              <td>오리진 코드를 고치지 않고 헤더를 붙일 수 있는데 애플리케이션을 수정하려 듭니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          캐시 동작의 <code>ForwardedValues</code> · <code>MinTTL</code> · <code>DefaultTTL</code> ·
+          <code>MaxTTL</code> 필드는 API 모델에서 <strong>deprecated로 표시</strong>되어 있고,
+          AWS는 <strong>캐시 정책과 오리진 요청 정책</strong>을 쓰라고 안내합니다.
+          "헤더를 전달(forward)하면 그만큼 캐시 키가 늘어난다"는 옛 설명은 지금도 개념적으로 맞지만,
+          구성 위치가 <strong>캐시 정책 안</strong>으로 옮겨졌다는 점을 기억합니다.
+        </p>
+      </aside>
+
+      <h3 id="cache-ttl">TTL — 무엇이 우선하는가</h3>
+      <p>
+        CloudFront 개발자 안내서는 <strong>기본적으로 파일이 24시간 후 만료된다</strong>고 명시합니다.
+        이 기본값은 두 가지 방법으로 바꿉니다. 캐시 동작 전체에 적용하려면 캐시 정책의
+        <code>MinTTL</code> · <code>DefaultTTL</code> · <code>MaxTTL</code>을 조정하고,
+        개별 파일만 바꾸려면 오리진이 <code>Cache-Control: max-age</code> 또는 <code>s-maxage</code>,
+        혹은 <code>Expires</code> 헤더를 붙여 내려보냅니다.
+      </p>
+      <p>
+        두 헤더를 모두 보내면 CloudFront는 <code>Cache-Control max-age</code>만 봅니다.
+        반대로 <strong>뷰어가 보낸</strong> <code>Cache-Control</code>이나 <code>Pragma</code> 헤더는
+        무시합니다. 클라이언트가 헤더를 붙여 오리진까지 강제로 다녀오게 만들 수는 없습니다.
+      </p>
+
+      <figure class="chart" data-chart="C-080">
+        <figcaption>
+          응답이 어느 계층에서 돌아오는지에 따라 지연이 달라집니다 — 뷰어 캐시가 가장 가깝고,
+          엣지 로케이션 · 리전 엣지 캐시 · 오리진 순으로 멀어집니다. 값은 순서를 나타내는 상대 등급이며
+          절대 시간이 아닙니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          "정적 콘텐츠의 <strong>캐시 적중률을 높이려면</strong>"이라는 문제의 답은 거의 항상
+          <strong>캐시 키를 줄이는 것</strong>입니다. 불필요한 헤더 · 쿠키 · 쿼리 문자열을
+          캐시 키에서 빼고, 오리진이 필요로 하는 값은 <strong>오리진 요청 정책</strong>으로 옮깁니다.
+          "엣지 로케이션을 늘린다", "TTL을 0으로 한다" 같은 선택지는 방향이 반대입니다.
+        </p>
+      </aside>
+
+      <h3 id="cache-invalidation">캐시 무효화 — 마지막 수단이다</h3>
+      <p>
+        만료 전에 파일을 엣지 캐시에서 없애려면 <strong>무효화(invalidation)</strong>를 요청합니다.
+        경로는 <code>/images/image1.jpg</code>처럼 개별 파일이거나 <code>/images/*</code>처럼
+        <code>*</code> 와일드카드로 끝날 수 있습니다. 무효화는 <strong>대소문자를 구분</strong>하고,
+        쿠키나 헤더로 여러 벌이 캐시된 경우에는 <strong>모든 벌이 함께</strong> 무효화됩니다.
+        특정 벌만 골라 지울 수는 없습니다.
+      </p>
+      <p>
+        AWS 문서는 자주 바뀌는 파일에는 무효화가 아니라 <strong>버전이 붙은 파일 이름</strong>
+        (<code>style.v3.css</code> 같은)을 권장합니다. 이유는 세 가지입니다.
+        사용자 브라우저나 회사 프록시에 남은 캐시까지는 무효화가 닿지 않고,
+        액세스 로그에서 버전별 결과를 구분할 수 있으며, 되돌리기가 쉽습니다.
+        월별 무료 한도를 넘긴 무효화 경로에는 요금이 붙는다는 점도 이유에 들어갑니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">invalidate.sh</span> — 배포 전체를 무효화합니다. 배포 ID는 예시입니다</figcaption>
+        <pre><code class="lang-bash"># 와일드카드를 쓸 때는 셸이 확장하지 않도록 반드시 따옴표로 감쌉니다.
+aws cloudfront create-invalidation \
+  --distribution-id E1234567890ABC \
+  --paths "/*"
+
+# 특정 디렉터리만 비웁니다.
+aws cloudfront create-invalidation \
+  --distribution-id E1234567890ABC \
+  --paths "/images/*" "/index.html"</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="origin-protection">
+      <h2 id="origin-protection">오리진 보호 — OAC로 S3 버킷을 비공개로 유지한다</h2>
+
+      <p>
+        CloudFront 뒤에 S3를 두는 구성에서 <strong>버킷을 퍼블릭으로 여는 것은 오답</strong>입니다.
+        버킷이 퍼블릭이면 누구나 S3 엔드포인트로 직접 접근할 수 있어
+        CloudFront의 서명 URL · 지리적 제한 · WAF 규칙이 <strong>전부 우회</strong>됩니다.
+        정답은 버킷을 비공개로 두고, <strong>CloudFront가 서명한 요청만</strong> 버킷 정책으로 허용하는 것입니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-132">
+        <figcaption>
+          OAC로 S3 오리진을 비공개로 유지하는 구성 — 버킷 정책이 <code>cloudfront.amazonaws.com</code>
+          서비스 주체를 특정 배포 ARN 조건으로만 허용하므로, S3 엔드포인트로의 직접 요청은 차단됩니다
+        </figcaption>
+      </figure>
+
+      <h3 id="oac">원본 액세스 제어(OAC)</h3>
+      <p>
+        AWS는 S3 오리진에 인증된 요청을 보내는 방법으로 <strong>OAC</strong>와
+        구형인 <strong>원본 액세스 ID(Origin Access Identity, OAI)</strong> 두 가지를 제공하며,
+        문서는 <strong>OAC를 권장</strong>합니다. OAC가 지원하는 것 중 OAI가 못 하는 것은 다음 셋입니다.
+      </p>
+      <ul>
+        <li>2022년 12월 이후 출시된 옵트인 리전을 포함한 <strong>모든 리전의 S3 버킷</strong></li>
+        <li><strong>SSE-KMS</strong>로 암호화된 객체 (KMS 키 정책에 OAC를 허용하는 문장을 추가해야 합니다)</li>
+        <li><code>PUT</code> · <code>DELETE</code> 같은 <strong>동적 요청</strong></li>
+      </ul>
+      <p>
+        OAC 자체는 서명 프로토콜(<code>sigv4</code>)과 서명 동작(<code>always</code> ·
+        <code>never</code> · <code>no-override</code>)만 정의합니다.
+        <strong>접근을 실제로 허용하는 것은 S3 버킷 정책</strong>이며, 이 점이 시험에서 자주 갈립니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">bucket-policy-oac.json</span> — CloudFront 서비스 주체에게 읽기만 허용하는 버킷 정책. 계정 ID와 배포 ID는 예시입니다</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Sid": "AllowCloudFrontServicePrincipalReadOnly",
+    "Effect": "Allow",
+    "Principal": {
+      "Service": "cloudfront.amazonaws.com"
+    },
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::example-static-assets/*",
+    "Condition": {
+      "StringEquals": {
+        "AWS:SourceArn": "arn:aws:cloudfront::123456789012:distribution/E1234567890ABC"
+      }
+    }
+  }
+}</code></pre>
+      </figure>
+
+      <p>
+        <code>AWS:SourceArn</code> 조건이 없으면 <strong>다른 계정의 아무 배포나</strong>
+        이 버킷을 오리진으로 삼을 수 있습니다. 조건을 빼먹은 정책은
+        "CloudFront만 허용했다"고 착각하기 쉬운 대표적인 잘못된 구성입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          "S3에 저장된 정적 콘텐츠를 CloudFront로 배포하되 <strong>버킷에 직접 접근하지 못하게</strong> 하라"는
+          시나리오의 정답 조합은 <strong>OAC + 퍼블릭 액세스 차단 유지 + 버킷 정책에
+          <code>cloudfront.amazonaws.com</code> 허용</strong>입니다.
+          "버킷을 퍼블릭으로 만들고 CloudFront를 앞에 둔다", "버킷 ACL로 CloudFront에 읽기 권한을 준다"는
+          선택지는 그 자리에서 소거합니다. 신규 버킷은 퍼블릭 액세스 차단이 켜져 있고 ACL이 비활성이므로,
+          ACL을 쓰는 선택지는 현행 기본값과도 어긋납니다.
+        </p>
+      </aside>
+
+      <h3 id="signed-url-and-cookie">서명 URL과 서명 쿠키</h3>
+      <p>
+        오리진을 감추는 것과 <strong>콘텐츠를 볼 자격이 있는 사람만 보게 하는 것</strong>은 다른 문제입니다.
+        후자는 서명 URL 또는 서명 쿠키로 해결합니다.
+        캐시 동작에 <strong>신뢰할 수 있는 키 그룹(<code>TrustedKeyGroups</code>)</strong>을 연결하면
+        그 동작에 매칭되는 <strong>모든 요청</strong>에 서명이 요구됩니다.
+        서명은 키 그룹에 등록된 공개 키에 대응하는 개인 키로 만듭니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>서명 URL과 서명 쿠키의 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">기준</th>
+              <th scope="col">서명 URL</th>
+              <th scope="col">서명 쿠키</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">대상 범위</th>
+              <td>개별 파일 (설치 파일 하나 내려받기 등)</td>
+              <td>여러 파일 (HLS 영상 조각 전체, 구독자 전용 영역 전체)</td>
+            </tr>
+            <tr>
+              <th scope="row">URL 변경</th>
+              <td>URL에 서명 파라미터가 붙습니다</td>
+              <td><span class="mark-ok">현재 URL을 그대로 둘 수 있습니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">클라이언트 요구</th>
+              <td>쿠키를 지원하지 않는 클라이언트에서도 동작합니다</td>
+              <td>쿠키를 지원해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">둘 다 쓸 때</th>
+              <td colspan="2"><strong>서명 URL이 우선합니다.</strong> 뷰어가 서명 URL로 요청하면 CloudFront는 서명 쿠키를 보지 않습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          서명하지 않은 기존 URL에 <code>Expires</code> · <code>Policy</code> · <code>Signature</code> ·
+          <code>Key-Pair-Id</code> 쿼리 문자열이 이미 들어 있으면 <strong>서명 URL도 서명 쿠키도 쓸 수 없습니다.</strong>
+          CloudFront가 그 URL을 이미 서명된 것으로 간주하기 때문입니다.
+        </p>
+      </aside>
+
+      <h3 id="geo-restriction">지리적 제한</h3>
+      <p>
+        CloudFront의 지리적 제한 기능은 <strong>국가 단위</strong>로 동작하며,
+        허용 목록(allow list) 또는 차단 목록(block list) 중 하나를 씁니다.
+        차단된 요청에는 <code>403 Forbidden</code>이 반환되고,
+        이 오류 응답은 기본적으로 <strong>10초</strong> 동안 캐시됩니다.
+      </p>
+      <p>
+        중요한 제약은 <strong>지리적 제한이 배포 전체에 적용된다</strong>는 것입니다.
+        콘텐츠 일부에만 다른 제한을 걸어야 하면 <strong>배포를 나누거나</strong>,
+        도시 · 우편번호 단위처럼 국가보다 세밀한 기준이 필요하면
+        서드파티 지오로케이션 서비스와 <strong>서명 URL</strong>을 조합해야 합니다.
+      </p>
+
+      <h3 id="tls-termination">TLS 종료 지점과 ACM 인증서</h3>
+      <p>
+        CloudFront는 뷰어와의 TLS를 <strong>엣지에서 종료</strong>합니다.
+        대체 도메인 이름을 쓰려면 인증서가 필요한데, 여기서 리전 제약이 하나 붙습니다.
+        CloudFront API 문서는 <strong>CloudFront가 미국 동부(버지니아 북부) 리전
+        <code>us-east-1</code>의 ACM 인증서만 지원한다</strong>고 명시합니다.
+        서울 리전에서 발급한 인증서를 CloudFront에 붙일 수 없다는 뜻입니다.
+      </p>
+      <p>
+        <code>SSLSupportMethod</code>는 <code>sni-only</code>가 권장값입니다.
+        SNI를 지원하지 않는 뷰어까지 받으려면 <code>vip</code>를 쓸 수 있으나
+        AWS는 권장하지 않고 추가 요금이 발생한다고 안내합니다.
+        <code>MinimumProtocolVersion</code>은 콘솔에서 "보안 정책"으로 표시되며,
+        허용할 최소 TLS 버전과 암호 스위트를 함께 정합니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          TLS 종료 지점을 묻는 문제는 <strong>인증서를 어디에 붙이는가</strong>로 갈립니다.
+          ACM 인증서는 CloudFront · Application Load Balancer · Amazon API Gateway에 연결하며,
+          <strong>EC2 인스턴스에 직접 설치할 수는 없습니다.</strong>
+          그리고 CloudFront용 인증서만 <code>us-east-1</code>에서 발급해야 합니다.
+          자세한 내용은 <a href="ch16.html">16장 보안 · 암호화 · 거버넌스</a>에서 다룹니다.
+        </p>
+      </aside>
+
+      <h3 id="waf-and-shield">WAF와 Shield가 붙는 지점</h3>
+      <p>
+        AWS WAF의 웹 ACL은 <strong>범위(scope)</strong>가 두 가지입니다.
+        <code>CLOUDFRONT</code>는 CloudFront 배포에 붙는 전역 범위이고,
+        <code>REGIONAL</code>은 Application Load Balancer · Amazon API Gateway ·
+        AWS AppSync · Amazon Cognito 사용자 풀 같은 리전 리소스에 붙습니다.
+      </p>
+      <p>
+        연결 방법도 다릅니다. 리전 리소스는 <code>AssociateWebACL</code> API로 연결하지만,
+        <strong>CloudFront는 배포 구성의 <code>WebACLId</code> 필드에 웹 ACL ARN을 넣어</strong> 연결합니다.
+        또한 <code>CLOUDFRONT</code> 범위의 웹 ACL은 <strong><code>us-east-1</code> 엔드포인트</strong>에서
+        만들고 관리해야 합니다.
+      </p>
+      <p>
+        AWS Shield Standard는 모든 CloudFront 배포와 Route 53 호스팅 영역에 자동으로 적용됩니다.
+        Shield Advanced는 별도 구독이며 대응 팀 지원과 공격 대응 기능이 추가됩니다.
+        <strong>WAF는 계층 7 규칙, Shield는 DDoS 완화</strong>라는 역할 분담을 기억합니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="edge-functions">
+      <h2 id="edge-functions">엣지에서 코드 실행 — CloudFront Functions와 Lambda@Edge</h2>
+
+      <p>
+        요청과 응답을 엣지에서 손보는 방법은 두 가지입니다.
+        <strong>CloudFront Functions</strong>는 CloudFront에 내장된 JavaScript 실행 환경이고,
+        <strong>Lambda@Edge</strong>는 AWS Lambda의 확장으로 하나의 리전에 게시한 함수를
+        CloudFront가 전 세계에 복제합니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>CloudFront Functions와 Lambda@Edge의 차이</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">CloudFront Functions</th>
+              <th scope="col">Lambda@Edge</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">언어</th>
+              <td>JavaScript</td>
+              <td>Node.js, Python</td>
+            </tr>
+            <tr>
+              <th scope="row">연결 가능한 이벤트</th>
+              <td><code>viewer-request</code>, <code>viewer-response</code> <strong>둘뿐</strong></td>
+              <td><code>viewer-request</code>, <code>viewer-response</code>, <code>origin-request</code>, <code>origin-response</code> <strong>넷 전부</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">실행 시간</th>
+              <td>서브밀리초</td>
+              <td>뷰어 이벤트 최대 5초, 오리진 이벤트 최대 30초</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 접근</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row">파일 시스템 접근</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row">요청 본문 접근</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row">배포 방식</th>
+              <td>CloudFront 안에서 작성 · 테스트 · <code>LIVE</code> 스테이지 게시</td>
+              <td>Lambda 함수 <strong>버전 ARN</strong>을 연결 (별칭이나 <code>$LATEST</code> 불가)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        판단 기준은 단순합니다. <strong>캐시 키 정규화 · 헤더 조작 · URL 재작성 · 토큰 검증</strong>처럼
+        요청 하나를 짧게 손보는 일은 CloudFront Functions입니다.
+        <strong>외부 서비스 호출, AWS SDK 사용, 요청 본문 읽기, 무거운 처리</strong>가 필요하면 Lambda@Edge입니다.
+        그리고 <strong>오리진 쪽 이벤트에서 뭔가를 해야 한다면 선택의 여지가 없습니다</strong> —
+        CloudFront Functions는 오리진 이벤트에 붙지 않습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          "오리진 요청 단계에서 <strong>다른 AWS 서비스를 호출</strong>해 응답을 바꾸라"는 시나리오는
+          Lambda@Edge입니다. 반대로 "<strong>모든 뷰어 요청에 헤더 하나를 추가</strong>하되
+          지연을 최소화하라"는 CloudFront Functions입니다.
+          비용과 지연이 둘 다 한정어로 붙으면 가벼운 쪽이 정답입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cloudfront-cost">
+      <h2 id="cloudfront-cost">CloudFront와 비용 구조</h2>
+
+      <p>
+        CloudFront는 성능 서비스이면서 <strong>비용 최적화 레버</strong>이기도 합니다.
+        구조는 이렇습니다. 캐시가 적중하면 오리진까지 올라가는 요청이 사라지므로
+        <strong>오리진의 송신 트래픽과 요청 처리 부하가 함께 줄어듭니다.</strong>
+        S3 오리진이면 GET 요청 수가 줄고, EC2나 ALB 오리진이면 인스턴스 사용량이 줄어듭니다.
+      </p>
+      <p>
+        비용을 다루는 문항은 금액을 계산시키지 않습니다.
+        <strong>구조적으로 트래픽이 줄어드는 안</strong>을 고르게 합니다. 판단 축은 셋입니다.
+      </p>
+      <ul>
+        <li><strong>캐시 적중률을 올린다</strong> — 캐시 키를 줄이고 TTL을 늘립니다. 가장 큰 레버입니다.</li>
+        <li><strong>엣지 범위를 좁힌다</strong> — <code>PriceClass_100</code> · <code>PriceClass_200</code> ·
+          <code>PriceClass_All</code> 중에서 고릅니다. 사용자가 특정 대륙에 몰려 있으면 전 세계 엣지를 살 이유가 없습니다.</li>
+        <li><strong>무효화를 남발하지 않는다</strong> — 버전이 붙은 파일 이름으로 대체합니다.</li>
+      </ul>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          "오리진의 데이터 전송 비용을 줄여라"는 요구에 CloudFront가 답이 되는 이유는
+          <strong>같은 바이트를 오리진에서 반복해 내보내지 않기 때문</strong>입니다.
+          데이터 전송 요금의 방향성은 <a href="ch01.html#data-transfer">1장</a>에서 정리했고,
+          전체 비용 레버는 <a href="ch18.html">18장 비용 최적화 · 마이그레이션 · 재해 복구</a>에서 다룹니다.
+          이 사이트는 <strong>요금 금액을 쓰지 않습니다.</strong> 리전과 시점에 따라 달라지는 값이라
+          외울 대상이 아니고, 시험도 금액을 묻지 않습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="route53-basics">
+      <h2 id="route53-basics">Amazon Route 53 — 호스팅 영역과 레코드</h2>
+
+      <p>
+        Route 53은 <strong>도메인 등록 · 권한 있는 DNS · 상태 확인</strong> 세 가지를 합친 서비스입니다.
+        DNS 레코드는 <strong>호스팅 영역(hosted zone)</strong> 안에 만듭니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>퍼블릭 호스팅 영역과 프라이빗 호스팅 영역</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">퍼블릭 호스팅 영역</th>
+              <th scope="col">프라이빗 호스팅 영역</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">응답 대상</th>
+              <td>인터넷의 모든 리졸버</td>
+              <td>연결한 VPC 안에서만</td>
+            </tr>
+            <tr>
+              <th scope="row">API 구성</th>
+              <td><code>HostedZoneConfig.PrivateZone</code>이 <code>false</code></td>
+              <td><code>PrivateZone</code>이 <code>true</code>이고 <code>VPC</code>를 연결</td>
+            </tr>
+            <tr>
+              <th scope="row">용도</th>
+              <td>공개 서비스의 도메인</td>
+              <td>내부 서비스 이름 (<code>db.internal.example.com</code> 등)</td>
+            </tr>
+            <tr>
+              <th scope="row">제약</th>
+              <td>-</td>
+              <td>CloudFront 배포를 가리키는 <strong>별칭 레코드를 만들 수 없습니다</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="alias-vs-cname">별칭 레코드와 CNAME</h3>
+      <p>
+        별칭(alias) 레코드는 Route 53 고유 기능으로, AWS 리소스를 직접 가리킵니다.
+        API에서는 <code>AliasTarget</code>을 넣고 <code>ResourceRecords</code>와 <code>TTL</code>을
+        <strong>생략</strong>합니다. TTL은 대상 리소스의 값을 따릅니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>별칭 레코드와 CNAME 레코드의 차이</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">별칭(Alias)</th>
+              <th scope="col">CNAME</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">영역 정점(<code>example.com</code>)</th>
+              <td><span class="mark-ok">사용 가능</span></td>
+              <td><span class="mark-no">사용 불가</span> — DNS 표준이 정점에 CNAME을 금지합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">대상</th>
+              <td>CloudFront 배포, ELB, S3 정적 웹사이트, API Gateway, VPC 인터페이스 엔드포인트, 같은 영역의 다른 레코드</td>
+              <td>임의의 도메인 이름</td>
+            </tr>
+            <tr>
+              <th scope="row">TTL</th>
+              <td>지정하지 않습니다 (대상의 TTL을 따릅니다)</td>
+              <td>직접 지정합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 상태 반영</th>
+              <td><code>EvaluateTargetHealth</code>로 대상 리소스의 상태를 상속할 수 있습니다</td>
+              <td>불가 — 별도 상태 확인이 필요합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          별칭 대상이 <strong>CloudFront 배포</strong>인 경우에는
+          <code>EvaluateTargetHealth</code>를 <code>true</code>로 설정할 수 없습니다.
+          "CloudFront 앞에 상태 확인을 걸어 장애 조치한다"는 구성을 그리기 전에 이 제약을 확인해야 합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="route53-routing-policies">
+      <h2 id="route53-routing-policies">Route 53 라우팅 정책 8종 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        Route 53의 라우팅 정책은 <strong>8종</strong>입니다.
+        시중 자료 상당수가 <strong>지리 근접</strong>과 <strong>IP 기반</strong>을 빠뜨려
+        6종이나 7종으로 적는데, Route 53 API의 레코드 구조에는 여덟 가지를 구분하는 멤버가 모두 있습니다.
+        여덟 가지를 전부 알고 있어야 "이 중 해당하지 않는 것은" 형태의 문항에서 실점하지 않습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-131">
+        <figcaption>
+          같은 DNS 질의에 대해 라우팅 정책 8종이 각각 어떤 레코드를 응답하는지 비교합니다 —
+          정책마다 필요한 식별 멤버와 상태 확인 연동 방식이 다릅니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Route 53 라우팅 정책 8종 — 식별 멤버와 언제 쓰는가</caption>
+          <thead>
+            <tr>
+              <th scope="col">라우팅 정책</th>
+              <th scope="col">레코드의 식별 멤버</th>
+              <th scope="col">언제 쓰는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">단순(Simple)</th>
+              <td>없음</td>
+              <td>대상이 하나뿐이고 조건 분기가 없을 때. 기본값이며 <code>SetIdentifier</code>가 필요 없는 유일한 정책입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">가중치 기반(Weighted)</th>
+              <td><code>Weight</code></td>
+              <td>트래픽을 비율로 나눌 때. <strong>카나리 배포와 블루/그린 전환</strong>, A/B 테스트</td>
+            </tr>
+            <tr>
+              <th scope="row">지연 시간 기반(Latency)</th>
+              <td><code>Region</code></td>
+              <td>여러 리전에 같은 서비스를 배포해 두고 <strong>가장 빠른 리전</strong>으로 보낼 때</td>
+            </tr>
+            <tr>
+              <th scope="row">장애 조치(Failover)</th>
+              <td><code>Failover</code> (<code>PRIMARY</code> / <code>SECONDARY</code>) + <code>HealthCheckId</code></td>
+              <td>액티브-패시브 구성. 기본 사이트가 죽으면 대기 사이트로 넘길 때</td>
+            </tr>
+            <tr>
+              <th scope="row">지리적 위치(Geolocation)</th>
+              <td><code>GeoLocation</code> (대륙 · 국가 · 미국 주 코드)</td>
+              <td><strong>사용자가 어디에 있는지로</strong> 콘텐츠를 나눌 때. 언어별 사이트, 저작권 · 규제 대응</td>
+            </tr>
+            <tr>
+              <th scope="row">지리 근접(Geoproximity)</th>
+              <td><code>GeoProximityLocation</code> (리전 · 로컬 존 그룹 · 좌표 + <code>Bias</code>)</td>
+              <td><strong>리소스가 어디에 있는지를 기준</strong>으로 가까운 쪽에 보내되, 편향값으로 담당 영역 크기를 조절할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">다중값 응답(Multivalue answer)</th>
+              <td><code>MultiValueAnswer</code></td>
+              <td>여러 IP를 <strong>무작위에 가깝게</strong> 돌려주고 상태 확인으로 비정상 대상을 빼고 싶을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">IP 기반(IP-based)</th>
+              <td><code>CidrRoutingConfig</code> (CIDR 컬렉션 + 위치 이름)</td>
+              <td>특정 <strong>클라이언트 IP 대역</strong>을 지정한 엔드포인트로 보낼 때. 통신 사업자별 경로 최적화 등</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          "Route 53 라우팅 정책은 6가지" 또는 "7가지"라는 서술은
+          <strong>지리 근접과 IP 기반이 빠진 옛 목록</strong>입니다.
+          Route 53 레코드 구조에는 <code>GeoProximityLocation</code>과 <code>CidrRoutingConfig</code>가
+          별개 멤버로 존재하며, 각각 독립된 라우팅 정책에 대응합니다.
+          이 사이트는 <strong>8종</strong>으로 서술합니다.
+        </p>
+      </aside>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <strong>단순 라우팅을 제외한 모든 정책은 <code>SetIdentifier</code>가 필수</strong>입니다.
+          같은 이름과 같은 유형을 가진 레코드가 여러 개 존재할 수 있기 때문에,
+          그중 무엇인지 구별하는 식별자가 있어야 합니다.
+          <code>SetIdentifier</code>가 눈에 띄면 그 레코드는 단순 라우팅이 아닙니다.
+        </p>
+      </aside>
+
+      <h3 id="latency-vs-geolocation-vs-geoproximity">지연 시간 · 지리적 위치 · 지리 근접 — 시험이 노리는 3자 구분</h3>
+      <p>
+        셋 다 "가까운 데로 보낸다"처럼 들리지만 <strong>판단 기준이 완전히 다릅니다.</strong>
+        문제에서 어떤 단어가 쓰였는지로 갈립니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>지연 시간 기반 · 지리적 위치 · 지리 근접의 판단 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">정책</th>
+              <th scope="col">무엇을 보고 결정하는가</th>
+              <th scope="col">문제에 나오는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">지연 시간 기반</th>
+              <td>Route 53이 측정한 <strong>사용자와 리전 사이의 실제 지연</strong></td>
+              <td>"가장 빠른 응답", "최저 지연 시간", "성능"</td>
+            </tr>
+            <tr>
+              <th scope="row">지리적 위치</th>
+              <td><strong>질의가 어디에서 왔는가</strong> (대륙 · 국가 · 미국 주)</td>
+              <td>"이 나라 사용자에게는 이 콘텐츠", "규제상 특정 국가 차단", "언어별 사이트"</td>
+            </tr>
+            <tr>
+              <th scope="row">지리 근접</th>
+              <td>질의 위치와 <strong>리소스 위치</strong>의 거리. <code>Bias</code>로 담당 영역을 넓히거나 좁힘</td>
+              <td>"트래픽을 한쪽 리전으로 점진적으로 옮기고 싶다", "특정 리소스가 더 넓은 지역을 맡게 하라"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        헷갈릴 때 쓰는 규칙은 이렇습니다.
+        <strong>지연 시간</strong>은 네트워크 성능이 기준이라 지리적으로 가까운 리전이 답이 아닐 수도 있습니다.
+        <strong>지리적 위치</strong>는 성능이 아니라 <strong>규정과 콘텐츠</strong>의 문제입니다.
+        <strong>지리 근접</strong>은 거리 기반이면서 <strong>편향값으로 비율을 조정할 수 있는</strong> 유일한 정책입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          "유럽 사용자는 반드시 유럽 리전에서 처리되어야 한다(데이터 레지던시)"는
+          <strong>지리적 위치</strong>입니다. 지연 시간 기반은 상황에 따라 다른 리전을 고를 수 있으므로
+          규정 준수 요구를 보장하지 못합니다.
+          반대로 "전 세계 사용자에게 가장 빠른 응답"이라면 <strong>지연 시간 기반</strong>입니다.
+          이 한 문장 차이로 정답이 바뀝니다.
+        </p>
+      </aside>
+
+      <aside class="note" data-label="참고">
+        <p>
+          다중값 응답은 로드 밸런서의 대체재가 아닙니다.
+          Route 53은 한 응답에 <strong>최대 8개의 정상 레코드</strong>를 돌려주고,
+          상태 확인을 붙이지 않은 레코드는 <strong>항상 정상으로 간주</strong>합니다.
+          모든 레코드가 비정상이면 비정상 레코드를 최대 8개까지 그대로 응답합니다.
+          또한 <strong>별칭 레코드로는 다중값 응답을 만들 수 없습니다.</strong>
+          부하 분산 자체가 필요하면 <a href="ch07.html#load-balancer-types">7장의 로드 밸런서</a>가 맡습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="route53-failover">
+      <h2 id="route53-failover">상태 확인과 장애 조치 라우팅</h2>
+
+      <p>
+        Route 53 상태 확인은 <strong>여덟 가지 유형</strong>이 있고, 크게 세 부류입니다.
+        엔드포인트를 직접 찔러 보는 유형, 다른 상태 확인을 집계하는 유형,
+        그리고 외부 신호를 읽는 유형입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Route 53 상태 확인 유형</caption>
+          <thead>
+            <tr>
+              <th scope="col">유형</th>
+              <th scope="col">판정 방식</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>HTTP</code> / <code>HTTPS</code></th>
+              <td>TCP 연결 후 요청을 보내고 <strong>200 이상 400 미만</strong>의 상태 코드를 기다립니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>HTTP_STR_MATCH</code> / <code>HTTPS_STR_MATCH</code></th>
+              <td>응답 본문의 <strong>앞부분 5,120바이트</strong>에서 지정한 문자열을 찾습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>TCP</code></th>
+              <td>TCP 연결이 되는지만 봅니다. HTTP가 아닌 서비스에 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>CALCULATED</code></th>
+              <td>하위 상태 확인들의 정상 개수를 <code>HealthThreshold</code>와 비교합니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>CLOUDWATCH_METRIC</code></th>
+              <td>CloudWatch 경보 상태를 읽습니다. <strong>프라이빗 리소스</strong>처럼 외부에서 찌를 수 없는 대상에 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>RECOVERY_CONTROL</code></th>
+              <td>Route 53 Application Recovery Controller의 라우팅 컨트롤 상태(ON/OFF)를 따릅니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        요청 간격(<code>RequestInterval</code>)은 10초 또는 30초이며 <strong>지정하지 않으면 30초</strong>입니다.
+        실패 임계값(<code>FailureThreshold</code>)은 <strong>기본 3회</strong>로,
+        연속 3회 실패해야 상태가 뒤집힙니다. 두 값 모두 <strong>생성 후에는 바꿀 수 없습니다.</strong>
+      </p>
+
+      <h3 id="failover-routing">장애 조치 라우팅</h3>
+      <p>
+        장애 조치 라우팅은 같은 이름과 유형의 레코드 두 개에
+        <code>PRIMARY</code>와 <code>SECONDARY</code>를 지정하고 <code>HealthCheckId</code>를 붙여 구성합니다.
+        동작은 다음과 같습니다.
+      </p>
+      <ul>
+        <li>주 레코드가 정상이면 <strong>보조의 상태와 무관하게</strong> 주로 응답합니다.</li>
+        <li>주가 비정상이고 보조가 정상이면 보조로 응답합니다.</li>
+        <li><strong>보조가 비정상이면 주의 상태와 무관하게 주로 응답합니다.</strong> 둘 다 죽었을 때는 주를 돌려줍니다.</li>
+        <li>보조에 상태 확인을 붙이지 않으면, 주가 비정상일 때 보조 엔드포인트의 실제 상태와 관계없이 항상 보조로 응답합니다.</li>
+      </ul>
+      <p>
+        장애 조치 <strong>별칭</strong> 레코드를 쓸 때는 <code>EvaluateTargetHealth</code>를
+        <code>true</code>로 설정해야 합니다. 그러지 않으면 대상이 죽어도 Route 53이 알아채지 못합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">failover-records.json</span> — 장애 조치 레코드 쌍. 도메인과 상태 확인 ID는 예시입니다</figcaption>
+        <pre><code class="lang-json">{
+  "Comment": "액티브-패시브 장애 조치",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "www.example.com",
+        "Type": "A",
+        "SetIdentifier": "primary-seoul",
+        "Failover": "PRIMARY",
+        "HealthCheckId": "abcdef01-2345-6789-abcd-ef0123456789",
+        "TTL": 60,
+        "ResourceRecords": [{ "Value": "192.0.2.10" }]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "www.example.com",
+        "Type": "A",
+        "SetIdentifier": "secondary-tokyo",
+        "Failover": "SECONDARY",
+        "HealthCheckId": "fedcba98-7654-3210-fedc-ba9876543210",
+        "TTL": 60,
+        "ResourceRecords": [{ "Value": "198.51.100.10" }]
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          <strong>리전 전체가 죽는 시나리오</strong>에서 트래픽을 다른 리전으로 넘기는 장치는
+          Route 53 <strong>장애 조치 라우팅 + 상태 확인</strong>입니다.
+          로드 밸런서는 리전 안의 대상만 다루므로 리전 장애를 넘기지 못합니다.
+          그리고 <strong>DNS 장애 조치의 실제 전환 시간에는 TTL이 그대로 더해집니다.</strong>
+          상태 확인을 붙인 레코드에는 <strong>TTL을 60초 이하</strong>로 두라고 AWS가 권장하는 이유입니다.
+          이 값이 재해 복구 설계에서 RTO에 직접 반영됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="global-accelerator-vs-cloudfront">
+      <h2 id="global-accelerator-vs-cloudfront">AWS Global Accelerator와 CloudFront의 선택</h2>
+
+      <p>
+        Global Accelerator는 <strong>애니캐스트 고정 IP</strong>를 발급하고,
+        AWS 엣지 네트워크에서 받은 트래픽을 <strong>AWS 글로벌 네트워크</strong>를 통해
+        최적의 엔드포인트로 보냅니다. IP 세트 하나는 <strong>최대 2개의 IP 주소</strong>를 가지며,
+        듀얼스택으로 만들면 IPv4 2개와 IPv6 2개를 받습니다.
+      </p>
+      <p>
+        핵심 차이는 <strong>캐시하지 않는다</strong>는 점입니다.
+        Global Accelerator는 콘텐츠를 저장하지 않고 <strong>경로만 개선</strong>합니다.
+        리스너 프로토콜은 <strong>TCP와 UDP</strong>이며, 엔드포인트로는 Application Load Balancer,
+        Network Load Balancer, 탄력적 IP 주소, EC2 인스턴스를 등록합니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-133">
+        <figcaption>
+          CloudFront와 Global Accelerator의 경로 대비 — 한쪽은 캐시 가능한 HTTP 응답을 엣지에서 돌려주고,
+          다른 쪽은 애니캐스트 고정 IP로 받은 TCP/UDP 트래픽을 AWS 백본에 태워 리전 엔드포인트로 보냅니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon CloudFront와 AWS Global Accelerator 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Amazon CloudFront</th>
+              <th scope="col">AWS Global Accelerator</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">주 용도</th>
+              <td>HTTP/HTTPS 콘텐츠 <strong>캐싱과 전송</strong></td>
+              <td>TCP/UDP 트래픽의 <strong>경로 최적화와 장애 조치</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">프로토콜</th>
+              <td>HTTP, HTTPS</td>
+              <td><strong>TCP, UDP</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">캐싱</th>
+              <td><span class="mark-ok">엣지에서 캐시</span></td>
+              <td><span class="mark-no">캐시하지 않음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">진입 주소</th>
+              <td>배포 도메인 이름 (DNS로 해석)</td>
+              <td><strong>정적 애니캐스트 IP 2개</strong> (IP 세트당 최대 2개)</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트</th>
+              <td>S3, ALB, 커스텀 오리진, VPC 오리진</td>
+              <td>ALB, NLB, 탄력적 IP, EC2 인스턴스</td>
+            </tr>
+            <tr>
+              <th scope="row">트래픽 조절</th>
+              <td>캐시 동작 · 경로 패턴</td>
+              <td>엔드포인트 그룹별 <strong>트래픽 다이얼(%)</strong>과 엔드포인트 가중치</td>
+            </tr>
+            <tr>
+              <th scope="row">상태 확인</th>
+              <td>오리진 그룹의 장애 조치 상태 코드</td>
+              <td>10초 또는 30초 간격(기본 30초), 임계값 기본 3회</td>
+            </tr>
+            <tr>
+              <th scope="row">API 리전</th>
+              <td><code>us-east-1</code>에서 관리</td>
+              <td><code>us-west-2</code>에서 관리</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        판단 규칙은 두 문장으로 정리됩니다.
+        <strong>캐시할 수 있는 HTTP 콘텐츠라면 CloudFront</strong>입니다.
+        <strong>비 HTTP 프로토콜이거나, 클라이언트가 IP를 고정으로 알아야 하거나,
+        리전 간 장애 조치를 IP 변경 없이 하고 싶다면 Global Accelerator</strong>입니다.
+        게임 서버(UDP), VoIP, IoT 장비처럼 방화벽에 IP를 등록해야 하는 환경이 후자의 전형입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 복원력 있는 아키텍처 설계">
+        <p>
+          "<strong>고정 IP</strong>"라는 단어가 나오면 후보는 둘입니다.
+          리전 안에서 고정 IP가 필요하면 <a href="ch07.html#nlb-l4">Network Load Balancer</a>,
+          <strong>전 세계에서 하나의 고정 IP</strong>가 필요하면 Global Accelerator입니다.
+          "UDP", "게임", "IP 허용 목록"이 함께 보이면 CloudFront는 후보가 아닙니다.
+          반대로 "정적 파일", "이미지", "동영상 스트리밍", "캐시"가 보이면 CloudFront입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"Route 53 라우팅 정책은 6가지다"</strong> —
+          <strong>8가지</strong>입니다. 단순 · 가중치 기반 · 지연 시간 기반 · 장애 조치 ·
+          지리적 위치 · <strong>지리 근접</strong> · 다중값 응답 · <strong>IP 기반</strong>입니다.
+          한국어 자료 상당수가 지리 근접과 IP 기반을 빠뜨린 옛 목록을 그대로 옮겨 적었습니다.
+          Route 53 레코드 구조에는 <code>GeoProximityLocation</code>과 <code>CidrRoutingConfig</code>가
+          독립된 멤버로 들어 있고, 각각 별개의 라우팅 정책입니다.
+          개수를 묻지 않더라도, 목록에서 빠진 두 개가 정답 선택지로 등장하면 그대로 실점합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"CloudFront를 앞에 두었으니 S3 버킷은 안전하다"</strong> —
+          버킷이 퍼블릭이면 <strong>CloudFront를 우회한 직접 접근이 그대로 열려 있습니다.</strong>
+          서명 URL도, 지리적 제한도, WAF 규칙도 CloudFront를 지나야 적용되기 때문에
+          S3 엔드포인트로 바로 요청하면 전부 무력화됩니다.
+          버킷은 비공개로 유지하고 <strong>OAC</strong>를 붙인 뒤,
+          버킷 정책에서 <code>cloudfront.amazonaws.com</code> 서비스 주체를
+          <code>AWS:SourceArn</code> 조건과 함께 허용하는 것이 유일한 정답 구성입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"Global Accelerator는 CloudFront의 상위 호환이다"</strong> —
+          둘은 겹치지 않는 도구입니다. Global Accelerator는 <strong>캐시하지 않습니다.</strong>
+          정적 콘텐츠를 반복해서 내려받는 워크로드에 Global Accelerator를 쓰면
+          매 요청이 오리진까지 도달하므로 지연도 비용도 개선되지 않습니다.
+          반대로 UDP 트래픽이나 고정 IP 요구에 CloudFront를 쓰는 것은 애초에 불가능합니다.
+          <strong>캐시 가능성과 프로토콜</strong>이 두 서비스를 가르는 기준입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 보안 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table config-table--plain">
+            <caption>14장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Route 53 라우팅 정책 수</th>
+                <td><strong>8종</strong> — 단순 · 가중치 · 지연 시간 · 장애 조치 · 지리적 위치 · 지리 근접 · 다중값 응답 · IP 기반</td>
+                <td>지리 근접과 IP 기반을 뺀 옛 목록으로 외워 선택지에서 놓침</td>
+              </tr>
+              <tr>
+                <th scope="row">지연 시간 대 지리적 위치</th>
+                <td>지연 시간은 <strong>측정된 성능</strong>, 지리적 위치는 <strong>질의 출발지</strong></td>
+                <td>데이터 레지던시 요구에 지연 시간 기반을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">지리 근접</th>
+                <td>질의와 <strong>리소스</strong>의 거리 기준. <code>Bias</code>로 담당 영역 조절</td>
+                <td>지리적 위치와 같은 것으로 보고 구분하지 못함</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>SetIdentifier</code></th>
+                <td><strong>단순 라우팅을 제외한 모든 정책에 필수</strong></td>
+                <td>단순 라우팅에도 필요하다고 생각함</td>
+              </tr>
+              <tr>
+                <th scope="row">다중값 응답</th>
+                <td>한 응답에 <strong>최대 8개</strong>의 정상 레코드. 별칭 레코드로는 불가</td>
+                <td>로드 밸런서 대체재로 오해</td>
+              </tr>
+              <tr>
+                <th scope="row">별칭 대 CNAME</th>
+                <td>별칭은 <strong>영역 정점에 사용 가능</strong>하고 TTL을 지정하지 않음</td>
+                <td><code>example.com</code>에 CNAME을 걸려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">장애 조치 동작</th>
+                <td>주가 정상이면 주. <strong>보조가 비정상이면 주의 상태와 무관하게 주</strong></td>
+                <td>둘 다 비정상일 때 응답이 없다고 생각함</td>
+              </tr>
+              <tr>
+                <th scope="row">상태 확인 기본값</th>
+                <td>요청 간격 <strong>30초</strong>, 실패 임계값 <strong>3회</strong>. 생성 후 변경 불가</td>
+                <td>나중에 조정하면 된다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">DNS 장애 조치와 TTL</th>
+                <td>전환 시간에 <strong>TTL이 더해진다.</strong> 상태 확인 연동 레코드는 TTL 60초 이하 권장</td>
+                <td>상태 확인 주기만 보고 RTO를 계산</td>
+              </tr>
+              <tr>
+                <th scope="row">프라이빗 호스팅 영역</th>
+                <td>연결한 VPC 안에서만 응답. <strong>CloudFront 별칭 레코드 생성 불가</strong></td>
+                <td>내부 도메인으로 CloudFront를 가리키려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">S3 오리진 보호</th>
+                <td><strong>OAC</strong> + 비공개 버킷 + 버킷 정책의 <code>cloudfront.amazonaws.com</code> 허용</td>
+                <td>버킷을 퍼블릭으로 열거나 ACL로 권한을 줌</td>
+              </tr>
+              <tr>
+                <th scope="row">OAC가 OAI보다 나은 점</th>
+                <td>전 리전 지원, <strong>SSE-KMS</strong> 지원, <code>PUT</code>/<code>DELETE</code> 지원</td>
+                <td>둘이 같은 기능이라고 보고 신규 설계에 OAI를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">S3 웹사이트 엔드포인트</th>
+                <td><strong>커스텀 오리진</strong>이며 OAC·OAI를 붙일 수 없음</td>
+                <td>정적 웹사이트 호스팅을 켠 채로 OAC를 쓰려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">서명 URL 대 서명 쿠키</th>
+                <td>파일 하나면 서명 URL, 여러 파일이거나 URL을 못 바꾸면 서명 쿠키. <strong>서명 URL이 우선</strong></td>
+                <td>영상 조각 전체 보호에 서명 URL을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">지리적 제한 범위</th>
+                <td>국가 단위이며 <strong>배포 전체</strong>에 적용. 차단 시 403</td>
+                <td>경로별로 다른 국가 제한을 걸 수 있다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">CloudFront용 ACM 인증서</th>
+                <td><strong><code>us-east-1</code></strong>에서 발급한 것만 연결 가능</td>
+                <td>서비스 리전에서 발급해 붙이려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">WAF 웹 ACL 범위</th>
+                <td>CloudFront는 <code>CLOUDFRONT</code> 범위(<code>us-east-1</code> 관리), ALB·API Gateway 등은 <code>REGIONAL</code></td>
+                <td>리전 웹 ACL을 CloudFront에 붙이려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">엣지 함수 선택</th>
+                <td>CloudFront Functions는 <strong>뷰어 이벤트만</strong>, 네트워크·본문 접근 불가. Lambda@Edge는 4개 이벤트 전부</td>
+                <td>오리진 요청 단계 작업에 CloudFront Functions를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">캐시 적중률 개선</th>
+                <td><strong>캐시 키를 줄인다.</strong> 오리진이 필요한 값은 오리진 요청 정책으로</td>
+                <td>모든 헤더와 쿠키를 캐시 키에 넣어 캐시가 쪼개짐</td>
+              </tr>
+              <tr>
+                <th scope="row">무효화</th>
+                <td>대소문자 구분, 와일드카드 가능, 쿠키·헤더별 모든 벌이 함께 무효화</td>
+                <td>잦은 갱신을 전부 무효화로 처리 (버전 파일명이 권장)</td>
+              </tr>
+              <tr>
+                <th scope="row">Global Accelerator</th>
+                <td><strong>TCP/UDP</strong>, 정적 애니캐스트 IP, <strong>캐시 없음</strong></td>
+                <td>정적 콘텐츠 가속에 Global Accelerator를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">고정 IP 요구</th>
+                <td>리전 내부면 NLB, 전 세계 단일 IP면 Global Accelerator</td>
+                <td>CloudFront로 고정 IP를 제공하려 함</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          이 장의 비용 판단은 하나로 요약됩니다.
+          <strong>같은 바이트를 오리진에서 두 번 내보내지 않는 안이 더 싸다.</strong>
+          캐시 적중률을 올리는 선택지, 엣지 범위를 필요한 만큼만 사는 선택지,
+          무효화 대신 버전 파일명을 쓰는 선택지가 그 방향입니다.
+          전체 비용 레버는 <a href="../cheatsheet/cost.html">비용 빠른참조</a>에 모아 두었습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <p>
+        <span class="badge badge--study">학습용 유형</span>
+        연결형과 순서 배열 문항이 섞여 있을 수 있습니다.
+        이 두 유형은 암기 확인에 효율이 좋아서 기본개념 확인 문제에만 넣었으며,
+        실제 SAA-C03 시험에는 출제되지 않습니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch14" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch15.html">
+          <span class="card__title">15장 · 데이터 분석 파이프라인</span>
+          <span class="card__desc">엣지에서 모은 로그와 클릭스트림을 어디로 흘려보낼지. Kinesis 제품군과 배치 대 스트리밍 판단을 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch08.html">
+          <span class="card__title">8장 · S3와 오브젝트 스토리지</span>
+          <span class="card__desc">OAC로 보호할 대상인 버킷 자체의 보안 기본값과 버킷 정책, 정적 웹사이트 호스팅을 정리합니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch07.html">
+          <span class="card__title">7장 · 로드 밸런싱과 오토스케일링</span>
+          <span class="card__desc">고정 IP가 필요할 때의 또 다른 후보인 NLB, 그리고 CloudFront 오리진이 되는 ALB의 동작을 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch16.html">
+          <span class="card__title">16장 · 보안 · 암호화 · 거버넌스</span>
+          <span class="card__desc">ACM 인증서의 종료 지점, WAF와 Shield의 역할 분담을 보안 관점에서 이어서 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab03.html">
+          <span class="card__title">실습 3 · S3 정적 사이트 + CloudFront + OAC</span>
+          <span class="card__desc">버킷을 비공개로 유지한 채 배포를 만들고, 캐시 무효화까지 손으로 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/network.html">
+          <span class="card__title">네트워크 빠른참조</span>
+          <span class="card__desc">VPC 연결 옵션, 라우팅, DNS를 한 장으로 압축했습니다. 라우팅 정책 8종도 여기에 있습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 개념 서술과 API 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html">Amazon CloudFront 개발자 안내서 — CloudFront란</a>
+          — 배포 · 오리진 · 엣지 로케이션의 기본 개념</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Expiration.html">Amazon CloudFront 개발자 안내서 — 캐시에 콘텐츠가 머무는 기간 관리</a>
+          — 기본 만료 24시간, <code>Cache-Control max-age</code>와 <code>Expires</code>의 우선순위, 뷰어 요청의 캐시 헤더를 무시한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Invalidation.html">Amazon CloudFront 개발자 안내서 — 파일 무효화</a>
+          — 와일드카드 경로, 대소문자 구분, 버전 파일명 권장 근거</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html">Amazon CloudFront 개발자 안내서 — Amazon S3 오리진에 대한 액세스 제한</a>
+          — OAC 권장 이유 3가지와 버킷 정책 예시, 웹사이트 엔드포인트는 커스텀 오리진이라 OAC를 쓸 수 없다는 제약</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-choosing-signed-urls-cookies.html">Amazon CloudFront 개발자 안내서 — 서명 URL과 서명 쿠키 중 선택</a>
+          — 각각의 적용 조건과 서명 URL 우선 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/georestrictions.html">Amazon CloudFront 개발자 안내서 — 콘텐츠의 지리적 배포 제한</a>
+          — 국가 단위 제한, 403 응답과 기본 10초 캐시, 배포 전체 적용</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/edge-functions.html">Amazon CloudFront 개발자 안내서 — 엣지에서 함수로 사용자 지정</a>
+          — CloudFront Functions와 Lambda@Edge의 비교표</li>
+        <li><a href="https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html">Amazon CloudFront API 레퍼런스 — DefaultCacheBehavior</a>
+          — 캐시 정책 · 오리진 요청 정책 · 응답 헤더 정책, <code>ForwardedValues</code>와 TTL 필드가 deprecated라는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CustomOriginConfig.html">Amazon CloudFront API 레퍼런스 — CustomOriginConfig</a>
+          — 커스텀 오리진의 정의, <code>OriginProtocolPolicy</code>, 오리진 응답 타임아웃 기본 30초와 연결 유지 5초</li>
+        <li><a href="https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_ViewerCertificate.html">Amazon CloudFront API 레퍼런스 — ViewerCertificate</a>
+          — CloudFront가 <code>us-east-1</code>의 ACM 인증서만 지원한다는 서술, <code>sni-only</code> 권장</li>
+        <li><a href="https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_OriginAccessControlConfig.html">Amazon CloudFront API 레퍼런스 — OriginAccessControlConfig</a>
+          — 서명 프로토콜 <code>sigv4</code>와 서명 동작 3가지</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html">Amazon Route 53 API 레퍼런스 — ResourceRecordSet</a>
+          — 라우팅 정책 8종을 구분하는 멤버(<code>Weight</code>, <code>Region</code>, <code>Failover</code>, <code>GeoLocation</code>, <code>GeoProximityLocation</code>, <code>MultiValueAnswer</code>, <code>CidrRoutingConfig</code>), <code>SetIdentifier</code> 필수 조건, 다중값 응답 최대 8개, 장애 조치 동작 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html">Amazon Route 53 API 레퍼런스 — AliasTarget</a>
+          — 별칭 레코드에서 TTL을 생략한다는 점, <code>EvaluateTargetHealth</code>의 제약</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_HealthCheckConfig.html">Amazon Route 53 API 레퍼런스 — HealthCheckConfig</a>
+          — 상태 확인 유형 8종, 요청 간격 기본 30초, 실패 임계값 기본 3회, 문자열 검색은 앞 5,120바이트</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_GeoProximityLocation.html">Amazon Route 53 API 레퍼런스 — GeoProximityLocation</a>
+          — 리전 · 로컬 존 그룹 · 좌표 중 하나를 지정하며 <code>Bias</code>로 영역 크기를 조절한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/global-accelerator/latest/api/Welcome.html">AWS Global Accelerator API 레퍼런스</a>
+          — 애니캐스트 정적 IP, 표준 가속기와 사용자 지정 라우팅 가속기, API가 <code>us-west-2</code>에서 동작한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/global-accelerator/latest/api/API_EndpointGroup.html">AWS Global Accelerator API 레퍼런스 — EndpointGroup</a>
+          — 트래픽 다이얼, 상태 확인 간격 10초/30초와 기본 30초, 임계값 기본 3회</li>
+        <li><a href="https://docs.aws.amazon.com/waf/latest/APIReference/API_AssociateWebACL.html">AWS WAF API 레퍼런스 — AssociateWebACL</a>
+          — CloudFront는 이 API가 아니라 배포 구성의 웹 ACL ARN으로 연결한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html">AWS WAF API 레퍼런스 — CreateWebACL</a>
+          — <code>CLOUDFRONT</code> 범위와 <code>REGIONAL</code> 범위의 구분, CloudFront 범위는 <code>us-east-1</code>에서 관리</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

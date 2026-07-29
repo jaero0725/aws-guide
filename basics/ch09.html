@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>9장 · 파일 스토리지와 데이터 전송 — AWS SAA Guide</title>
+  <meta name="description" content="Amazon EFS와 Amazon FSx 네 종류의 선택 기준, Storage Gateway 세 종류의 경계, DataSync와 Transfer Family와 Snow Family와 Direct Connect를 대역폭과 기간으로 가르는 판단, 온프레미스 파일 서버 이전 시나리오를 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch09"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch09">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">9장 · 파일 스토리지와 데이터 전송</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 9장</p>
+      <h1>파일 스토리지와 데이터 전송</h1>
+      <p class="page__lead">
+        이 장의 문항은 두 가지 질문으로 압축됩니다.
+        <strong>애플리케이션이 어떤 프로토콜로 스토리지를 붙잡는가</strong>와
+        <strong>데이터를 어떤 수단으로 옮기는가</strong>입니다.
+        전자는 EFS와 FSx 네 종류 중 하나를 지목하고,
+        후자는 <strong>가용 대역폭과 허용 기간</strong>이라는 두 숫자가 답을 정합니다.
+        서비스를 외우는 것이 아니라 <strong>판단 기준을 외우는</strong> 장입니다.
+      </p>
+      <p class="page__meta">
+        이 장은 <strong>고성능 아키텍처 설계(24%)</strong>와
+        <strong>비용 최적화 아키텍처 설계(20%)</strong>에 속하며,
+        하이브리드 구성이 걸릴 때는 <strong>복원력 있는 아키텍처 설계(26%)</strong>와도 이어집니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>블록 · 객체 · 파일 스토리지의 접근 방식을 구분하고 요구사항에 맞는 계열을 고를 수 있습니다.</li>
+        <li>Amazon EFS의 프로토콜과 가용 영역 범위, 성능 모드와 처리량 모드를 설명할 수 있습니다.</li>
+        <li>Amazon FSx 네 종류를 워크로드 기준으로 구분해 선택할 수 있습니다.</li>
+        <li>Storage Gateway 세 종류에서 온프레미스에 무엇이 남고 무엇이 AWS로 가는지 설명할 수 있습니다.</li>
+        <li>DataSync · Transfer Family · Snow Family · Direct Connect를 대역폭과 기간으로 가를 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="storage-families">
+      <h2 id="storage-families">블록 · 객체 · 파일 — 어떤 계열이 필요한가</h2>
+
+      <p>
+        스토리지 선택 문항의 첫 갈림길은 성능이 아니라 <strong>접근 방식</strong>입니다.
+        애플리케이션이 스토리지를 어떻게 붙잡는지가 계열을 정하고,
+        계열이 정해진 다음에야 서비스와 성능 옵션을 고릅니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>스토리지 세 계열의 접근 방식과 대표 서비스</caption>
+          <thead>
+            <tr>
+              <th scope="col">계열</th>
+              <th scope="col">접근 방식</th>
+              <th scope="col">동시 접근</th>
+              <th scope="col">대표 서비스</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">블록</th>
+              <td>운영체제가 디스크로 인식하고 파일 시스템을 직접 올린다</td>
+              <td>원칙적으로 인스턴스 한 대</td>
+              <td>Amazon EBS, 인스턴스 스토어 (<a href="ch06.html">6장</a>)</td>
+            </tr>
+            <tr>
+              <th scope="row">객체</th>
+              <td>HTTP API로 객체 단위 읽기·쓰기. 부분 수정 없음</td>
+              <td>제한 없음</td>
+              <td>Amazon S3 (<a href="ch08.html">8장</a>)</td>
+            </tr>
+            <tr>
+              <th scope="row">파일</th>
+              <td><strong>NFS · SMB 같은 파일 프로토콜로 마운트</strong>한다</td>
+              <td><strong>여러 인스턴스가 동시에</strong></td>
+              <td>Amazon EFS, Amazon FSx</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        시험에서 파일 스토리지를 지목하는 문장은 거의 정해져 있습니다.
+        <strong>"애플리케이션 코드를 바꾸지 않고", "기존 파일 경로를 그대로 쓰면서",
+        "여러 서버가 같은 디렉터리를 공유해야"</strong>가 그것입니다.
+        애플리케이션이 파일 시스템 호출을 그대로 쓰고 있다면 S3로 바꾸는 것은 코드 변경을 뜻하고,
+        <strong>"코드 변경 없이"라는 한정어와 충돌</strong>합니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-080">
+        <figcaption>
+          프로토콜과 동시 접근 범위를 축으로 배치한 공유 스토리지 선택 매트릭스 —
+          Amazon EFS(NFS · 다중 가용 영역), FSx for Windows File Server(SMB),
+          FSx for Lustre(고성능 컴퓨팅), Amazon EBS(단일 인스턴스)의 영역이 갈립니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          <strong>"여러 EC2 인스턴스가 같은 데이터를 공유해야 한다"</strong>는 요구에
+          EBS 멀티 어태치를 고르는 것은 대체로 오답입니다.
+          멀티 어태치는 <strong>같은 가용 영역</strong>에 묶이고 일반 파일 시스템을 쓸 수 없습니다
+          (<a href="ch06.html#multi-attach">6장 멀티 어태치</a>).
+          파일 공유의 답은 <strong>Amazon EFS 또는 Amazon FSx</strong>입니다.
+        </p>
+        <p>
+          거꾸로 <strong>"정적 자산을 전 세계에 배포"</strong>처럼 파일 시스템 의미가 필요 없는 요구에
+          EFS를 고르면 과잉입니다. 그때는 Amazon S3와 CloudFront입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="efs">
+      <h2 id="efs">Amazon EFS — 리눅스용 NFS 공유 파일 시스템</h2>
+
+      <p>
+        Amazon EFS는 <strong>NFS 프로토콜</strong>로 마운트하는 완전 관리형 파일 시스템입니다.
+        여러 EC2 인스턴스, 컨테이너, Lambda 함수가 <strong>동시에 같은 파일 시스템을 마운트</strong>할 수 있고,
+        용량을 미리 정할 필요 없이 <strong>파일을 넣고 지우는 대로 자동으로 늘고 줄어듭니다.</strong>
+      </p>
+      <p>
+        접속 지점은 각 가용 영역의 <strong>마운트 타깃(mount target)</strong>입니다.
+        가용 영역마다 마운트 타깃을 만들어 두면 그 가용 영역의 인스턴스가 자기 가용 영역의 마운트 타깃으로 붙습니다.
+        마운트 타깃은 VPC 안의 네트워크 인터페이스이므로 <strong>보안 그룹으로 접근을 통제</strong>합니다.
+      </p>
+
+      <h3 id="efs-modes">성능 모드와 처리량 모드</h3>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Amazon EFS의 성능 모드와 처리량 모드</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">값</th>
+              <th scope="col">특성</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">성능 모드</th>
+              <td><code>generalPurpose</code> <strong>(기본값)</strong></td>
+              <td>지연 시간이 낮다. AWS가 <strong>모든 파일 시스템에 이 모드를 권장</strong>한다</td>
+            </tr>
+            <tr>
+              <th scope="row">성능 모드</th>
+              <td><code>maxIO</code></td>
+              <td>총 처리량과 초당 작업 수를 더 높일 수 있으나 <strong>작업당 지연이 다소 높다.</strong>
+                One Zone 파일 시스템에서는 지원되지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">처리량 모드</th>
+              <td><code>bursting</code> <strong>(기본값)</strong></td>
+              <td>저장 용량에 따라 기준 처리량이 정해지고 버스트가 허용된다</td>
+            </tr>
+            <tr>
+              <th scope="row">처리량 모드</th>
+              <td><code>elastic</code></td>
+              <td>워크로드에 맞춰 처리량이 자동으로 오르내린다</td>
+            </tr>
+            <tr>
+              <th scope="row">처리량 모드</th>
+              <td><code>provisioned</code></td>
+              <td>필요한 처리량을 직접 지정한다. 유효 범위는 <strong>1–3,414 MiB/s</strong>이며 상한은 리전에 따라 다르다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <strong>성능 모드는 파일 시스템을 만든 뒤에 바꿀 수 없습니다.</strong>
+        처리량 모드는 시간 제약이 있지만 나중에 바꿀 수 있습니다.
+        판단이 서지 않으면 <code>generalPurpose</code>로 만드는 것이 안전합니다.
+      </p>
+
+      <h3 id="efs-classes">스토리지 클래스와 수명 주기</h3>
+      <p>
+        EFS도 접근 빈도에 따라 자동으로 계층을 옮깁니다.
+        <strong>수명 주기 관리 정책</strong>에서 며칠간 접근하지 않은 파일을 저빈도 계층이나 아카이브 계층으로 옮길지 지정합니다.
+        지정할 수 있는 값은 <strong>1일 · 7일 · 14일 · 30일 · 60일 · 90일 · 180일 · 270일 · 365일</strong>입니다.
+      </p>
+      <p>
+        가용 영역 범위도 두 가지입니다.
+      </p>
+      <ul>
+        <li><strong>리전 파일 시스템</strong> — 여러 가용 영역에 데이터를 저장합니다. 기본 선택입니다.</li>
+        <li><strong>One Zone 파일 시스템</strong> — 지정한 <strong>단일 가용 영역</strong>에만 저장해 더 저렴합니다.
+          가용 영역 장애에 취약하다는 교환 조건은
+          <a href="ch08.html#one-zone-ia">S3 One Zone-IA</a>와 똑같습니다.
+          One Zone으로 만들면 <strong>자동 백업이 기본 활성화</strong>됩니다.</li>
+      </ul>
+      <p>
+        암호화는 생성 시 켤 수 있고, KMS 키를 지정하지 않으면 <strong>EFS 기본 KMS 키
+        (<code>aws/elasticfilesystem</code>)</strong>가 쓰입니다.
+        여러 애플리케이션이 한 파일 시스템의 서로 다른 디렉터리만 보게 하려면
+        <strong>액세스 포인트(access point)</strong>로 진입 디렉터리와 POSIX 사용자·그룹을 고정합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-efs.sh</span> — 파일 시스템 생성과 마운트 타깃 구성 (리소스 ID와 가용 영역은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">FS_ID=$(aws efs create-file-system \
+  --performance-mode generalPurpose \
+  --throughput-mode elastic \
+  --encrypted \
+  --query 'FileSystemId' --output text)
+
+# 가용 영역마다 마운트 타깃을 만들어야 그 가용 영역에서 마운트할 수 있습니다.
+aws efs create-mount-target \
+  --file-system-id "$FS_ID" \
+  --subnet-id subnet-0123456789abcdef0 \
+  --security-groups sg-0123456789abcdef0
+
+# 인스턴스에서 마운트합니다.
+sudo mount -t nfs4 -o nfsvers=4.1 \
+  "$FS_ID".efs.ap-northeast-2.amazonaws.com:/ /mnt/shared</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          EFS를 지목하는 문장은 <strong>"리눅스", "NFS", "여러 가용 영역의 인스턴스가 동시에",
+          "용량을 예측할 수 없어 자동으로 늘어나야", "코드 변경 없이 공유 스토리지"</strong>입니다.
+          <strong>다중 가용 영역 동시 접근</strong>이 EBS와 갈리는 결정적 지점입니다.
+        </p>
+        <p>
+          반대로 <strong>"Windows 서버가 SMB로 접근"</strong>이면 EFS는 그 자리에서 소거됩니다.
+          EFS는 NFS 파일 시스템이고 SMB를 제공하지 않습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="fsx">
+      <h2 id="fsx">Amazon FSx 네 종류 — 워크로드가 선택 기준 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        Amazon FSx는 <strong>널리 쓰이는 파일 시스템을 그대로 관리형으로 제공</strong>합니다.
+        API의 파일 시스템 유형 열거값은 <code>WINDOWS</code> · <code>LUSTRE</code> ·
+        <code>ONTAP</code> · <code>OPENZFS</code> 네 가지입니다.
+        네 종류는 성능 등급이 아니라 <strong>서로 다른 파일 시스템</strong>이므로,
+        선택 기준은 언제나 <strong>워크로드가 무엇을 요구하는가</strong>입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon FSx 네 종류의 대상 워크로드와 배포 유형</caption>
+          <thead>
+            <tr>
+              <th scope="col">종류</th>
+              <th scope="col">이럴 때 고른다</th>
+              <th scope="col">배포 유형</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">FSx for Windows File Server</th>
+              <td><strong>Windows 애플리케이션이 SMB로 접근</strong>해야 하고 Active Directory 통합이 필요하다.
+                기존 Windows 파일 서버를 그대로 옮기는 경우</td>
+              <td><code>SINGLE_AZ_1</code>(기본) · <code>SINGLE_AZ_2</code> · <code>MULTI_AZ_1</code>.
+                다중 가용 영역은 <strong>가용 영역이 3개 이상인 리전</strong>에서만 만들 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">FSx for Lustre</th>
+              <td><strong>고성능 컴퓨팅, 기계 학습 학습, 미디어 처리</strong>처럼
+                대규모 병렬 처리량이 필요하다. <strong>Amazon S3와 연동</strong>해 데이터 리포지토리로 쓸 수 있다</td>
+              <td><code>SCRATCH_1</code> · <code>SCRATCH_2</code>(임시·단기 처리) /
+                <code>PERSISTENT_1</code> · <code>PERSISTENT_2</code>(장기 저장·처리량 중심)</td>
+            </tr>
+            <tr>
+              <th scope="row">FSx for NetApp ONTAP</th>
+              <td><strong>NFS · SMB · iSCSI를 한 파일 시스템에서</strong> 함께 써야 하거나,
+                온프레미스 ONTAP 환경의 기능과 운영 방식을 그대로 유지해야 한다</td>
+              <td><code>SINGLE_AZ_1</code> · <code>SINGLE_AZ_2</code> ·
+                <code>MULTI_AZ_1</code> · <code>MULTI_AZ_2</code></td>
+            </tr>
+            <tr>
+              <th scope="row">FSx for OpenZFS</th>
+              <td><strong>NFS 기반 리눅스 워크로드</strong>를 ZFS 기능(스냅샷·복제)과 함께 옮긴다</td>
+              <td><code>SINGLE_AZ_1</code> · <code>SINGLE_AZ_2</code> ·
+                <code>SINGLE_AZ_HA_1</code> · <code>SINGLE_AZ_HA_2</code> · <code>MULTI_AZ_1</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Lustre의 배포 유형 구분이 자주 출제됩니다.
+        <strong>스크래치(scratch)는 임시 스토리지와 단기 처리</strong>용이고,
+        <strong>지속형(persistent)은 장기 저장과 처리량 중심 워크로드</strong>용입니다.
+        <code>SCRATCH_2</code>는 <code>SCRATCH_1</code>보다 전송 중 암호화와 더 높은 버스트 처리량을 제공하고,
+        <code>PERSISTENT_2</code>는 지연에 민감하고 가장 높은 IOPS·처리량이 필요한 워크로드를 대상으로 합니다.
+      </p>
+      <p>
+        FSx for Lustre의 <strong>S3 연동</strong>은 시험에서 자주 쓰이는 조합입니다.
+        S3 버킷을 데이터 리포지토리로 연결해 두면 객체를 파일처럼 읽고,
+        결과를 다시 S3로 내보낼 수 있습니다.
+        <strong>"S3에 있는 대용량 데이터셋으로 고성능 분석을 돌려야 한다"</strong>가 그 신호입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          FSx 문항은 <strong>키워드 대응표로 풀립니다.</strong>
+        </p>
+        <ul>
+          <li><strong>Windows · SMB · Active Directory</strong> → FSx for Windows File Server</li>
+          <li><strong>HPC · 기계 학습 학습 · 초당 수백 GB · S3 데이터셋 연동</strong> → FSx for Lustre</li>
+          <li><strong>NFS와 SMB를 동시에 · 기존 NetApp 운영 유지</strong> → FSx for NetApp ONTAP</li>
+          <li><strong>리눅스 NFS · ZFS 스냅샷 기능 유지</strong> → FSx for OpenZFS</li>
+        </ul>
+        <p>
+          <strong>"Windows 파일 공유"에 EFS를 고르는 것</strong>과
+          <strong>"HPC 처리량"에 EFS를 고르는 것</strong>이 이 장의 대표적인 오답 두 개입니다.
+        </p>
+      </aside>
+
+      <h3 id="efs-vs-fsx">EFS와 FSx를 가르는 한 문장</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구사항에서 공유 스토리지 서비스로 가는 대응</caption>
+          <thead>
+            <tr>
+              <th scope="col">요구사항의 신호</th>
+              <th scope="col">선택</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">리눅스 서버 여러 대가 같은 디렉터리를 공유</th>
+              <td>Amazon EFS</td>
+              <td>NFS, 다중 가용 영역, 용량 자동 확장</td>
+            </tr>
+            <tr>
+              <th scope="row">Windows 애플리케이션이 SMB 공유를 요구</th>
+              <td>FSx for Windows File Server</td>
+              <td>SMB와 Active Directory 통합을 제공하는 유일한 선택</td>
+            </tr>
+            <tr>
+              <th scope="row">수천 개 코어가 동시에 읽는 병렬 파일 시스템</th>
+              <td>FSx for Lustre</td>
+              <td>고성능 컴퓨팅용 병렬 파일 시스템이며 S3와 연동된다</td>
+            </tr>
+            <tr>
+              <th scope="row">한 스토리지를 리눅스와 Windows가 함께 사용</th>
+              <td>FSx for NetApp ONTAP</td>
+              <td>NFS · SMB · iSCSI 다중 프로토콜을 한 파일 시스템에서 제공</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 한 대만 붙는 저지연 디스크</th>
+              <td>Amazon EBS</td>
+              <td>공유가 필요 없으면 파일 시스템 서비스는 과잉이다</td>
+            </tr>
+            <tr>
+              <th scope="row">HTTP로 객체를 읽고 쓰며 무한히 확장</th>
+              <td>Amazon S3</td>
+              <td>파일 시스템 의미가 필요 없다면 객체 스토리지가 가장 저렴하고 확장된다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="storage-gateway">
+      <h2 id="storage-gateway">Storage Gateway — 온프레미스와 AWS의 경계</h2>
+
+      <p>
+        AWS Storage Gateway는 <strong>온프레미스 애플리케이션이 익숙한 프로토콜을 그대로 쓰면서
+        데이터는 AWS에 저장</strong>하게 하는 하이브리드 서비스입니다.
+        온프레미스에는 게이트웨이 어플라이언스(가상 머신 또는 하드웨어)를 두고,
+        그 뒤로 데이터가 AWS로 넘어갑니다.
+        <strong>자주 쓰는 데이터의 캐시가 온프레미스에 남는다</strong>는 점이
+        지연 시간 요구를 만족시키는 근거입니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-081">
+        <figcaption>
+          Storage Gateway 세 종류에서 온프레미스에 남는 것과 AWS로 넘어가는 것의 경계 —
+          파일 게이트웨이는 파일 공유를 S3 객체로, 볼륨 게이트웨이는 iSCSI 볼륨을 스냅샷으로,
+          테이프 게이트웨이는 가상 테이프를 아카이브로 옮깁니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Storage Gateway 세 종류의 프로토콜과 저장 위치</caption>
+          <thead>
+            <tr>
+              <th scope="col">종류</th>
+              <th scope="col">온프레미스가 보는 인터페이스</th>
+              <th scope="col">AWS 쪽 저장 형태</th>
+              <th scope="col">대표 용도</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">파일 게이트웨이 (S3 File Gateway)</th>
+              <td><strong>NFS 또는 SMB 파일 공유</strong></td>
+              <td>파일 하나가 <strong>S3 객체 하나</strong>로 저장된다</td>
+              <td>파일 서버의 데이터를 S3로 옮기되 애플리케이션은 그대로 두기</td>
+            </tr>
+            <tr>
+              <th scope="row">볼륨 게이트웨이 — 캐시형(cached)</th>
+              <td><strong>iSCSI 블록 볼륨</strong></td>
+              <td><strong>주 데이터가 AWS에 있고</strong> 자주 쓰는 부분만 온프레미스에 캐시</td>
+              <td>온프레미스 스토리지 용량을 늘리지 않고 데이터를 키우기</td>
+            </tr>
+            <tr>
+              <th scope="row">볼륨 게이트웨이 — 저장형(stored)</th>
+              <td><strong>iSCSI 블록 볼륨</strong></td>
+              <td><strong>주 데이터가 온프레미스에 있고</strong> 스냅샷이 AWS로 비동기 백업된다</td>
+              <td>전체 데이터에 낮은 지연으로 접근하면서 클라우드 백업 확보</td>
+            </tr>
+            <tr>
+              <th scope="row">테이프 게이트웨이 (VTL)</th>
+              <td><strong>가상 테이프 라이브러리</strong></td>
+              <td>가상 테이프가 아카이브 스토리지로 저장된다</td>
+              <td>기존 백업 소프트웨어를 그대로 쓰면서 물리 테이프 없애기</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        볼륨 게이트웨이의 두 유형을 뒤집어 외우는 실수가 흔합니다.
+        <strong>"캐시형은 주 데이터가 클라우드에, 저장형은 주 데이터가 온프레미스에"</strong>가
+        구분의 전부입니다. 이름이 가리키는 것은 <strong>온프레미스 디스크의 역할</strong>입니다 —
+        캐시형에서는 캐시이고, 저장형에서는 원본 저장소입니다.
+      </p>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          게이트웨이 유형 열거값에는 <code>FILE_FSX_SMB</code>(FSx File Gateway)도 남아 있지만,
+          <strong>신규 고객에게는 더 이상 제공되지 않습니다.</strong>
+          기존 고객만 계속 쓸 수 있습니다.
+          SAA 학습에서는 <strong>파일 · 볼륨 · 테이프 세 종류</strong>로 정리하면 충분합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          Storage Gateway를 지목하는 신호는 <strong>"기존 인프라를 유지하면서",
+          "온프레미스 애플리케이션을 수정하지 않고", "온프레미스 스토리지 용량이 부족한데
+          장비를 더 사고 싶지 않다"</strong>입니다.
+          <strong>대체가 아니라 연장</strong>이라는 점이 판단의 핵심입니다.
+        </p>
+        <p>
+          유형 대응은 이렇게 외웁니다.
+          <strong>파일 공유이면 파일 게이트웨이</strong>,
+          <strong>블록 볼륨이면 볼륨 게이트웨이</strong>,
+          <strong>백업 소프트웨어와 테이프이면 테이프 게이트웨이</strong>입니다.
+          그리고 <strong>일회성 대량 이전이면 Storage Gateway가 아니라
+          <a href="#data-transfer">DataSync</a></strong>입니다 —
+          게이트웨이는 <strong>상시 운영</strong>을 위한 것입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="data-transfer">
+      <h2 id="data-transfer">데이터 전송 — 대역폭과 기간이 판단 기준 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        전송 수단 문항은 서비스 이름을 외워서 푸는 것이 아니라
+        <strong>두 숫자를 대입해서</strong> 푸는 문제입니다.
+        <strong>옮길 데이터의 양</strong>과 <strong>쓸 수 있는 회선 대역폭</strong>을 나누면 걸리는 시간이 나오고,
+        그 시간이 <strong>허용 기간</strong>을 넘으면 회선으로 보내는 선택지는 전부 소거됩니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-082">
+        <figcaption>
+          데이터량과 가용 대역폭을 두 축으로 놓고 나눈 전송 수단 영역 —
+          회선으로 몇 달이 걸리는 구간이 물리 전송의 영역이고,
+          반복 동기화가 필요한 구간이 DataSync의 영역입니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>데이터 전송 수단의 성격과 선택 신호</caption>
+          <thead>
+            <tr>
+              <th scope="col">수단</th>
+              <th scope="col">성격</th>
+              <th scope="col">이럴 때 고른다</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS DataSync</th>
+              <td>에이전트가 <strong>온라인으로</strong> 대량 파일을 옮기고 검증한다.
+                일회성 이전과 반복 동기화 모두 지원한다</td>
+              <td>회선으로 감당할 수 있는 데이터량이고, <strong>NFS · SMB · HDFS · 객체 스토리지에서
+                S3 · EFS · FSx로</strong> 옮겨야 한다. 예약 실행과 대역폭 제한이 필요하다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Transfer Family</th>
+              <td><strong>SFTP · FTPS · FTP · AS2</strong> 서버를 관리형으로 제공하고
+                저장소로 <strong>Amazon S3 또는 Amazon EFS</strong>를 쓴다</td>
+              <td><strong>외부 파트너가 기존 전송 프로토콜을 계속 써야</strong> 한다.
+                프로토콜을 바꿀 수 없는 상대가 있을 때</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Snow Family</th>
+              <td>물리 장비에 데이터를 담아 <strong>배송</strong>한다</td>
+              <td>회선으로 보내면 <strong>몇 주에서 몇 달</strong>이 걸린다.
+                대역폭이 좁거나 회선이 없다. 아래 변경 이력을 함께 확인한다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Direct Connect</th>
+              <td>온프레미스와 AWS를 잇는 <strong>전용 네트워크 연결</strong>이다</td>
+              <td>일회성 이전이 아니라 <strong>지속적으로</strong> 많은 데이터가 오가고,
+                인터넷을 거치지 않는 <strong>일관된 대역폭</strong>이 필요하다
+                (<a href="ch04.html">4장 VPC 연결과 하이브리드</a>)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        네 수단은 서로 대체재가 아닙니다.
+        <strong>Direct Connect는 회선을 까는 일</strong>이고,
+        <strong>DataSync는 그 회선 위로 데이터를 옮기는 일</strong>이며,
+        <strong>Snow Family는 회선을 포기하는 선택</strong>이고,
+        <strong>Transfer Family는 외부 사용자에게 창구를 여는 일</strong>입니다.
+        실제 설계에서는 <strong>Direct Connect 위에서 DataSync를 돌리는</strong> 조합도 흔합니다.
+      </p>
+
+      <h3 id="datasync">AWS DataSync</h3>
+      <p>
+        DataSync는 <strong>위치(location) 두 개와 작업(task) 하나</strong>로 구성됩니다.
+        지원하는 위치 유형에는 <strong>NFS · SMB · HDFS · 객체 스토리지 · Amazon S3 ·
+        Amazon EFS · FSx 네 종류</strong>가 있어서,
+        온프레미스에서 AWS로 옮기는 것뿐 아니라 <strong>AWS 스토리지 사이의 이동</strong>에도 씁니다.
+        작업에는 <strong>대역폭 제한과 실행 일정</strong>을 지정할 수 있어 업무 시간의 회선을 비워 둘 수 있습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">datasync-task.sh</span> — 온프레미스 NFS 공유에서 S3로 옮기는 작업 생성 (ARN과 경로는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">SRC=$(aws datasync create-location-nfs \
+  --server-hostname fileserver.example.internal \
+  --subdirectory /export/shared \
+  --on-prem-config AgentArns=arn:aws:datasync:ap-northeast-2:123456789012:agent/agent-0123456789abcdef0 \
+  --query 'LocationArn' --output text)
+
+DST=$(aws datasync create-location-s3 \
+  --s3-bucket-arn arn:aws:s3:::example-migration-target \
+  --s3-config BucketAccessRoleArn=arn:aws:iam::123456789012:role/datasync-s3-role \
+  --query 'LocationArn' --output text)
+
+aws datasync create-task \
+  --source-location-arn "$SRC" \
+  --destination-location-arn "$DST" \
+  --name onprem-nfs-to-s3</code></pre>
+      </figure>
+
+      <h3 id="transfer-family">AWS Transfer Family</h3>
+      <p>
+        Transfer Family는 파일 전송 <strong>프로토콜 서버</strong>를 관리형으로 제공합니다.
+        지원 프로토콜은 <strong>SFTP · FTPS · FTP · AS2</strong>이고,
+        저장소는 <strong>Amazon S3 또는 Amazon EFS</strong>를 고릅니다.
+        엔드포인트는 <strong>퍼블릭 또는 VPC 내부</strong>로 만들 수 있어서,
+        전송 창구를 인터넷에 노출하지 않는 구성도 가능합니다.
+      </p>
+      <p>
+        핵심은 <strong>상대방을 바꿀 수 없을 때 쓴다</strong>는 것입니다.
+        파트너가 수십 년째 SFTP로 파일을 보내고 있고 그 관행을 바꿀 수 없다면,
+        S3 API로 바꾸라고 요구하는 대신 SFTP 창구를 열어 주고
+        <strong>도착지만 S3로 만드는</strong> 것이 답입니다.
+      </p>
+
+      <h3 id="snow-family">AWS Snow Family</h3>
+      <p>
+        Snow Family는 물리 장비에 데이터를 담아 배송하는 오프라인 전송 수단입니다.
+        판단 기준은 언제나 같습니다 — <strong>회선으로 보내면 허용 기간을 넘기는가</strong>입니다.
+        전송 시간은 데이터량을 가용 대역폭으로 나누어 계산하고,
+        그 결과가 몇 주에서 몇 달이라면 물리 전송이 유일한 현실적 선택입니다.
+      </p>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          <strong>Snow Family의 구성이 최근 몇 년 사이 크게 바뀌었습니다.</strong>
+        </p>
+        <ul>
+          <li><strong>AWS Snowmobile</strong> — 2024년 3월에 서비스가 종료되었습니다.
+            "엑사바이트급이면 Snowmobile"이라는 서술이 시중 자료에 아직 남아 있지만
+            <strong>현재는 주문할 수 없습니다.</strong></li>
+          <li><strong>AWS Snowcone</strong> — 2024년 11월 12일부로 서비스가 중단되어,
+            신규·기존 고객 모두 더 이상 주문할 수 없습니다.</li>
+          <li><strong>이전 세대 Snowball 장비 세 모델</strong> — 같은 날 단종되었습니다.</li>
+          <li><strong>AWS Snowball Edge</strong> — 2025년 11월 7일부로 <strong>기존 고객에게만</strong> 제공됩니다.
+            현행 세대는 데이터 이전용 <strong>Storage Optimized 210TB</strong> 장비와
+            엣지 컴퓨팅용 <strong>Compute Optimized 104 vCPU</strong> 장비 두 가지입니다.</li>
+          <li>AWS는 신규 고객에게 <strong>온라인 전송은 AWS DataSync</strong>,
+            물리적 전송은 <strong>AWS Data Transfer Terminal</strong>, 그리고 파트너 솔루션을 안내합니다.</li>
+        </ul>
+        <p>
+          시험은 <strong>"대역폭이 부족하면 오프라인 물리 전송"</strong>이라는 판단 자체를 묻습니다.
+          그 판단은 여전히 유효하므로 Snow Family를 학습 대상에서 빼지 않되,
+          <strong>장비 라인업과 용량 수치를 외우는 것은 의미가 없습니다.</strong>
+        </p>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          전송 수단 문항의 판단 순서입니다.
+        </p>
+        <ul>
+          <li><strong>일회성인가 상시인가</strong> — 상시 접근이면 Storage Gateway나 Direct Connect,
+            일회성 이전이면 DataSync나 Snow Family입니다.</li>
+          <li><strong>회선으로 기간 안에 끝나는가</strong> — 데이터량을 대역폭으로 나눕니다.
+            넘으면 물리 전송입니다.</li>
+          <li><strong>상대가 특정 프로토콜을 요구하는가</strong> — SFTP·FTPS·AS2가 나오면 Transfer Family입니다.</li>
+          <li><strong>인터넷을 거치면 안 되는가</strong> — Direct Connect 또는 VPN입니다.</li>
+        </ul>
+        <p>
+          <strong>"몇 페타바이트를 한 달 안에 옮겨야 하는데 회선은 좁다"</strong>에
+          DataSync를 고르는 것이 전형적인 오답입니다.
+          반대로 <strong>"매일 밤 변경분만 동기화"</strong>에 Snow Family를 고르는 것도 오답입니다 —
+          <strong>반복 동기화는 온라인 수단의 영역</strong>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="onprem-migration">
+      <h2 id="onprem-migration">온프레미스 파일 서버를 옮기는 시나리오</h2>
+
+      <p>
+        실제 문항은 위 서비스를 하나씩 묻지 않고 <strong>조합해서</strong> 묻습니다.
+        전형적인 시나리오는 이렇습니다 —
+        <strong>Windows 파일 서버 수십 테라바이트를 AWS로 옮기되,
+        사용자는 지금처럼 파일 공유에 접근해야 하고, 이전 기간에는 양쪽이 동기화되어야 한다.</strong>
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>온프레미스 파일 서버 이전의 단계별 선택</caption>
+          <thead>
+            <tr>
+              <th scope="col">단계</th>
+              <th scope="col">질문</th>
+              <th scope="col">선택</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1. 도착지 결정</th>
+              <td>애플리케이션이 어떤 프로토콜을 쓰는가</td>
+              <td>SMB이면 FSx for Windows File Server, NFS이면 Amazon EFS,
+                파일 의미가 필요 없으면 Amazon S3</td>
+            </tr>
+            <tr>
+              <th scope="row">2. 이전 수단 결정</th>
+              <td>회선으로 기간 안에 끝나는가</td>
+              <td>끝나면 AWS DataSync, 넘으면 물리 전송</td>
+            </tr>
+            <tr>
+              <th scope="row">3. 이전 기간 운영</th>
+              <td>이전이 끝날 때까지 양쪽을 함께 써야 하는가</td>
+              <td>DataSync 작업을 일정에 걸어 반복 동기화한다</td>
+            </tr>
+            <tr>
+              <th scope="row">4. 남는 온프레미스 처리</th>
+              <td>온프레미스에서 계속 접근해야 하는가</td>
+              <td>계속 필요하면 Storage Gateway로 연장하고, 아니면 전환 후 정리한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        여기서 자주 헷갈리는 지점은 <strong>2단계와 4단계를 같은 문제로 보는 것</strong>입니다.
+        <strong>DataSync는 옮기는 도구</strong>이고 <strong>Storage Gateway는 남기는 도구</strong>입니다.
+        "이전 후 온프레미스 애플리케이션이 계속 파일 공유를 쓴다"면 게이트웨이가 필요하고,
+        "이전 후 온프레미스를 폐기한다"면 게이트웨이는 불필요한 구성 요소입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          이런 조합 문항에서 정답을 가르는 문장은 대개 <strong>마지막 한 줄</strong>에 있습니다.
+          <strong>"마이그레이션 후 온프레미스 시스템은 폐기된다"</strong>면 Storage Gateway가 들어간 선택지는 소거되고,
+          <strong>"온프레미스 애플리케이션은 계속 운영된다"</strong>면 게이트웨이가 필요합니다.
+          <strong>제약 문장을 먼저 읽고 선택지를 소거</strong>하는 것이 가장 빠른 경로입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"공유 스토리지가 필요하면 EFS를 고르면 된다"</strong> —
+          <strong>Amazon EFS는 NFS 파일 시스템이며 SMB를 제공하지 않습니다.</strong>
+          Windows 애플리케이션이 SMB 공유와 Active Directory 통합을 요구하면
+          답은 <strong>FSx for Windows File Server</strong>이고,
+          수천 개 코어가 동시에 읽는 고성능 컴퓨팅이면 <strong>FSx for Lustre</strong>입니다.
+          "공유이면 EFS"라고 외우면 FSx 문항을 전부 놓칩니다.
+          <strong>프로토콜과 워크로드를 먼저 읽는 것</strong>이 순서입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"볼륨 게이트웨이 저장형은 데이터를 클라우드에 저장하는 것이다"</strong> —
+          반대입니다. <strong>저장형(stored)은 주 데이터가 온프레미스에 남고</strong>
+          스냅샷만 AWS로 비동기 백업됩니다.
+          <strong>캐시형(cached)이 주 데이터를 AWS에 두고</strong> 자주 쓰는 부분만 온프레미스에 캐시합니다.
+          이름이 가리키는 것은 <strong>온프레미스 디스크의 역할</strong>이라는 점을 기억하면 뒤집히지 않습니다.
+          "전체 데이터에 낮은 지연으로 접근해야 한다"는 저장형, "온프레미스 용량을 늘리지 않겠다"는 캐시형입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"대용량 데이터 이전은 무조건 Snow Family가 정답이다"</strong> —
+          판단 기준은 데이터량 자체가 아니라 <strong>가용 대역폭으로 나눈 소요 시간이
+          허용 기간을 넘는가</strong>입니다.
+          충분한 회선이 있으면 수십 테라바이트도 <strong>DataSync</strong>가 더 빠르고 간단하며,
+          <strong>반복 동기화가 필요한 요구에는 물리 전송이 아예 맞지 않습니다.</strong>
+          Snow Family는 라인업도 크게 바뀌어 Snowmobile과 Snowcone은 더 이상 제공되지 않고
+          Snowball Edge는 기존 고객으로 제한되므로,
+          <strong>장비 모델과 용량을 외우는 대신 판단 기준을 외웁니다.</strong>
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>9장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">파일 스토리지의 신호</th>
+                <td>"코드 변경 없이", "여러 서버가 같은 디렉터리", "기존 파일 경로 유지"</td>
+                <td>코드 변경 금지 조건에서 S3로 바꾸는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Amazon EFS의 프로토콜</th>
+                <td><strong>NFS.</strong> 리눅스 계열이며 여러 가용 영역에서 동시 마운트</td>
+                <td>Windows SMB 요구에 EFS를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">EFS 마운트 타깃</th>
+                <td>가용 영역마다 만들고 <strong>보안 그룹으로 접근을 통제</strong>한다</td>
+                <td>마운트 타깃 없이 다른 가용 영역에서 붙으려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">EFS 성능 모드</th>
+                <td><code>generalPurpose</code>(기본·권장) / <code>maxIO</code>.
+                  <strong>생성 후 변경 불가</strong>, One Zone에서는 <code>maxIO</code> 미지원</td>
+                <td>기본값이 <code>maxIO</code>라고 가정하거나 나중에 바꿀 수 있다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">EFS 처리량 모드</th>
+                <td><code>bursting</code>(기본) / <code>elastic</code> / <code>provisioned</code>.
+                  프로비저닝 유효 범위 <strong>1–3,414 MiB/s</strong></td>
+                <td>처리량이 항상 용량에 묶인다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">EFS One Zone</th>
+                <td><strong>단일 가용 영역</strong> 저장으로 더 저렴. 자동 백업이 기본 활성</td>
+                <td>가용 영역 장애 내성이 필요한 요구에 One Zone을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">FSx for Windows File Server</th>
+                <td><strong>SMB + Active Directory.</strong> 다중 가용 영역 배포는 가용 영역 3개 이상 리전에서만</td>
+                <td>Windows 파일 공유 요구에 EFS를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">FSx for Lustre</th>
+                <td><strong>고성능 컴퓨팅·기계 학습용 병렬 파일 시스템.</strong> S3와 연동 가능</td>
+                <td>S3 데이터셋으로 HPC를 돌리는 요구에 EFS를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Lustre 배포 유형</th>
+                <td><strong>스크래치는 임시·단기 처리</strong>, <strong>지속형은 장기 저장·처리량 중심</strong></td>
+                <td>장기 보관 요구에 스크래치를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">FSx for NetApp ONTAP</th>
+                <td><strong>NFS · SMB · iSCSI 다중 프로토콜</strong>을 한 파일 시스템에서 제공</td>
+                <td>리눅스와 Windows가 함께 쓰는 요구에 두 서비스를 따로 두는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">FSx for OpenZFS</th>
+                <td>리눅스 <strong>NFS</strong> 워크로드를 ZFS 기능과 함께 옮길 때</td>
+                <td>ONTAP과 구분하지 못함 (다중 프로토콜 요구가 없으면 OpenZFS)</td>
+              </tr>
+              <tr>
+                <th scope="row">Storage Gateway의 성격</th>
+                <td><strong>대체가 아니라 연장.</strong> 캐시가 온프레미스에 남아 지연 요구를 만족시킨다</td>
+                <td>일회성 대량 이전에 게이트웨이를 고름 (그때는 DataSync)</td>
+              </tr>
+              <tr>
+                <th scope="row">파일 게이트웨이</th>
+                <td><strong>NFS · SMB 공유</strong>를 제공하고 파일 하나가 <strong>S3 객체 하나</strong>가 된다</td>
+                <td>블록 볼륨이 필요한 요구에 파일 게이트웨이를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">볼륨 게이트웨이 캐시형</th>
+                <td><strong>주 데이터는 AWS</strong>, 자주 쓰는 부분만 온프레미스 캐시</td>
+                <td>저장형과 뒤집어 기억</td>
+              </tr>
+              <tr>
+                <th scope="row">볼륨 게이트웨이 저장형</th>
+                <td><strong>주 데이터는 온프레미스</strong>, 스냅샷이 AWS로 비동기 백업</td>
+                <td>전체 데이터 저지연 접근 요구에 캐시형을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">테이프 게이트웨이</th>
+                <td>가상 테이프 라이브러리로 <strong>기존 백업 소프트웨어를 그대로</strong> 쓴다</td>
+                <td>백업 소프트웨어 교체를 전제한 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">DataSync</th>
+                <td><strong>온라인</strong> 대량 전송과 반복 동기화. NFS · SMB · HDFS · 객체 스토리지에서
+                  S3 · EFS · FSx로. 대역폭 제한과 일정 지정 가능</td>
+                <td>반복 동기화 요구에 물리 전송을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Transfer Family</th>
+                <td><strong>SFTP · FTPS · FTP · AS2</strong> 관리형 서버. 저장소는 <strong>S3 또는 EFS</strong></td>
+                <td>외부 파트너가 SFTP를 고수하는 상황에서 프로토콜 변경을 정답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Snow Family 판단 기준</th>
+                <td><strong>데이터량 ÷ 가용 대역폭 &gt; 허용 기간</strong>이면 물리 전송</td>
+                <td>데이터량만 보고 고르거나, 회선이 충분한데도 물리 전송을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Direct Connect</th>
+                <td>일회성 이전 수단이 아니라 <strong>지속적인 전용 연결</strong>이다</td>
+                <td>한 번 옮기고 끝나는 이전에 Direct Connect 신설을 고름</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          이 장의 비용 판단은 세 가지입니다.
+          <strong>(1) 필요한 계열을 넘지 않습니다</strong> —
+          파일 시스템 의미가 필요 없는데 EFS나 FSx를 쓰면 S3보다 비쌉니다.
+          <strong>(2) EFS도 계층을 나눕니다</strong> —
+          수명 주기 정책으로 접근하지 않는 파일을 저빈도·아카이브 계층으로 보냅니다.
+          <strong>(3) 전송 수단을 기간으로 고릅니다</strong> —
+          회선으로 몇 달이 걸리는 이전을 밀어붙이면 회선 증설 비용과 지연이 함께 발생합니다.
+          이 사이트는 금액을 싣지 않으므로 판단은 언제나 <strong>상대 비교</strong>로 합니다.
+        </p>
+        <p>
+          이 주제들은 <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>와
+          <a href="../saa/domain-cost.html">비용 최적화 아키텍처 설계(20%)</a>에 걸쳐 출제됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch09" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch08.html">
+          <span class="card__title">8장 · S3와 오브젝트 스토리지</span>
+          <span class="card__desc">파일 게이트웨이와 DataSync의 도착지가 되는 객체 스토리지를 먼저 확인합니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch06.html">
+          <span class="card__title">6장 · EBS와 블록 스토리지</span>
+          <span class="card__desc">멀티 어태치로는 왜 파일 공유가 되지 않는지, 블록 계열의 경계를 확인합니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch04.html">
+          <span class="card__title">4장 · VPC 연결과 하이브리드</span>
+          <span class="card__desc">Direct Connect와 VPN이 온프레미스 연결에서 차지하는 위치를 이어서 봅니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch18.html">
+          <span class="card__title">18장 · 비용 최적화·마이그레이션·재해 복구</span>
+          <span class="card__desc">6R 마이그레이션 전략과 데이터 전송 요금 구조 안에서 이 장의 수단들이 어디에 놓이는지 봅니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../cases/case09.html">
+          <span class="card__title">케이스 9 · 온프레미스 파일 서버를 클라우드로</span>
+          <span class="card__desc">Storage Gateway와 FSx와 DataSync 중 무엇을 고를지 실제 제약 조건으로 판단합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/compare.html">
+          <span class="card__title">헷갈리는 쌍 비교</span>
+          <span class="card__desc">EFS와 FSx, 캐시형과 저장형 볼륨 게이트웨이처럼 뒤집히기 쉬운 쌍을 모아 두었습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-performance.html">
+          <span class="card__title">고성능 아키텍처 설계 (24%)</span>
+          <span class="card__desc">공유 스토리지 선택은 이 도메인의 첫 번째 과제 진술에 해당합니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 수치 · 기본값 · 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html">Amazon EFS 사용 설명서 — 작동 방식</a>
+          — NFS 마운트, 가용 영역별 마운트 타깃, 용량 자동 확장</li>
+        <li><a href="https://docs.aws.amazon.com/efs/latest/ug/performance.html#performancemodes.html">Amazon EFS 사용 설명서 — 성능 모드</a>
+          — <code>generalPurpose</code>가 기본이며 권장이라는 서술, <code>maxIO</code>의 지연 교환 조건,
+          One Zone 미지원, 생성 후 변경 불가</li>
+        <li><a href="https://docs.aws.amazon.com/efs/latest/ug/lifecycle-management-efs.html">Amazon EFS 사용 설명서 — 수명 주기 관리</a>
+          — 저빈도 계층과 아카이브 계층 전환 일수(1 · 7 · 14 · 30 · 60 · 90 · 180 · 270 · 365일)</li>
+        <li><a href="https://docs.aws.amazon.com/efs/latest/ug/awsbackup.html#automatic-backups">Amazon EFS 사용 설명서 — 자동 백업</a>
+          — One Zone 파일 시스템에서 자동 백업이 기본 활성화된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/efs/latest/ug/efs-access-points.html">Amazon EFS 사용 설명서 — 액세스 포인트</a>
+          — 진입 디렉터리와 POSIX 사용자·그룹 고정</li>
+        <li><a href="https://docs.aws.amazon.com/fsx/latest/APIReference/API_DescribeFileSystems.html">Amazon FSx API 레퍼런스 — DescribeFileSystems</a>
+          — 파일 시스템 유형 네 가지(<code>WINDOWS</code> · <code>LUSTRE</code> · <code>ONTAP</code> · <code>OPENZFS</code>)와 배포 유형 열거값</li>
+        <li><a href="https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html">Amazon FSx for Windows File Server — 다중 가용 영역 고가용성</a>
+          — 다중 가용 영역 배포가 가용 영역 3개 이상 리전에서만 가능하다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/fsx/latest/LustreGuide/create-dra-linked-data-repo.html">Amazon FSx for Lustre — 데이터 리포지토리 연결</a>
+          — Amazon S3 버킷을 데이터 리포지토리로 연결하는 구성</li>
+        <li><a href="https://docs.aws.amazon.com/storagegateway/latest/userguide/StorageGatewayConcepts.html">AWS Storage Gateway 사용 설명서 — 게이트웨이 개념</a>
+          — 파일 · 볼륨 · 테이프 게이트웨이의 구조와 캐시 · 업로드 버퍼의 역할</li>
+        <li><a href="https://docs.aws.amazon.com/storagegateway/latest/APIReference/Welcome.html">AWS Storage Gateway API 레퍼런스</a>
+          — 게이트웨이 유형 값(<code>STORED</code> · <code>CACHED</code> · <code>VTL</code> · <code>FILE_S3</code>)과
+          캐시형·저장형 볼륨의 데이터 배치 차이</li>
+        <li><a href="https://docs.aws.amazon.com/filegateway/latest/files3/security-strategy.html">Amazon S3 File Gateway 사용 설명서</a>
+          — NFS · SMB 파일 공유가 S3 객체로 저장되는 구조</li>
+        <li><a href="https://docs.aws.amazon.com/datasync/latest/userguide/task-scheduling.html">AWS DataSync 사용 설명서 — 작업 일정</a>
+          — 작업 예약 실행과 반복 동기화</li>
+        <li><a href="https://docs.aws.amazon.com/datasync/latest/userguide/create-s3-location.html">AWS DataSync 사용 설명서 — S3 위치 생성</a>
+          — 지원 위치 유형과 Amazon S3를 대상으로 하는 전송 구성</li>
+        <li><a href="https://docs.aws.amazon.com/transfer/latest/APIReference/API_EndpointDetails.html">AWS Transfer Family API 레퍼런스 — EndpointDetails</a>
+          — 퍼블릭 및 VPC 엔드포인트 유형</li>
+        <li><a href="https://docs.aws.amazon.com/transfer/latest/userguide/create-server-in-vpc.html">AWS Transfer Family 사용 설명서 — VPC에 서버 생성</a>
+          — SFTP · FTPS · FTP · AS2 프로토콜과 Amazon S3 · Amazon EFS 저장소 선택</li>
+        <li><a href="https://docs.aws.amazon.com/snowball/latest/developer-guide/snow-device-types.html">AWS Snowball 개발자 안내서 — 장치 유형</a>
+          — 현행 Snow 장비 유형</li>
+        <li><a href="https://aws.amazon.com/blogs/storage/aws-snow-device-updates/">AWS Storage Blog — AWS Snow 장비 업데이트</a>
+          — Snowcone 서비스 중단(2024-11-12), 이전 세대 Snowball 모델 단종,
+          Snowball Edge의 기존 고객 한정 제공(2025-11-07)과 신규 고객 대안 안내</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>복원력 있는 아키텍처 설계 (26%) — AWS SAA Guide</title>
+  <meta name="description" content="SAA-C03 도메인 2 Design Resilient Architectures의 과제 진술 2.1과 2.2를 해설합니다. 느슨한 결합과 큐 완충, 다중 가용 영역 설계, Multi-AZ와 읽기 전용 복제본의 구분, DR 4전략과 RTO·RPO를 판단 지점 18개로 정리하고 담당 챕터에 연결했습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="saa" data-page="domain-resilient"></div>
+
+  <main id="main" class="page" data-page-id="saa/domain-resilient">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="index.html">시험 대비</a></li>
+        <li><span aria-current="page">복원력 있는 아키텍처 설계 (26%)</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">시험 대비 · 도메인 2</p>
+      <h1>복원력 있는 아키텍처 설계 (26%)</h1>
+      <p class="page__lead">
+        Design Resilient Architectures는 <strong>과제 진술이 둘뿐인데 가중치가 26%</strong>입니다.
+        진술 하나가 감당하는 문항 밀도가 네 도메인 중 가장 높다는 뜻이고,
+        같은 판단이 아주 촘촘하게 반복된다는 뜻입니다.
+        Well-Architected의 <strong>안정성(Reliability, 신뢰성으로도 번역됨)</strong> 기둥에 대응합니다.
+      </p>
+      <p class="page__meta">
+        판단에 필요한 지식은 <a href="../basics/ch07.html">7장 로드 밸런싱과 오토스케일링</a>,
+        <a href="../basics/ch10.html">10장 RDS</a>,
+        <a href="../basics/ch12.html">12장 서버리스와 애플리케이션 통합</a>,
+        <a href="../basics/ch18.html">18장 비용·마이그레이션·재해 복구</a>가 담당합니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>과제 진술 2.1과 2.2가 각각 무엇을 묻는지 구분하고 담당 챕터를 지목할 수 있습니다.</li>
+        <li>동기 호출을 큐나 이벤트 버스로 끊어야 하는 상황을 요구사항에서 식별할 수 있습니다.</li>
+        <li>SQS 표준 큐와 FIFO 큐를 순서·중복·처리량 요구로 구분할 수 있습니다.</li>
+        <li>Multi-AZ 배포와 읽기 전용 복제본을 가용성 요구와 읽기 확장 요구로 가를 수 있습니다.</li>
+        <li>RTO와 RPO 요구가 주어졌을 때 DR 4전략 중 하나를 근거를 들어 고를 수 있습니다.</li>
+        <li>이 도메인의 판단 지점 18개를 점검표로 삼아 자기 취약 지점을 찾을 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="domain-overview">
+      <h2 id="domain-overview">이 도메인의 성격</h2>
+
+      <figure class="chart" data-chart="C-001">
+        <figcaption>
+          SAA-C03 도메인별 출제 비중에서 <strong>복원력 있는 아키텍처 설계는 26%로 두 번째</strong>입니다.
+          과제 진술이 2개뿐이므로 진술 하나당 비중이 네 도메인 중 가장 큽니다.
+          출제 범위가 좁은 대신 같은 판단을 여러 각도로 묻습니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 2의 과제 진술 두 개와 중심 질문</caption>
+          <thead>
+            <tr>
+              <th scope="col">과제 진술</th>
+              <th scope="col">중심 질문</th>
+              <th scope="col">주 담당 챕터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">2.1 확장 가능하고 느슨하게 결합된 아키텍처 설계</th>
+              <td><strong>구성 요소가 서로를 기다리는가.</strong> 부하가 늘 때 무엇이 먼저 무너지는가</td>
+              <td><a href="../basics/ch12.html">12장 서버리스와 통합</a> · <a href="../basics/ch07.html">7장 ELB·ASG</a></td>
+            </tr>
+            <tr>
+              <th scope="row">2.2 고가용성 및 내결함성 아키텍처 설계</th>
+              <td><strong>무엇 하나가 죽어도 서비스가 유지되는가.</strong> 복구까지 얼마나 걸리고 얼마나 잃는가</td>
+              <td><a href="../basics/ch10.html">10장 RDS</a> · <a href="../basics/ch18.html">18장 DR</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        두 진술은 <strong>실패의 방향이 다릅니다.</strong>
+        2.1은 <strong>부하로 인한 실패</strong>를, 2.2는 <strong>구성 요소의 고장으로 인한 실패</strong>를 다룹니다.
+        문항을 읽을 때 "트래픽이 늘었다"인지 "무언가 죽었다"인지 먼저 확인하면
+        후보 서비스군이 절반으로 줄어듭니다.
+      </p>
+
+      <aside class="note" data-label="용어 표기">
+        <p>
+          AWS 한국어 문서는 Reliability를 "안정성"과 "신뢰성"으로 혼용합니다.
+          이 사이트는 <strong>안정성</strong>으로 통일합니다.
+          시험지의 번역이 "신뢰성"으로 나오더라도 같은 기둥입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-2-1">
+      <h2 id="task-2-1">과제 진술 2.1 · 확장 가능하고 느슨하게 결합된 아키텍처 설계</h2>
+
+      <p>
+        이 진술의 문항은 대체로 <strong>"트래픽이 급증하면 무엇이 먼저 무너지는가"</strong>와
+        <strong>"어떻게 끊어 놓을 것인가"</strong>를 묻습니다.
+        "서버를 더 큰 것으로 바꾼다"는 선택지는 이 진술에서 거의 언제나 밀립니다.
+      </p>
+
+      <h3 id="decoupling">동기 호출을 끊는다</h3>
+      <p>
+        구성 요소가 서로를 직접 호출하면 <strong>느린 쪽이 빠른 쪽을 멈춰 세웁니다.</strong>
+        처리 계층이 밀리면 웹 계층의 요청이 대기하다 타임아웃되고, 그 사이에 들어온 요청은 유실됩니다.
+        큐나 이벤트 버스를 사이에 두면 웹 계층은 접수만 하고 즉시 응답하며,
+        <strong>급증분은 큐에 쌓입니다.</strong>
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>결합을 끊는 세 가지 도구와 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">도구</th>
+              <th scope="col">전달 모델</th>
+              <th scope="col">이것을 고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon SQS</th>
+              <td>한 메시지를 <strong>한 소비자</strong>가 가져가 처리</td>
+              <td>"작업을 하나씩 처리한다", "급증분을 완충한다", "실패를 재시도한다"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon SNS</th>
+              <td>한 메시지를 <strong>모든 구독자</strong>에게 팬아웃</td>
+              <td>"하나의 사건을 여러 시스템이 동시에 받아야 한다"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EventBridge</th>
+              <td>이벤트 <strong>내용에 따라 규칙으로 라우팅</strong></td>
+              <td>"이벤트 종류에 따라 다른 대상으로 보낸다", "필터링과 스키마가 필요하다", "AWS 서비스의 이벤트에 반응한다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        셋을 조합하는 형태도 자주 나옵니다.
+        <strong>SNS 주제에 여러 SQS 큐를 구독</strong>시키면
+        팬아웃과 완충을 동시에 얻습니다. 이 조합이 정답인 문항이 반복해서 출제됩니다.
+      </p>
+
+      <h3 id="sqs-standard-vs-fifo">SQS 표준 큐와 FIFO 큐</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon SQS 표준 큐와 FIFO 큐 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">표준 큐</th>
+              <th scope="col">FIFO 큐</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">순서</th>
+              <td><span class="mark-no">최선 노력 — 보장되지 않음</span></td>
+              <td><span class="mark-ok">메시지 그룹 안에서 엄격한 순서</span></td>
+            </tr>
+            <tr>
+              <th scope="row">중복</th>
+              <td>같은 메시지가 두 번 전달될 수 있음</td>
+              <td>중복 제거</td>
+            </tr>
+            <tr>
+              <th scope="row">처리량</th>
+              <td>거의 무제한</td>
+              <td>배치 없이 초당 300개, 배치 사용 시 초당 3,000개. 고처리량 모드로 더 확장</td>
+            </tr>
+            <tr>
+              <th scope="row">필수 파라미터</th>
+              <td>없음</td>
+              <td><code>MessageGroupId</code>가 없으면 전송이 실패</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>처리량이 우선, 순서가 상관없음</td>
+              <td>"순서가 보장되어야 한다", "중복 처리를 막아야 한다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          큐 타입은 <strong>생성 후 변경할 수 없습니다.</strong>
+          기존 표준 큐를 FIFO로 바꾸는 선택지가 있으면 그 자리에서 소거합니다.
+          FIFO가 필요하면 새 큐를 만들어야 합니다.
+          또한 같은 이름으로 큐를 다시 만들려면 삭제 후 최소 60초를 기다려야 합니다.
+        </p>
+      </aside>
+
+      <h3 id="sqs-visibility-dlq">가시성 제한 시간과 배달 못 한 편지 큐</h3>
+      <p>
+        소비자가 메시지를 받으면 그 메시지는 일정 시간 동안 다른 소비자에게 보이지 않습니다.
+        이 시간이 <strong>가시성 제한 시간(visibility timeout)</strong>이며 기본값은 30초, 최대 12시간입니다.
+        처리 시간보다 짧게 잡으면 <strong>같은 메시지를 두 소비자가 처리</strong>하게 됩니다.
+        "메시지가 중복 처리된다"는 시나리오의 첫 번째 확인 대상입니다.
+      </p>
+      <p>
+        반복해서 실패하는 메시지는 큐를 계속 점유합니다.
+        <strong>배달 못 한 편지 큐(DLQ)</strong>를 지정하고 최대 수신 횟수를 설정하면
+        그 횟수를 넘긴 메시지가 DLQ로 옮겨져 나머지 처리를 막지 않습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Amazon SQS 큐 속성의 범위와 기본값</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">범위</th>
+              <th scope="col">기본값</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">가시성 제한 시간</th>
+              <td>0초 – 12시간</td>
+              <td>30초</td>
+            </tr>
+            <tr>
+              <th scope="row">메시지 보존 기간</th>
+              <td>60초 – 14일</td>
+              <td>4일</td>
+            </tr>
+            <tr>
+              <th scope="row">지연 시간(지연 큐)</th>
+              <td>0초 – 900초</td>
+              <td>0초</td>
+            </tr>
+            <tr>
+              <th scope="row">최대 메시지 크기</th>
+              <td>1 KiB – 1 MiB</td>
+              <td>1 MiB</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="scaling-design">확장 설계 — 수평이 기본입니다</h3>
+      <p>
+        탄력성이 요구되면 답은 <strong>수평 확장</strong>입니다.
+        인스턴스 타입을 키우는 수직 확장은 상한이 있고, 바꾸는 동안 중단이 필요하며,
+        고장 났을 때 대체할 것이 없습니다.
+        수평 확장의 전제는 <strong>상태 비저장 설계</strong>입니다 —
+        세션이나 업로드 파일을 인스턴스 로컬 디스크에 두면 인스턴스를 늘리고 줄일 수 없습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Auto Scaling 정책 유형과 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">정책</th>
+              <th scope="col">동작</th>
+              <th scope="col">고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">대상 추적</th>
+              <td>지표를 목표값에 맞춰 자동으로 조절합니다</td>
+              <td>"평균 CPU를 일정하게 유지" 같은 목표가 주어질 때. 가장 먼저 고려합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">단계별</th>
+              <td>경보의 초과 폭에 따라 단계별로 다른 수를 조절합니다</td>
+              <td>급격한 변동에 강도를 다르게 대응해야 할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">단순</th>
+              <td>경보 하나에 정해진 만큼 조절하고 대기합니다</td>
+              <td>단순한 규칙으로 충분할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">예약</th>
+              <td>정해진 시각에 용량을 바꿉니다</td>
+              <td>"매일 오전 9시에 트래픽이 몰린다"처럼 <strong>시점이 예측 가능</strong>할 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        스케일아웃이 트래픽 상승을 따라가지 못하는 시나리오에서는
+        <strong>예약 스케일링으로 미리 늘리거나 큐로 완충</strong>하는 것이 정답 방향입니다.
+        "스케일링 정책을 더 공격적으로 바꾼다"만으로는 인스턴스가 준비되는 시간을 없앨 수 없습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          AWS Lambda의 내결함성도 이 진술에 속합니다.
+          동시 실행이 한도에 닿으면 스로틀링이 발생하므로
+          <strong>예약된 동시성</strong>으로 중요한 함수의 몫을 확보하고,
+          비동기 호출의 실패는 <strong>DLQ 또는 실패 대상</strong>으로 보냅니다.
+          함수의 최대 실행 시간은 900초이므로,
+          그보다 오래 걸리는 작업은 애초에 Lambda가 답이 아닙니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="task-2-2">
+      <h2 id="task-2-2">과제 진술 2.2 · 고가용성 및 내결함성 아키텍처 설계</h2>
+
+      <p>
+        이 진술의 출발점은 하나입니다.
+        <strong>가용성은 가용 영역의 개수에서 나옵니다.</strong>
+        같은 가용 영역에 인스턴스를 몇 대 두든 그 가용 영역이 무너지면 전부 사라집니다.
+        선택지를 볼 때 인스턴스 대수가 아니라 <strong>가용 영역이 몇 개인지</strong>부터 봅니다.
+      </p>
+
+      <h3 id="multi-az-vs-read-replica">Multi-AZ와 읽기 전용 복제본 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        시험이 가장 집요하게 노리는 혼동입니다.
+        <strong>Multi-AZ는 가용성, 읽기 전용 복제본은 읽기 확장</strong>입니다.
+        요구가 둘 다면 둘 다 구성하는 선택지가 정답입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon RDS Multi-AZ 배포와 읽기 전용 복제본 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Multi-AZ 배포</th>
+              <th scope="col">읽기 전용 복제본</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">복제 방식</th>
+              <td><span class="mark-ok">동기(synchronous)</span></td>
+              <td><span class="mark-no">비동기(asynchronous)</span></td>
+            </tr>
+            <tr>
+              <th scope="row">목적</th>
+              <td>고가용성과 재해 복구</td>
+              <td>읽기 성능 확장</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트</th>
+              <td>동일 엔드포인트 유지. 장애 조치 시 DNS가 대기 인스턴스를 가리킵니다</td>
+              <td>별도의 읽기 엔드포인트</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 처리</th>
+              <td><span class="mark-no">대기 인스턴스는 읽기 트래픽을 받지 않습니다</span></td>
+              <td><span class="mark-ok">읽기 트래픽을 처리합니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">배치 범위</th>
+              <td>같은 리전의 다른 가용 영역</td>
+              <td>같은 리전 또는 다른 리전</td>
+            </tr>
+            <tr>
+              <th scope="row">애플리케이션 수정</th>
+              <td>필요 없음</td>
+              <td>읽기를 읽기 엔드포인트로 보내도록 수정 필요</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>"Multi-AZ 대기 인스턴스에서 읽기를 처리해 부하를 분산한다"</strong>는 서술은
+          표준 Multi-AZ 인스턴스 배포에서 틀립니다.
+          읽기 가능한 대기 인스턴스를 두는 <strong>Multi-AZ DB 클러스터 배포는 별개의 아키텍처</strong>이므로,
+          문제문이 어느 쪽을 말하는지 확인하고 답합니다.
+        </p>
+      </aside>
+
+      <p>
+        Amazon Aurora는 구조가 다릅니다.
+        스토리지 계층이 여러 가용 영역에 걸쳐 있고,
+        복제본이 <strong>읽기 처리와 장애 조치 대상의 역할을 함께</strong> 합니다.
+        리전 단위 요구에는 Aurora 글로벌 데이터베이스가 후보에 들어옵니다.
+        자세한 구조는 <a href="../basics/ch10.html">10장 RDS와 관계형 데이터베이스</a>에서 다룹니다.
+      </p>
+
+      <h3 id="removing-spof">단일 장애점을 지운다</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>흔한 단일 장애점과 제거 방법</caption>
+          <thead>
+            <tr>
+              <th scope="col">단일 장애점</th>
+              <th scope="col">증상</th>
+              <th scope="col">제거 방법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">단일 가용 영역의 인스턴스 묶음</th>
+              <td>가용 영역 장애 시 전면 중단</td>
+              <td>여러 가용 영역에 걸친 Auto Scaling 그룹과 로드 밸런서</td>
+            </tr>
+            <tr>
+              <th scope="row">단일 NAT 게이트웨이</th>
+              <td>해당 가용 영역이 죽으면 모든 프라이빗 서브넷의 아웃바운드가 끊깁니다</td>
+              <td>가용 영역마다 NAT 게이트웨이를 두고 라우팅 테이블을 분리</td>
+            </tr>
+            <tr>
+              <th scope="row">단일 데이터베이스 인스턴스</th>
+              <td>인스턴스 장애가 곧 서비스 중단</td>
+              <td>Multi-AZ 배포로 자동 장애 조치</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 로컬에 저장된 상태</th>
+              <td>인스턴스를 교체하면 세션과 파일이 사라집니다</td>
+              <td>세션은 외부 저장소로, 공유 파일은 Amazon EFS나 Amazon S3로</td>
+            </tr>
+            <tr>
+              <th scope="row">단일 리전</th>
+              <td>리전 규모 사고에 대응 수단이 없습니다</td>
+              <td>DR 전략 선택(아래) — 요구 RTO·RPO에 맞춰 결정</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="health-check">헬스체크와 장애 조치</h3>
+      <p>
+        Elastic Load Balancing은 대상의 헬스체크가 실패하면 <strong>그 대상으로 요청을 보내지 않습니다.</strong>
+        Auto Scaling 그룹이 로드 밸런서의 헬스체크를 쓰도록 구성하면,
+        <strong>프로세스는 살아 있지만 응답하지 않는 인스턴스</strong>까지 교체 대상이 됩니다.
+        EC2 상태 검사만 쓰면 이 경우를 놓칩니다.
+      </p>
+      <p>
+        리전 단위 장애 조치는 Amazon Route 53의 <strong>장애 조치 라우팅과 상태 확인</strong>으로 만듭니다.
+        기본 레코드의 상태 확인이 실패하면 보조 레코드로 응답이 바뀝니다.
+        로드 밸런서 종류 선택은 계층과 프로토콜이 기준입니다 —
+        HTTP 라우팅은 Application Load Balancer,
+        TCP·UDP와 고정 IP가 필요하면 Network Load Balancer,
+        서드파티 어플라이언스 삽입은 Gateway Load Balancer입니다.
+      </p>
+
+      <h3 id="dr-strategies">DR 4전략과 RTO · RPO</h3>
+      <p>
+        <strong>RTO(복구 목표 시간)</strong>는 얼마나 빨리 복구해야 하는가,
+        <strong>RPO(복구 목표 시점)</strong>는 얼마만큼의 데이터 손실을 허용하는가입니다.
+        네 전략은 이 두 값과 <strong>상시 가동 비용</strong>을 맞바꾼 결과입니다.
+        문제문이 준 RTO·RPO 요구를 만족하는 <strong>가장 단순한 전략</strong>이 정답입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>DR 4전략의 구성과 교환 관계 — 값이 아니라 상대 순서입니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">전략</th>
+              <th scope="col">평소에 무엇이 켜져 있는가</th>
+              <th scope="col">RTO · RPO</th>
+              <th scope="col">상시 비용</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">백업 및 복원</th>
+              <td>백업만 다른 리전에 보관합니다. 인프라는 없습니다</td>
+              <td>가장 깁니다</td>
+              <td><span class="mark-ok">가장 낮음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">파일럿 라이트</th>
+              <td>데이터 복제는 계속되고, 핵심 구성 요소만 최소 규모로 켜 둡니다</td>
+              <td>백업·복원보다 짧습니다</td>
+              <td>낮음</td>
+            </tr>
+            <tr>
+              <th scope="row">웜 스탠바이</th>
+              <td>전체 스택이 축소된 규모로 항상 떠 있습니다</td>
+              <td>파일럿 라이트보다 짧습니다</td>
+              <td>높음</td>
+            </tr>
+            <tr>
+              <th scope="row">다중 사이트 액티브-액티브</th>
+              <td>양쪽이 모두 운영 트래픽을 처리합니다</td>
+              <td>가장 짧습니다</td>
+              <td><span class="mark-no">가장 높음</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        표에 숫자를 넣지 않은 이유가 있습니다.
+        각 전략의 RTO·RPO는 <strong>구성과 데이터 크기에 따라 달라지므로 고정된 값이 없습니다.</strong>
+        시험도 "파일럿 라이트의 RTO는 몇 분인가"를 묻지 않고,
+        <strong>주어진 요구를 만족하는 전략이 무엇인가</strong>를 묻습니다.
+      </p>
+      <p>
+        데이터 복제 수단도 함께 나옵니다.
+        객체는 S3 <strong>교차 리전 복제(CRR)</strong>로,
+        규정 준수나 로그 집계처럼 같은 리전 안의 복제가 필요하면 <strong>동일 리전 복제(SRR)</strong>로,
+        여러 서비스의 백업을 한곳에서 정책으로 관리하려면 <strong>AWS Backup</strong>으로 처리합니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          DR 문항은 대부분 <strong>비용과의 교환</strong>으로 출제됩니다.
+          "RTO가 몇 시간까지 허용된다"면 액티브-액티브는 과잉 설계이고,
+          "거의 즉시 전환되어야 한다"면 백업·복원은 요구를 만족하지 못합니다.
+          <strong>요구를 만족하는 것 중 가장 저렴한 것</strong>이 정답이라는 순서를 지킵니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision-points">
+      <h2 id="decision-points">판단 지점 점검표 18개</h2>
+
+      <p>
+        각 행의 <strong>기준을 한 문장으로 말할 수 없다면</strong> 담당 챕터로 돌아갑니다.
+        서비스 이름을 아는 것과 판단하는 것은 다릅니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>도메인 2 복원력 있는 아키텍처 설계의 판단 지점과 담당 챕터</caption>
+          <thead>
+            <tr>
+              <th scope="col">번호</th>
+              <th scope="col">판단 지점</th>
+              <th scope="col">기준</th>
+              <th scope="col">담당 챕터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1</th>
+              <td>Multi-AZ와 읽기 전용 복제본</td>
+              <td>가용성 요구인가 읽기 확장 요구인가. 둘 다면 둘 다 구성합니다</td>
+              <td><a href="../basics/ch10.html">10장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">2</th>
+              <td>Multi-AZ 배포의 동작</td>
+              <td>동기 복제, 자동 장애 조치, 대기 인스턴스로는 읽기 불가</td>
+              <td><a href="../basics/ch10.html">10장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">3</th>
+              <td>Aurora의 복제 구조와 글로벌 데이터베이스</td>
+              <td>복제본이 읽기와 장애 조치를 겸하고, 리전 단위 요구에는 글로벌 데이터베이스</td>
+              <td><a href="../basics/ch10.html">10장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">4</th>
+              <td>느슨한 결합 — 동기 호출을 끊는 판단</td>
+              <td>느린 쪽이 빠른 쪽을 멈춰 세우는 구조인지 확인합니다</td>
+              <td><a href="../basics/ch12.html">12장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">5</th>
+              <td>SQS 표준과 FIFO</td>
+              <td>순서와 중복 제거 요구가 있으면 FIFO, 처리량이 우선이면 표준</td>
+              <td><a href="../basics/ch12.html">12장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">6</th>
+              <td>가시성 제한 시간과 DLQ</td>
+              <td>중복 처리는 가시성 시간, 반복 실패는 DLQ로 격리</td>
+              <td><a href="../basics/ch12.html">12장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">7</th>
+              <td>SNS 팬아웃과 EventBridge 라우팅</td>
+              <td>모두에게 같은 메시지면 SNS, 내용으로 대상을 고르면 EventBridge</td>
+              <td><a href="../basics/ch12.html">12장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">8</th>
+              <td>트래픽 급증을 큐로 완충</td>
+              <td>스케일아웃이 준비되는 동안 요청을 잃지 않는 것이 목적입니다</td>
+              <td><a href="../basics/ch12.html">12장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">9</th>
+              <td>ASG의 다중 가용 영역 배치와 상태 비저장 설계</td>
+              <td>가용 영역을 여러 개 지정하고, 상태를 인스턴스 밖으로 뺍니다</td>
+              <td><a href="../basics/ch07.html">7장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">10</th>
+              <td>ASG 스케일링 정책 선택</td>
+              <td>목표값이 있으면 대상 추적, 시점을 알면 예약</td>
+              <td><a href="../basics/ch07.html">7장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">11</th>
+              <td>ELB 헬스체크와 연결 드레이닝</td>
+              <td>ASG가 ELB 헬스체크를 쓰게 해야 응답 불능 인스턴스가 교체됩니다</td>
+              <td><a href="../basics/ch07.html">7장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">12</th>
+              <td>DR 4전략과 RTO · RPO</td>
+              <td>요구를 만족하는 것 중 가장 단순하고 저렴한 전략</td>
+              <td><a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">13</th>
+              <td>RTO · RPO가 주어졌을 때의 전략 선택</td>
+              <td>복구 시간과 상시 비용의 교환 관계로 판단합니다</td>
+              <td><a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">14</th>
+              <td>S3 교차 리전 복제와 동일 리전 복제</td>
+              <td>리전 장애 대비는 CRR, 같은 리전 안의 규정·집계 요구는 SRR</td>
+              <td><a href="../basics/ch08.html">8장</a> · <a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">15</th>
+              <td>백업 중앙화 — AWS Backup</td>
+              <td>여러 서비스의 백업을 정책 하나로 관리해야 할 때</td>
+              <td><a href="../basics/ch18.html">18장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">16</th>
+              <td>단일 장애점 제거</td>
+              <td>NAT 게이트웨이와 인스턴스, 엔드포인트를 가용 영역마다 둡니다</td>
+              <td><a href="../basics/ch03.html">3장</a> · <a href="../basics/ch07.html">7장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">17</th>
+              <td>Route 53 장애 조치 라우팅과 상태 확인</td>
+              <td>리전 장애에 DNS 수준으로 대응합니다</td>
+              <td><a href="../basics/ch14.html">14장</a></td>
+            </tr>
+            <tr>
+              <th scope="row">18</th>
+              <td>Lambda 동시성 · 재시도 · DLQ</td>
+              <td>예약된 동시성으로 몫을 확보하고 실패는 DLQ로 보냅니다</td>
+              <td><a href="../basics/ch12.html">12장</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="common-traps">
+      <h2 id="common-traps">이 도메인의 함정</h2>
+
+      <aside class="note note--danger" data-label="함정 1">
+        <p>
+          <strong>"인스턴스를 늘렸으니 고가용성이다"</strong> —
+          같은 가용 영역 안에서 대수를 늘리는 것은 가용성을 올리지 못합니다.
+          전원과 네트워크 수준의 사고는 가용 영역 단위로 일어납니다.
+          선택지에서 <strong>가용 영역 개수</strong>부터 확인합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정 2">
+        <p>
+          <strong>"읽기가 느리니 Multi-AZ로 바꾼다"</strong> —
+          대기 인스턴스는 읽기 트래픽을 받지 않으므로 읽기 부하는 그대로입니다.
+          반대로 <strong>"가용 영역 장애에 대비해 읽기 전용 복제본을 추가한다"</strong>도 어긋납니다.
+          비동기 복제이고 자동 장애 조치를 목적으로 하지 않습니다.
+        </p>
+      </aside>
+
+      <aside class="note note--danger" data-label="함정 3">
+        <p>
+          <strong>"관리형 서비스니까 알아서 다중 가용 영역이다"</strong> —
+          NAT 게이트웨이는 지정한 서브넷의 가용 영역 안에서만 동작합니다.
+          단일 NAT에 여러 가용 영역의 프라이빗 서브넷을 붙이면
+          가용 영역 장애 시 전면 중단과 가용 영역 간 데이터 전송 요금을 함께 부릅니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="함정 4">
+        <p>
+          <strong>"기존 표준 큐를 FIFO로 전환한다"</strong> —
+          큐 타입은 생성 후 변경할 수 없습니다.
+          이 선택지는 동작 자체가 성립하지 않으므로 즉시 소거합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="함정 5">
+        <p>
+          <strong>"스케일링 정책만 공격적으로 바꾸면 급증을 감당한다"</strong> —
+          인스턴스가 준비되는 시간은 정책으로 없앨 수 없습니다.
+          급증분을 잃지 않으려면 <strong>큐로 완충</strong>하거나,
+          시점을 알 수 있다면 <strong>예약 스케일링</strong>으로 미리 늘립니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">도메인 미니 퀴즈</h2>
+      <p>
+        이 도메인의 판단 지점을 확인하는 10문항입니다.
+        키보드만으로 완주할 수 있습니다 — 숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고
+        <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <div class="quiz-embed" data-set="saa-resilient" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch12.html">
+          <span class="card__title">12장 · 서버리스와 애플리케이션 통합</span>
+          <span class="card__desc">과제 진술 2.1의 본체입니다. SQS와 SNS, EventBridge, Lambda의 동시성과 재시도를 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch18.html">
+          <span class="card__title">18장 · 비용 최적화·마이그레이션·재해 복구</span>
+          <span class="card__desc">DR 4전략과 RTO·RPO의 교환 관계를 구성 요소 단위로 뜯어봅니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">MOST highly available과 MOST resilient가 각각 무엇을 가리키는지, 연습 2에서 정답이 어떻게 이동하는지.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="domain-secure.html">
+          <span class="card__title">보안 아키텍처 설계 (30%)</span>
+          <span class="card__desc">가중치가 더 큰 도메인입니다. NAT 이중화처럼 두 도메인이 겹치는 판단도 있습니다.</span>
+          <span class="card__meta">시험 대비 · 도메인</span>
+        </a></li>
+        <li><a class="card" href="../cases/case05.html">
+          <span class="card__title">케이스 5 · 단일 AZ 설계가 장애로 전면 중단됐다</span>
+          <span class="card__desc">이 도메인의 첫 번째 판단 지점을 실제 사고의 형태로 따라갑니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/compare.html">
+          <span class="card__title">헷갈리는 쌍 비교</span>
+          <span class="card__desc">Multi-AZ와 읽기 전용 복제본, 표준 큐와 FIFO 큐 같은 쌍을 표 하나로 모았습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">SAA-C03 시험 가이드</a>
+          — 도메인 2의 가중치 26%와 과제 진술 2.1 · 2.2</li>
+        <li><a href="https://docs.aws.amazon.com/ko_kr/aws-certification/latest/userguide/solutions-architect-associate-03.html">SAA-C03 시험 가이드 (한국어)</a>
+          — 과제 진술의 한국어 표현</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html">Amazon RDS 사용 설명서 — Multi-AZ DB 인스턴스 배포</a>
+          — 대기 복제본으로의 동기식 복제와 장애 조치 동작</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html">Amazon RDS 사용 설명서 — 읽기 전용 복제본 사용</a>
+          — 비동기 복제, 별도 읽기 엔드포인트, 교차 리전 복제본</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/high-throughput-fifo.html">Amazon SQS 개발자 안내서 — FIFO 큐의 고처리량</a>
+          — FIFO 큐의 초당 처리 건수와 배치 사용 시의 차이</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html">AWS Lambda 개발자 안내서 — 할당량</a>
+          — 함수 최대 실행 시간 900초</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html">Amazon VPC 사용 설명서 — 보안</a>
+          — 서브넷과 가용 영역 경계에 대한 서술</li>
+        <li><a href="https://docs.aws.amazon.com/ko_kr/wellarchitected/latest/framework/welcome.html">AWS Well-Architected Framework (한국어)</a>
+          — 안정성 기둥의 정의</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

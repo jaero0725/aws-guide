@@ -1,0 +1,1195 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>1장 · AWS 글로벌 인프라와 계정 기초 — AWS SAA Guide</title>
+  <meta name="description" content="리전과 가용 영역(AZ), 로컬 존과 Wavelength 존, 엣지 로케이션과 리전 엣지 캐시의 차이. 책임 공유 모델이 서비스 유형별로 어떻게 달라지는가. Well-Architected 6개 기둥과 SAA 4개 도메인의 대응, 루트 사용자와 AWS Organizations, 요금 3원칙과 데이터 전송 요금의 방향성, 그리고 SAA-C03 시험 범위 안팎을 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch01"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch01">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">1장 · AWS 글로벌 인프라와 계정 기초</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 1장</p>
+      <h1>AWS 글로벌 인프라와 계정 기초</h1>
+      <p class="page__lead">
+        SAA 문항의 상당수는 서비스 하나를 아는지가 아니라
+        <strong>어디에 배치했는가</strong>와 <strong>누구의 책임인가</strong>를 묻습니다.
+        가용 영역(Availability Zone, AZ)을 몇 개 썼는지, 데이터가 리전 경계를 넘는지,
+        문제에서 깨진 것이 AWS의 몫인지 우리의 몫인지가 정답을 가릅니다.
+        이 장은 나머지 17장이 전부 딛고 서는 그 바닥을 깔아 둡니다.
+      </p>
+      <p class="page__meta">
+        이 장은 특정 도메인에 속하지 않고 <strong>4개 도메인 전체의 전제</strong>가 됩니다.
+        여기서 정리한 어휘로 2장부터의 설명이 진행됩니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>리전 · 가용 영역 · 로컬 존 · Wavelength 존 · 엣지 로케이션의 역할을 구분하고, 어떤 요구사항이 어느 계층을 부르는지 판단할 수 있습니다.</li>
+        <li>가용 영역이 데이터센터 한 동이 아니라는 점과, 가용 영역 이름과 가용 영역 ID의 차이를 설명할 수 있습니다.</li>
+        <li>리전 선택을 지연 시간 · 규정 준수 · 서비스 가용성 · 비용 네 가지 기준으로 근거를 들어 설명할 수 있습니다.</li>
+        <li>책임 공유 모델의 경계가 Amazon EC2 · AWS Lambda · Amazon S3에서 각각 어디에 그어지는지 구분할 수 있습니다.</li>
+        <li>Well-Architected 6개 기둥을 나열하고, SAA 4개 도메인이 어느 기둥에 대응하는지 설명할 수 있습니다.</li>
+        <li>루트 사용자를 일상 작업에 쓰지 않는 이유와 다중 계정 전략의 근거를 설명할 수 있습니다.</li>
+        <li>데이터 전송 요금이 방향에 따라 달라진다는 사실을 근거로 비용 문항의 오답을 소거할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="global-infrastructure">
+      <h2 id="global-infrastructure">글로벌 인프라 — 리전, 가용 영역, 그리고 그 바깥</h2>
+
+      <p>
+        AWS의 물리 인프라는 <strong>세 겹</strong>으로 되어 있습니다.
+        리소스를 실제로 실행하는 <strong>리전과 가용 영역</strong>,
+        리전보다 사용자에게 더 가까이 컴퓨팅을 밀어 넣는 <strong>로컬 존과 Wavelength 존</strong>,
+        그리고 콘텐츠를 캐시해 응답하는 <strong>엣지 네트워크</strong>입니다.
+        시험 문항은 요구사항의 성격으로 이 셋 중 하나를 지목합니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-001">
+        <figcaption>
+          AWS 글로벌 인프라의 세 계층 — 리전 안에 여러 가용 영역이 있고, 가용 영역 하나가
+          다시 여러 데이터센터로 구성됩니다. 로컬 존과 Wavelength 존은 부모 리전에 딸린
+          확장이며, 엣지 로케이션과 리전 엣지 캐시는 리전 밖에서 사용자에게 가장 가까운 계층입니다
+        </figcaption>
+      </figure>
+
+      <h3 id="region">리전 — 격리의 기본 단위</h3>
+      <p>
+        리전은 지리적으로 분리된 영역이며, 각 리전은 <strong>독립적으로 동작</strong>합니다.
+        기본적으로 리소스는 리전 밖으로 복제되지 않고, API 호출도 리전 엔드포인트로 나뉩니다.
+        리전 간 복제는 <strong>우리가 명시적으로 구성해야</strong> 일어납니다 —
+        Amazon S3 교차 리전 복제, Amazon RDS 스냅샷 복사, Amazon DynamoDB 글로벌 테이블이 모두 그런 예입니다.
+      </p>
+      <p>
+        이 격리는 규정 준수 요구사항을 만족시키는 근거가 됩니다.
+        "데이터가 국경을 넘어서는 안 된다"는 조건이 붙으면, 답은 리전을 고정하고
+        리전 간 복제를 켜지 않는 설계입니다.
+      </p>
+      <p>
+        계정 수준에서 리전은 <strong>활성화 상태</strong>를 가집니다. 오래된 리전은 기본으로 켜져 있지만
+        (<code>ENABLED_BY_DEFAULT</code>), 나중에 추가된 리전은 계정에서 <strong>옵트인해야</strong>
+        사용할 수 있습니다. 쓰지 않는 리전을 꺼 두는 것 자체가 공격 표면을 줄이는 통제입니다.
+      </p>
+
+      <aside class="note" data-label="확인해 보기">
+        <p>
+          계정에서 어떤 리전이 켜져 있는지는 <code>account</code> API로 조회합니다.
+          조직에 속한 계정이라면 관리 계정에서 <code>--account-id</code>로 다른 계정의 상태도 볼 수 있습니다.
+        </p>
+        <figure class="code">
+          <figcaption><span class="code__name">list-enabled-regions.sh</span> — 계정에서 활성화된 리전 목록</figcaption>
+          <pre><code class="lang-bash">aws account list-regions \
+  --region-opt-status-contains ENABLED ENABLED_BY_DEFAULT \
+  --query 'Regions[].[RegionName,RegionOptStatus]' \
+  --output table</code></pre>
+        </figure>
+      </aside>
+
+      <h3 id="availability-zone">가용 영역 — 데이터센터 한 동이 아니다 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        가용 영역(Availability Zone, AZ)은 <strong>하나 이상의 개별 데이터센터</strong>로 구성된 논리 단위입니다.
+        각 가용 영역은 독립된 전원 · 냉각 · 물리 보안을 갖추고, 같은 리전의 다른 가용 영역과는
+        저지연 네트워크로 연결됩니다. 즉 <strong>가용 영역 하나 안에도 이미 여러 건물이 있고</strong>,
+        가용 영역을 나누는 이유는 건물이 아니라 <strong>장애 도메인</strong>을 나누는 것입니다.
+      </p>
+      <p>
+        여기서 실무와 시험 양쪽의 결론이 하나로 모입니다.
+        <strong>같은 가용 영역 안에서 인스턴스를 여러 대 띄우는 것은 고가용성이 아닙니다.</strong>
+        전원이나 네트워크 수준의 사고는 가용 영역 단위로 발생하기 때문입니다.
+        가용성을 올리려면 <strong>서로 다른 가용 영역</strong>에 배치해야 합니다.
+      </p>
+
+      <h3 id="az-name-vs-az-id">가용 영역 이름과 가용 영역 ID</h3>
+      <p>
+        <code>us-east-1a</code> 같은 <strong>가용 영역 이름</strong>은 계정마다 다른 물리 가용 영역에 매핑됩니다.
+        A 계정의 <code>us-east-1a</code>와 B 계정의 <code>us-east-1a</code>가 같은 곳이라는 보장이 없습니다.
+        AWS가 계정별로 이름을 무작위로 배정해 특정 가용 영역에 부하가 몰리는 것을 막기 때문입니다.
+      </p>
+      <p>
+        반면 <code>use1-az1</code> 형태의 <strong>가용 영역 ID</strong>는 모든 계정에서 같은 물리 위치를 가리킵니다.
+        EC2 API 문서는 <code>AvailabilityZoneId</code>에 대해 "계정 간에 일관된 식별자를 제공하므로
+        <code>AvailabilityZone</code>보다 이 옵션이 선호된다"고 명시합니다.
+        여러 계정이 VPC 서브넷을 공유하거나 계정 간 배치를 맞춰야 할 때는 이름이 아니라 ID로 이야기해야 합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">describe-zones.sh</span> — 가용 영역 이름 · ID · 유형 확인 (리전 코드는 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 리전 코드는 예시입니다. &lt;리전코드&gt; 자리에 실제 값을 넣습니다.
+aws ec2 describe-availability-zones \
+  --region ap-northeast-2 \
+  --query 'AvailabilityZones[].[ZoneName,ZoneId,ZoneType,OptInStatus]' \
+  --output table
+
+# 옵트인하지 않은 존까지 포함해 로컬 존을 확인합니다.
+aws ec2 describe-availability-zones \
+  --region us-west-2 \
+  --all-availability-zones \
+  --filters Name=zone-type,Values=local-zone \
+  --query 'AvailabilityZones[].[ZoneName,OptInStatus,ParentZoneName]' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          시나리오에 <strong>"가장 가용성이 높은(MOST highly available)"</strong>이 붙으면
+          가장 먼저 확인할 것은 인스턴스 대수가 아니라 <strong>가용 영역이 몇 개인가</strong>입니다.
+          단일 가용 영역에 인스턴스를 늘리는 선택지, 단일 가용 영역에만 NAT 게이트웨이를 두는 선택지는
+          그 자리에서 소거 대상입니다.
+        </p>
+        <p>
+          리전마다 가용 영역 개수가 다르므로 <strong>"가용 영역은 몇 개다"라고 외우지 않습니다.</strong>
+          설계할 때도 개수를 하드코딩하지 말고 조회해서 씁니다.
+        </p>
+      </aside>
+
+      <h3 id="local-and-wavelength-zones">로컬 존과 Wavelength 존 — 옵트인해야 보인다</h3>
+      <p>
+        EC2 API는 존을 <code>availability-zone</code>, <code>local-zone</code>, <code>wavelength-zone</code>
+        세 가지 유형으로 구분합니다. 뒤의 두 가지는 <strong>부모 리전에 딸린 확장</strong>이며,
+        API 호출 같은 제어 평면 작업의 일부를 부모 존이 대신 처리합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>존 유형별 성격과 옵트인 여부</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">API 값</th>
+              <th scope="col">무엇인가</th>
+              <th scope="col">옵트인</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">가용 영역</th>
+              <td><code>availability-zone</code></td>
+              <td>리전을 구성하는 표준 장애 격리 단위. 대부분의 서비스가 여기에 배치된다</td>
+              <td><span class="mark-ok">불필요 — 항상 <code>opt-in-not-required</code></span></td>
+            </tr>
+            <tr>
+              <th scope="row">로컬 존</th>
+              <td><code>local-zone</code></td>
+              <td>리전에서 먼 대도시권에 컴퓨팅·스토리지를 배치해 <strong>한 자릿수 밀리초 지연</strong>이 필요한 워크로드를 담는다</td>
+              <td><span class="mark-no">필요 — 켜야 목록에 나타난다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Wavelength 존</th>
+              <td><code>wavelength-zone</code></td>
+              <td>통신 사업자의 5G 네트워크 안에 인프라를 배치해 <strong>모바일 단말에서의 지연</strong>을 줄인다</td>
+              <td><span class="mark-no">필요 — 켜야 목록에 나타난다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        시험에서는 표현이 갈림길이 됩니다.
+        <strong>"특정 도시의 사용자에게 매우 낮은 지연"</strong>이면 로컬 존,
+        <strong>"5G 이동통신 단말"</strong>이면 Wavelength,
+        <strong>"온프레미스 데이터센터 안에서 AWS API를 그대로"</strong>면 Outposts입니다
+        (Outposts는 <a href="ch04.html">4장 VPC 연결과 하이브리드</a>에서 다룹니다).
+      </p>
+
+      <h3 id="edge-locations">엣지 로케이션과 리전 엣지 캐시</h3>
+      <p>
+        엣지 로케이션은 리전 바깥에 훨씬 촘촘하게 배치된 지점으로,
+        Amazon CloudFront가 콘텐츠를 캐시하고 Amazon Route 53이 DNS 질의에 응답하는 곳입니다.
+        엣지에서 캐시 미스가 나면 곧바로 오리진으로 가지 않고
+        <strong>리전 엣지 캐시</strong>를 한 번 더 거칠 수 있습니다.
+        CloudFront 문서는 Origin Shield를 끄면 "여러 엣지 로케이션이나 리전 엣지 캐시에서
+        오리진으로 직접 요청이 갈 수 있다"고 설명합니다. 이 중간 계층이 오리진 부하를 줄여 줍니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          <strong>정적 콘텐츠의 전송 지연</strong>이면 CloudFront(엣지 캐시),
+          <strong>동적·비HTTP 트래픽의 지연과 장애 조치</strong>면 AWS Global Accelerator,
+          <strong>특정 도시의 컴퓨팅 지연</strong>이면 로컬 존입니다.
+          셋을 한 문항에 섞어 놓는 것이 전형적인 출제 형태입니다.
+          자세한 동작은 <a href="ch14.html">14장 엣지와 DNS</a>에서 다룹니다.
+        </p>
+      </aside>
+
+      <h3 id="region-selection">리전 선택의 네 가지 기준</h3>
+      <p>
+        "가까운 곳을 고른다"는 답이 아닙니다. 실제로는 네 가지를 함께 저울질합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>리전 선택 기준 네 가지와 판단 근거</caption>
+          <thead>
+            <tr>
+              <th scope="col">기준</th>
+              <th scope="col">무엇을 보는가</th>
+              <th scope="col">시험에서의 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">지연 시간</th>
+              <td>최종 사용자와 리전 사이의 왕복 시간. 사용자가 여러 대륙에 있으면 리전 하나로는 해결되지 않고 엣지나 다중 리전이 필요하다</td>
+              <td><code>LOWEST latency</code>, "전 세계 사용자"</td>
+            </tr>
+            <tr>
+              <th scope="row">규정 준수</th>
+              <td>데이터 레지던시, 산업 규제, 감사 요구. 리전이 격리되어 있다는 성질이 그대로 통제 수단이 된다</td>
+              <td>"데이터가 국외로 나가면 안 된다", <code>compliance</code></td>
+            </tr>
+            <tr>
+              <th scope="row">서비스 가용성</th>
+              <td>모든 서비스와 기능이 모든 리전에 동시에 출시되지는 않는다. 설계에 필요한 서비스가 그 리전에 있는지 먼저 확인한다</td>
+              <td>"이 리전에서는 해당 서비스를 쓸 수 없다"는 제약 문장</td>
+            </tr>
+            <tr>
+              <th scope="row">비용</th>
+              <td>같은 리소스라도 리전마다 요금이 다르고, 리전 간 데이터 전송에도 요금이 붙는다</td>
+              <td><code>MOST cost-effective</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        네 기준이 충돌할 때의 우선순위는 문제문이 정해 줍니다.
+        규정 준수 제약이 명시되면 그것이 다른 세 가지를 이깁니다 —
+        <strong>명시된 제약을 위반하는 선택지는 아무리 싸고 빨라도 오답</strong>이기 때문입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="shared-responsibility">
+      <h2 id="shared-responsibility">책임 공유 모델 — 선이 어디에 그어지는가</h2>
+
+      <p>
+        AWS는 보안 책임을 둘로 나눕니다.
+        <strong>클라우드 <em>자체</em>의 보안(security <em>of</em> the cloud)</strong>은 AWS가,
+        <strong>클라우드 <em>안</em>의 보안(security <em>in</em> the cloud)</strong>은 고객이 맡습니다.
+        AWS는 하드웨어 · 물리 시설 · 리전과 가용 영역을 잇는 네트워크 · 하이퍼바이저를 책임지고,
+        고객은 그 위에 올린 데이터 · 자격 증명 · 권한 · 네트워크 구성 · 암호화 선택을 책임집니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-002">
+        <figcaption>
+          책임 공유 모델의 경계선 — 아래쪽 물리 계층은 AWS가, 위쪽 데이터와 접근 제어는 고객이 맡으며,
+          IaaS에서 서버리스로 갈수록 경계선이 위로 올라갑니다
+        </figcaption>
+      </figure>
+
+      <h3 id="boundary-by-service-type">서비스 유형에 따라 경계가 움직인다</h3>
+      <p>
+        모델을 외우기만 하면 문항을 놓칩니다. 핵심은 <strong>경계선이 고정되어 있지 않다</strong>는 점입니다.
+        관리형 서비스일수록 AWS가 가져가는 몫이 커지고, 고객의 몫은 위쪽으로 좁아집니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>서비스 유형별 책임 경계 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Amazon EC2</th>
+              <th scope="col">AWS Lambda</th>
+              <th scope="col">Amazon S3</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">물리 인프라 · 하이퍼바이저</th>
+              <td><span class="mark-ok">AWS</span></td>
+              <td><span class="mark-ok">AWS</span></td>
+              <td><span class="mark-ok">AWS</span></td>
+            </tr>
+            <tr>
+              <th scope="row">게스트 운영체제 패치</th>
+              <td><span class="mark-no">고객</span></td>
+              <td><span class="mark-ok">AWS</span></td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">런타임 · 언어 버전 관리</th>
+              <td><span class="mark-no">고객</span></td>
+              <td>AWS가 런타임을 제공하고 고객이 <strong>지원되는 버전으로 유지</strong></td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">애플리케이션 코드</th>
+              <td><span class="mark-no">고객</span></td>
+              <td><span class="mark-no">고객</span></td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 접근 제어</th>
+              <td>보안 그룹 · 네트워크 ACL — <span class="mark-no">고객</span></td>
+              <td>VPC 연결 여부와 그 구성 — <span class="mark-no">고객</span></td>
+              <td>버킷 정책 · 퍼블릭 액세스 차단 — <span class="mark-no">고객</span></td>
+            </tr>
+            <tr>
+              <th scope="row">데이터 내구성</th>
+              <td>EBS 볼륨 복제는 AWS, <strong>스냅샷 정책은 고객</strong></td>
+              <td>해당 없음</td>
+              <td>객체 복제와 저장은 AWS, <strong>버전 관리 활성화는 고객</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">데이터 · 분류 · 암호화 선택</th>
+              <td><span class="mark-no">고객</span></td>
+              <td><span class="mark-no">고객</span></td>
+              <td><span class="mark-no">고객</span></td>
+            </tr>
+            <tr>
+              <th scope="row">IAM 자격 증명과 권한</th>
+              <td><span class="mark-no">고객</span></td>
+              <td><span class="mark-no">고객</span></td>
+              <td><span class="mark-no">고객</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        표의 마지막 두 줄이 핵심입니다.
+        <strong>데이터와 권한은 어떤 서비스를 쓰든 항상 고객 책임</strong>입니다.
+        Amazon RDS처럼 중간에 있는 서비스도 마찬가지여서, 데이터베이스 엔진과 운영체제 패치는 AWS가
+        수행하지만 스키마 · 데이터베이스 사용자 · 네트워크 배치 · 암호화 여부는 고객이 정합니다.
+      </p>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          Amazon S3 버킷이 인터넷에 노출되어 데이터가 유출된 사고는
+          <strong>전부 고객 책임 영역에서 일어납니다.</strong>
+          AWS는 버킷 정책을 대신 써 주지 않습니다.
+          현재 신규 버킷은 퍼블릭 액세스 차단이 켜진 상태로 만들어지지만,
+          그 차단을 해제하는 것은 여전히 고객이 할 수 있는 선택입니다.
+          기본값이 안전해진 것이지 책임이 옮겨 간 것이 아닙니다
+          (<a href="ch08.html">8장 S3와 오브젝트 스토리지</a>).
+        </p>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          가장 자주 나오는 형태는 <strong>"다음 중 고객의 책임인 것은 무엇입니까"</strong>이고,
+          정답 후보는 거의 언제나 이 넷 중 하나입니다 —
+          <strong>IAM 권한 설정 · 게스트 운영체제 패치(EC2에 한함) · 데이터 암호화 선택 ·
+          보안 그룹과 네트워크 ACL 규칙</strong>.
+        </p>
+        <p>
+          반대로 <strong>물리적 데이터센터 보안 · 하드웨어 폐기 · 하이퍼바이저 패치</strong>가
+          선택지에 있으면 그것은 AWS의 몫입니다.
+          한 가지 함정은 <strong>"EC2 인스턴스의 운영체제 패치"</strong>인데,
+          같은 문장이 Lambda나 RDS 문맥에서는 AWS의 몫이 됩니다.
+          <strong>서비스 이름을 먼저 보고 경계선을 다시 그으세요.</strong>
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="well-architected">
+      <h2 id="well-architected">Well-Architected Framework — 6개 기둥과 시험 도메인</h2>
+
+      <p>
+        AWS Well-Architected Framework는 설계를 평가하는 여섯 가지 관점입니다.
+        SAA는 이 프레임워크를 직접 묻지는 않지만, <strong>문항의 한정어가 곧 기둥의 이름</strong>이라
+        기둥을 알면 무엇이 우선인지 빨리 판단할 수 있습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-004">
+        <figcaption>
+          Well-Architected 6개 기둥과 SAA 4개 도메인의 대응.
+          <strong>기둥 2~5가 시험 도메인 1~4에 그대로 이어지고,
+          운영 우수성과 지속 가능성은 대응하는 도메인이 없습니다.</strong>
+          프레임워크를 공부할 때 어디에 시간을 쓸지 정하는 지도로 쓰세요
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Well-Architected 6개 기둥과 이 사이트의 한국어 표기</caption>
+          <thead>
+            <tr>
+              <th scope="col">기둥</th>
+              <th scope="col">영문</th>
+              <th scope="col">무엇을 묻는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">운영 우수성</th>
+              <td>Operational Excellence</td>
+              <td>변경을 안전하게 배포하고 운영에서 배우는가</td>
+            </tr>
+            <tr>
+              <th scope="row">보안</th>
+              <td>Security</td>
+              <td>자격 증명 · 권한 · 암호화 · 추적으로 자산을 보호하는가</td>
+            </tr>
+            <tr>
+              <th scope="row">안정성(Reliability, 신뢰성으로도 번역됨)</th>
+              <td>Reliability</td>
+              <td>장애에서 복구하고 수요 변화에 맞춰 동작을 유지하는가</td>
+            </tr>
+            <tr>
+              <th scope="row">성능 효율성</th>
+              <td>Performance Efficiency</td>
+              <td>컴퓨팅 자원을 요구에 맞게 쓰고 유지하는가</td>
+            </tr>
+            <tr>
+              <th scope="row">비용 최적화</th>
+              <td>Cost Optimization</td>
+              <td>가장 낮은 비용으로 비즈니스 가치를 내는가</td>
+            </tr>
+            <tr>
+              <th scope="row">지속 가능성</th>
+              <td>Sustainability</td>
+              <td>워크로드의 환경 영향을 줄이는가</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="용어 표기">
+        <p>
+          AWS 한국어 문서는 Reliability를 "안정성"과 "신뢰성"으로 혼용합니다.
+          이 사이트는 <strong>안정성</strong>으로 통일하며, 처음 나올 때만
+          <strong>안정성(Reliability, 신뢰성으로도 번역됨)</strong>으로 병기합니다.
+          시험에서 한국어 번역이 "신뢰성"으로 나오더라도 같은 기둥입니다.
+        </p>
+      </aside>
+
+      <h3 id="pillars-and-domains">기둥과 SAA 도메인의 대응</h3>
+      <p>
+        SAA의 4개 도메인은 <strong>기둥 2번부터 5번까지에 그대로 대응</strong>합니다.
+        운영 우수성과 지속 가능성은 개념 이해용으로만 다루면 충분합니다 —
+        이 사이트가 두 기둥에 지면을 적게 쓰는 이유도 여기에 있습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Well-Architected 기둥과 SAA-C03 도메인 대응</caption>
+          <thead>
+            <tr>
+              <th scope="col">기둥</th>
+              <th scope="col">대응 도메인</th>
+              <th scope="col">가중치</th>
+              <th scope="col">시험 비중</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">보안</th>
+              <td><a href="../saa/domain-secure.html">Design Secure Architectures</a> (보안 아키텍처 설계)</td>
+              <td class="t-center">30%</td>
+              <td><span class="mark-ok">가장 큼</span></td>
+            </tr>
+            <tr>
+              <th scope="row">안정성</th>
+              <td><a href="../saa/domain-resilient.html">Design Resilient Architectures</a> (복원력 있는 아키텍처 설계)</td>
+              <td class="t-center">26%</td>
+              <td><span class="mark-ok">높음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">성능 효율성</th>
+              <td><a href="../saa/domain-performance.html">Design High-Performing Architectures</a> (고성능 아키텍처 설계)</td>
+              <td class="t-center">24%</td>
+              <td><span class="mark-ok">높음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">비용 최적화</th>
+              <td><a href="../saa/domain-cost.html">Design Cost-Optimized Architectures</a> (비용 최적화 아키텍처 설계)</td>
+              <td class="t-center">20%</td>
+              <td><span class="mark-ok">있음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">운영 우수성</th>
+              <td>대응 도메인 없음</td>
+              <td class="t-center">—</td>
+              <td><span class="mark-no">낮음 — 개념 이해만</span></td>
+            </tr>
+            <tr>
+              <th scope="row">지속 가능성</th>
+              <td>대응 도메인 없음</td>
+              <td class="t-center">—</td>
+              <td><span class="mark-no">낮음 — 개념 이해만</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="chart" data-chart="C-001">
+        <figcaption>
+          SAA-C03 도메인별 출제 비중. <strong>보안이 30%로 가장 크면서 과제 진술은 3개뿐</strong>이므로
+          범위가 좁고 깊게 파고듭니다. 반대로 고성능 아키텍처 설계는 24%에 과제 진술이 5개라
+          넓고 얕게 나옵니다. 학습 시간 배분을 이 그림에 맞추는 것이 가장 효율적입니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          채점은 <strong>보상형(compensatory)</strong>이라 도메인별 과락이 없습니다.
+          그렇다고 약한 도메인을 버려도 된다는 뜻은 아닙니다 —
+          보안이 30%이므로 이 도메인을 절반만 맞히면 총점 15%를 잃습니다.
+          어느 도메인이 약한지는 <a href="../quiz/diagnostic.html">진단 테스트</a>로 먼저 확인하세요.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="account-and-organizations">
+      <h2 id="account-and-organizations">계정, 루트 사용자, 그리고 AWS Organizations</h2>
+
+      <p>
+        AWS 계정은 <strong>청구의 단위이자 격리의 단위</strong>입니다.
+        계정이 다르면 리소스 이름이 겹쳐도 상관없고, 한 계정에서 권한을 잘못 준 실수가
+        다른 계정으로 번지지 않습니다. 이 성질이 다중 계정 전략의 출발점입니다.
+      </p>
+
+      <h3 id="root-user">루트 사용자를 쓰지 않는 이유</h3>
+      <p>
+        루트 사용자는 계정을 만들 때 생기는 <strong>이메일 주소로 로그인하는 최상위 자격 증명</strong>이며,
+        계정 안의 모든 리소스에 대해 <strong>제한 없는 권한</strong>을 가집니다.
+        IAM 정책으로 루트의 권한을 줄일 수 없고, 서비스 제어 정책(SCP)만이 조직 멤버 계정의
+        루트에 상한을 걸 수 있습니다.
+      </p>
+      <p>
+        문제는 이 권한이 <strong>회수도 추적도 어렵다</strong>는 점입니다.
+        루트 자격 증명이 유출되면 계정 전체가 넘어가고, 누가 무엇을 했는지 구분할 수도 없습니다.
+        그래서 실무 표준은 다음과 같습니다.
+      </p>
+      <ul>
+        <li>루트 사용자에 <strong>MFA를 활성화</strong>하고 자격 증명을 잠가 둡니다.</li>
+        <li><strong>루트 액세스 키를 만들지 않습니다.</strong> 이미 있다면 삭제합니다.</li>
+        <li>일상 작업은 IAM 역할이나 AWS IAM Identity Center로 발급받은
+          <strong>임시 자격 증명</strong>으로 합니다.</li>
+        <li>계정 이메일 변경, 계정 해지처럼 <strong>루트만 할 수 있는 작업</strong>일 때만 로그인합니다.</li>
+      </ul>
+
+      <div class="diff">
+        <div class="diff__before">
+          <p>
+            루트 사용자로 장기 액세스 키를 발급해 배포 파이프라인에 심습니다.
+            키가 유출되면 계정 전체가 넘어가고, 감사 로그에는 모든 작업이 "루트"로만 남습니다.
+          </p>
+          <figure class="code">
+            <figcaption>안티패턴 — 루트 액세스 키</figcaption>
+            <pre><code class="lang-bash">aws configure set aws_access_key_id "$ROOT_KEY" --profile prod
+aws configure set aws_secret_access_key "$ROOT_SECRET" --profile prod
+aws s3 sync ./build s3://example-app-assets --profile prod</code></pre>
+          </figure>
+        </div>
+        <div class="diff__after">
+          <p>
+            루트는 MFA를 켜고 잠가 둔 채, 배포에 필요한 권한만 가진 역할을 맡습니다.
+            자격 증명은 만료되고, 감사 로그에는 어떤 역할이 어떤 세션으로 호출했는지 남습니다.
+          </p>
+          <figure class="code">
+            <figcaption>권장 — 역할 수임으로 임시 자격 증명 사용</figcaption>
+            <pre><code class="lang-bash">aws sts assume-role \
+  --role-arn arn:aws:iam::123456789012:role/DeployRole \
+  --role-session-name ci-deploy
+aws s3 sync ./build s3://example-app-assets</code></pre>
+          </figure>
+        </div>
+      </div>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          "EC2 인스턴스나 CI에 액세스 키를 심는다"는 선택지는 SAA에서 <strong>거의 항상 오답</strong>입니다.
+          정답은 <strong>IAM 역할</strong>입니다.
+          역할은 임시 자격 증명을 자동으로 교체해 주므로 유출된 키를 회수할 일 자체가 생기지 않습니다.
+          정책 문서 구조와 평가 로직은 <a href="ch02.html">2장 IAM과 자격 증명</a>에서 다룹니다.
+        </p>
+      </aside>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          AWS Single Sign-On은 2022년에 <strong>AWS IAM Identity Center</strong>로 이름이 바뀌었습니다.
+          옛 자료에 나오는 "AWS SSO"는 같은 서비스이며, 시험과 이 사이트에서는 새 이름을 씁니다.
+        </p>
+      </aside>
+
+      <h3 id="organizations">AWS Organizations — 조직, OU, SCP</h3>
+      <p>
+        AWS Organizations는 여러 계정을 하나의 조직으로 묶습니다.
+        조직을 만든 계정이 <strong>관리 계정</strong>이 되고, 나머지는 멤버 계정입니다.
+        계정은 <strong>조직 단위(Organizational Unit, OU)</strong>로 묶어 계층을 만들며,
+        정책은 조직 루트 · OU · 개별 계정 중 어디에나 붙일 수 있습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-003">
+        <figcaption>
+          AWS Organizations의 계층 구조 — 조직 루트 아래 OU가 놓이고 그 아래 멤버 계정이 들어가며,
+          SCP는 루트 · OU · 계정 어느 수준에나 붙어 하위 전체의 권한 상한이 됩니다
+        </figcaption>
+      </figure>
+
+      <p>
+        조직을 만들 때 기능 집합을 고릅니다. <strong>전체 기능(<code>ALL</code>)</strong>으로 만들면
+        조직 루트에 서비스 제어 정책이 자동으로 활성화됩니다.
+        <strong>통합 결제 전용(<code>CONSOLIDATED_BILLING</code>)</strong>으로 만들면
+        어떤 정책 유형도 활성화되지 않고 조직 정책을 쓸 수 없습니다.
+        시나리오에 "여러 계정에 일괄적으로 가드레일을 걸어야 한다"가 나오면
+        <strong>전체 기능이 전제</strong>입니다.
+      </p>
+
+      <p>
+        서비스 제어 정책(Service Control Policy, SCP)의 성질은 두 문장으로 요약됩니다.
+      </p>
+      <ul>
+        <li><strong>SCP는 권한을 부여하지 않습니다.</strong> 최대 권한의 상한(guardrail)만 정합니다.
+          실제 허용은 여전히 IAM 정책이 해야 합니다.</li>
+        <li><strong>SCP는 멤버 계정의 루트 사용자에게도 적용됩니다.</strong>
+          IAM 정책으로는 막을 수 없는 루트를 통제하는 유일한 수단입니다.</li>
+      </ul>
+
+      <figure class="code">
+        <figcaption><span class="code__name">deny-outside-regions.json</span> — 승인된 리전 밖 호출을 거부하는 SCP 뼈대 (리전 코드는 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyOutsideApprovedRegions",
+      "Effect": "Deny",
+      "NotAction": [
+        "iam:*",
+        "organizations:*",
+        "cloudfront:*",
+        "route53:*",
+        "support:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:RequestedRegion": [
+            "ap-northeast-2",
+            "us-east-1"
+          ]
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+      <p>
+        리전 개념이 없는 글로벌 서비스는 <code>NotAction</code>으로 빼 둡니다.
+        빼지 않으면 IAM 사용자 생성이나 Route 53 레코드 수정까지 함께 막혀 조직이 마비됩니다.
+        SCP 평가가 IAM 정책과 어떻게 결합하는지는
+        <a href="ch02.html">2장 IAM과 자격 증명</a>에서 자세히 다룹니다.
+      </p>
+
+      <h3 id="multi-account-strategy">다중 계정 전략을 쓰는 이유</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>계정을 나누는 네 가지 이유</caption>
+          <thead>
+            <tr>
+              <th scope="col">이유</th>
+              <th scope="col">설명</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">폭발 반경 제한</th>
+              <td>운영 계정과 개발 계정을 나누면, 개발에서 낸 실수가 운영 데이터에 닿지 않습니다. 계정 경계가 가장 강한 격리입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">청구 분리</th>
+              <td>계정 단위로 비용이 집계되므로 팀·제품·환경별 비용을 태그 없이도 정확히 나눌 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">할당량 분리</th>
+              <td>서비스 할당량은 대체로 계정과 리전 단위입니다. 한 팀이 할당량을 소진해도 다른 계정은 영향을 받지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">규정 준수 경계</th>
+              <td>규제 대상 워크로드를 별도 계정에 격리하면 감사 범위가 그 계정으로 좁아집니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        조직을 표준 구성으로 한 번에 세우는 도구가 AWS Control Tower이고,
+        운영과 계정 관리 전반은 <a href="ch17.html">17장 모니터링·운영·계정 관리</a>에서 다룹니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pricing-model">
+      <h2 id="pricing-model">요금 모델 — 세 가지 원칙과 데이터 전송의 방향성</h2>
+
+      <aside class="note note--warn" data-label="이 사이트의 요금 표기 원칙">
+        <p>
+          이 사이트는 <strong>구체적인 금액을 싣지 않습니다.</strong>
+          요금은 리전과 시점에 따라 달라져서 학습 자료에 고정해 둘 값이 아니기 때문입니다.
+          비용은 언제나 <strong>상대 비교</strong>로 설명합니다.
+          실제 금액이 필요하면 AWS 요금 페이지와 AWS Pricing Calculator를 확인하세요.
+        </p>
+      </aside>
+
+      <h3 id="pricing-principles">요금 3원칙</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>AWS 요금의 세 가지 원칙과 대표 수단</caption>
+          <thead>
+            <tr>
+              <th scope="col">원칙</th>
+              <th scope="col">의미</th>
+              <th scope="col">대표 수단</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">사용한 만큼 지불</th>
+              <td>선불 투자 없이 실제 사용량에 비례해 지불합니다. 쓰지 않으면 내지 않습니다</td>
+              <td>온디맨드 인스턴스, Lambda 호출당 과금, S3 저장 용량</td>
+            </tr>
+            <tr>
+              <th scope="row">많이 쓸수록 단가 인하</th>
+              <td>사용량이 늘면 구간별로 단가가 낮아집니다. 볼륨이 곧 할인입니다</td>
+              <td>S3 저장 계층 구간 요금, 데이터 전송 구간 요금</td>
+            </tr>
+            <tr>
+              <th scope="row">예약하면 할인</th>
+              <td>일정 기간의 사용을 약정하면 온디맨드보다 낮은 단가를 적용받습니다</td>
+              <td>Savings Plans, 예약 인스턴스(RI), 용량 예약</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        여기에 하나를 더하면 <strong>사용하지 않는 것을 끄는 것</strong>이 가장 확실한 절감입니다.
+        예를 들어 EC2 API 문서는 인스턴스를 중지한 동안에는 인스턴스 사용 요금과 데이터 전송 요금이
+        부과되지 않지만 <strong>볼륨 요금은 계속 부과된다</strong>고 명시합니다.
+        "인스턴스를 껐는데 왜 요금이 나오나"라는 질문의 답이 여기 있습니다.
+      </p>
+
+      <h3 id="data-transfer">데이터 전송 요금의 방향성 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        데이터 전송은 <strong>양이 아니라 방향</strong>으로 요금이 정해집니다.
+        이 비대칭을 모르면 비용 문항에서 계속 헷갈립니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>데이터 전송 방향별 과금 여부 — 금액이 아니라 방향만 다룹니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">방향</th>
+              <th scope="col">과금</th>
+              <th scope="col">설계에 주는 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">인터넷에서 AWS로 (수신)</th>
+              <td><span class="mark-ok">대체로 무료</span></td>
+              <td>데이터를 올리는 것은 대체로 비용 요인이 아닙니다. 마이그레이션 방향이 유리한 이유입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS에서 인터넷으로 (송신)</th>
+              <td><span class="mark-no">과금</span></td>
+              <td>가장 큰 전송 비용 항목입니다. S3는 기본적으로 <strong>버킷 소유자가 내려받기 요금을 부담</strong>하며, 요청자 지불 설정으로만 이 부담을 옮길 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">같은 리전, 가용 영역 간</th>
+              <td><span class="mark-no">과금</span></td>
+              <td>다중 가용 영역 설계는 가용성을 사지만 전송 비용을 함께 부릅니다. 트래픽이 많은 구간을 불필요하게 가용 영역 밖으로 보내지 않도록 배치합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">리전 간</th>
+              <td><span class="mark-no">과금</span></td>
+              <td>S3 API 문서는 복사 원본이 다른 리전에 있으면 <strong>데이터 전송이 원본 계정에 청구된다</strong>고 명시합니다. 교차 리전 복제와 리전 간 백업은 언제나 비용을 동반합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS 서비스 간, 같은 가용 영역 · 프라이빗 IP</th>
+              <td><span class="mark-ok">가장 저렴한 경로</span></td>
+              <td>같은 가용 영역 안에서 프라이빗 IP로 통신하는 것이 가장 저렴합니다. 퍼블릭 IP나 인터넷 경유로 우회하지 않도록 VPC 엔드포인트를 씁니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          비용 문항에서 데이터 전송이 나오면 확인 순서는 이렇습니다.
+          <strong>(1) 트래픽이 인터넷으로 나가는가</strong> —
+          그렇다면 Amazon CloudFront로 캐시해 오리진 송신량 자체를 줄이는 안이 유력합니다.
+          <strong>(2) 가용 영역이나 리전을 넘는가</strong> —
+          넘지 않아도 되는 트래픽이면 배치를 고칩니다.
+          <strong>(3) 인터넷을 거치지 않아도 되는가</strong> —
+          NAT 게이트웨이를 지나 Amazon S3에 접근하고 있다면 VPC 엔드포인트로 경로를 바꿉니다.
+        </p>
+        <p>
+          이 세 가지는 <a href="ch18.html">18장 비용 최적화·마이그레이션·재해 복구</a>와
+          <a href="../cheatsheet/cost.html">비용 빠른참조</a>에서 수치 없이 구조로 정리합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="service-scope">
+      <h2 id="service-scope">시험 범위 — 무엇을 공부하고 무엇을 버릴 것인가</h2>
+
+      <p>
+        AWS는 SAA-C03 시험 가이드에서 <strong>범위 안 서비스</strong>와
+        <strong>범위 밖 서비스</strong>를 각각 목록으로 공개합니다.
+        범위 밖 목록을 먼저 읽는 편이 시간을 아낍니다.
+        여기 있는 서비스는 <strong>문항에 정답으로 등장하지 않습니다.</strong>
+      </p>
+
+      <h3 id="in-scope">범위 안 — 이 사이트가 다루는 영역</h3>
+      <p>
+        컴퓨팅(EC2 · Lambda · ECS · EKS), 스토리지(S3 · EBS · EFS · FSx),
+        데이터베이스(RDS · Aurora · DynamoDB · ElastiCache),
+        네트워킹(VPC · Route 53 · CloudFront · ELB),
+        보안(IAM · KMS · WAF · Shield · GuardDuty),
+        통합(SQS · SNS · EventBridge · Step Functions),
+        관리(CloudWatch · CloudTrail · Config · Systems Manager · <strong>CloudFormation</strong>).
+        18장 커리큘럼은 이 범위를 도메인 가중치에 맞춰 배분한 것입니다.
+      </p>
+
+      <h3 id="out-of-scope">범위 밖 — 공부하지 않습니다</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>SAA-C03 시험 범위 밖 서비스 — 학습 대상이 아닙니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">범주</th>
+              <th scope="col">서비스</th>
+              <th scope="col">왜 헷갈리는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">개발자 도구</th>
+              <td>CodeBuild, CodeDeploy, CodePipeline, CodeCommit, CodeArtifact, CodeGuru, CodeStar, Cloud9, CloudShell, <strong>AWS CDK</strong>, Fault Injection Simulator</td>
+              <td>CI/CD가 실무에서 늘 붙어 다녀 범위 안이라고 착각하기 쉽습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">비즈니스 애플리케이션</th>
+              <td>Chime, Connect, WorkDocs, WorkMail, WorkSpaces, AppStream 2.0</td>
+              <td>"가상 데스크톱" 시나리오를 상상해 WorkSpaces를 답으로 고르는 실수가 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">기타</th>
+              <td>SWF, CloudSearch, Managed Service for Apache Flink, GameLift, IoT 제품군, Mainframe Modernization</td>
+              <td>SWF는 Step Functions와, CloudSearch는 OpenSearch Service와 혼동됩니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="시험 범위 아님">
+        <p>
+          <strong>AWS CloudFormation은 시험 범위 안이고, AWS CDK는 범위 밖입니다.</strong>
+          둘 다 코드형 인프라라서 나란히 배우고 싶어지지만, 시험 대비 관점에서는
+          CloudFormation의 템플릿 구조 · 스택 · 변경 세트만 익히면 충분합니다.
+          CDK는 이 사이트에서 학습 대상으로 다루지 않습니다.
+        </p>
+        <p>
+          Aurora DSQL, S3 Tables, S3 Vectors처럼 최근에 나온 서비스도 같은 취급입니다.
+          이름을 들어 본 정도면 되고, 시험 답으로 나오지 않습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"가용 영역은 데이터센터 한 동이다"</strong> —
+          가용 영역은 <strong>하나 이상의 개별 데이터센터</strong>로 이루어진 논리 단위입니다.
+          그래서 "가용 영역 하나에 인스턴스를 두 대 두면 건물이 두 개니까 안전하다"는 계산이 성립하지 않습니다.
+          가용 영역의 의미는 건물 수가 아니라 <strong>전원 · 냉각 · 네트워크가 독립된 장애 도메인</strong>이라는 데 있습니다.
+          가용성을 올리는 유일한 방법은 <strong>가용 영역을 여러 개 쓰는 것</strong>입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"리전은 가까운 곳을 고르면 된다"</strong> —
+          지연 시간은 네 가지 기준 중 하나일 뿐입니다.
+          규정 준수 제약이 있으면 그것이 먼저이고, 필요한 서비스가 그 리전에 없으면 설계 자체가 성립하지 않습니다.
+          비용도 리전마다 다릅니다.
+          특히 시험에서 <strong>"데이터가 특정 국가를 벗어나면 안 된다"</strong>는 문장이 나오면
+          그 순간 리전은 고정되고, 지연 시간을 이유로 다른 리전을 고르는 선택지는 전부 오답이 됩니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"책임 공유 모델이니까 보안은 AWS가 해 준다"</strong> —
+          AWS가 책임지는 것은 <strong>클라우드 자체의 보안</strong>이며,
+          그 위에 무엇을 올리고 누구에게 열어 줄지는 전부 고객의 몫입니다.
+          실제 유출 사고의 대부분은 잘못된 버킷 정책, 과도한 IAM 권한,
+          공개된 보안 그룹처럼 <strong>고객 책임 영역</strong>에서 일어납니다.
+          더 나아가 경계선은 <strong>서비스마다 다릅니다</strong> —
+          같은 "운영체제 패치"가 EC2에서는 고객 책임이고 Lambda에서는 AWS 책임입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 복원력 있는 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>1장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">가용 영역의 정의</th>
+                <td>하나 이상의 개별 데이터센터로 구성된 <strong>장애 격리 단위</strong></td>
+                <td>"데이터센터 한 동"으로 이해해 단일 가용 영역 다중 인스턴스를 고가용성으로 착각</td>
+              </tr>
+              <tr>
+                <th scope="row">가용 영역 이름 대 ID</th>
+                <td>이름(<code>us-east-1a</code>)은 <strong>계정마다 다르게 매핑</strong>, ID(<code>use1-az1</code>)는 계정 간 일관</td>
+                <td>계정 간 배치를 이름으로 맞추려다 실제로는 다른 가용 영역에 놓임</td>
+              </tr>
+              <tr>
+                <th scope="row">리전 간 기본 동작</th>
+                <td>기본적으로 <strong>격리</strong>. 복제는 명시적으로 구성해야 일어난다</td>
+                <td>"AWS가 알아서 다른 리전에 복제해 준다"고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">리전 활성화</th>
+                <td>계정 수준 옵트인이 있고, 오래된 리전만 <strong>기본 활성</strong></td>
+                <td>새 리전이 콘솔에 안 보이는 것을 서비스 미지원으로 오해</td>
+              </tr>
+              <tr>
+                <th scope="row">로컬 존 · Wavelength 존</th>
+                <td>존 유형이 <code>local-zone</code> / <code>wavelength-zone</code>이고 <strong>옵트인이 필요</strong></td>
+                <td>가용 영역과 같은 것으로 보고 다중 가용 영역 요구사항을 로컬 존으로 충족하려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">엣지 계층 선택</th>
+                <td>정적 캐시는 CloudFront, 비HTTP·동적은 Global Accelerator, 도시 단위 컴퓨팅은 로컬 존</td>
+                <td>모든 지연 문제에 CloudFront를 답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">리전 선택 기준</th>
+                <td>지연 시간 · 규정 준수 · 서비스 가용성 · 비용 <strong>네 가지</strong></td>
+                <td>지연 시간만 보고 규정 준수 제약을 위반하는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">책임 공유 — AWS의 몫</th>
+                <td>물리 시설, 하드웨어, 하이퍼바이저, 리전·가용 영역 간 네트워크</td>
+                <td>"보안 그룹 설정"까지 AWS가 한다고 착각</td>
+              </tr>
+              <tr>
+                <th scope="row">책임 공유 — 고객의 몫</th>
+                <td>데이터, 데이터 분류와 암호화 선택, IAM 권한, 네트워크 접근 제어</td>
+                <td>서비스가 관리형이면 데이터 보호까지 위임된다고 착각</td>
+              </tr>
+              <tr>
+                <th scope="row">경계선의 이동</th>
+                <td>EC2는 게스트 OS가 고객, Lambda·RDS는 OS와 엔진 패치가 AWS</td>
+                <td>"OS 패치는 고객 책임"을 서비스 구분 없이 일반화</td>
+              </tr>
+              <tr>
+                <th scope="row">Well-Architected 기둥</th>
+                <td>운영 우수성 · 보안 · <strong>안정성</strong> · 성능 효율성 · 비용 최적화 · 지속 가능성 <strong>6개</strong></td>
+                <td>지속 가능성을 빼고 5개로 외움</td>
+              </tr>
+              <tr>
+                <th scope="row">도메인 가중치</th>
+                <td>보안 30 / 복원력 26 / 고성능 24 / 비용 20</td>
+                <td>비용이 가장 크다고 착각해 학습 시간을 잘못 배분</td>
+              </tr>
+              <tr>
+                <th scope="row">채점 방식</th>
+                <td><strong>보상형</strong> — 도메인별 과락 없음, 총점만 본다. 오답 감점도 없다</td>
+                <td>"보안에서 60% 미만이면 탈락"이라는 근거 없는 규칙을 믿음</td>
+              </tr>
+              <tr>
+                <th scope="row">합격 점수 720</th>
+                <td>100–1000 <strong>스케일 점수</strong>이며 정답률과 1:1 대응하지 않는다</td>
+                <td>"정답률 72%면 합격"이라고 환산</td>
+              </tr>
+              <tr>
+                <th scope="row">루트 사용자</th>
+                <td>IAM 정책으로 제한할 수 없고, <strong>SCP만이 멤버 계정 루트에 상한</strong>을 건다</td>
+                <td>루트에 IAM 정책을 붙여 권한을 줄일 수 있다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">SCP의 성질</th>
+                <td>권한을 <strong>부여하지 않고</strong> 상한만 정한다</td>
+                <td>"SCP로 권한을 준다"는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Organizations 기능 집합</th>
+                <td>전체 기능이어야 정책을 쓸 수 있다. 통합 결제 전용은 정책 유형이 활성화되지 않는다</td>
+                <td>통합 결제만 켜 둔 조직에서 SCP를 쓰려고 함</td>
+              </tr>
+              <tr>
+                <th scope="row">데이터 전송 방향</th>
+                <td>수신은 대체로 무료, <strong>송신 · 가용 영역 간 · 리전 간은 과금</strong></td>
+                <td>양방향 모두 같은 요금이라고 가정해 비용 문항을 놓침</td>
+              </tr>
+              <tr>
+                <th scope="row">중지한 EC2 인스턴스</th>
+                <td>인스턴스 사용과 데이터 전송 요금은 멈추지만 <strong>볼륨 요금은 계속</strong></td>
+                <td>"껐으니 요금이 0"이라고 판단</td>
+              </tr>
+              <tr>
+                <th scope="row">CloudFormation 대 CDK</th>
+                <td>CloudFormation은 <strong>범위 안</strong>, CDK는 <strong>범위 밖</strong></td>
+                <td>CDK를 정답으로 고르거나 학습 시간을 씀</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          이 장에서 얻는 비용 판단 규칙은 하나입니다 —
+          <strong>비용 문항에서 금액을 계산하려 들지 않습니다.</strong>
+          SAA는 계산기를 요구하지 않고 <strong>구조적으로 더 싼 안</strong>을 고르게 합니다.
+          "인터넷 송신을 줄인다", "가용 영역을 넘는 트래픽을 줄인다",
+          "쓰지 않는 자원을 끈다", "약정으로 단가를 낮춘다" 네 가지가 판단 축입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <p>
+        <span class="badge badge--study">학습용 유형</span>
+        연결형과 순서 배열 문항이 하나씩 섞여 있습니다.
+        이 두 유형은 암기 확인에 효율이 좋아서 기본개념 확인 문제에만 넣었으며,
+        실제 SAA-C03 시험에는 출제되지 않습니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch01" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch02.html">
+          <span class="card__title">2장 · IAM과 자격 증명</span>
+          <span class="card__desc">이 장에서 예고한 정책 평가 로직과 SCP 결합 규칙을 정면으로 다룹니다. 가중치가 가장 큰 도메인의 중심입니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch03.html">
+          <span class="card__title">3장 · VPC 네트워킹 기초</span>
+          <span class="card__desc">서브넷이 가용 영역에 묶인다는 사실에서 다중 가용 영역 설계가 시작됩니다. 보안 그룹과 네트워크 ACL의 차이도 여기서.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../saa/index.html">
+          <span class="card__title">SAA 시험 개요와 8주 플랜</span>
+          <span class="card__desc">도메인 가중치, 과제 진술 14개, 도메인과 챕터의 매핑, 그리고 8주 학습 순서를 한 페이지에 모았습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../saa/keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">MOST cost-effective, LEAST operational overhead 같은 한정어가 어떤 답을 가리키는지 정리했습니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/services.html">
+          <span class="card__title">서비스 빠른참조</span>
+          <span class="card__desc">시험 범위 서비스의 한 줄 정의와 선택 기준. 범위 밖 목록도 함께 있어 학습 범위를 좁히는 데 씁니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../quiz/diagnostic.html">
+          <span class="card__title">진단 테스트 40문항</span>
+          <span class="card__desc">4개 도메인의 취약점을 먼저 재고, 가중치와 부족분을 곱해 개인별 학습 순서를 자동으로 만들어 줍니다.</span>
+          <span class="card__meta">문제 풀이</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 개념 서술과 API 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html">Amazon EC2 사용 설명서 — 리전과 가용 영역</a>
+          — 리전이 독립적으로 동작한다는 점, 가용 영역이 하나 이상의 데이터센터로 구성된다는 정의</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeAvailabilityZones.html">Amazon EC2 API 레퍼런스 — DescribeAvailabilityZones</a>
+          — 존 유형 세 가지(<code>availability-zone</code> / <code>local-zone</code> / <code>wavelength-zone</code>), 가용 영역의 <code>OptInStatus</code>가 항상 <code>opt-in-not-required</code>라는 사실, <code>ParentZoneName</code>의 의미</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateSubnet.html">Amazon EC2 API 레퍼런스 — CreateSubnet</a>
+          — <code>AvailabilityZoneId</code>가 계정 간에 일관된 식별자이므로 <code>AvailabilityZone</code>보다 선호된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-regions.html">AWS 계정 관리 참조 — 리전 활성화와 비활성화</a>
+          — 계정 수준 리전 옵트인과 기본 활성 리전의 구분</li>
+        <li><a href="https://docs.aws.amazon.com/local-zones/latest/ug/how-local-zones-work.html">AWS Local Zones 사용 설명서 — 로컬 존의 동작</a>
+          — 로컬 존이 부모 리전의 확장이며 사용 전에 활성화가 필요하다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/wavelength/latest/developerguide/how-wavelengths-work.html">AWS Wavelength 개발자 안내서 — Wavelength의 동작</a>
+          — 통신 사업자 네트워크 안의 존이라는 성격과 캐리어 게이트웨이</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html">Amazon CloudFront 개발자 안내서 — CloudFront란</a>
+          — 엣지 로케이션의 역할과 배포 상태가 <code>Deployed</code>일 때 전 엣지에 전파되었다는 의미</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html">Amazon CloudFront 개발자 안내서 — Origin Shield</a>
+          — 엣지 로케이션과 <strong>리전 엣지 캐시</strong>가 별도의 계층으로 존재한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/wellarchitected/latest/userguide/intro.html">AWS Well-Architected Tool 사용 설명서 — 소개</a>
+          — 프레임워크와 기둥의 개념</li>
+        <li><a href="https://docs.aws.amazon.com/ko_kr/wellarchitected/latest/framework/welcome.html">AWS Well-Architected Framework (한국어)</a>
+          — 6개 기둥의 정의와 한국어 표기</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html">IAM 사용 설명서 — AWS 계정 루트 사용자</a>
+          — 루트 사용자의 권한 범위와 루트만 수행할 수 있는 작업</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html">IAM 사용 설명서 — 보안 모범 사례</a>
+          — 루트 자격 증명을 잠가 두고 임시 자격 증명을 쓰라는 권고</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html">AWS Organizations 사용 설명서 — 소개</a>
+          — 관리 계정 · 조직 루트 · OU · 멤버 계정의 관계</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/orgs_getting-started_concepts.html">AWS Organizations 사용 설명서 — 용어와 개념</a>
+          — 전체 기능과 통합 결제 전용 기능 집합의 차이</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html">AWS Organizations 사용 설명서 — SCP 전략</a>
+          — SCP가 권한을 부여하지 않고 상한만 정한다는 점, 허용 목록과 거부 목록 전략</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/RequesterPaysBuckets.html">Amazon S3 사용 설명서 — 요청자 지불 버킷</a>
+          — 기본적으로 버킷 소유자가 내려받기 요금을 부담한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html">Amazon S3 API 레퍼런스 — CopyObject</a>
+          — 복사 원본이 다른 리전이면 데이터 전송이 원본 계정에 청구된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_StopInstances.html">Amazon EC2 API 레퍼런스 — StopInstances</a>
+          — 중지된 인스턴스에는 사용 요금과 데이터 전송 요금이 부과되지 않지만 볼륨 요금은 계속된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">AWS Certified Solutions Architect – Associate 시험 가이드 (SAA-C03)</a>
+          — 문항 수 65, 시간 130분, 합격 점수 720, 보상형 채점, 도메인 가중치 30/26/24/20</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/saa-03-in-scope-services.html">SAA-C03 시험 가이드 — 범위 안 서비스</a>
+          — 이 사이트가 다루는 서비스 목록의 근거</li>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/examguides/saa-03-out-of-scope-services.html">SAA-C03 시험 가이드 — 범위 밖 서비스</a>
+          — CDK를 포함한 범위 밖 목록의 근거</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

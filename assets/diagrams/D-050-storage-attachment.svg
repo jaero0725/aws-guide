@@ -1,0 +1,82 @@
+<svg viewBox="0 0 720 440" role="img" aria-labelledby="d050-title d050-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d050-title">EBS · 인스턴스 스토어 · EFS의 물리 배치</title>
+  <desc id="d050-desc">세 가지 스토리지가 인스턴스에 어떻게 붙는지를 연결 위치로 구분한 그림입니다.
+    인스턴스 스토어는 인스턴스가 실행 중인 호스트 서버 안에 물리적으로 들어 있는 디스크이므로 가장 빠르지만
+    인스턴스를 중지하거나 최대 절전 모드로 두거나 하드웨어 장애로 호스트가 교체되면 데이터가 사라집니다. 그 지점을 가위표로 표시했습니다.
+    EBS 볼륨은 호스트 밖 네트워크 너머에 있는 블록 스토리지이며 같은 가용 영역 안에서 인스턴스에 연결됩니다.
+    인스턴스를 중지했다 다시 시작해도 데이터가 남고, 기본적으로 한 번에 하나의 인스턴스에 연결됩니다.
+    EFS 는 여러 가용 영역에 마운트 대상을 두고 여러 인스턴스가 NFS 로 동시에 같은 파일 시스템을 공유합니다.
+    "공유"와 "영속"이라는 두 요구가 각각 어디로 가는지가 이 그림의 결론입니다.</desc>
+
+  <defs>
+    <marker id="d050-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d050-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- AZ a -->
+  <rect class="dg-panel" x="20" y="44" width="330" height="228" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="64">가용 영역 a</text>
+
+  <rect class="dg-node dg-node--alt" x="34" y="76" width="180" height="126" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="44" y="94">호스트 서버</text>
+  <rect class="dg-node" x="44" y="102" width="160" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="124" y="130" text-anchor="middle">EC2 인스턴스 A</text>
+  <rect class="dg-node dg-node--danger" x="44" y="152" width="160" height="42" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="124" y="170" text-anchor="middle">인스턴스 스토어</text>
+  <text class="dg-fs-sm" x="124" y="188" text-anchor="middle">호스트에 물리적으로 부착</text>
+
+  <rect class="dg-node dg-node--accent" x="234" y="102" width="104" height="92" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="286" y="132" text-anchor="middle">EBS</text>
+  <text class="dg-fs-sm" x="286" y="152" text-anchor="middle">볼륨</text>
+  <text class="dg-fs-sm dg-muted" x="286" y="176" text-anchor="middle">네트워크 너머</text>
+  <path class="dg-edge dg-edge--accent" d="M204 124 L230 124" marker-end="url(#d050-ar-accent)"/>
+
+  <rect class="dg-node" x="34" y="214" width="304" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="186" y="242" text-anchor="middle">EFS 마운트 대상 (AZ a)</text>
+  <path class="dg-edge" d="M124 146 L124 210" marker-end="url(#d050-ar)"/>
+
+  <!-- AZ b -->
+  <rect class="dg-panel" x="370" y="44" width="330" height="228" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="382" y="64">가용 영역 b</text>
+
+  <rect class="dg-node dg-node--alt" x="384" y="76" width="180" height="126" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="394" y="94">호스트 서버</text>
+  <rect class="dg-node" x="394" y="102" width="160" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="474" y="130" text-anchor="middle">EC2 인스턴스 B</text>
+  <rect class="dg-node dg-node--danger" x="394" y="152" width="160" height="42" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="474" y="170" text-anchor="middle">인스턴스 스토어</text>
+  <text class="dg-fs-sm" x="474" y="188" text-anchor="middle">호스트에 물리적으로 부착</text>
+
+  <rect class="dg-node dg-node--accent" x="584" y="102" width="104" height="92" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="636" y="132" text-anchor="middle">EBS</text>
+  <text class="dg-fs-sm" x="636" y="152" text-anchor="middle">볼륨</text>
+  <text class="dg-fs-sm dg-muted" x="636" y="176" text-anchor="middle">같은 AZ 안에서</text>
+  <path class="dg-edge dg-edge--accent" d="M554 124 L580 124" marker-end="url(#d050-ar-accent)"/>
+
+  <rect class="dg-node" x="384" y="214" width="304" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="536" y="242" text-anchor="middle">EFS 마운트 대상 (AZ b)</text>
+  <path class="dg-edge" d="M474 146 L474 210" marker-end="url(#d050-ar)"/>
+
+  <rect class="dg-node dg-node--ok" x="150" y="288" width="420" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="316" text-anchor="middle">하나의 EFS 파일 시스템 — 여러 AZ 의 여러 인스턴스가 동시에 공유</text>
+  <path class="dg-edge dg-edge--ok" d="M186 258 L250 284" marker-end="url(#d050-ar)"/>
+  <path class="dg-edge dg-edge--ok" d="M536 258 L470 284" marker-end="url(#d050-ar)"/>
+
+  <rect class="dg-node dg-node--danger" x="20" y="350" width="330" height="76" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="372">인스턴스 스토어가 사라지는 순간</text>
+  <text class="dg-fs-sm" x="34" y="394">인스턴스 중지 · 최대 절전 · 종료</text>
+  <text class="dg-fs-sm" x="34" y="416">하드웨어 장애로 호스트가 교체될 때</text>
+  <path class="dg-x" d="M300 372 L326 398 M326 372 L300 398"/>
+
+  <rect class="dg-node" x="370" y="350" width="330" height="76" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="372">남는 쪽</text>
+  <text class="dg-fs-sm" x="384" y="394">EBS — 인스턴스를 중지했다 켜도 그대로</text>
+  <text class="dg-fs-sm" x="384" y="416">EFS — 여러 인스턴스가 동시에 읽고 씀</text>
+</svg>

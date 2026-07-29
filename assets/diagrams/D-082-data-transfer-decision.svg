@@ -1,0 +1,49 @@
+<svg viewBox="0 0 720 404" role="img" aria-labelledby="d082-title d082-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d082-title">데이터 전송 수단 결정 — 데이터량과 가용 대역폭</title>
+  <desc id="d082-desc">가로축은 실제로 쓸 수 있는 회선 대역폭이고 세로축은 옮겨야 하는 데이터의 양입니다.
+    왼쪽 위, 즉 데이터는 많은데 회선이 좁은 영역이 Snow Family 의 자리입니다.
+    같은 양을 회선으로 보내면 몇 주에서 몇 달이 걸리는 구간이라 장비에 담아 물리적으로 보내는 편이 빠릅니다.
+    오른쪽 위, 데이터도 많고 회선도 충분한 영역이 AWS DataSync 의 자리입니다.
+    한 번 옮기고 끝나는 것이 아니라 온프레미스와 AWS 사이를 주기적으로 동기화해야 할 때 특히 여기가 답입니다.
+    아래쪽 넓은 띠는 AWS Transfer Family 입니다. 이쪽은 데이터량보다 프로토콜이 판단 기준으로,
+    거래처가 이미 SFTP 나 FTPS 로 파일을 주고받고 있어 그 방식을 바꿀 수 없을 때 씁니다.
+    판단은 언제나 같은 질문에서 시작합니다. 지금 회선으로 이 데이터를 다 보내는 데 며칠이 걸리는가입니다.</desc>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">회선으로 며칠이 걸리는지가 첫 질문입니다</text>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="76">데이터량</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="96">많음</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="290">적음</text>
+
+  <path class="dg-grid" d="M90 56 L90 302 M90 302 L706 302"/>
+
+  <!-- Snow Family -->
+  <rect class="dg-node dg-node--warn" x="96" y="62" width="292" height="124" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="242" y="92" text-anchor="middle">Snow Family</text>
+  <text class="dg-fs-sm" x="242" y="116" text-anchor="middle">장비에 담아 물리적으로 보냅니다</text>
+  <text class="dg-fs-sm dg-bold" x="242" y="140" text-anchor="middle">회선으로 몇 주 이상 걸리는 구간</text>
+  <text class="dg-fs-sm dg-muted" x="242" y="164" text-anchor="middle">현장에 회선이 아예 없는 경우도 포함</text>
+
+  <!-- DataSync -->
+  <rect class="dg-node dg-node--accent" x="396" y="62" width="298" height="124" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="545" y="92" text-anchor="middle">AWS DataSync</text>
+  <text class="dg-fs-sm" x="545" y="116" text-anchor="middle">회선으로 빠르게 옮깁니다</text>
+  <text class="dg-fs-sm dg-bold" x="545" y="140" text-anchor="middle">반복 동기화가 필요하면 여기입니다</text>
+  <text class="dg-fs-sm dg-muted" x="545" y="164" text-anchor="middle">일정 예약 · 검증 · 증분 전송</text>
+
+  <!-- Transfer Family -->
+  <rect class="dg-node" x="96" y="194" width="598" height="100" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="395" y="224" text-anchor="middle">AWS Transfer Family</text>
+  <text class="dg-fs-sm" x="395" y="248" text-anchor="middle">SFTP · FTPS · FTP · AS2 로 들어오는 파일을 S3 나 EFS 에 받습니다</text>
+  <text class="dg-fs-sm dg-bold" x="395" y="272" text-anchor="middle">판단 기준은 데이터량이 아니라 상대가 쓰는 프로토콜입니다</text>
+
+  <text class="dg-fs-sm dg-muted" x="100" y="322">좁음</text>
+  <text class="dg-fs-sm dg-bold" x="395" y="322" text-anchor="middle">가용 대역폭 →</text>
+  <text class="dg-fs-sm dg-muted" x="700" y="322" text-anchor="end">넓음</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="336" width="680" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="360" text-anchor="middle">"지금 회선으로 다 보내는 데 몇 달" 이면 그 구간은 물리 전송의 영역입니다</text>
+  <text class="dg-fs-sm" x="360" y="382" text-anchor="middle">한 번 옮기고 끝이 아니라 계속 맞춰야 한다면 DataSync 를 먼저 봅니다</text>
+</svg>

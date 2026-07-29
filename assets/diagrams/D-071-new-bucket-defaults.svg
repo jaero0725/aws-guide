@@ -1,0 +1,59 @@
+<svg viewBox="0 0 720 424" role="img" aria-labelledby="d071-title d071-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d071-title">신규 S3 버킷의 보안 기본값 세 가지와 꺼져 있는 하나</title>
+  <desc id="d071-desc">지금 아무 설정 없이 만든 Amazon S3 버킷의 초기 상태를 네 개의 스위치로 보여 줍니다.
+    퍼블릭 액세스 차단은 켜져 있고, 객체 소유권이 BucketOwnerEnforced 라서 ACL 은 완전히 비활성이며,
+    새로 올라오는 모든 객체는 SSE-S3 즉 AES-256 으로 자동 암호화됩니다. 세 스위치 모두 기본이 켜짐입니다.
+    반면 네 번째 스위치인 버킷 버전 관리는 여전히 꺼진 상태로 시작하며 이 값은 지금까지 바뀐 적이 없습니다.
+    "S3 는 기본이 다 열려 있으니 잠가야 한다"는 오래된 설명은 2023년의 기본값 변경 이후로 틀린 말이 되었고,
+    실제로 직접 켜야 하는 것은 버전 관리 하나입니다. 버전 관리는 삭제와 덮어쓰기로부터의 복구,
+    그리고 복제 규칙의 전제 조건이기 때문에 중요합니다.</desc>
+
+  <text class="dg-fs-md dg-bold" x="20" y="30">버킷을 만들고 아무 설정도 건드리지 않은 상태</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="50">스위치 세 개는 이미 켜져 있고, 하나만 꺼져 있습니다</text>
+
+  <!-- 1. 퍼블릭 액세스 차단 -->
+  <rect class="dg-node dg-node--ok" x="20" y="64" width="680" height="66" rx="4"/>
+  <rect x="36" y="84" width="46" height="26" rx="13"
+        fill="var(--dg-ok-soft)" stroke="var(--dg-ok)" stroke-width="var(--dg-sw-2)"/>
+  <circle cx="69" cy="97" r="9" fill="var(--dg-ok)" stroke="none"/>
+  <text class="dg-fs-sm dg-bold" x="92" y="93">ON</text>
+  <text class="dg-fs-md dg-bold" x="134" y="92">퍼블릭 액세스 차단 (Block Public Access)</text>
+  <text class="dg-fs-sm dg-muted" x="134" y="114">계정·버킷 양쪽에서 네 설정 모두 켜짐 — 버킷 정책으로도 퍼블릭 공개가 막힙니다</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="92" y="114">기본</text>
+
+  <!-- 2. ACL 비활성 -->
+  <rect class="dg-node dg-node--ok" x="20" y="140" width="680" height="66" rx="4"/>
+  <rect x="36" y="160" width="46" height="26" rx="13"
+        fill="var(--dg-ok-soft)" stroke="var(--dg-ok)" stroke-width="var(--dg-sw-2)"/>
+  <circle cx="69" cy="173" r="9" fill="var(--dg-ok)" stroke="none"/>
+  <text class="dg-fs-sm dg-bold" x="92" y="169">ON</text>
+  <text class="dg-fs-md dg-bold" x="134" y="168">ACL 비활성 — ObjectOwnership = BucketOwnerEnforced</text>
+  <text class="dg-fs-sm dg-muted" x="134" y="190">버킷 소유자가 모든 객체를 소유하고 ACL 은 아예 평가되지 않습니다. 권한은 정책으로만</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="92" y="190">기본</text>
+
+  <!-- 3. SSE-S3 자동 암호화 -->
+  <rect class="dg-node dg-node--ok" x="20" y="216" width="680" height="66" rx="4"/>
+  <rect x="36" y="236" width="46" height="26" rx="13"
+        fill="var(--dg-ok-soft)" stroke="var(--dg-ok)" stroke-width="var(--dg-sw-2)"/>
+  <circle cx="69" cy="249" r="9" fill="var(--dg-ok)" stroke="none"/>
+  <text class="dg-fs-sm dg-bold" x="92" y="245">ON</text>
+  <text class="dg-fs-md dg-bold" x="134" y="244">신규 객체 자동 암호화 — SSE-S3 (AES-256)</text>
+  <text class="dg-fs-sm dg-muted" x="134" y="266">업로드가 요청 헤더 없이도 저장 시 암호화됩니다. 추가 요금도 성능 저하도 없습니다</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="92" y="266">기본</text>
+
+  <!-- 4. 버전 관리 OFF -->
+  <rect class="dg-node dg-node--warn" x="20" y="292" width="680" height="66" rx="4"/>
+  <rect x="36" y="312" width="46" height="26" rx="13"
+        fill="var(--dg-warn-soft)" stroke="var(--dg-warn)" stroke-width="var(--dg-sw-2)"/>
+  <circle cx="49" cy="325" r="9" fill="var(--dg-warn)" stroke="none"/>
+  <text class="dg-fs-sm dg-bold" x="92" y="321">OFF</text>
+  <text class="dg-fs-md dg-bold" x="134" y="320">버킷 버전 관리 (Versioning)</text>
+  <text class="dg-fs-sm dg-muted" x="134" y="342">꺼짐이 기본이며 바뀐 적이 없습니다. 덮어쓰기·삭제 복구와 복제 규칙의 전제 조건입니다</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="92" y="342">기본</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="368" width="680" height="44" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="386" text-anchor="middle">"S3 는 기본이 열려 있다"는 설명은 2023년 이후로 틀렸습니다</text>
+  <text class="dg-fs-sm" x="360" y="405" text-anchor="middle">직접 켜야 하는 것은 버전 관리 하나입니다</text>
+</svg>

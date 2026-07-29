@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 1 · 3계층 VPC 직접 구성 — AWS SAA Guide</title>
+  <meta name="description" content="퍼블릭·프라이빗·데이터베이스 서브넷을 두 가용 영역에 배치하고 인터넷 게이트웨이와 가용 영역별 NAT 게이트웨이, 라우팅 테이블을 CloudFormation과 AWS CLI로 구성합니다. 검증 방법과 삭제 순서, 자주 하는 실수까지 다룹니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab01"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab01">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 1 · 3계층 VPC 직접 구성</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 1</p>
+      <h1>3계층 VPC 직접 구성</h1>
+      <p class="page__lead">
+        SAA 시나리오 문항의 <strong>기본 배경</strong>이 되는 구성입니다.
+        퍼블릭 · 프라이빗 · 데이터베이스 세 계층을 두 가용 영역에 배치하고,
+        인터넷 게이트웨이와 <strong>가용 영역별 NAT 게이트웨이</strong>로 아웃바운드 경로를 만듭니다.
+        콘솔 클릭 대신 CloudFormation 템플릿과 AWS CLI로 구성합니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a> ·
+        <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>퍼블릭 서브넷과 프라이빗 서브넷을 라우팅 테이블로 구분해 만들 수 있습니다.</li>
+        <li>가용 영역마다 NAT 게이트웨이를 두고 라우팅을 분리할 수 있습니다.</li>
+        <li>CloudFormation 템플릿으로 네트워크 계층을 한 번에 배포할 수 있습니다.</li>
+        <li>구성이 의도대로 되었는지 CLI로 검증할 수 있습니다.</li>
+        <li>의존 관계 때문에 삭제가 막히는 순서를 이해하고 정리할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        웹 애플리케이션을 올릴 네트워크를 처음부터 만듭니다. 요구는 이렇습니다.
+      </p>
+      <ul>
+        <li>로드 밸런서는 인터넷에서 접근 가능해야 합니다.</li>
+        <li>애플리케이션 서버는 인터넷에서 직접 접근할 수 없어야 하지만,
+          패키지 내려받기 같은 <strong>아웃바운드</strong>는 가능해야 합니다.</li>
+        <li>데이터베이스는 인터넷 경로가 <strong>아예 없어야</strong> 합니다.</li>
+        <li>가용 영역 하나가 손실돼도 나머지 가용 영역에서 계속 동작해야 합니다.</li>
+      </ul>
+      <p>
+        이 요구가 그대로 세 계층 구조가 됩니다.
+        배경 개념은 <a href="../basics/ch03.html">3장 VPC 네트워킹 기초</a>에 있고,
+        이 구성을 잘못 두면 어떤 일이 벌어지는지는
+        <a href="../cases/case04.html">케이스 4 · 퍼블릭 서브넷에 데이터베이스를 뒀다</a>에서 다룹니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>서브넷 계층과 라우팅 설계</caption>
+          <thead>
+            <tr>
+              <th scope="col">계층</th>
+              <th scope="col">서브넷 수</th>
+              <th scope="col">기본 경로(<code>0.0.0.0/0</code>)</th>
+              <th scope="col">퍼블릭 IP 자동 할당</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">퍼블릭</th>
+              <td>가용 영역마다 1개</td>
+              <td>인터넷 게이트웨이</td>
+              <td>필요에 따라 켠다</td>
+            </tr>
+            <tr>
+              <th scope="row">프라이빗(애플리케이션)</th>
+              <td>가용 영역마다 1개</td>
+              <td><strong>자기 가용 영역의</strong> NAT 게이트웨이</td>
+              <td><span class="mark-no">끈다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">데이터베이스</th>
+              <td>가용 영역마다 1개</td>
+              <td><span class="mark-ok">없음 — 로컬 경로만</span></td>
+              <td><span class="mark-no">끈다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        주소 계획은 <code>10.20.0.0/16</code> 안에서 계층별로 <code>/24</code>씩 자릅니다.
+        서브넷마다 AWS가 <strong>5개 주소를 예약</strong>하므로
+        <code>/24</code>에서 실제로 쓸 수 있는 주소는 그만큼 줄어듭니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>CIDR 할당 계획</caption>
+          <thead>
+            <tr>
+              <th scope="col">서브넷</th>
+              <th scope="col">가용 영역 A</th>
+              <th scope="col">가용 영역 B</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">퍼블릭</th>
+              <td><code>10.20.0.0/24</code></td>
+              <td><code>10.20.1.0/24</code></td>
+            </tr>
+            <tr>
+              <th scope="row">프라이빗</th>
+              <td><code>10.20.10.0/24</code></td>
+              <td><code>10.20.11.0/24</code></td>
+            </tr>
+            <tr>
+              <th scope="row">데이터베이스</th>
+              <td><code>10.20.20.0/24</code></td>
+              <td><code>10.20.21.0/24</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <strong>퍼블릭 서브넷을 만드는 것은 이름이 아니라 라우팅 테이블입니다.</strong>
+          연결된 라우팅 테이블에 인터넷 게이트웨이로 향하는 경로가 있으면 퍼블릭,
+          없으면 프라이빗입니다. 이 정의를 아래 템플릿에서 그대로 확인할 수 있습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-template">1 · CloudFormation 템플릿</h3>
+      <p>
+        네트워크는 리소스 사이의 의존 관계가 많아 CLI로 순서를 지키기 번거롭습니다.
+        CloudFormation은 의존 관계를 추론해 순서를 잡아 주므로 이런 계층에 특히 잘 맞습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">three-tier-vpc.yaml</span> — 3계층 VPC 템플릿 (가용 영역은 배포 리전의 첫 두 곳을 씁니다)</figcaption>
+        <pre><code class="lang-yaml">AWSTemplateFormatVersion: '2010-09-09'
+Description: Three-tier VPC with public, private, and database subnets across two AZs
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: 10.20.0.0/16
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: lab01-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: lab01-igw
+
+  IgwAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: lab01-public-a
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: lab01-public-b
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: lab01-private-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.11.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: lab01-private-b
+
+  DbSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.20.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: lab01-db-a
+
+  DbSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.21.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: lab01-db-b
+
+  NatEipA:
+    Type: AWS::EC2::EIP
+    DependsOn: IgwAttachment
+    Properties:
+      Domain: vpc
+
+  NatEipB:
+    Type: AWS::EC2::EIP
+    DependsOn: IgwAttachment
+    Properties:
+      Domain: vpc
+
+  NatGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEipA.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: lab01-nat-a
+
+  NatGatewayB:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEipB.AllocationId
+      SubnetId: !Ref PublicSubnetB
+      Tags:
+        - Key: Name
+          Value: lab01-nat-b
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: lab01-rtb-public
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IgwAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicAssocA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+
+  PublicAssocB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetB
+
+  PrivateRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: lab01-rtb-private-a
+
+  PrivateDefaultRouteA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayA
+
+  PrivateAssocA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      SubnetId: !Ref PrivateSubnetA
+
+  PrivateRouteTableB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: lab01-rtb-private-b
+
+  PrivateDefaultRouteB:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableB
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayB
+
+  PrivateAssocB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableB
+      SubnetId: !Ref PrivateSubnetB
+
+  DbRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: lab01-rtb-db
+
+  DbAssocA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DbRouteTable
+      SubnetId: !Ref DbSubnetA
+
+  DbAssocB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DbRouteTable
+      SubnetId: !Ref DbSubnetB
+
+Outputs:
+  VpcId:
+    Value: !Ref Vpc
+  PublicSubnets:
+    Value: !Join [',', [!Ref PublicSubnetA, !Ref PublicSubnetB]]
+  PrivateSubnets:
+    Value: !Join [',', [!Ref PrivateSubnetA, !Ref PrivateSubnetB]]
+  DbSubnets:
+    Value: !Join [',', [!Ref DbSubnetA, !Ref DbSubnetB]]</code></pre>
+      </figure>
+
+      <p>
+        데이터베이스 라우팅 테이블에는 <strong>기본 경로를 아예 넣지 않습니다.</strong>
+        VPC 안의 로컬 경로만 남으므로 인터넷으로 나가는 방법이 존재하지 않습니다.
+        이것이 "정책으로 막았다"보다 강한 보장입니다.
+      </p>
+
+      <h3 id="step-deploy">2 · 배포</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">deploy.sh</span> — 스택 배포와 출력 확인 (스택 이름과 리전은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws cloudformation deploy \
+  --stack-name lab01-network \
+  --template-file three-tier-vpc.yaml \
+  --region ap-northeast-2
+
+aws cloudformation describe-stacks \
+  --stack-name lab01-network \
+  --query 'Stacks[0].Outputs' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <code>deploy</code>는 스택이 없으면 만들고 있으면 갱신합니다.
+          템플릿을 고쳐 가며 반복 실습할 때 편리합니다.
+          실제 변경 내용을 먼저 보고 싶다면 변경 세트를 만들어 검토한 뒤 실행합니다.
+        </p>
+      </aside>
+
+      <h3 id="step-cli">3 · 같은 구성을 CLI로 만들 때</h3>
+      <p>
+        템플릿 없이 CLI로 만들면 순서를 직접 지켜야 합니다.
+        아래는 퍼블릭 경로까지의 최소 흐름입니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-network.sh</span> — CLI로 VPC와 퍼블릭 경로 만들기 (리소스 ID는 실행 결과로 대체합니다)</figcaption>
+        <pre><code class="lang-bash">VPC_ID=$(aws ec2 create-vpc \
+  --cidr-block 10.20.0.0/16 \
+  --query 'Vpc.VpcId' --output text)
+
+aws ec2 modify-vpc-attribute --vpc-id "$VPC_ID" --enable-dns-hostnames
+
+SUBNET_ID=$(aws ec2 create-subnet \
+  --vpc-id "$VPC_ID" \
+  --cidr-block 10.20.0.0/24 \
+  --availability-zone ap-northeast-2a \
+  --query 'Subnet.SubnetId' --output text)
+
+aws ec2 modify-subnet-attribute --subnet-id "$SUBNET_ID" --map-public-ip-on-launch
+
+IGW_ID=$(aws ec2 create-internet-gateway \
+  --query 'InternetGateway.InternetGatewayId' --output text)
+
+aws ec2 attach-internet-gateway --vpc-id "$VPC_ID" --internet-gateway-id "$IGW_ID"
+
+RTB_ID=$(aws ec2 create-route-table \
+  --vpc-id "$VPC_ID" \
+  --query 'RouteTable.RouteTableId' --output text)
+
+aws ec2 create-route \
+  --route-table-id "$RTB_ID" \
+  --destination-cidr-block 0.0.0.0/0 \
+  --gateway-id "$IGW_ID"
+
+aws ec2 associate-route-table --route-table-id "$RTB_ID" --subnet-id "$SUBNET_ID"</code></pre>
+      </figure>
+
+      <p>
+        NAT 게이트웨이는 탄력적 IP를 먼저 할당하고, 퍼블릭 서브넷에 만든 뒤,
+        프라이빗 라우팅 테이블이 그것을 가리키게 하는 순서입니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-nat.sh</span> — 탄력적 IP 할당과 NAT 게이트웨이 생성</figcaption>
+        <pre><code class="lang-bash">ALLOC_ID=$(aws ec2 allocate-address \
+  --domain vpc \
+  --query 'AllocationId' --output text)
+
+NAT_ID=$(aws ec2 create-nat-gateway \
+  --subnet-id "$SUBNET_ID" \
+  --allocation-id "$ALLOC_ID" \
+  --query 'NatGateway.NatGatewayId' --output text)
+
+# 사용 가능해질 때까지 기다립니다.
+aws ec2 wait nat-gateway-available --nat-gateway-ids "$NAT_ID"
+
+aws ec2 create-route \
+  --route-table-id rtb-0private00000000a \
+  --destination-cidr-block 0.0.0.0/0 \
+  --nat-gateway-id "$NAT_ID"</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <p>
+        "만들어졌다"가 아니라 <strong>"의도한 경로가 생겼다"</strong>를 확인합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify-routes.sh</span> — 서브넷별 라우팅 테이블과 기본 경로 확인 (VPC ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 1) 라우팅 테이블마다 기본 경로의 대상이 무엇인지 봅니다.
+aws ec2 describe-route-tables \
+  --filters Name=vpc-id,Values=vpc-0123456789abcdef0 \
+  --query 'RouteTables[].{Rtb:RouteTableId,
+             Routes:Routes[?DestinationCidrBlock==`0.0.0.0/0`].[GatewayId,NatGatewayId],
+             Subnets:Associations[].SubnetId}' \
+  --output json
+
+# 2) 서브넷의 퍼블릭 IP 자동 할당 설정을 봅니다.
+aws ec2 describe-subnets \
+  --filters Name=vpc-id,Values=vpc-0123456789abcdef0 \
+  --query 'Subnets[].[Tags[?Key==`Name`].Value|[0],CidrBlock,AvailabilityZone,MapPublicIpOnLaunch]' \
+  --output table
+
+# 3) NAT 게이트웨이가 어느 서브넷(=어느 가용 영역)에 있는지 봅니다.
+aws ec2 describe-nat-gateways \
+  --filter Name=vpc-id,Values=vpc-0123456789abcdef0 \
+  --query 'NatGateways[].[NatGatewayId,SubnetId,State]' \
+  --output table</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>검증 항목과 통과 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">통과 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">퍼블릭 서브넷</th>
+              <td>기본 경로의 대상이 <code>igw-</code>로 시작한다</td>
+            </tr>
+            <tr>
+              <th scope="row">프라이빗 서브넷</th>
+              <td>기본 경로의 대상이 <strong>같은 가용 영역</strong>의 <code>nat-</code>다</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터베이스 서브넷</th>
+              <td>기본 경로가 <strong>없다</strong> (로컬 경로만 존재)</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 분산</th>
+              <td>각 계층의 서브넷이 서로 다른 가용 영역에 하나씩 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">아웃바운드 확인</th>
+              <td>프라이빗 서브넷의 인스턴스에서 외부 HTTPS 호출이 성공한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="확인해 보기">
+        <p>
+          아웃바운드를 실제로 확인하려면 프라이빗 서브넷에 인스턴스를 하나 띄우고
+          AWS Systems Manager 세션으로 접속해 외부 호출을 시도합니다.
+          SSH 포트를 열지 않고도 접속할 수 있으므로,
+          이 방식 자체가 <a href="../cases/case04.html">케이스 4</a>에서 다룬 원칙의 실습이 됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>이 실습에서 요금이 발생하는 구성 요소 — 금액이 아니라 항목입니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성 요소</th>
+              <th scope="col">요금 발생</th>
+              <th scope="col">비고</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">VPC · 서브넷 · 라우팅 테이블</th>
+              <td><span class="mark-ok">리소스 자체로는 발생하지 않는다</span></td>
+              <td>만들어 두는 것만으로는 부담이 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">인터넷 게이트웨이</th>
+              <td>게이트웨이 자체가 아니라 <strong>지나는 트래픽</strong>이 항목이다</td>
+              <td>송신 방향에 요금이 붙는다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 게이트웨이</th>
+              <td><span class="mark-no">가동 시간과 처리한 데이터양</span></td>
+              <td>이 실습에서 가장 큰 항목이다. <strong>실습이 끝나면 반드시 삭제</strong>한다</td>
+            </tr>
+            <tr>
+              <th scope="row">탄력적 IP</th>
+              <td>사용하지 않는 상태로 보유하면 항목이 된다</td>
+              <td>NAT를 지우고 주소를 놓아 주지 않으면 계속 남는다</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 간 전송</th>
+              <td>가용 영역을 넘는 트래픽에 붙는다</td>
+              <td>가용 영역별 NAT 설계가 이 항목을 줄인다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        NAT 게이트웨이를 가용 영역마다 두면 가동 항목이 늘지만,
+        가용 영역을 넘는 트래픽이 사라지고 가용 영역 장애에도 견딥니다.
+        비용 구조는 <a href="../cases/case06.html">케이스 6 · 데이터 전송 요금이 예산을 넘겼다</a>에서 자세히 다룹니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+
+      <ul>
+        <li><strong>가용 영역을 셋으로.</strong> 두 곳이면 하나가 빠질 때 남은 한 곳이
+          전체 부하를 받아야 합니다. 셋이면 필요한 여유 비율이 줄어듭니다.</li>
+        <li><strong>주소 공간을 넉넉하게.</strong> VPC CIDR은 나중에 좁히기 어렵고,
+          서브넷마다 5개 주소가 예약됩니다. 컨테이너를 쓰면 주소 소모가 훨씬 빠릅니다.</li>
+        <li><strong>VPC 흐름 로그를 켭니다.</strong> 문제가 생긴 뒤에 켜면
+          그 이전 기록은 존재하지 않습니다.</li>
+        <li><strong>S3와 DynamoDB에는 게이트웨이 엔드포인트를 추가합니다.</strong>
+          NAT를 지나는 데이터양이 줄어듭니다
+          (<a href="lab10.html">실습 10</a>).</li>
+        <li><strong>보안 그룹은 계층 간 참조로 연결합니다.</strong>
+          소스를 CIDR이 아니라 상위 계층의 보안 그룹 ID로 지정합니다.</li>
+        <li><strong>네트워크 ACL은 기본값을 유지하고, 필요할 때만 손댑니다.</strong>
+          상태 비저장이라 반환 트래픽을 명시 허용해야 하므로 실수하기 쉽습니다.</li>
+        <li><strong>템플릿을 환경별 파라미터로 재사용합니다.</strong>
+          개발·스테이징·운영이 같은 구조를 갖는 것이 운영 부담을 줄입니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>NAT 게이트웨이는 삭제해도 즉시 사라지지 않습니다.</strong>
+          상태가 <code>deleted</code>가 될 때까지 기다린 뒤에야
+          연결된 서브넷과 VPC를 지울 수 있습니다.
+          스택 삭제가 오래 걸리는 이유가 대부분 이것입니다.
+        </p>
+      </aside>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 스택 삭제와 잔여 리소스 확인</figcaption>
+        <pre><code class="lang-bash">aws cloudformation delete-stack --stack-name lab01-network
+aws cloudformation wait stack-delete-complete --stack-name lab01-network
+
+# 사용되지 않는 탄력적 IP 가 남아 있지 않은지 확인합니다.
+aws ec2 describe-addresses \
+  --query 'Addresses[?AssociationId==null].[AllocationId,PublicIp]' \
+  --output table</code></pre>
+      </figure>
+
+      <p>
+        CLI로 직접 만들었다면 아래 순서로 지웁니다.
+        의존 관계 때문에 순서를 바꾸면 삭제가 거부됩니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup-manual.sh</span> — CLI로 만든 리소스의 삭제 순서 (ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws ec2 delete-nat-gateway --nat-gateway-id nat-0123456789abcdef0
+aws ec2 wait nat-gateway-deleted --nat-gateway-ids nat-0123456789abcdef0
+
+aws ec2 release-address --allocation-id eipalloc-0123456789abcdef0
+
+aws ec2 detach-internet-gateway \
+  --internet-gateway-id igw-0123456789abcdef0 \
+  --vpc-id vpc-0123456789abcdef0
+aws ec2 delete-internet-gateway --internet-gateway-id igw-0123456789abcdef0
+
+aws ec2 delete-subnet --subnet-id subnet-0123456789abcdef0
+aws ec2 delete-route-table --route-table-id rtb-0123456789abcdef0
+aws ec2 delete-vpc --vpc-id vpc-0123456789abcdef0</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>이 실습에서 자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">인터넷 게이트웨이를 만들고 <strong>연결하지 않음</strong></th>
+              <td>퍼블릭 경로를 만들려 할 때 실패하거나 통신이 되지 않는다</td>
+              <td>VPC에 연결한 뒤 경로를 만든다 (템플릿에서는 <code>DependsOn</code>)</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT를 <strong>프라이빗 서브넷에</strong> 만듦</th>
+              <td>프라이빗 서브넷에서 인터넷으로 나가지 못한다</td>
+              <td>NAT는 퍼블릭 서브넷에 만든다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 하나로 모든 가용 영역을 처리</th>
+              <td>가용 영역 장애 시 전면 중단, 평상시 가용 영역 간 전송 발생</td>
+              <td>가용 영역마다 NAT와 라우팅 테이블을 만든다</td>
+            </tr>
+            <tr>
+              <th scope="row">서브넷을 라우팅 테이블에 <strong>연결하지 않음</strong></th>
+              <td>VPC의 기본 라우팅 테이블이 적용되어 의도와 다르게 동작한다</td>
+              <td>모든 서브넷에 명시적으로 연결한다</td>
+            </tr>
+            <tr>
+              <th scope="row">이름만 <code>private</code>이고 인터넷 게이트웨이 경로가 있음</th>
+              <td>프라이빗이라고 믿은 서브넷이 실제로는 퍼블릭이다</td>
+              <td>라우팅 테이블로 검증한다</td>
+            </tr>
+            <tr>
+              <th scope="row">서브넷 CIDR이 겹침</th>
+              <td>서브넷 생성이 거부된다</td>
+              <td>계층별로 대역을 미리 나눠 문서화한다</td>
+            </tr>
+            <tr>
+              <th scope="row">실습 후 NAT를 지우지 않음</th>
+              <td>사용하지 않는데도 요금이 계속 발생한다</td>
+              <td>정리 절에 따라 삭제하고 탄력적 IP까지 회수한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch03.html">
+          <span class="card__title">3장 · VPC 네트워킹 기초</span>
+          <span class="card__desc">CIDR 설계와 예약 주소, 라우팅 테이블, 보안 그룹과 네트워크 ACL을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 1</span>
+        </a></li>
+        <li><a class="card" href="lab02.html">
+          <span class="card__title">실습 2 · ALB + ASG 웹 티어</span>
+          <span class="card__desc">이 실습에서 만든 네트워크 위에 로드 밸런서와 오토스케일링을 얹습니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="lab10.html">
+          <span class="card__title">실습 10 · VPC 엔드포인트로 S3 비공개 접근</span>
+          <span class="card__desc">이 네트워크에 게이트웨이 엔드포인트를 추가해 NAT 경로를 걷어냅니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case04.html">
+          <span class="card__title">케이스 4 · 퍼블릭 서브넷에 데이터베이스를 뒀다</span>
+          <span class="card__desc">이 구성을 지키지 않았을 때 어떤 노출이 생기는지 분해합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch17.html">
+          <span class="card__title">17장 · 모니터링 · 운영 · 계정 관리</span>
+          <span class="card__desc">CloudFormation 스택 수명주기와 변경 세트, 드리프트 감지를 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html">Amazon VPC 사용 설명서 — NAT 게이트웨이</a>
+          — NAT가 지정한 서브넷에 인터페이스를 만든다는 동작과 퍼블릭·프라이빗 NAT의 구분</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateSubnet.html">Amazon EC2 API 레퍼런스 — CreateSubnet</a>
+          — 서브넷이 하나의 가용 영역에 속한다는 제약과 가용 영역 ID 사용 권고</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifySubnetAttribute.html">Amazon EC2 API 레퍼런스 — ModifySubnetAttribute</a>
+          — <code>MapPublicIpOnLaunch</code> 속성</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateNatGateway.html">Amazon EC2 API 레퍼런스 — CreateNatGateway</a>
+          — 탄력적 IP 연결과 네트워크 경계 그룹 일치 요구</li>
+        <li><a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html">AWS CloudFormation 사용 설명서 — AWS::EC2::VPC</a>
+          — <code>CidrBlock</code>·<code>EnableDnsSupport</code>·<code>EnableDnsHostnames</code> 속성</li>
+        <li><a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html">AWS CloudFormation 사용 설명서 — AWS::EC2::Route</a>
+          — <code>GatewayId</code>와 <code>NatGatewayId</code> 중 하나를 대상으로 지정하는 방식</li>
+        <li><a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-natgateway.html">AWS CloudFormation 사용 설명서 — AWS::EC2::NatGateway</a>
+          — <code>AllocationId</code>와 <code>SubnetId</code> 속성</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

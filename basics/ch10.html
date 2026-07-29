@@ -1,0 +1,1471 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>10장 · RDS와 관계형 데이터베이스 — AWS SAA Guide</title>
+  <meta name="description" content="Amazon RDS의 지원 엔진과 관리 범위, Multi-AZ 배포와 읽기 전용 복제본의 결정적 차이, Multi-AZ DB 클러스터라는 별개 아키텍처, Amazon Aurora의 공유 스토리지와 복제본, 글로벌 데이터베이스, Aurora Serverless v2, 자동 백업과 특정 시점 복구, 스냅샷 복사와 공유, RDS Proxy, 저장 시 암호화의 생성 시점 제약, 유지 관리 기간을 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch10"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch10">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">10장 · RDS와 관계형 데이터베이스</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 10장</p>
+      <h1>RDS와 관계형 데이터베이스</h1>
+      <p class="page__lead">
+        이 장의 무게중심은 하나입니다.
+        <strong>Multi-AZ 배포와 읽기 전용 복제본은 다른 문제를 푼다</strong>는 것.
+        하나는 가용성을, 다른 하나는 읽기 확장을 삽니다.
+        시험은 이 둘을 바꿔 놓은 선택지를 거의 매번 섞어 넣고,
+        여기서 흔들리면 가중치 26%짜리 도메인을 통째로 잃습니다.
+        나머지 절들은 이 판단을 둘러싼 배경 — Amazon Aurora의 구조, 백업과 복구, 연결 관리, 암호화 — 입니다.
+      </p>
+      <p class="page__meta">
+        주 도메인은 <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>이며,
+        Aurora와 RDS Proxy는 <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>에도 걸칩니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>Amazon RDS가 관리하는 범위와 고객이 남겨 받는 범위를 책임 공유 모델 위에서 구분할 수 있습니다.</li>
+        <li>Multi-AZ 배포와 읽기 전용 복제본을 복제 방식 · 목적 · 엔드포인트 · 읽기 처리 네 가지 축으로 구분할 수 있습니다.</li>
+        <li>표준 Multi-AZ 인스턴스 배포와 Multi-AZ DB 클러스터 배포가 별개 아키텍처라는 사실을 근거를 들어 설명할 수 있습니다.</li>
+        <li>Amazon Aurora의 공유 클러스터 볼륨과 엔드포인트 구조가 RDS의 인스턴스별 스토리지 모델과 어떻게 다른지 설명할 수 있습니다.</li>
+        <li>자동 백업 · 특정 시점 복구 · 수동 스냅샷 · 스냅샷 복사와 공유를 요구사항에 맞게 고를 수 있습니다.</li>
+        <li>저장 시 암호화가 생성 시점에 결정된다는 제약을 근거로 기존 데이터베이스를 암호화하는 절차를 설계할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="managed-relational-database">
+      <h2 id="managed-relational-database">Amazon RDS — 무엇까지 AWS가 하는가</h2>
+
+      <p>
+        Amazon RDS는 관계형 데이터베이스 엔진을 대신 운영해 주는 서비스입니다.
+        직접 EC2에 데이터베이스를 설치하는 것과 비교하면,
+        <strong>운영체제와 엔진 설치 · 패치 · 백업 · 장애 조치 · 복제 설정</strong>이 AWS 쪽으로 넘어갑니다.
+        반대로 <strong>스키마 · 인덱스 · 쿼리 · 데이터베이스 사용자 · 네트워크 배치 · 암호화 선택</strong>은 여전히 우리 몫입니다.
+      </p>
+      <p>
+        시험에서 <code>LEAST operational overhead</code>라는 한정어가 붙으면
+        이 경계선이 그대로 정답의 근거가 됩니다.
+        "EC2에 직접 데이터베이스를 설치하고 스크립트로 백업한다"는 선택지는
+        같은 결과를 내더라도 운영 부담이 더 크므로 소거 대상입니다.
+      </p>
+
+      <h3 id="supported-engines">지원 엔진</h3>
+      <p>
+        RDS API의 <code>Engine</code> 파라미터가 받는 값이 곧 지원 엔진 목록입니다.
+        엔진 계열은 크게 세 갈래입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon RDS가 지원하는 데이터베이스 엔진 계열</caption>
+          <thead>
+            <tr>
+              <th scope="col">계열</th>
+              <th scope="col">엔진</th>
+              <th scope="col">시험에서의 성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">오픈소스</th>
+              <td>MySQL, MariaDB, PostgreSQL</td>
+              <td>읽기 전용 복제본 · Multi-AZ · Multi-AZ DB 클러스터를 폭넓게 지원합니다. 시나리오 문항의 기본 전제입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">상용</th>
+              <td>Oracle, Microsoft SQL Server, IBM Db2</td>
+              <td>라이선스와 기능 제약이 따라옵니다. 읽기 전용 복제본 개수 상한이 오픈소스 엔진보다 낮습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">클라우드 네이티브</th>
+              <td>Amazon Aurora (MySQL 호환 · PostgreSQL 호환)</td>
+              <td>API에서는 <code>aurora-mysql</code> · <code>aurora-postgresql</code>이며, <strong>DB 클러스터로 만들고 복제 구조가 다릅니다</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Aurora가 목록에 함께 있지만 <strong>동작 모델은 별개</strong>입니다.
+        RDS API 문서는 읽기 전용 복제본 생성 작업(<code>CreateDBInstanceReadReplica</code>)에 대해
+        <strong>Aurora는 이 작업을 지원하지 않는다</strong>고 명시합니다.
+        Aurora에서 읽기 용량을 늘리는 방법은 복제본을 따로 만드는 것이 아니라
+        <strong>클러스터에 DB 인스턴스를 추가하는 것</strong>입니다.
+        자세한 구조는 <a href="#aurora">아래 Aurora 절</a>에서 다룹니다.
+      </p>
+
+      <h3 id="responsibility-boundary">책임 경계 — 어디까지가 AWS인가</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon RDS에서의 책임 분담</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">누구의 몫인가</th>
+              <th scope="col">근거와 함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">물리 인프라 · 하이퍼바이저</th>
+              <td><span class="mark-ok">AWS</span></td>
+              <td>모든 관리형 서비스와 동일합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">운영체제 설치와 패치</th>
+              <td><span class="mark-ok">AWS</span></td>
+              <td>유지 관리 기간에 수행됩니다. 인스턴스에 SSH로 접속하는 경로 자체가 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터베이스 엔진 설치와 마이너 버전 업그레이드</th>
+              <td><span class="mark-ok">AWS</span> — <code>AutoMinorVersionUpgrade</code>가 기본 활성</td>
+              <td>API 문서는 "기본적으로 마이너 엔진 업그레이드가 자동 적용된다"고 명시합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">메이저 버전 업그레이드 시점</th>
+              <td><span class="mark-no">고객</span></td>
+              <td>호환성 검증이 필요하므로 자동으로 올라가지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자동 백업 수행</th>
+              <td><span class="mark-ok">AWS</span> — <strong>보존 기간 설정은 고객</strong></td>
+              <td>보존 기간을 0으로 두면 자동 백업 자체가 꺼집니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Multi-AZ 장애 조치</th>
+              <td><span class="mark-ok">AWS</span> — <strong>Multi-AZ를 켜는 것은 고객</strong></td>
+              <td>켜지 않으면 대기 인스턴스가 없고 장애 조치도 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">스키마 · 인덱스 · 쿼리 튜닝</th>
+              <td><span class="mark-no">고객</span></td>
+              <td>관리형이라고 느린 쿼리가 빨라지지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터베이스 사용자와 권한</th>
+              <td><span class="mark-no">고객</span></td>
+              <td>IAM과는 별개 계층입니다. IAM 데이터베이스 인증은 선택 기능입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 배치 · 보안 그룹</th>
+              <td><span class="mark-no">고객</span></td>
+              <td>프라이빗 서브넷 배치는 <a href="ch03.html">3장 VPC 네트워킹 기초</a>의 주제입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">저장 시 암호화 여부</th>
+              <td><span class="mark-no">고객</span> — <strong>생성 시점에만 결정</strong></td>
+              <td><a href="#encryption">아래 암호화 절</a>에서 다룹니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          "데이터베이스 운영 부담을 줄이고 싶다"는 요구는 단계로 읽습니다.
+          <strong>EC2 자체 관리 → Amazon RDS → Amazon Aurora → Aurora Serverless v2</strong> 순으로
+          우리가 손댈 것이 줄어듭니다.
+          문제문이 <code>LEAST operational overhead</code>를 말하면 오른쪽으로,
+          <strong>엔진을 세밀하게 통제해야 한다</strong>거나 <strong>RDS가 지원하지 않는 엔진</strong>이라는
+          제약이 붙으면 왼쪽으로 이동합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="multi-az-vs-read-replica">
+      <h2 id="multi-az-vs-read-replica">Multi-AZ와 읽기 전용 복제본 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        <strong>Multi-AZ는 가용성, 읽기 전용 복제본은 읽기 확장</strong>입니다.
+        이 한 문장이 이 장에서 가장 많은 문항을 가릅니다.
+        요구가 둘 다면 둘 다 구성하는 선택지가 정답이고,
+        둘을 바꿔 놓은 선택지는 그 자리에서 소거합니다.
+      </p>
+      <p>
+        같은 결론을 <a href="../saa/domain-resilient.html#multi-az-vs-read-replica">도메인 2 해설</a>에서
+        이미 요약해 두었습니다. 여기서는 그 표 아래로 한 층 더 내려가
+        <strong>왜 그렇게 되는지</strong>를 복제 방식에서부터 따라갑니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-090">
+        <figcaption>
+          Multi-AZ 배포와 읽기 전용 복제본의 구조 대비 — 왼쪽은 동기 복제로 다른 가용 영역에 대기 인스턴스를 두지만
+          그 인스턴스는 읽기를 받지 않고 엔드포인트도 하나뿐이며, 오른쪽은 비동기 복제로 읽기 트래픽을 처리하는
+          별도 엔드포인트를 갖고 다른 리전에도 놓을 수 있습니다
+        </figcaption>
+      </figure>
+
+      <h3 id="rds-multi-az">Multi-AZ 배포 — 동기 복제로 가용성을 산다</h3>
+      <p>
+        Multi-AZ DB 인스턴스 배포는 <strong>다른 가용 영역에 동기식(synchronous) 대기 복제본</strong>을 두고
+        유지합니다. RDS 사용 설명서는 프라이머리가
+        "가용 영역을 가로질러 대기 복제본으로 동기적으로 복제된다"고 서술합니다.
+        커밋은 대기 쪽 스토리지에 기록이 반영된 뒤에 완료되므로,
+        장애 조치가 일어나도 <strong>커밋된 트랜잭션이 유실되지 않습니다.</strong>
+      </p>
+      <p>
+        대가는 지연 시간입니다. 같은 문서가
+        "동기 복제 때문에 단일 가용 영역 배포보다 쓰기와 커밋 지연이 늘어날 수 있다"고 명시합니다.
+        Multi-AZ는 <strong>쓰기 지연을 조금 내주고 가용성을 사는 거래</strong>입니다.
+      </p>
+      <p>
+        결정적인 제약은 이것입니다. RDS 사용 설명서는 Multi-AZ에 대해
+        <strong>"고가용성 옵션은 읽기 전용 시나리오를 위한 확장 솔루션이 아니며,
+        대기 복제본으로 읽기 트래픽을 처리할 수 없다"</strong>고 못 박습니다.
+        대기 인스턴스는 평소에 놀고 있는 것처럼 보이지만,
+        <strong>애플리케이션이 접근할 수 있는 엔드포인트가 없습니다.</strong>
+      </p>
+
+      <h3 id="read-replica">읽기 전용 복제본 — 비동기 복제로 읽기를 늘린다</h3>
+      <p>
+        읽기 전용 복제본은 소스 인스턴스의 변경을
+        <strong>비동기(asynchronous)로</strong> 따라갑니다.
+        비동기이므로 소스의 쓰기 성능이 복제본 수에 크게 좌우되지 않지만,
+        대신 <strong>복제 지연(replica lag)</strong>이 존재합니다.
+        방금 쓴 값을 곧바로 복제본에서 읽으면 이전 값이 보일 수 있습니다.
+      </p>
+      <p>
+        복제본은 <strong>자기 엔드포인트</strong>를 갖습니다.
+        그래서 읽기 부하를 나누려면 <strong>애플리케이션이 읽기 쿼리를 그 엔드포인트로 보내도록 수정</strong>해야 합니다.
+        문제문에 <code>without changing application code</code>가 붙어 있으면
+        읽기 전용 복제본만으로는 요구를 만족시키지 못한다는 뜻이 됩니다.
+      </p>
+      <p>
+        복제본에는 몇 가지 조건이 따라붙습니다.
+        RDS API 문서 기준으로 정리하면 다음과 같습니다.
+      </p>
+      <ul>
+        <li>소스 인스턴스는 <strong>자동 백업이 켜져 있어야</strong> 합니다. 보존 기간이 0이면 복제본을 만들 수 없습니다.</li>
+        <li>복제본은 <strong>백업이 꺼진 상태로 생성</strong>됩니다. 필요하면 따로 켭니다.</li>
+        <li>개수 상한은 엔진에 따라 다릅니다. <strong>대부분의 엔진은 인스턴스당 15개</strong>이고,
+          <strong>Oracle과 SQL Server는 5개, Db2는 3개</strong>입니다.</li>
+        <li>복제본을 <strong>독립 인스턴스로 승격</strong>(<code>PromoteReadReplica</code>)할 수 있지만,
+          이것은 <strong>자동으로 일어나지 않습니다.</strong> 사람이나 자동화가 호출해야 합니다.</li>
+        <li>복제본 자체를 Multi-AZ로 만들 수도 있습니다. 소스가 Multi-AZ인지와는 무관한 별개 설정입니다.</li>
+      </ul>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          <strong>읽기 전용 복제본은 자동 장애 조치 수단이 아닙니다.</strong>
+          프라이머리가 죽어도 복제본이 스스로 승격하지 않고, 쓰기는 계속 실패합니다.
+          "가용성을 높여야 한다"는 요구에 복제본을 답으로 고르면 틀립니다.
+        </p>
+        <p>
+          반대로 <strong>교차 리전 복제본은 재해 복구 자산</strong>이 됩니다.
+          리전 장애 시 다른 리전의 복제본을 승격해 서비스를 재개할 수 있기 때문입니다.
+          다만 승격은 수동 조작이므로 복구 시간 목표(RTO)가 0에 가까운 요구에는 부족합니다.
+        </p>
+      </aside>
+
+      <h3 id="comparison-table">네 가지 축으로 가르기</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon RDS Multi-AZ 배포와 읽기 전용 복제본 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Multi-AZ 배포</th>
+              <th scope="col">읽기 전용 복제본</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">복제 방식</th>
+              <td><span class="mark-ok">동기(synchronous)</span></td>
+              <td><span class="mark-no">비동기(asynchronous)</span></td>
+            </tr>
+            <tr>
+              <th scope="row">목적</th>
+              <td>고가용성과 재해 복구</td>
+              <td>읽기 성능 확장</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트</th>
+              <td>동일 엔드포인트 유지. 장애 조치 시 DNS가 대기 인스턴스를 가리킵니다</td>
+              <td>별도의 읽기 엔드포인트</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 처리</th>
+              <td><span class="mark-no">대기 인스턴스는 읽기 트래픽을 받지 않습니다</span></td>
+              <td><span class="mark-ok">읽기 트래픽을 처리합니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">배치 범위</th>
+              <td>같은 리전의 다른 가용 영역</td>
+              <td>같은 리전 또는 다른 리전</td>
+            </tr>
+            <tr>
+              <th scope="row">애플리케이션 수정</th>
+              <td>필요 없음</td>
+              <td>읽기를 읽기 엔드포인트로 보내도록 수정 필요</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터 유실 가능성</th>
+              <td><span class="mark-ok">커밋된 트랜잭션은 유실되지 않습니다</span></td>
+              <td><span class="mark-no">복제 지연만큼 최신 쓰기가 빠질 수 있습니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">승격</th>
+              <td>AWS가 자동으로 장애 조치</td>
+              <td><span class="mark-no">수동 승격 — 자동으로 일어나지 않습니다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 지정</th>
+              <td><span class="mark-no">불가 — <code>AvailabilityZone</code> 파라미터를 함께 쓸 수 없습니다</span></td>
+              <td>지정 가능</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">rds-availability-vs-read-scale.sh</span> — 가용성과 읽기 확장은 서로 다른 호출로 만들어집니다 (리전 코드와 식별자는 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># (1) 가용성 — 기존 인스턴스를 Multi-AZ 배포로 전환합니다.
+#     엔드포인트는 그대로이고 애플리케이션은 손대지 않습니다.
+aws rds modify-db-instance \
+  --db-instance-identifier app-prod \
+  --multi-az \
+  --apply-immediately
+
+# (2) 읽기 확장 — 별도의 읽기 엔드포인트를 갖는 복제본을 만듭니다.
+#     소스는 자동 백업이 켜져 있어야 합니다.
+aws rds create-db-instance-read-replica \
+  --db-instance-identifier app-prod-reader-1 \
+  --source-db-instance-identifier app-prod
+
+# (3) 두 엔드포인트가 다르다는 것을 확인합니다.
+aws rds describe-db-instances \
+  --query 'DBInstances[].[DBInstanceIdentifier,MultiAZ,Endpoint.Address,ReadReplicaSourceDBInstanceIdentifier]' \
+  --output table</code></pre>
+      </figure>
+
+      <h3 id="failover-behavior">장애 조치는 어떻게 일어나는가</h3>
+      <p>
+        Multi-AZ 장애 조치의 핵심 기제는 <strong>DNS 레코드 전환</strong>입니다.
+        RDS 사용 설명서는 "장애 조치 메커니즘이 DB 인스턴스의 DNS 레코드를
+        대기 인스턴스를 가리키도록 자동으로 바꾼다"고 설명하며,
+        그 결과 <strong>기존 연결은 다시 맺어야 한다</strong>고 덧붙입니다.
+        엔드포인트 문자열이 바뀌지 않으므로 애플리케이션 설정은 그대로 두어도 됩니다.
+      </p>
+      <p>
+        소요 시간은 같은 문서 기준 <strong>대체로 60~120초</strong>이며,
+        큰 트랜잭션이나 긴 복구 과정이 있으면 더 걸릴 수 있습니다.
+        장애 조치를 유발하는 사유도 문서에 표로 정리되어 있습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Multi-AZ DB 인스턴스 배포에서 장애 조치가 발생하는 사유</caption>
+          <thead>
+            <tr>
+              <th scope="col">사유</th>
+              <th scope="col">설명</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">운영체제 패치</th>
+              <td>유지 관리 기간에 운영체제 패치나 보안 업데이트가 오프라인 작업으로 수행될 때</td>
+            </tr>
+            <tr>
+              <th scope="row">프라이머리 호스트 이상</th>
+              <td>프라이머리 인스턴스가 손상된 것으로 감지될 때</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 도달 불가</th>
+              <td>모니터링이 프라이머리로의 네트워크 도달 실패를 감지할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">스토리지 볼륨 장애</th>
+              <td>프라이머리의 스토리지 볼륨에 문제가 감지될 때</td>
+            </tr>
+            <tr>
+              <th scope="row">고객의 인스턴스 수정</th>
+              <td>인스턴스 클래스 변경 같은 수정 작업이 장애 조치를 유발할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">사용자 요청</th>
+              <td>장애 조치를 동반한 재부팅을 선택했을 때 — 정기적으로 시험해 볼 수 있는 유일한 방법입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        위 목록에서 읽어야 할 것은 <strong>유지 관리도 장애 조치의 사유</strong>라는 점입니다.
+        Multi-AZ는 계획된 유지 관리 중의 중단 시간을 줄이는 장치이기도 합니다.
+        이 관계는 <a href="#maintenance-window">유지 관리 기간 절</a>에서 다시 다룹니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-091">
+        <figcaption>
+          같은 장애를 두 구성에 넣었을 때의 차이 — Multi-AZ는 DNS가 대기 인스턴스로 전환되어 같은 엔드포인트로
+          쓰기가 재개되지만, 읽기 전용 복제본 구성에서는 자동 승격이 일어나지 않아 쓰기가 계속 실패합니다
+        </figcaption>
+      </figure>
+
+      <h3 id="multi-az-db-cluster">Multi-AZ DB 클러스터 — 이름이 비슷한 별개 아키텍처</h3>
+      <p>
+        여기가 이 장에서 가장 조심할 지점입니다.
+        <strong>Multi-AZ DB 인스턴스 배포</strong>와 <strong>Multi-AZ DB 클러스터 배포</strong>는
+        이름이 두 글자 차이지만 <strong>구조가 다릅니다.</strong>
+        RDS 사용 설명서는 Multi-AZ DB 클러스터를 이렇게 정의합니다.
+      </p>
+      <ul>
+        <li><strong>읽기 가능한 대기 인스턴스 2개</strong>를 두는 배포 모드입니다.
+          쓰기 인스턴스 1개와 읽기 인스턴스 2개가 <strong>같은 리전의 서로 다른 세 가용 영역</strong>에 놓입니다.</li>
+        <li>복제는 동기가 아니라 <strong>반동기(semisynchronous)</strong>입니다.
+          변경을 커밋하려면 <strong>읽기 인스턴스 중 최소 하나의 확인</strong>이 필요하며,
+          모든 복제본에서 완전히 실행·커밋될 것까지 요구하지는 않습니다.</li>
+        <li>읽기 인스턴스는 <strong>자동 장애 조치 대상이면서 동시에 읽기 트래픽을 처리</strong>합니다.</li>
+        <li>Multi-AZ DB 인스턴스 배포보다 <strong>쓰기 지연이 낮은 편</strong>이라고 문서가 명시합니다.</li>
+        <li>클러스터를 만들려면 <code>DBClusterInstanceClass</code> · <code>AllocatedStorage</code> ·
+          <code>Iops</code> · <code>StorageType</code>을 함께 지정해야 하고,
+          <strong>프로비저닝된 IOPS 스토리지만 지원</strong>합니다.</li>
+      </ul>
+      <p>
+        그리고 RDS 사용 설명서는 별도의 경고 상자로
+        <strong>"Multi-AZ DB 클러스터는 Aurora DB 클러스터와 같은 것이 아니다"</strong>라고 적어 둡니다.
+        이름에 모두 "클러스터"가 들어가지만 세 가지는 전부 다른 것입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>이름이 비슷한 세 가지 배포 형태 구분</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Multi-AZ DB 인스턴스 배포</th>
+              <th scope="col">Multi-AZ DB 클러스터 배포</th>
+              <th scope="col">Aurora DB 클러스터</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">대기 인스턴스</th>
+              <td>1개</td>
+              <td>2개</td>
+              <td>Aurora 복제본(읽기 인스턴스)</td>
+            </tr>
+            <tr>
+              <th scope="row">대기 인스턴스로 읽기</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span></td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row">복제 방식</th>
+              <td>동기</td>
+              <td>반동기 — 읽기 인스턴스 중 최소 하나의 확인</td>
+              <td>공유 클러스터 볼륨 — 인스턴스 간 데이터 복제가 아님</td>
+            </tr>
+            <tr>
+              <th scope="row">스토리지</th>
+              <td>인스턴스마다 자기 볼륨</td>
+              <td>인스턴스마다 자기 볼륨 (프로비저닝된 IOPS 전용)</td>
+              <td><strong>모든 인스턴스가 하나의 클러스터 볼륨을 공유</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 수</th>
+              <td>2</td>
+              <td>3</td>
+              <td>클러스터 볼륨이 3개 가용 영역에 복제됨</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>"Multi-AZ 대기 인스턴스에서 읽기를 처리해 부하를 분산한다"</strong>는 서술은
+          표준 Multi-AZ 인스턴스 배포에서 틀립니다.
+          읽기 가능한 대기 인스턴스를 두는 <strong>Multi-AZ DB 클러스터 배포는 별개의 아키텍처</strong>이므로,
+          문제문이 어느 쪽을 말하는지 확인하고 답합니다.
+        </p>
+        <p>
+          판별 단서는 문제문의 어휘입니다.
+          <strong>대기 인스턴스가 1개</strong>이거나 <strong>가용 영역이 2개</strong>라고 쓰여 있으면
+          인스턴스 배포이고, <strong>읽기 가능한 대기 2개</strong> 또는
+          <strong>가용 영역 3개</strong>가 나오면 DB 클러스터 배포입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          요구사항을 다음 순서로 읽으면 거의 실수하지 않습니다.
+        </p>
+        <ul>
+          <li><strong>"가용 영역 장애를 견뎌야 한다" · "다운타임 최소화" · "자동 장애 조치"</strong> → Multi-AZ</li>
+          <li><strong>"읽기 쿼리가 많다" · "보고서·분석 쿼리가 운영에 영향을 준다"</strong> → 읽기 전용 복제본</li>
+          <li><strong>둘 다 요구</strong> → Multi-AZ <strong>와</strong> 읽기 전용 복제본을 함께 구성</li>
+          <li><strong>"애플리케이션 코드를 바꾸지 않고 읽기를 분산"</strong> → 복제본만으로는 부족합니다.
+            Aurora의 리더 엔드포인트나 캐시 계층을 검토합니다
+            (<a href="ch11.html#caching-choice">11장 캐시 계층 선택</a>)</li>
+        </ul>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="aurora">
+      <h2 id="aurora">Amazon Aurora — 스토리지를 컴퓨트에서 떼어 냈다</h2>
+
+      <p>
+        Aurora는 MySQL과 PostgreSQL 호환 엔진이지만,
+        <strong>스토리지 계층을 다시 설계한 것</strong>이 본질입니다.
+        RDS에서는 인스턴스마다 자기 볼륨이 있고 복제란 곧 데이터를 한 번 더 쓰는 일이었지만,
+        Aurora에서는 <strong>모든 인스턴스가 하나의 클러스터 볼륨을 함께 봅니다.</strong>
+      </p>
+
+      <figure class="diagram" data-diagram="D-092">
+        <figcaption>
+          Aurora 클러스터의 구조 — 라이터 인스턴스와 리더 인스턴스들이 세 가용 영역에 복제된 하나의 클러스터 볼륨을
+          공유하고, 클러스터 엔드포인트는 항상 현재 라이터를, 리더 엔드포인트는 리더들을 부하 분산해 가리킵니다
+        </figcaption>
+      </figure>
+
+      <h3 id="aurora-storage">클러스터 볼륨 — 데이터가 인스턴스와 독립이다</h3>
+      <p>
+        Aurora 사용 설명서는 클러스터 볼륨을
+        <strong>"한 AWS 리전 안의 세 가용 영역에 걸쳐 데이터 사본을 두는 단일 가상 볼륨"</strong>이라고 정의합니다.
+        중요한 문장은 그다음입니다 —
+        <strong>"복제의 양은 클러스터 안의 DB 인스턴스 개수와 무관하다."</strong>
+        인스턴스를 몇 개 두든 데이터의 내구성은 스토리지 계층이 알아서 확보합니다.
+      </p>
+      <p>
+        이 구조에서 따라오는 결과가 실무와 시험 양쪽에서 자주 나옵니다.
+      </p>
+      <ul>
+        <li>인스턴스를 <strong>빠르게 추가</strong>할 수 있습니다. 테이블 데이터를 새로 복사하지 않고
+          이미 존재하는 공유 볼륨에 연결하기만 하면 됩니다.</li>
+        <li>인스턴스를 제거해도 <strong>데이터는 남습니다.</strong> 클러스터 전체를 삭제해야 데이터가 지워집니다.</li>
+        <li>스토리지는 데이터가 늘어나면 <strong>자동으로 커집니다.</strong> 용량을 미리 프로비저닝하지 않습니다.</li>
+      </ul>
+
+      <h3 id="aurora-replication">Aurora 복제본과 엔드포인트</h3>
+      <p>
+        클러스터에 두 번째 이후의 인스턴스를 만들면 그것이
+        <strong>Aurora 복제본(Aurora Replica)</strong> 또는 리더 인스턴스입니다.
+        Aurora 사용 설명서는 복제본의 목적이 두 가지라고 명시합니다 —
+        <strong>읽기 확장</strong>과 <strong>가용성</strong>입니다.
+        라이터가 사용 불가 상태가 되면 <strong>Aurora가 리더 중 하나를 새 라이터로 자동 승격</strong>합니다.
+      </p>
+      <p>
+        여기가 RDS 읽기 전용 복제본과 갈리는 지점입니다.
+        <strong>RDS 복제본은 자동 승격이 없고, Aurora 복제본은 장애 조치 대상입니다.</strong>
+        Aurora에서는 "읽기 확장을 위한 인스턴스"와 "장애 조치 대상"이 같은 것입니다.
+      </p>
+      <p>
+        접속은 <strong>엔드포인트</strong>를 통해 이루어지고, 종류가 나뉩니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon Aurora 엔드포인트의 종류와 용도</caption>
+          <thead>
+            <tr>
+              <th scope="col">엔드포인트</th>
+              <th scope="col">가리키는 대상</th>
+              <th scope="col">언제 쓰는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">클러스터 엔드포인트 (라이터)</th>
+              <td>현재 프라이머리 인스턴스 <strong>하나</strong></td>
+              <td>모든 쓰기와 DDL. 장애 조치가 일어나면 새 프라이머리로 자동으로 따라갑니다</td>
+            </tr>
+            <tr>
+              <th scope="row">리더 엔드포인트</th>
+              <td>Aurora 복제본들 — <strong>연결 단위로 부하 분산</strong></td>
+              <td>읽기 전용 쿼리. 복제본을 추가하면 별도 설정 없이 분산 대상에 들어갑니다</td>
+            </tr>
+            <tr>
+              <th scope="row">사용자 지정 엔드포인트</th>
+              <td>우리가 고른 인스턴스 부분집합</td>
+              <td>분석용으로 큰 인스턴스만 따로 묶는 것처럼, 용도별로 나눌 때</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 엔드포인트</th>
+              <td>특정 인스턴스 하나</td>
+              <td>진단과 튜닝. 애플리케이션이 상시로 쓰기에는 적합하지 않습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <strong>리더 엔드포인트가 있다는 사실이 판단을 바꿉니다.</strong>
+        RDS 읽기 전용 복제본은 복제본마다 엔드포인트가 따로라서
+        복제본을 늘릴 때 애플리케이션 쪽 분산 로직이 필요하지만,
+        Aurora는 리더 엔드포인트 하나만 바라보면 됩니다.
+        "읽기 확장이 필요한데 운영 부담은 늘리기 싫다"는 요구가 Aurora로 수렴하는 이유입니다.
+      </p>
+      <p>
+        다만 클러스터에 복제본이 하나도 없으면 리더 엔드포인트는 프라이머리에 연결됩니다.
+        <strong>복제본을 만들지 않으면 읽기 확장도 장애 조치 대상도 없습니다.</strong>
+      </p>
+
+      <h3 id="aurora-global-database">Aurora 글로벌 데이터베이스 — 리전을 넘는다</h3>
+      <p>
+        Aurora 글로벌 데이터베이스는
+        <strong>쓰기를 받는 주 리전의 클러스터 하나</strong>와
+        <strong>읽기 전용 보조 리전 클러스터들</strong>로 구성됩니다.
+        복제는 애플리케이션이나 엔진이 아니라
+        <strong>Aurora 스토리지 하위 시스템의 전용 인프라</strong>가 수행합니다.
+      </p>
+      <p>
+        용도는 둘입니다.
+        <strong>전 세계 사용자에게 낮은 지연의 읽기</strong>를 제공하는 것과,
+        <strong>리전 전체 장애로부터 빠르게 복구</strong>하는 것입니다.
+        시험에서 "여러 대륙의 사용자가 읽기를 하고, 쓰기는 한 곳에서만 일어난다"는 문장이 나오면
+        이 기능이 후보에 들어옵니다.
+      </p>
+      <p>
+        보조 리전은 기본적으로 읽기 전용이지만,
+        <strong>쓰기 전달(write forwarding)</strong>을 켜면 보조 클러스터가 받은 쓰기를
+        주 클러스터로 넘기고 그 결과가 다시 복제되어 돌아옵니다.
+        API 파라미터 이름은 <code>EnableGlobalWriteForwarding</code>입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          리전 단위 요구가 나오면 후보를 이렇게 가릅니다.
+        </p>
+        <ul>
+          <li><strong>Aurora를 쓰고 있고 리전 간 낮은 지연 읽기와 빠른 복구가 필요</strong> → Aurora 글로벌 데이터베이스</li>
+          <li><strong>RDS(비 Aurora)이고 다른 리전에 읽기와 DR 자산이 필요</strong> → 교차 리전 읽기 전용 복제본</li>
+          <li><strong>백업만 다른 리전에 두면 되고 복구 시간이 여유롭다</strong> → 스냅샷 교차 리전 복사 또는 자동 백업 복제</li>
+        </ul>
+        <p>
+          같은 판단을 재해 복구 전략의 언어로 다시 정리한 것이
+          <a href="../saa/domain-resilient.html#dr-strategies">도메인 2의 DR 4전략</a>입니다.
+        </p>
+      </aside>
+
+      <h3 id="aurora-serverless">Aurora Serverless v2 — 용량을 자동으로 조절한다</h3>
+      <p>
+        Aurora Serverless v2는 <strong>온디맨드 자동 확장 구성</strong>입니다.
+        인스턴스 클래스를 고르는 대신 <strong>Aurora 용량 단위(Aurora Capacity Unit, ACU)</strong>의
+        최소값과 최대값을 정해 두면, 워크로드에 맞춰 그 범위 안에서 용량이 오르내립니다.
+      </p>
+      <p>
+        v2의 특징은 <strong>조절 단위가 작다</strong>는 점입니다.
+        Aurora 사용 설명서는 프로비저닝된 클러스터에서 확장하려면
+        인스턴스를 통째로 추가해야 하는 반면
+        v2는 <strong>0.5 ACU 단위로 더하고 뺄 수 있다</strong>고 설명합니다.
+        API의 <code>MinCapacity</code>·<code>MaxCapacity</code>도 0.5 단위 값을 받습니다.
+      </p>
+      <p>
+        고르는 기준은 <strong>부하의 예측 가능성</strong>입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Aurora 프로비저닝 구성과 Aurora Serverless v2의 선택 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">상황</th>
+              <th scope="col">더 나은 선택</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">부하가 일정하고 예측 가능</th>
+              <td>프로비저닝된 인스턴스</td>
+              <td>용량을 고정해 두는 편이 단순하고, 약정 할인 대상이 됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">급증이 갑작스럽고 예측 불가</th>
+              <td>Aurora Serverless v2</td>
+              <td>최대 용량만 정해 두면 되고, 쓰지 않는 용량에는 과금되지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">개발 · 테스트처럼 유휴 시간이 김</th>
+              <td>Aurora Serverless v2</td>
+              <td>유휴 구간에서 용량이 내려갑니다. 지원 버전에서는 자동 일시 중지도 가능합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">필요한 인스턴스 크기를 아직 모름</th>
+              <td>Aurora Serverless v2</td>
+              <td>실제 확장 폭을 관찰해 적정 용량을 찾을 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">테넌트가 많고 각자 사용 시간대가 다름</th>
+              <td>Aurora Serverless v2</td>
+              <td>테넌트별로 클러스터를 두고도 유휴 클러스터의 비용이 낮게 유지됩니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          <strong>Aurora Serverless v1은 지원이 종료되었습니다.</strong>
+          2025년 1월 8일부터 신규 생성이 불가능해졌고 2025년 3월 31일에 수명이 끝났습니다.
+          시중 자료에 남아 있는 "Aurora Serverless는 0으로 축소되고 초 단위로 과금된다"는 설명은
+          v1 기준이므로 지금은 맞지 않습니다.
+          이 사이트에서 "Aurora Serverless"라고 쓰면 언제나 <strong>v2</strong>를 뜻합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          <code>MOST cost-effective</code>와 <strong>"트래픽이 불규칙하다"</strong>가 함께 나오면
+          Aurora Serverless v2가 유력 후보입니다.
+          반대로 <strong>"부하가 일정하다"</strong> 또는 <strong>"1년 이상 계속 운영한다"</strong>가 붙으면
+          프로비저닝된 인스턴스와 약정이 더 쌉니다.
+          서버리스가 언제나 싸지는 않다는 것이 이 문항군의 요지입니다
+          (<a href="ch05.html#spot-vs-savings-plans">5장 구매 옵션</a>과 같은 논리입니다).
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="backup-and-restore">
+      <h2 id="backup-and-restore">백업 — 자동 백업, 특정 시점 복구, 스냅샷</h2>
+
+      <p>
+        RDS의 백업은 두 갈래입니다.
+        <strong>자동 백업</strong>은 보존 기간 안에서 <strong>임의의 시점으로</strong> 되돌리기 위한 것이고,
+        <strong>수동 스냅샷</strong>은 <strong>특정 순간을 기한 없이 보관</strong>하기 위한 것입니다.
+        둘은 대체재가 아니라 역할이 다릅니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-093">
+        <figcaption>
+          자동 백업 보존 기간과 트랜잭션 로그가 겹쳐 만들어지는 특정 시점 복구 가능 구간, 그리고 보존 기간 밖에서도
+          남아 있는 수동 스냅샷의 관계 — 복구는 언제나 기존 인스턴스를 되돌리는 것이 아니라 새 인스턴스를 만드는 일입니다
+        </figcaption>
+      </figure>
+
+      <h3 id="automated-backup-pitr">자동 백업과 특정 시점 복구</h3>
+      <p>
+        자동 백업은 매일 백업 기간에 스토리지 볼륨 스냅샷을 만들고,
+        여기에 <strong>트랜잭션 로그</strong>를 더해
+        <strong>특정 시점 복구(Point-In-Time Recovery, PITR)</strong>를 가능하게 합니다.
+        RDS 사용 설명서는 트랜잭션 로그가
+        <strong>5분마다 Amazon S3로 업로드</strong>된다고 명시합니다.
+        복구 가능한 가장 최근 시각은 <code>LatestRestorableTime</code>으로 확인합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>자동 백업의 보존 기간과 기본값</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+              <th scope="col">주의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">DB 인스턴스 보존 기간</th>
+              <td><code>0 ~ 35</code>일</td>
+              <td><strong>0으로 두면 자동 백업이 꺼집니다.</strong> 읽기 전용 복제본의 소스로는 0을 쓸 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Multi-AZ DB 클러스터 보존 기간</th>
+              <td><code>1 ~ 35</code>일</td>
+              <td>클러스터에서는 0을 지정할 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">기본 보존 기간</th>
+              <td>API·CLI로 만들면 <code>1</code>일, 콘솔로 만들면 <code>7</code>일</td>
+              <td>같은 서비스인데 만든 경로에 따라 기본값이 다릅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">백업 기간(backup window)</th>
+              <td>지정하지 않으면 <strong>30분</strong> 창이 자동 배정</td>
+              <td>유지 관리 기간과 <strong>겹칠 수 없습니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">보존 기간 0 ↔ 0이 아닌 값 전환</th>
+              <td><span class="mark-no">중단이 발생합니다</span></td>
+              <td>운영 중에 무심코 바꾸면 짧은 다운타임이 생깁니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Multi-AZ 배포에서는 백업이 <strong>대기 인스턴스 쪽에서</strong> 수행됩니다.
+        RDS 사용 설명서는 MariaDB · MySQL · Oracle · PostgreSQL의 Multi-AZ 배포에서
+        <strong>프라이머리의 I/O가 백업 중에 중단되지 않는다</strong>고 서술합니다.
+        SQL Server는 예외로, 단일 가용 영역이든 Multi-AZ든 프라이머리에서 백업을 받기 때문에
+        I/O가 잠시 멈춥니다. <strong>Multi-AZ는 가용성만이 아니라 백업 영향도 줄입니다.</strong>
+      </p>
+
+      <h3 id="manual-snapshot">수동 스냅샷 — 보존 기간과 무관하게 남는다</h3>
+      <p>
+        수동 스냅샷은 우리가 명시적으로 만드는 것이고,
+        <strong>데이터베이스를 삭제해도 남습니다.</strong>
+        자동 백업은 인스턴스를 지우면서 함께 사라지지만(보존 옵션을 고르지 않은 경우),
+        수동 스냅샷은 우리가 지우기 전까지 유지됩니다.
+        규정 준수 요구로 특정 시점의 데이터를 오래 보관해야 한다면 이쪽입니다.
+      </p>
+      <p>
+        스냅샷은 <strong>증분</strong>입니다.
+        RDS 사용 설명서는 첫 스냅샷이 전체 데이터를 담고
+        이후 스냅샷은 <strong>마지막 스냅샷 이후 변경된 데이터만</strong> 저장한다고 설명합니다.
+        수동 스냅샷은 <strong>리전당 100개</strong>까지 보관할 수 있으며,
+        이 상한은 자동 백업에는 적용되지 않습니다.
+      </p>
+      <p>
+        복구에서 반드시 기억할 사실이 하나 있습니다.
+        <strong>스냅샷 복원도 PITR도 기존 인스턴스를 되돌리는 것이 아니라
+        새 DB 인스턴스를 만드는 작업입니다.</strong>
+        엔드포인트가 새로 생기므로 애플리케이션이 가리키는 주소를 바꾸거나
+        원래 인스턴스의 이름을 바꿔 자리를 넘겨주어야 합니다.
+        게다가 새 인스턴스는 <strong>기본 보안 그룹 · 기본 파라미터 그룹 · 단일 가용 영역</strong>으로
+        만들어지므로, 복원 후 설정을 다시 맞춰야 합니다.
+      </p>
+
+      <h3 id="snapshot-copy-and-share">스냅샷 복사와 공유</h3>
+      <p>
+        스냅샷은 <strong>다른 리전으로 복사</strong>할 수 있고
+        <strong>다른 계정과 공유</strong>할 수 있습니다. 두 동작의 규칙이 다릅니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>스냅샷 복사와 공유의 규칙</caption>
+          <thead>
+            <tr>
+              <th scope="col">동작</th>
+              <th scope="col">규칙</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">리전 간 복사</th>
+              <td>복사 API를 호출한 리전이 <strong>대상 리전</strong>이 됩니다. 암호화된 스냅샷을 다른 리전으로 복사하려면 <strong>대상 리전의 KMS 키를 반드시 지정</strong>해야 합니다. KMS 키는 리전에 묶여 있기 때문입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">공유 대상</th>
+              <td><strong>수동 스냅샷만</strong> 공유할 수 있습니다. 자동 백업은 공유 대상이 아니므로, 공유하려면 먼저 스냅샷으로 복사합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">공유 방법</th>
+              <td><code>restore</code> 속성에 허용할 계정 ID 목록을 더합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">퍼블릭 공유</th>
+              <td>값으로 <code>all</code>을 주면 <strong>모든 계정이 복사·복원</strong>할 수 있게 됩니다. 개인 정보가 든 스냅샷에는 절대 쓰지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">암호화된 스냅샷의 공유</th>
+              <td>공유는 가능하지만 <strong>계정 ID를 명시하는 방식만</strong> 허용됩니다. <code>all</code>을 쓸 수 없습니다. 대상 계정에는 <strong>KMS 키 사용 권한</strong>도 함께 주어야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자동 백업 자체를 리전 간 복제</th>
+              <td>별도 기능이 있습니다. 스냅샷을 일일이 복사하지 않고 <strong>자동 백업을 다른 리전으로 계속 복제</strong>해 그 리전에서 PITR을 가능하게 합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">snapshot-copy-share.sh</span> — 스냅샷을 다른 리전으로 복사하고 다른 계정에 공유합니다 (계정 ID와 리전 코드는 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 수동 스냅샷을 만듭니다.
+aws rds create-db-snapshot \
+  --db-instance-identifier app-prod \
+  --db-snapshot-identifier app-prod-2026-07-29
+
+# 다른 리전으로 복사합니다. 복사는 대상 리전에서 호출하고,
+# 암호화된 스냅샷이면 대상 리전의 KMS 키를 반드시 지정합니다.
+aws rds copy-db-snapshot \
+  --region us-west-2 \
+  --source-db-snapshot-identifier arn:aws:rds:ap-northeast-2:123456789012:snapshot:app-prod-2026-07-29 \
+  --target-db-snapshot-identifier app-prod-2026-07-29-dr \
+  --kms-key-id arn:aws:kms:us-west-2:123456789012:key/EXAMPLE-KEY-ID
+
+# 특정 계정에만 복원 권한을 줍니다. all 은 퍼블릭 공개이므로 쓰지 않습니다.
+aws rds modify-db-snapshot-attribute \
+  --db-snapshot-identifier app-prod-2026-07-29 \
+  --attribute-name restore \
+  --values-to-add 210987654321</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 보안 아키텍처 설계">
+        <p>
+          백업 문항은 <strong>복구 지점 목표(RPO)</strong>와 <strong>보관 기간</strong>으로 갈립니다.
+        </p>
+        <ul>
+          <li><strong>"최근 며칠 안의 임의 시점으로 되돌려야 한다"</strong> → 자동 백업과 PITR</li>
+          <li><strong>"수년간 보관해야 한다" · "규정 준수 감사"</strong> → 수동 스냅샷 (35일 상한과 무관)</li>
+          <li><strong>"다른 리전에서도 복구할 수 있어야 한다"</strong> → 스냅샷 교차 리전 복사 또는 자동 백업 복제</li>
+          <li><strong>"다른 계정의 감사 팀에 데이터를 넘겨야 한다"</strong> → 수동 스냅샷 공유 + KMS 키 권한</li>
+        </ul>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="rds-proxy">
+      <h2 id="rds-proxy">RDS Proxy — 연결이 폭주할 때</h2>
+
+      <p>
+        관계형 데이터베이스는 연결 하나마다 메모리와 CPU를 씁니다.
+        그런데 AWS Lambda나 컨테이너 기반 애플리케이션은
+        <strong>순간적으로 수백 개의 실행 환경이 동시에 살아납니다.</strong>
+        각자 연결을 열면 데이터베이스가 연결 수 상한에 부딪히거나
+        연결 생성 비용만으로 무너집니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-094">
+        <figcaption>
+          연결 폭주 경로와 RDS Proxy가 흡수하는 경로의 대비 — 프록시가 데이터베이스 연결 풀을 유지하며 재사용하므로
+          애플리케이션 연결 수가 급증해도 데이터베이스 쪽 연결 수는 통제된 범위에 머무릅니다
+        </figcaption>
+      </figure>
+
+      <p>
+        RDS Proxy는 <strong>데이터베이스 연결 풀을 만들어 두고 재사용</strong>합니다.
+        RDS 사용 설명서가 정리하는 효과는 네 가지입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>RDS Proxy가 해결하는 문제</caption>
+          <thead>
+            <tr>
+              <th scope="col">효과</th>
+              <th scope="col">내용</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">연결 풀링</th>
+              <td>연결을 매번 새로 여는 메모리·CPU 비용을 없애고, 데이터베이스가 받을 연결 수를 통제합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">과부하 완충</th>
+              <td>즉시 처리할 수 없는 연결 요청을 <strong>대기시키거나 조절</strong>합니다. 지연은 늘 수 있지만 데이터베이스가 갑자기 쓰러지지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">장애 조치 시 복원력</th>
+              <td>대기 인스턴스로 <strong>자동으로 다시 연결하면서 애플리케이션 연결은 유지</strong>합니다. 장애 조치 체감 시간이 줄어듭니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 관리</th>
+              <td>자격 증명을 <strong>AWS Secrets Manager</strong>에 두고 프록시가 IAM 역할로 가져다 씁니다. IAM 데이터베이스 인증도 강제할 수 있습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        시험에서 결정적인 문장은 이것입니다 —
+        <strong>"대부분의 애플리케이션에서 코드 변경 없이 RDS Proxy를 활성화할 수 있다."</strong>
+        <code>without changing application code</code>라는 한정어와 <strong>연결 고갈</strong>이 함께 나오면
+        RDS Proxy가 곧바로 유력 후보가 됩니다.
+      </p>
+      <p>
+        프록시는 <strong>VPC 안의 서브넷</strong>에 놓이고,
+        엔진 계열(<code>MYSQL</code> · <code>POSTGRESQL</code> · <code>SQLSERVER</code>)을 지정해 만듭니다.
+        <code>RequireTLS</code>로 프록시 연결에 전송 중 암호화를 강제할 수도 있습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          "Lambda 함수가 늘어나자 데이터베이스가 <code>too many connections</code>로 실패한다"는
+          시나리오의 정답은 거의 언제나 <strong>RDS Proxy</strong>입니다.
+          같은 문항에서 오답으로 자주 나오는 것이 <strong>인스턴스 클래스를 키운다</strong>(비용만 늘고 근본 원인이 그대로)와
+          <strong>읽기 전용 복제본을 추가한다</strong>(읽기 부하 문제가 아니라 연결 수 문제)입니다.
+        </p>
+        <p>
+          Lambda 쪽의 동시성 제어는 <a href="ch12.html">12장 서버리스와 애플리케이션 통합</a>에서 다룹니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="encryption">
+      <h2 id="encryption">암호화 — 생성 시점에 결정된다</h2>
+
+      <p>
+        RDS의 저장 시 암호화는 AWS KMS 키로 이루어지며,
+        켜 두면 <strong>기반 스토리지 · 자동 백업 · 읽기 전용 복제본 · 스냅샷이 모두</strong> 암호화됩니다.
+        복호화는 투명하게 처리되므로 <strong>클라이언트 애플리케이션을 고칠 필요가 없습니다.</strong>
+      </p>
+
+      <h3 id="encryption-at-creation">가장 중요한 제약</h3>
+      <p>
+        RDS 사용 설명서는 암호화된 DB 인스턴스의 제약을 목록으로 정리해 두었고,
+        그 첫 줄이 시험이 노리는 지점입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon RDS 저장 시 암호화의 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">제약</th>
+              <th scope="col">함의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><strong>DB 인스턴스는 생성할 때만 암호화할 수 있습니다</strong></th>
+              <td>이미 운영 중인 평문 데이터베이스를 설정 변경만으로 암호화할 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">암호화를 끌 수 없습니다</th>
+              <td>한 번 켜면 되돌리는 설정이 없습니다. 평문으로 되돌리려면 데이터를 내보내 새 인스턴스로 옮겨야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">KMS 키를 바꿀 수 없습니다</th>
+              <td>생성 후에는 그 인스턴스가 쓰는 키가 고정됩니다. 키 정책을 미리 정해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">평문 인스턴스의 암호화된 스냅샷을 만들 수 없습니다</th>
+              <td>스냅샷은 원본의 암호화 상태를 따라갑니다</td>
+            </tr>
+            <tr>
+              <th scope="row">평문 백업·스냅샷을 암호화된 인스턴스로 복원할 수 없습니다</th>
+              <td>복원 경로로 암호화를 끼워 넣을 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">암호화 상태가 다른 복제본을 만들 수 없습니다</th>
+              <td>평문 소스에 암호화된 복제본, 암호화된 소스에 평문 복제본 모두 불가입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        그렇다면 이미 운영 중인 평문 데이터베이스는 어떻게 암호화할까요.
+        같은 문서가 우회 경로를 함께 알려 줍니다 —
+        <strong>스냅샷을 만들고, 그 스냅샷의 암호화된 사본을 만든 뒤, 그 사본으로 복원</strong>합니다.
+        <strong>평문 스냅샷의 복사본에는 암호화를 걸 수 있기 때문</strong>입니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">encrypt-existing-db.sh</span> — 평문 데이터베이스를 암호화된 데이터베이스로 옮기는 절차 (식별자와 키 ARN은 예시입니다)</figcaption>
+        <pre><code class="lang-bash"># 1) 평문 인스턴스의 스냅샷을 만듭니다.
+aws rds create-db-snapshot \
+  --db-instance-identifier app-prod \
+  --db-snapshot-identifier app-prod-plaintext
+
+# 2) 그 스냅샷을 "암호화된 사본"으로 복사합니다. 여기서 암호화가 들어갑니다.
+aws rds copy-db-snapshot \
+  --source-db-snapshot-identifier app-prod-plaintext \
+  --target-db-snapshot-identifier app-prod-encrypted \
+  --kms-key-id arn:aws:kms:ap-northeast-2:123456789012:key/EXAMPLE-KEY-ID
+
+# 3) 암호화된 스냅샷에서 새 인스턴스를 만듭니다. 새 엔드포인트가 생기므로
+#    전환 계획(이름 교체 또는 애플리케이션 설정 변경)이 필요합니다.
+aws rds restore-db-instance-from-db-snapshot \
+  --db-instance-identifier app-prod-enc \
+  --db-snapshot-identifier app-prod-encrypted</code></pre>
+      </figure>
+
+      <p>
+        전송 중 암호화는 별개 계층입니다.
+        RDS 사용 설명서는 암호화 여부와 무관하게
+        <strong>소스와 읽기 전용 복제본 사이의 전송 데이터는 암호화되며,
+        리전을 넘어 복제할 때도 그렇다</strong>고 명시합니다.
+        클라이언트와 데이터베이스 사이의 TLS는 엔진 설정으로 강제하거나
+        <a href="#rds-proxy">RDS Proxy</a>의 <code>RequireTLS</code>로 강제합니다.
+        KMS 키의 종류와 키 정책은 <a href="ch16.html">16장 보안·암호화·거버넌스</a>에서 다룹니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>"운영 중인 RDS 데이터베이스를 암호화하라"</strong>는 문항의 정답은
+          <strong>스냅샷 → 암호화된 복사본 → 복원</strong>입니다.
+          "인스턴스를 수정해 암호화를 켠다"는 선택지는 존재하지 않는 동작이므로 오답이고,
+          "새 파라미터 그룹을 적용한다"도 마찬가지입니다.
+          같은 패턴이 EBS 볼륨에서도 반복되므로
+          <a href="ch06.html#encrypt-existing-volume">6장의 기존 볼륨 암호화</a>와 함께 외워 두면 좋습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="maintenance-window">
+      <h2 id="maintenance-window">유지 관리 기간과 패치 책임</h2>
+
+      <p>
+        RDS는 운영체제와 데이터베이스 엔진 패치를
+        <strong>유지 관리 기간(maintenance window)</strong>에 수행합니다.
+        지정하지 않으면 AWS가 리전마다 정해진 8시간 블록 안에서
+        <strong>임의의 요일 · 임의의 30분 창</strong>을 골라 배정합니다.
+        형식은 <code>ddd:hh24:mi-ddd:hh24:mi</code>이고
+        <strong>협정 세계시(UTC) 기준</strong>이며 <strong>최소 30분</strong>이어야 합니다.
+      </p>
+      <p>
+        규칙이 하나 더 있습니다. <strong>유지 관리 기간과 백업 기간은 겹칠 수 없습니다.</strong>
+        두 창을 같은 시간대로 잡으려 하면 API가 거부합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>유지 관리 관련 설정과 기본 동작</caption>
+          <thead>
+            <tr>
+              <th scope="col">설정</th>
+              <th scope="col">기본 동작</th>
+              <th scope="col">판단 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>PreferredMaintenanceWindow</code></th>
+              <td>지정하지 않으면 무작위 30분 창이 배정</td>
+              <td>트래픽이 가장 적은 시간대로 <strong>UTC 기준</strong>으로 지정합니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>AutoMinorVersionUpgrade</code></th>
+              <td><span class="mark-ok">기본 활성 — 마이너 버전은 자동 적용</span></td>
+              <td>보안 패치를 자동으로 받되, 예상치 못한 재시작을 피하려면 창을 잘 잡습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">메이저 버전 업그레이드</th>
+              <td><span class="mark-no">자동으로 일어나지 않음</span></td>
+              <td>호환성 검증 후 우리가 시점을 정합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Multi-AZ에서의 패치</th>
+              <td>대기 인스턴스를 먼저 패치하고 <strong>장애 조치</strong>한 뒤 옛 프라이머리를 패치</td>
+              <td>중단 시간이 장애 조치 시간 수준으로 줄어듭니다</td>
+            </tr>
+            <tr>
+              <th scope="row">단일 가용 영역에서의 패치</th>
+              <td>패치 동안 데이터베이스를 사용할 수 없습니다</td>
+              <td>"패치 중에도 서비스가 이어져야 한다"는 요구는 Multi-AZ를 부릅니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          <strong>"정기 유지 관리 중 다운타임을 최소화하라"</strong>는 요구는
+          가용 영역 장애 이야기가 전혀 없어도 <strong>Multi-AZ</strong>를 부릅니다.
+          Multi-AZ에서 패치는 대기 쪽에 먼저 적용되고 장애 조치로 역할이 바뀌기 때문입니다.
+          Multi-AZ를 "장애 대비 전용"으로만 기억하고 있으면 이 문항을 놓칩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"Multi-AZ로 바꾸면 읽기 성능도 좋아진다"</strong> —
+          표준 Multi-AZ 인스턴스 배포의 대기 인스턴스는
+          <strong>읽기 트래픽을 받지 않습니다.</strong>
+          접근할 엔드포인트가 아예 없습니다.
+          오히려 동기 복제 때문에 <strong>쓰기 지연은 늘어날 수 있습니다.</strong>
+          읽기가 느린 것이 문제라면 읽기 전용 복제본이나 캐시가 답입니다.
+          읽기 가능한 대기 인스턴스를 두는 <strong>Multi-AZ DB 클러스터는 별개 아키텍처</strong>이므로,
+          문제문이 어느 쪽을 말하는지부터 확인합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"읽기 전용 복제본이 있으면 프라이머리가 죽어도 자동으로 넘어간다"</strong> —
+          RDS 읽기 전용 복제본은 <strong>스스로 승격하지 않습니다.</strong>
+          프라이머리가 사라지면 쓰기는 계속 실패하고,
+          누군가 승격 작업을 호출해야 서비스가 재개됩니다.
+          Amazon Aurora는 다릅니다 — 라이터가 실패하면
+          <strong>Aurora가 리더 중 하나를 자동으로 승격</strong>합니다.
+          "복제본이 있으니 고가용성"이라는 일반화가 RDS에서는 성립하지 않습니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"암호화는 나중에 켜면 된다"</strong> —
+          RDS의 저장 시 암호화는 <strong>인스턴스를 만들 때만</strong> 결정할 수 있고,
+          이미 만들어진 평문 인스턴스를 수정해서 켤 수 없습니다.
+          우회 경로는 <strong>스냅샷을 만들고 그 사본을 암호화한 뒤 복원</strong>하는 것뿐이며,
+          이 과정에서 <strong>새 엔드포인트가 생기므로 전환 계획이 필요</strong>합니다.
+          "나중에 켜면 된다"고 미룬 결정이 나중에 다운타임을 요구하게 됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <p>
+        이 장의 주제는 <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>와
+        <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>에 걸쳐 있습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>10장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Multi-AZ의 복제 방식</th>
+                <td><strong>동기(synchronous)</strong> — 커밋된 트랜잭션은 유실되지 않는다</td>
+                <td>비동기로 착각해 데이터 유실 가능성이 있다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">읽기 전용 복제본의 복제 방식</th>
+                <td><strong>비동기(asynchronous)</strong> — 복제 지연이 존재한다</td>
+                <td>방금 쓴 값을 복제본에서 즉시 읽을 수 있다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">Multi-AZ 대기 인스턴스의 읽기</th>
+                <td><strong>읽기 트래픽을 받지 않는다.</strong> 접근할 엔드포인트가 없다</td>
+                <td>"대기 인스턴스로 읽기 부하를 분산한다"는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">엔드포인트</th>
+                <td>Multi-AZ는 <strong>동일 엔드포인트 유지</strong>, 복제본은 <strong>별도 읽기 엔드포인트</strong></td>
+                <td>Multi-AZ 장애 조치 후 애플리케이션 설정을 바꿔야 한다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">장애 조치 기제</th>
+                <td><strong>DNS 레코드가 대기 인스턴스를 가리키도록 전환</strong>. 기존 연결은 다시 맺어야 한다</td>
+                <td>IP가 그대로 유지된다고 보고 연결 재수립이 필요 없다고 판단</td>
+              </tr>
+              <tr>
+                <th scope="row">Multi-AZ 장애 조치 소요</th>
+                <td>대체로 <strong>60~120초</strong></td>
+                <td>"무중단"으로 오해해 RTO 0 요구에 Multi-AZ만으로 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">복제본의 승격</th>
+                <td><strong>수동</strong> — 자동으로 일어나지 않는다</td>
+                <td>복제본을 자동 장애 조치 수단으로 씀</td>
+              </tr>
+              <tr>
+                <th scope="row">복제본 개수 상한</th>
+                <td>대부분의 엔진 <strong>15개</strong>, Oracle · SQL Server <strong>5개</strong>, Db2 <strong>3개</strong></td>
+                <td>모든 엔진이 같다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">복제본 생성 조건</th>
+                <td>소스에 <strong>자동 백업이 켜져 있어야</strong> 한다</td>
+                <td>보존 기간 0인 인스턴스에서 복제본을 만들려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">Multi-AZ DB 클러스터</th>
+                <td><strong>읽기 가능한 대기 2개 · 3개 가용 영역 · 반동기 복제</strong>. 인스턴스 배포와 별개다</td>
+                <td>Multi-AZ 인스턴스 배포와 같은 것으로 보고 답을 뒤집음</td>
+              </tr>
+              <tr>
+                <th scope="row">Aurora의 스토리지</th>
+                <td>모든 인스턴스가 <strong>3개 가용 영역에 복제된 하나의 클러스터 볼륨</strong>을 공유한다</td>
+                <td>인스턴스마다 데이터를 복사한다고 이해해 복제본 추가 비용을 잘못 판단</td>
+              </tr>
+              <tr>
+                <th scope="row">Aurora 복제본의 역할</th>
+                <td><strong>읽기 확장과 장애 조치 대상을 겸한다.</strong> 라이터 실패 시 자동 승격</td>
+                <td>RDS 복제본과 같다고 보고 자동 승격이 없다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">Aurora 엔드포인트</th>
+                <td>클러스터(라이터) · 리더 · 사용자 지정 · 인스턴스 <strong>네 종류</strong></td>
+                <td>리더 엔드포인트의 부하 분산 기능을 모르고 복제본마다 분산 로직이 필요하다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">Aurora 글로벌 데이터베이스</th>
+                <td>주 리전 <strong>하나만 쓰기</strong>, 보조 리전은 읽기 전용. 스토리지 계층이 복제</td>
+                <td>보조 리전에서도 기본적으로 쓰기가 된다고 가정 (쓰기 전달을 켜야 한다)</td>
+              </tr>
+              <tr>
+                <th scope="row">Aurora Serverless</th>
+                <td>현재는 <strong>v2</strong>다. ACU를 <strong>0.5 단위</strong>로 조절한다</td>
+                <td>v1 기준 설명(초 단위 과금·0으로 축소)을 현행으로 서술</td>
+              </tr>
+              <tr>
+                <th scope="row">자동 백업 보존 기간</th>
+                <td>DB 인스턴스 <strong>0~35일</strong>, Multi-AZ DB 클러스터 <strong>1~35일</strong></td>
+                <td>0이 자동 백업을 끈다는 것을 모르고 설정했다가 PITR을 잃음</td>
+              </tr>
+              <tr>
+                <th scope="row">PITR의 근거</th>
+                <td>일일 스냅샷 + <strong>5분마다 S3로 올라가는 트랜잭션 로그</strong></td>
+                <td>스냅샷 시점으로만 되돌릴 수 있다고 이해</td>
+              </tr>
+              <tr>
+                <th scope="row">수동 스냅샷</th>
+                <td>보존 기간과 무관하게 남고 <strong>인스턴스를 삭제해도 유지</strong>. 리전당 100개</td>
+                <td>장기 보관 요구에 자동 백업 보존 기간을 늘리는 안을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">복원의 성격</th>
+                <td>스냅샷 복원도 PITR도 <strong>새 DB 인스턴스를 만든다</strong></td>
+                <td>기존 인스턴스가 제자리에서 되돌아간다고 가정해 전환 계획을 빠뜨림</td>
+              </tr>
+              <tr>
+                <th scope="row">스냅샷 공유</th>
+                <td><strong>수동 스냅샷만</strong> 공유 가능. 암호화된 것은 <strong>계정 ID 지정만</strong> 되고 퍼블릭 불가</td>
+                <td>자동 백업을 그대로 공유하려 하거나 암호화 스냅샷을 퍼블릭으로 열려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">암호화 스냅샷의 리전 간 복사</th>
+                <td><strong>대상 리전의 KMS 키를 반드시 지정</strong>한다</td>
+                <td>키가 리전에 묶여 있다는 사실을 놓쳐 복사 실패</td>
+              </tr>
+              <tr>
+                <th scope="row">저장 시 암호화</th>
+                <td><strong>생성 시점에만</strong> 켤 수 있고, 이후에 끄거나 키를 바꿀 수 없다</td>
+                <td>"인스턴스를 수정해 암호화를 켠다"는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">기존 DB 암호화 절차</th>
+                <td>스냅샷 → <strong>암호화된 사본</strong> → 복원</td>
+                <td>파라미터 그룹이나 KMS 설정만으로 된다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">RDS Proxy</th>
+                <td>연결 풀링 · 장애 조치 시 연결 유지 · Secrets Manager 연동. <strong>대개 코드 변경 없음</strong></td>
+                <td>연결 고갈 문제에 인스턴스 크기를 키우거나 복제본을 추가하는 안을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">유지 관리 기간</th>
+                <td>UTC 기준 <strong>최소 30분</strong>, <strong>백업 기간과 겹칠 수 없다</strong></td>
+                <td>현지 시각으로 지정하거나 두 창을 같은 시간대에 둠</td>
+              </tr>
+              <tr>
+                <th scope="row">패치와 Multi-AZ</th>
+                <td>Multi-AZ에서는 <strong>대기 먼저 패치 후 장애 조치</strong>로 중단이 짧다</td>
+                <td>Multi-AZ를 장애 대비 전용으로만 보고 유지 관리 문항에서 놓침</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <p>
+        <span class="badge badge--study">학습용 유형</span>
+        연결형과 순서 배열 문항이 섞여 있을 수 있습니다.
+        두 유형은 암기 확인에 효율이 좋아서 기본개념 확인 문제에만 넣었으며,
+        실제 SAA-C03 시험에는 출제되지 않습니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch10" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch11.html">
+          <span class="card__title">11장 · NoSQL · 캐시 · 분석 DB</span>
+          <span class="card__desc">읽기 지연을 줄이는 다음 수단인 ElastiCache와 DAX, 그리고 관계형이 답이 아닐 때 고르는 DynamoDB를 다룹니다.</span>
+          <span class="card__meta">기본개념 · 바로 다음 장</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">이 장의 Multi-AZ 판단이 도메인 전체에서 어떤 위치에 있는지, 과제 진술 2.1과 2.2의 언어로 다시 봅니다.</span>
+          <span class="card__meta">시험 대비 · 주 도메인</span>
+        </a></li>
+        <li><a class="card" href="../saa/traps.html#database-and-cache">
+          <span class="card__title">함정 사전 · 데이터베이스와 캐시</span>
+          <span class="card__desc">Multi-AZ와 읽기 전용 복제본을 포함해 헷갈리는 쌍을 표 하나로 모아 두었습니다. 시험 직전 복습용입니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../saa/keywords.html#multi-az-vs-read-replica">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">"가용성"과 "읽기 확장"이라는 한정어가 어떻게 정답을 가르는지, 다른 한정어들과 함께 정리했습니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch06.html#encrypt-existing-volume">
+          <span class="card__title">6장 · EBS 기존 볼륨 암호화</span>
+          <span class="card__desc">"생성 시점에만 암호화할 수 있다"는 제약과 스냅샷 우회 경로가 EBS에서 똑같이 반복됩니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch07.html#asg-multi-az">
+          <span class="card__title">7장 · 다중 가용 영역 배치</span>
+          <span class="card__desc">데이터 계층의 Multi-AZ는 애플리케이션 계층의 다중 가용 영역 설계와 짝을 이룰 때만 의미가 있습니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 개념 서술과 API 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html">Amazon RDS 사용 설명서 — Multi-AZ DB 인스턴스 배포</a>
+          — 동기 복제 대기 복제본, 대기 인스턴스로 읽기를 처리할 수 없다는 명시, 장애 조치가 DNS 레코드를 전환한다는 설명, 소요 시간 60~120초, 장애 조치 사유 표</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/multi-az-db-clusters-concepts.html">Amazon RDS 사용 설명서 — Multi-AZ DB 클러스터 배포</a>
+          — 읽기 가능한 대기 2개, 3개 가용 영역, 반동기 복제, 프로비저닝된 IOPS 전용, Aurora DB 클러스터와 다르다는 경고</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html">Amazon RDS 사용 설명서 — 읽기 전용 복제본 사용</a>
+          — 비동기 복제와 별도 읽기 엔드포인트</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstanceReadReplica.html">Amazon RDS API 레퍼런스 — CreateDBInstanceReadReplica</a>
+          — 엔진별 복제본 개수 상한(대부분 15, Oracle·SQL Server 5, Db2 3), 소스에 자동 백업이 필요하다는 조건, Aurora가 이 작업을 지원하지 않는다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html">Amazon RDS API 레퍼런스 — CreateDBInstance</a>
+          — 지원 엔진 목록, <code>MultiAZ</code>와 <code>AvailabilityZone</code>을 함께 쓸 수 없다는 제약, 보존 기간 0~35일, 마이너 버전 자동 업그레이드 기본값, 유지 관리 기간 형식</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBCluster.html">Amazon RDS API 레퍼런스 — CreateDBCluster</a>
+          — Multi-AZ DB 클러스터의 필수 설정, 클러스터 보존 기간 1~35일, Aurora Serverless v2 확장 구성</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_FailoverDBCluster.html">Amazon RDS API 레퍼런스 — FailoverDBCluster</a>
+          — Aurora는 복제본을 승격하고 Multi-AZ DB 클러스터는 읽기 가능한 대기를 승격한다는 구분</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html">Amazon RDS 사용 설명서 — 백업 작업</a>
+          — 보존 기간 범위와 기본값, 스냅샷의 증분 성격, 리전당 수동 스냅샷 100개, 백업 기간이 유지 관리 기간과 겹칠 수 없다는 규칙, Multi-AZ에서 백업이 대기 쪽에서 수행된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIT.html">Amazon RDS 사용 설명서 — 지정한 시간으로 DB 인스턴스 복원</a>
+          — 트랜잭션 로그가 5분마다 Amazon S3로 업로드된다는 설명, 복원 결과가 새 인스턴스라는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CopyDBSnapshot.html">Amazon RDS API 레퍼런스 — CopyDBSnapshot</a>
+          — 복사를 호출한 리전이 대상 리전이 된다는 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBSnapshotAttribute.html">Amazon RDS API 레퍼런스 — ModifyDBSnapshotAttribute</a>
+          — 수동 스냅샷만 공유할 수 있다는 점, <code>restore</code> 속성과 <code>all</code> 값의 의미, 암호화된 스냅샷은 계정 ID 지정만 가능하다는 제약</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html">Amazon RDS 사용 설명서 — Amazon RDS 리소스 암호화</a>
+          — 생성 시점에만 암호화할 수 있다는 제약 목록, 스냅샷 사본을 통한 우회 경로, 복제본 전송 데이터가 암호화된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html">Amazon RDS 사용 설명서 — Amazon RDS Proxy 사용</a>
+          — 연결 풀링과 과부하 완충, 대기 인스턴스로 자동 재연결하며 애플리케이션 연결을 유지한다는 설명, 대개 코드 변경이 필요 없다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBProxy.html">Amazon RDS API 레퍼런스 — CreateDBProxy</a>
+          — 엔진 계열 값, Secrets Manager 접근용 IAM 역할, <code>RequireTLS</code></li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.StorageReliability.html">Amazon Aurora 사용 설명서 — Aurora 스토리지와 안정성</a>
+          — 클러스터 볼륨이 3개 가용 영역에 사본을 두며 복제량이 인스턴스 개수와 무관하다는 서술, 자동 확장</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Replication.html">Amazon Aurora 사용 설명서 — Aurora 복제</a>
+          — Aurora 복제본이 읽기 확장과 가용성을 겸하며 라이터 실패 시 자동 승격된다는 설명</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.Endpoints.html">Amazon Aurora 사용 설명서 — Aurora 연결 관리</a>
+          — 클러스터 · 리더 · 사용자 지정 · 인스턴스 엔드포인트의 역할과 리더 엔드포인트의 부하 분산</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-global-database.html">Amazon Aurora 사용 설명서 — Aurora 글로벌 데이터베이스</a>
+          — 주 리전에서만 쓰기, 읽기 전용 보조 리전, 스토리지 하위 시스템의 전용 인프라를 통한 복제</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2.html">Amazon Aurora 사용 설명서 — Aurora Serverless v2 사용</a>
+          — 온디맨드 자동 확장 구성, 0.5 ACU 단위 조절, 적합한 워크로드 유형</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,546 @@
+{
+  "generatedAt": "2026-07-29",
+  "examCode": "SAA-C03",
+  "total": 62,
+  "built": 60,
+  "sections": [
+    {
+      "id": "home",
+      "title": "홈",
+      "pages": [
+        {
+          "id": "index",
+          "path": "index.html",
+          "title": "AWS SAA Guide 홈",
+          "pageTitle": "AWS SAA Guide — AWS Certified Solutions Architect – Associate 학습 가이드",
+          "num": null,
+          "exists": true
+        }
+      ]
+    },
+    {
+      "id": "basics",
+      "title": "기본개념",
+      "pages": [
+        {
+          "id": "ch01",
+          "path": "basics/ch01.html",
+          "title": "AWS 글로벌 인프라와 계정 기초",
+          "pageTitle": "AWS 글로벌 인프라와 계정 기초",
+          "num": "1",
+          "exists": true
+        },
+        {
+          "id": "ch02",
+          "path": "basics/ch02.html",
+          "title": "IAM과 자격 증명",
+          "pageTitle": "IAM과 자격 증명",
+          "num": "2",
+          "exists": true
+        },
+        {
+          "id": "ch03",
+          "path": "basics/ch03.html",
+          "title": "VPC 네트워킹 기초",
+          "pageTitle": "VPC 네트워킹 기초",
+          "num": "3",
+          "exists": true
+        },
+        {
+          "id": "ch04",
+          "path": "basics/ch04.html",
+          "title": "VPC 연결과 하이브리드",
+          "pageTitle": "VPC 연결과 하이브리드",
+          "num": "4",
+          "exists": true
+        },
+        {
+          "id": "ch05",
+          "path": "basics/ch05.html",
+          "title": "EC2와 컴퓨트",
+          "pageTitle": "EC2와 컴퓨트",
+          "num": "5",
+          "exists": true
+        },
+        {
+          "id": "ch06",
+          "path": "basics/ch06.html",
+          "title": "EBS와 블록 스토리지",
+          "pageTitle": "EBS와 블록 스토리지",
+          "num": "6",
+          "exists": true
+        },
+        {
+          "id": "ch07",
+          "path": "basics/ch07.html",
+          "title": "로드 밸런싱과 오토스케일링",
+          "pageTitle": "로드 밸런싱과 오토스케일링",
+          "num": "7",
+          "exists": true
+        },
+        {
+          "id": "ch08",
+          "path": "basics/ch08.html",
+          "title": "S3와 오브젝트 스토리지",
+          "pageTitle": "S3와 오브젝트 스토리지",
+          "num": "8",
+          "exists": true
+        },
+        {
+          "id": "ch09",
+          "path": "basics/ch09.html",
+          "title": "파일 스토리지와 데이터 전송",
+          "pageTitle": "파일 스토리지와 데이터 전송",
+          "num": "9",
+          "exists": true
+        },
+        {
+          "id": "ch10",
+          "path": "basics/ch10.html",
+          "title": "RDS와 관계형 데이터베이스",
+          "pageTitle": "RDS와 관계형 데이터베이스",
+          "num": "10",
+          "exists": true
+        },
+        {
+          "id": "ch11",
+          "path": "basics/ch11.html",
+          "title": "NoSQL · 캐시 · 분석 DB",
+          "pageTitle": "NoSQL · 캐시 · 분석 DB",
+          "num": "11",
+          "exists": true
+        },
+        {
+          "id": "ch12",
+          "path": "basics/ch12.html",
+          "title": "서버리스와 애플리케이션 통합",
+          "pageTitle": "서버리스와 애플리케이션 통합",
+          "num": "12",
+          "exists": true
+        },
+        {
+          "id": "ch13",
+          "path": "basics/ch13.html",
+          "title": "컨테이너",
+          "pageTitle": "컨테이너",
+          "num": "13",
+          "exists": true
+        },
+        {
+          "id": "ch14",
+          "path": "basics/ch14.html",
+          "title": "엣지와 DNS",
+          "pageTitle": "엣지와 DNS",
+          "num": "14",
+          "exists": true
+        },
+        {
+          "id": "ch15",
+          "path": "basics/ch15.html",
+          "title": "데이터 분석 파이프라인",
+          "pageTitle": "데이터 분석 파이프라인",
+          "num": "15",
+          "exists": true
+        },
+        {
+          "id": "ch16",
+          "path": "basics/ch16.html",
+          "title": "보안 · 암호화 · 거버넌스",
+          "pageTitle": "보안·암호화·거버넌스",
+          "num": "16",
+          "exists": true
+        },
+        {
+          "id": "ch17",
+          "path": "basics/ch17.html",
+          "title": "모니터링 · 운영 · 계정 관리",
+          "pageTitle": "모니터링·운영·계정 관리",
+          "num": "17",
+          "exists": true
+        },
+        {
+          "id": "ch18",
+          "path": "basics/ch18.html",
+          "title": "비용 최적화 · 마이그레이션 · DR",
+          "pageTitle": "비용 최적화·마이그레이션·재해 복구",
+          "num": "18",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "id": "quiz",
+      "title": "문제 풀이",
+      "pages": [
+        {
+          "id": "index",
+          "path": "quiz/index.html",
+          "title": "문제 풀이 허브",
+          "pageTitle": "문제 풀이 허브",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "diagnostic",
+          "path": "quiz/diagnostic.html",
+          "title": "진단 테스트 (40문항)",
+          "pageTitle": "진단 테스트",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "review",
+          "path": "quiz/review.html",
+          "title": "오답 노트",
+          "pageTitle": "오답 노트",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "result",
+          "path": "quiz/result.html",
+          "title": "결과 리포트",
+          "pageTitle": "결과 리포트",
+          "num": null,
+          "exists": true
+        }
+      ]
+    },
+    {
+      "id": "saa",
+      "title": "SAA 시험 대비",
+      "pages": [
+        {
+          "id": "index",
+          "path": "saa/index.html",
+          "title": "시험 개요 · 8주 학습 플랜",
+          "pageTitle": "시험 개요와 8주 학습 플랜",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "domain-secure",
+          "path": "saa/domain-secure.html",
+          "title": "보안 아키텍처 설계 (30%)",
+          "pageTitle": "보안 아키텍처 설계 (30%)",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "domain-resilient",
+          "path": "saa/domain-resilient.html",
+          "title": "복원력 있는 아키텍처 설계 (26%)",
+          "pageTitle": "복원력 있는 아키텍처 설계 (26%)",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "domain-performance",
+          "path": "saa/domain-performance.html",
+          "title": "고성능 아키텍처 설계 (24%)",
+          "pageTitle": "고성능 아키텍처 설계 (24%)",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "domain-cost",
+          "path": "saa/domain-cost.html",
+          "title": "비용 최적화 아키텍처 설계 (20%)",
+          "pageTitle": "비용 최적화 아키텍처 설계 (20%)",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "keywords",
+          "path": "saa/keywords.html",
+          "title": "한정어 키워드 사전",
+          "pageTitle": "한정어 키워드 사전",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "traps",
+          "path": "saa/traps.html",
+          "title": "함정 사전",
+          "pageTitle": "함정 사전",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "flashcards",
+          "path": "saa/flashcards.html",
+          "title": "플래시카드",
+          "pageTitle": "플래시카드",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "cram",
+          "path": "saa/cram.html",
+          "title": "벼락치기 요약",
+          "pageTitle": "벼락치기 요약",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "exam-tips",
+          "path": "saa/exam-tips.html",
+          "title": "시험 당일 전략",
+          "pageTitle": "시험 당일 전략",
+          "num": null,
+          "exists": true
+        }
+      ]
+    },
+    {
+      "id": "labs",
+      "title": "실습 예제",
+      "pages": [
+        {
+          "id": "lab01",
+          "path": "labs/lab01.html",
+          "title": "3계층 VPC 직접 구성",
+          "pageTitle": "실습 1 · 3계층 VPC 직접 구성",
+          "num": "1",
+          "exists": true
+        },
+        {
+          "id": "lab02",
+          "path": "labs/lab02.html",
+          "title": "ALB + ASG 웹 티어",
+          "pageTitle": "실습 2 · ALB + ASG 웹 티어",
+          "num": "2",
+          "exists": true
+        },
+        {
+          "id": "lab03",
+          "path": "labs/lab03.html",
+          "title": "S3 정적 사이트 + CloudFront + OAC",
+          "pageTitle": "실습 3 · S3 정적 사이트 + CloudFront + OAC",
+          "num": "3",
+          "exists": true
+        },
+        {
+          "id": "lab04",
+          "path": "labs/lab04.html",
+          "title": "RDS Multi-AZ와 읽기 전용 복제본",
+          "pageTitle": "실습 4 · RDS Multi-AZ와 읽기 전용 복제본",
+          "num": "4",
+          "exists": true
+        },
+        {
+          "id": "lab05",
+          "path": "labs/lab05.html",
+          "title": "DynamoDB 테이블 설계",
+          "pageTitle": "실습 5 · DynamoDB 테이블 설계",
+          "num": "5",
+          "exists": true
+        },
+        {
+          "id": "lab06",
+          "path": "labs/lab06.html",
+          "title": "Lambda + API Gateway REST API",
+          "pageTitle": "실습 6 · Lambda + API Gateway REST API",
+          "num": "6",
+          "exists": true
+        },
+        {
+          "id": "lab07",
+          "path": "labs/lab07.html",
+          "title": "SQS + Lambda 비동기 처리",
+          "pageTitle": "실습 7 · SQS + Lambda 비동기 처리",
+          "num": "7",
+          "exists": true
+        },
+        {
+          "id": "lab08",
+          "path": "labs/lab08.html",
+          "title": "EventBridge 이벤트 기반 아키텍처",
+          "pageTitle": "실습 8 · EventBridge 이벤트 아키텍처",
+          "num": "8",
+          "exists": true
+        },
+        {
+          "id": "lab09",
+          "path": "labs/lab09.html",
+          "title": "ECS Fargate 서비스 배포",
+          "pageTitle": "실습 9 · ECS Fargate 서비스 배포",
+          "num": "9",
+          "exists": true
+        },
+        {
+          "id": "lab10",
+          "path": "labs/lab10.html",
+          "title": "VPC 엔드포인트로 S3 비공개 접근",
+          "pageTitle": "실습 10 · VPC 엔드포인트로 S3 비공개 접근",
+          "num": "10",
+          "exists": true
+        },
+        {
+          "id": "lab11",
+          "path": "labs/lab11.html",
+          "title": "KMS 고객 관리형 키 암호화",
+          "pageTitle": null,
+          "num": "11",
+          "exists": false
+        },
+        {
+          "id": "lab12",
+          "path": "labs/lab12.html",
+          "title": "CloudWatch 알람 + SNS 알림",
+          "pageTitle": null,
+          "num": "12",
+          "exists": false
+        }
+      ]
+    },
+    {
+      "id": "cases",
+      "title": "아키텍처 케이스",
+      "pages": [
+        {
+          "id": "case01",
+          "path": "cases/case01.html",
+          "title": "EC2에 액세스 키를 심어 배포했다",
+          "pageTitle": "케이스 1 · EC2에 액세스 키를 심어 배포했다",
+          "num": "1",
+          "exists": true
+        },
+        {
+          "id": "case02",
+          "path": "cases/case02.html",
+          "title": "읽기 부하로 데이터베이스가 죽었다",
+          "pageTitle": "케이스 2 · 읽기 부하로 데이터베이스가 죽었다",
+          "num": "2",
+          "exists": true
+        },
+        {
+          "id": "case03",
+          "path": "cases/case03.html",
+          "title": "S3 비용이 매달 늘어난다",
+          "pageTitle": "케이스 3 · S3 비용이 매달 늘어난다",
+          "num": "3",
+          "exists": true
+        },
+        {
+          "id": "case04",
+          "path": "cases/case04.html",
+          "title": "퍼블릭 서브넷에 데이터베이스를 뒀다",
+          "pageTitle": "케이스 4 · 퍼블릭 서브넷에 데이터베이스를 뒀다",
+          "num": "4",
+          "exists": true
+        },
+        {
+          "id": "case05",
+          "path": "cases/case05.html",
+          "title": "단일 AZ 설계가 장애로 전면 중단됐다",
+          "pageTitle": "케이스 5 · 단일 AZ 설계가 장애로 전면 중단됐다",
+          "num": "5",
+          "exists": true
+        },
+        {
+          "id": "case06",
+          "path": "cases/case06.html",
+          "title": "데이터 전송 요금이 예산을 넘겼다",
+          "pageTitle": "케이스 6 · 데이터 전송 요금이 예산을 넘겼다",
+          "num": "6",
+          "exists": true
+        },
+        {
+          "id": "case07",
+          "path": "cases/case07.html",
+          "title": "트래픽 급증에 스케일아웃이 못 따라갔다",
+          "pageTitle": "케이스 7 · 트래픽 급증에 스케일아웃이 못 따라갔다",
+          "num": "7",
+          "exists": true
+        },
+        {
+          "id": "case08",
+          "path": "cases/case08.html",
+          "title": "리전 장애에 대비한 DR을 설계하라",
+          "pageTitle": "케이스 8 · 리전 장애에 대비한 DR을 설계하라",
+          "num": "8",
+          "exists": true
+        },
+        {
+          "id": "case09",
+          "path": "cases/case09.html",
+          "title": "온프레미스 파일 서버를 클라우드로",
+          "pageTitle": "케이스 9 · 온프레미스 파일 서버를 클라우드로",
+          "num": "9",
+          "exists": true
+        },
+        {
+          "id": "case10",
+          "path": "cases/case10.html",
+          "title": "규정 준수 감사에 대응하라",
+          "pageTitle": "케이스 10 · 규정 준수 감사에 대응하라",
+          "num": "10",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "id": "cheatsheet",
+      "title": "빠른참조",
+      "pages": [
+        {
+          "id": "services",
+          "path": "cheatsheet/services.html",
+          "title": "서비스 한 줄 정의",
+          "pageTitle": "서비스 한 줄 정의",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "compare",
+          "path": "cheatsheet/compare.html",
+          "title": "헷갈리는 쌍 비교",
+          "pageTitle": "헷갈리는 쌍 비교",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "limits",
+          "path": "cheatsheet/limits.html",
+          "title": "한도 · 기본값",
+          "pageTitle": "한도와 기본값",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "decision-tree",
+          "path": "cheatsheet/decision-tree.html",
+          "title": "서비스 선택 결정 트리",
+          "pageTitle": "서비스 선택 결정 트리",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "security",
+          "path": "cheatsheet/security.html",
+          "title": "보안 · 암호화",
+          "pageTitle": "보안과 암호화",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "network",
+          "path": "cheatsheet/network.html",
+          "title": "네트워크 연결",
+          "pageTitle": "네트워크 연결 매트릭스",
+          "num": null,
+          "exists": true
+        },
+        {
+          "id": "cost",
+          "path": "cheatsheet/cost.html",
+          "title": "요금 · 비용 절감",
+          "pageTitle": "요금 구조와 절감",
+          "num": null,
+          "exists": true
+        }
+      ]
+    }
+  ]
+}

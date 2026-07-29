@@ -1,0 +1,306 @@
+/* ==========================================================================
+   AWS SAA Guide — Design Tokens
+   --------------------------------------------------------------------------
+   기술 문서 사이트용 토큰. 시스템 폰트만 사용하며 웹폰트를 로드하지 않습니다.
+   외부 CDN 참조 0건.
+
+   다크모드 규약 (중요 — 모든 에이전트가 이 규약에 의존합니다)
+     1. :root                              → 라이트 기본값
+     2. @media (prefers-color-scheme:dark) → OS 설정 추종 (data-theme 미지정 시)
+     3. :root[data-theme="dark"]           → 명시적 다크 (미디어쿼리를 이김)
+     4. :root[data-theme="light"]          → 명시적 라이트 (미디어쿼리를 이김)
+   3·4번이 양방향으로 미디어쿼리를 이기므로 토글이 항상 동작합니다.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- 타이포그래피 ------------------------------------------------------ */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Apple SD Gothic Neo",
+    "Malgun Gothic", "Noto Sans KR", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    "DejaVu Sans Mono", "D2Coding", monospace;
+
+  --fs-root: 16px;
+  --fs-xs: 0.75rem;    /* 12px */
+  --fs-sm: 0.875rem;   /* 14px */
+  --fs-base: 1rem;     /* 16px */
+  --fs-md: 1.0625rem;  /* 17px */
+  --fs-lg: 1.25rem;    /* 20px  h4 */
+  --fs-xl: 1.5rem;     /* 24px  h3 */
+  --fs-2xl: 1.875rem;  /* 30px  h2 */
+  --fs-3xl: 2.25rem;   /* 36px  h1 */
+  --fs-code: 0.875rem; /* 14px */
+
+  --lh-tight: 1.25;
+  --lh-heading: 1.3;
+  --lh-body: 1.7;
+  --lh-code: 1.6;
+
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --tracking-tight: -0.011em;
+  --tracking-wide: 0.04em;
+
+  /* ---- 간격 (4px 배수) --------------------------------------------------- */
+  --space-1: 0.25rem;  /* 4  */
+  --space-2: 0.5rem;   /* 8  */
+  --space-3: 0.75rem;  /* 12 */
+  --space-4: 1rem;     /* 16 */
+  --space-5: 1.5rem;   /* 24 */
+  --space-6: 2rem;     /* 32 */
+  --space-7: 3rem;     /* 48 */
+  --space-8: 4rem;     /* 64 */
+
+  /* ---- 반경 ------------------------------------------------------------- */
+  --radius-1: 3px;
+  --radius-2: 6px;
+  --radius-3: 10px;
+  --radius-pill: 999px;
+
+  /* ---- 레이아웃 --------------------------------------------------------- */
+  --content-max: 76ch;
+  --sidebar-w: 17.5rem;
+  --toc-w: 15rem;
+  --header-h: 3.5rem;
+  --gutter: var(--space-5);
+
+  /* ---- 색: 라이트 ------------------------------------------------------- */
+  --c-bg: #ffffff;
+  --c-bg-subtle: #f7f8fa;
+  --c-surface: #ffffff;
+  --c-surface-raised: #ffffff;
+  --c-surface-sunken: #f1f3f6;
+  --c-border: #dfe3e8;
+  --c-border-strong: #c3cad3;
+
+  --c-text: #1b2027;
+  --c-text-secondary: #4d5764;
+  --c-text-muted: #6b7581;
+  --c-text-inverse: #ffffff;
+
+  --c-link: #1256a0;
+  --c-link-hover: #0d3f77;
+  --c-link-visited: #5b3a8e;
+
+  --c-accent: #1256a0;
+  --c-accent-soft: #e8f0f9;
+  --c-accent-border: #a9c6e4;
+  --c-accent-text: #0d3f77;
+
+  /* 시맨틱 — bg(연한 배경) / border / text(대비 확보된 본문색) / mark(아이콘·강조) */
+  --c-info-bg: #eaf2fb;
+  --c-info-border: #9dbfe3;
+  --c-info-text: #10457f;
+
+  --c-warn-bg: #fdf4e3;
+  --c-warn-border: #e0bd77;
+  --c-warn-text: #7a4d05;
+
+  --c-danger-bg: #fdeded;
+  --c-danger-border: #e5a6a6;
+  --c-danger-text: #8c1d1d;
+
+  --c-success-bg: #e9f6ec;
+  --c-success-border: #97ceaa;
+  --c-success-text: #1c5c33;
+
+  --c-version-bg: #f2f0fb;
+  --c-version-border: #b9b0e0;
+  --c-version-text: #4a3689;
+
+  --c-exam-bg: #eaf6f6;
+  --c-exam-border: #92c7c7;
+  --c-exam-text: #17595c;
+
+  /* 코드 표면 */
+  --c-code-bg: #f6f8fa;
+  --c-code-border: #e0e5ea;
+  --c-code-inline-bg: #f0f2f5;
+  --c-code-inline-text: #9d2f5c;
+
+  /* 폼 / 컨트롤 */
+  --c-control-bg: #ffffff;
+  --c-control-border: #8b939e;
+  --c-control-hover-bg: #f1f3f6;
+  --c-control-active-bg: #e8f0f9;
+  --c-focus-ring: #1a73c7;
+
+  /* 다이어그램 (CONTENT_STYLE_GUIDE §3-4 호환 별칭.
+     다이어그램 본체는 viz.css의 --dg-* 토큰을 씁니다.) */
+  --diagram-stroke: #55606d;
+  --diagram-fill: #f2f5f8;
+  --diagram-accent: #1256a0;
+
+  /* ---- 그림자 ----------------------------------------------------------- */
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-2: 0 2px 6px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-3: 0 10px 28px rgba(16, 24, 40, 0.14);
+
+  /* ---- 모션 ------------------------------------------------------------- */
+  --dur-fast: 90ms;
+  --dur-base: 160ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --z-sticky: 20;
+  --z-drawer: 60;
+  --z-overlay: 55;
+  --z-dialog: 80;
+}
+
+/* ---- 색: 다크 (토큰 값만 재정의) ---------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --c-bg: #111418;
+    --c-bg-subtle: #16191e;
+    --c-surface: #191d23;
+    --c-surface-raised: #1e232a;
+    --c-surface-sunken: #0d1013;
+    --c-border: #2c333c;
+    --c-border-strong: #414a55;
+
+    --c-text: #e3e7ec;
+    --c-text-secondary: #aeb6c0;
+    --c-text-muted: #8b939e;
+    --c-text-inverse: #111418;
+
+    --c-link: #79b8f3;
+    --c-link-hover: #a6d1f8;
+    --c-link-visited: #c2aef0;
+
+    --c-accent: #79b8f3;
+    --c-accent-soft: #1a2635;
+    --c-accent-border: #33506f;
+    --c-accent-text: #a6d1f8;
+
+    --c-info-bg: #15222f;
+    --c-info-border: #2f4a66;
+    --c-info-text: #a8ccef;
+
+    --c-warn-bg: #2a2113;
+    --c-warn-border: #5f4a1f;
+    --c-warn-text: #edc678;
+
+    --c-danger-bg: #2b1618;
+    --c-danger-border: #6a2f33;
+    --c-danger-text: #f0a9ac;
+
+    --c-success-bg: #14251a;
+    --c-success-border: #2d5738;
+    --c-success-text: #94d5a7;
+
+    --c-version-bg: #1e1b2c;
+    --c-version-border: #423a63;
+    --c-version-text: #c3b8f0;
+
+    --c-exam-bg: #12262a;
+    --c-exam-border: #2b5257;
+    --c-exam-text: #94cdd1;
+
+    --c-code-bg: #14181d;
+    --c-code-border: #262c34;
+    --c-code-inline-bg: #22272e;
+    --c-code-inline-text: #f0a1c0;
+
+    --c-control-bg: #1e232a;
+    --c-control-border: #767f8b;
+    --c-control-hover-bg: #262c34;
+    --c-control-active-bg: #1a2635;
+    --c-focus-ring: #79b8f3;
+
+    --diagram-stroke: #9aa4b0;
+    --diagram-fill: #1c2128;
+    --diagram-accent: #79b8f3;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-3: 0 10px 28px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* 명시적 다크 — 미디어쿼리를 이깁니다. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --c-bg: #111418;
+  --c-bg-subtle: #16191e;
+  --c-surface: #191d23;
+  --c-surface-raised: #1e232a;
+  --c-surface-sunken: #0d1013;
+  --c-border: #2c333c;
+  --c-border-strong: #414a55;
+
+  --c-text: #e3e7ec;
+  --c-text-secondary: #aeb6c0;
+  --c-text-muted: #8b939e;
+  --c-text-inverse: #111418;
+
+  --c-link: #79b8f3;
+  --c-link-hover: #a6d1f8;
+  --c-link-visited: #c2aef0;
+
+  --c-accent: #79b8f3;
+  --c-accent-soft: #1a2635;
+  --c-accent-border: #33506f;
+  --c-accent-text: #a6d1f8;
+
+  --c-info-bg: #15222f;
+  --c-info-border: #2f4a66;
+  --c-info-text: #a8ccef;
+
+  --c-warn-bg: #2a2113;
+  --c-warn-border: #5f4a1f;
+  --c-warn-text: #edc678;
+
+  --c-danger-bg: #2b1618;
+  --c-danger-border: #6a2f33;
+  --c-danger-text: #f0a9ac;
+
+  --c-success-bg: #14251a;
+  --c-success-border: #2d5738;
+  --c-success-text: #94d5a7;
+
+  --c-version-bg: #1e1b2c;
+  --c-version-border: #423a63;
+  --c-version-text: #c3b8f0;
+
+  --c-exam-bg: #12262a;
+  --c-exam-border: #2b5257;
+  --c-exam-text: #94cdd1;
+
+  --c-code-bg: #14181d;
+  --c-code-border: #262c34;
+  --c-code-inline-bg: #22272e;
+  --c-code-inline-text: #f0a1c0;
+
+  --c-control-bg: #1e232a;
+  --c-control-border: #767f8b;
+  --c-control-hover-bg: #262c34;
+  --c-control-active-bg: #1a2635;
+  --c-focus-ring: #79b8f3;
+
+  --diagram-stroke: #9aa4b0;
+  --diagram-fill: #1c2128;
+  --diagram-accent: #79b8f3;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-3: 0 10px 28px rgba(0, 0, 0, 0.55);
+}
+
+/* 명시적 라이트 — 미디어쿼리를 이깁니다. (:root의 기본값을 그대로 사용) */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* ---- 글자 크기 설정 (ag:settings.fontSize) ------------------------------ */
+:root[data-font-size="sm"]  { --fs-root: 15px; }
+:root[data-font-size="md"]  { --fs-root: 16px; }
+:root[data-font-size="lg"]  { --fs-root: 17.5px; }

@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>4장 · VPC 연결과 하이브리드 — AWS SAA Guide</title>
+  <meta name="description" content="VPC 피어링이 전이 라우팅을 지원하지 않는다는 사실과 Transit Gateway가 그 문제를 푸는 방식, 게이트웨이 엔드포인트와 인터페이스 엔드포인트(AWS PrivateLink)의 구현 위치 차이, 데이터가 인터넷을 거치면 안 된다는 조건이 붙었을 때의 선택, NAT 게이트웨이 비용을 엔드포인트로 줄이는 판단, 그리고 Site-to-Site VPN과 AWS Direct Connect, AWS Outposts를 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch04"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch04">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">4장 · VPC 연결과 하이브리드</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 4장</p>
+      <h1>VPC 연결과 하이브리드</h1>
+      <p class="page__lead">
+        <a href="ch03.html">3장</a>에서 VPC 하나를 만들었으니 이제 밖과 잇습니다.
+        VPC끼리, 온프레미스와, 그리고 AWS 서비스와 잇는 방법이 각각 다르고
+        <strong>선택 기준도 다릅니다.</strong>
+        이 장에서 반드시 가져가야 할 판단은 하나입니다 —
+        문제문에 <strong>"데이터가 인터넷을 거치면 안 된다"</strong>는 한정어가 붙었을 때 무엇을 고르는가.
+        답은 VPC 엔드포인트이고, 그 이유를 라우팅 수준에서 설명할 수 있어야 합니다.
+      </p>
+      <p class="page__meta">
+        이 장은 <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a>와
+        <a href="../saa/domain-cost.html">비용 최적화 아키텍처 설계(20%)</a>에 함께 걸칩니다.
+        같은 VPC 엔드포인트가 보안 문항에서도 비용 문항에서도 정답이 되는 드문 주제입니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>VPC 피어링이 전이 라우팅을 지원하지 않는다는 사실과, 그 제약이 규모에 따라 어떤 문제를 만드는지 설명할 수 있습니다.</li>
+        <li>피어링과 Transit Gateway 중 무엇을 고를지 연결 개수와 운영 부담을 기준으로 판단할 수 있습니다.</li>
+        <li>게이트웨이 엔드포인트와 인터페이스 엔드포인트를 구현 위치와 지원 서비스로 구분할 수 있습니다.</li>
+        <li>"인터넷을 거치면 안 된다"는 요구사항이 나왔을 때 후보 경로 중 조건을 만족하는 것을 골라낼 수 있습니다.</li>
+        <li>NAT 게이트웨이를 지나던 Amazon S3 트래픽을 게이트웨이 엔드포인트로 옮기는 비용 판단을 설명할 수 있습니다.</li>
+        <li>Site-to-Site VPN과 AWS Direct Connect의 특성 차이를 설명하고, 두 가지를 함께 쓰는 이유를 말할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="vpc-peering">
+      <h2 id="vpc-peering">VPC 피어링 — 두 VPC를 일대일로 잇는다</h2>
+
+      <p>
+        VPC 피어링 연결은 <strong>두 VPC 사이의 네트워킹 연결</strong>이며,
+        연결된 VPC의 리소스는 같은 네트워크 안에 있는 것처럼 통신합니다.
+        VPC 사용 설명서는 두 가지를 명시합니다 —
+        <strong>"피어링된 VPC 사이의 트래픽은 퍼블릭 인터넷을 절대 거치지 않는다"</strong>는 것과,
+        피어링이 게이트웨이나 VPN 연결이 아니라 기존 VPC 인프라를 사용하므로
+        <strong>"통신의 단일 장애점이나 대역폭 병목이 없다"</strong>는 것입니다.
+      </p>
+      <p>
+        연결 대상은 <strong>내 VPC끼리, 다른 계정의 VPC와, 다른 리전의 VPC와</strong> 모두 가능합니다.
+        요청자 VPC 소유자가 요청을 보내고 수락자 VPC 소유자가 수락해야 활성화되며,
+        요청은 <strong>7일 뒤 만료</strong>됩니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-030">
+        <figcaption>
+          피어링의 비전이성과 Transit Gateway 허브 — 왼쪽은 VPC 네 개를 모두 잇기 위해
+          피어링 연결 여섯 개가 필요한 완전 연결 구성이고, 오른쪽은 Transit Gateway 하나에
+          연결 네 개를 붙인 허브 구성입니다. VPC가 늘어날수록 왼쪽은 제곱에 가깝게 늘고
+          오른쪽은 하나씩 늡니다
+        </figcaption>
+      </figure>
+
+      <h3 id="non-transitive-routing">전이 라우팅이 되지 않는다</h3>
+      <p>
+        이것이 피어링의 결정적 제약입니다.
+        VPC 피어링 안내서의 서술을 그대로 옮기면
+        <strong>"VPC 피어링 연결은 두 VPC 사이의 일대일 관계"</strong>이고
+        <strong>"전이적 피어링 관계는 지원되지 않는다"</strong>,
+        그리고 <strong>"직접 피어링되지 않은 VPC와는 어떤 피어링 관계도 갖지 않는다"</strong>입니다.
+      </p>
+      <p>
+        구체적인 예도 문서가 들어 줍니다 —
+        <strong>VPC A와 VPC B가 피어링되어 있고 VPC A와 VPC C도 피어링되어 있어도,
+        VPC B에서 VPC A를 거쳐 VPC C로 트래픽을 보낼 수 없습니다.</strong>
+        VPC B와 VPC C를 통신시키려면 그 둘 사이에 별도의 피어링 연결을 만들어야 합니다.
+      </p>
+      <p>
+        결과적으로 VPC가 <em>N</em>개일 때 모두를 잇는 데 필요한 연결은
+        <strong><em>N</em>(<em>N</em>-1)/2개</strong>가 됩니다.
+        4개면 6개, 10개면 45개입니다.
+        <strong>연결마다 양쪽 라우팅 테이블에 경로를 넣어야 하므로</strong>
+        관리 대상은 그보다 더 빠르게 늘어납니다.
+      </p>
+
+      <h3 id="edge-to-edge-routing">엣지 투 엣지 라우팅도 되지 않는다</h3>
+      <p>
+        전이성 제약은 게이트웨이에도 그대로 적용됩니다.
+        VPC 피어링 안내서가 나열하는 항목은 다음과 같습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>피어링 상대의 게이트웨이를 빌려 쓸 수 없다</caption>
+          <thead>
+            <tr>
+              <th scope="col">VPC A가 가진 것</th>
+              <th scope="col">VPC B가 그것을 쓸 수 있는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">인터넷 게이트웨이</th>
+              <td><span class="mark-no">불가</span> — VPC B는 VPC A의 인터넷 게이트웨이로 인터넷에 나갈 수 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 장치</th>
+              <td><span class="mark-no">불가</span> — VPC B는 VPC A의 NAT 장치를 쓸 수 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">Site-to-Site VPN 연결</th>
+              <td><span class="mark-no">불가</span> — VPC B는 그 VPN으로 사내 네트워크와 통신할 수 없다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Direct Connect 연결</th>
+              <td><span class="mark-no">불가</span> — 위와 같다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon S3 게이트웨이 엔드포인트</th>
+              <td><span class="mark-no">불가</span> — VPC B는 VPC A의 게이트웨이 엔드포인트로 S3에 접근할 수 없다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        "공용 서비스 VPC에 NAT 게이트웨이 하나를 두고 다른 VPC들이 피어링으로 공유한다"는 설계는
+        <strong>성립하지 않습니다.</strong> 이 요구를 실제로 푸는 것이 Transit Gateway입니다.
+      </p>
+
+      <h3 id="peering-limitations">그 밖의 제약</h3>
+      <ul>
+        <li><strong>CIDR이 겹치면 피어링을 만들 수 없습니다.</strong>
+          IPv4든 IPv6든 일치하거나 겹치면 안 되고, CIDR 블록이 여러 개일 때
+          <strong>그중 하나라도 겹치면</strong> 겹치지 않는 블록만 쓸 생각이어도 만들 수 없습니다.</li>
+        <li>두 VPC 사이에 <strong>동시에 두 개 이상의 피어링 연결</strong>을 둘 수 없습니다.</li>
+        <li>피어 VPC의 <strong>Amazon DNS 서버에 질의할 수 없습니다.</strong></li>
+        <li><strong>리전 간 피어링</strong>에서는 피어 VPC의 보안 그룹을 참조하는 규칙을 만들 수 없고,
+          MTU가 <strong>1,500바이트</strong>로 제한되어 점보 프레임을 쓸 수 없습니다.
+          같은 리전 안의 피어링은 점보 프레임을 지원합니다.</li>
+      </ul>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>"VPC 세 개 이상을 서로 통신시켜야 한다"</strong>는 문항에서
+          <strong>"중간 VPC를 경유해 라우팅한다"</strong>는 선택지는 언제나 오답입니다.
+          피어링은 전이적이지 않습니다.
+        </p>
+        <p>
+          <strong>"인수한 회사의 VPC와 연결하라"</strong>는 시나리오에서
+          <strong>CIDR이 겹친다</strong>는 조건이 붙으면 피어링도 Transit Gateway 연결도
+          그대로는 성립하지 않습니다. 이때는 주소 재설계나 프라이빗 NAT를 통한 주소 변환이 필요하며,
+          "CIDR이 겹쳐도 피어링하면 된다"는 선택지는 소거 대상입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="transit-gateway">
+      <h2 id="transit-gateway">AWS Transit Gateway — 허브로 바꾼다</h2>
+
+      <p>
+        Transit Gateway는 <strong>VPC와 온프레미스 네트워크를 상호 연결하는 허브</strong>입니다.
+        각 네트워크는 Transit Gateway에 <strong>연결(attachment)</strong>을 하나씩 만들고,
+        Transit Gateway가 그 사이의 라우팅을 담당합니다.
+        연결이 <em>N</em>개면 관리 대상도 <em>N</em>개입니다 —
+        피어링의 <em>N</em>(<em>N</em>-1)/2와 대비되는 지점이 여기입니다.
+      </p>
+
+      <h3 id="tgw-attachments">연결 유형</h3>
+      <p>
+        VPC, Site-to-Site VPN, Direct Connect 게이트웨이, 다른 Transit Gateway와의 피어링,
+        그리고 Connect 연결을 붙일 수 있습니다.
+        VPN을 붙이려면 <strong>고객 게이트웨이를 만들고 VPN 연결을 만들 때
+        Transit Gateway를 지정</strong>합니다.
+      </p>
+
+      <h3 id="tgw-route-tables">라우팅 테이블 — 연결과 전파</h3>
+      <p>
+        Transit Gateway를 만들면 <strong>기본 라우팅 테이블</strong>이 함께 만들어지고,
+        그것이 기본 연결(association) 라우팅 테이블이자 기본 전파(propagation) 라우팅 테이블이 됩니다.
+        두 용어의 의미가 다릅니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Transit Gateway 라우팅의 두 축</caption>
+          <thead>
+            <tr>
+              <th scope="col">개념</th>
+              <th scope="col">의미</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">연결(association)</th>
+              <td>각 연결은 <strong>라우팅 테이블 하나에</strong> 연결된다. 그 라우팅 테이블이 <strong>그 연결에서 들어온 트래픽의 다음 홉</strong>을 결정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">전파(propagation)</th>
+              <td>연결의 경로가 <strong>대상 라우팅 테이블로 전파</strong>된다. 어느 테이블로 전파할지를 따로 정할 수 있다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        라우팅 테이블을 여러 개 만들면 <strong>네트워크를 분리(세그먼트)</strong>할 수 있습니다.
+        개발 VPC들을 한 라우팅 테이블에, 운영 VPC들을 다른 라우팅 테이블에 연결하면
+        같은 Transit Gateway를 쓰면서도 두 환경이 서로 도달하지 못하게 만들 수 있습니다.
+        <strong>피어링으로는 이런 정책 계층을 만들 수 없습니다.</strong>
+      </p>
+      <p>
+        Transit Gateway끼리도 피어링할 수 있고, 이때는 <strong>정적 경로만 지원</strong>됩니다.
+        리전을 넘는 대규모 구성에서 쓰입니다.
+      </p>
+
+      <h3 id="peering-vs-tgw">무엇을 고를 것인가</h3>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>VPC 피어링과 Transit Gateway 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">VPC 피어링</th>
+              <th scope="col">Transit Gateway</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">연결 모형</th>
+              <td>두 VPC의 <strong>일대일</strong></td>
+              <td><strong>허브 앤 스포크</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">전이 라우팅</th>
+              <td><span class="mark-no">지원하지 않는다</span></td>
+              <td><span class="mark-ok">지원한다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">연결 개수(<em>N</em>개 VPC 완전 연결)</th>
+              <td><em>N</em>(<em>N</em>-1)/2</td>
+              <td><em>N</em></td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스 연결 공유</th>
+              <td><span class="mark-no">불가</span> — 피어 VPC의 VPN·Direct Connect를 쓸 수 없다</td>
+              <td><span class="mark-ok">가능</span> — VPN과 Direct Connect 게이트웨이를 함께 붙인다</td>
+            </tr>
+            <tr>
+              <th scope="row">네트워크 분리</th>
+              <td>라우팅 테이블 항목으로만 제어</td>
+              <td><strong>Transit Gateway 라우팅 테이블</strong>로 세그먼트를 만든다</td>
+            </tr>
+            <tr>
+              <th scope="row">단일 장애점</th>
+              <td>없다 (기존 VPC 인프라를 사용)</td>
+              <td>허브이므로 설계상 집중된다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 기준</th>
+              <td>VPC가 <strong>적고</strong> 연결 관계가 고정적일 때</td>
+              <td>VPC가 <strong>많고</strong> 온프레미스까지 함께 이어야 할 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          판단 기준은 <strong>연결 관계의 개수와 성장 방향</strong>입니다.
+          <strong>"VPC 두세 개를 잇는다"</strong>면 피어링이 단순하고,
+          <strong>"수십 개 VPC와 온프레미스를 함께", "앞으로 계속 늘어난다",
+          "운영 부담을 줄여라"</strong>면 Transit Gateway입니다.
+        </p>
+        <p>
+          문제문에 <strong>"중앙에서 라우팅을 관리"</strong>나
+          <strong>"모든 VPC가 공유 서비스 VPC에 접근"</strong>이 보이면 Transit Gateway 신호입니다.
+          피어링으로는 공유가 성립하지 않기 때문입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="vpc-endpoint-choice">
+      <h2 id="vpc-endpoint-choice">VPC 엔드포인트 — 게이트웨이와 인터페이스 <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        VPC 엔드포인트는 <strong>VPC와 AWS 서비스 사이에 프라이빗 연결을 만드는 장치</strong>입니다.
+        Amazon S3나 Amazon DynamoDB 같은 서비스는 VPC 밖에 있으므로
+        기본 경로로는 인터넷 게이트웨이나 NAT 게이트웨이를 거쳐야 하는데,
+        엔드포인트를 만들면 <strong>그 경로를 쓰지 않고 AWS 네트워크 안에서 처리</strong>됩니다.
+      </p>
+      <p>
+        유형은 두 가지이고, <strong>구현 위치가 근본적으로 다릅니다.</strong>
+      </p>
+
+      <figure class="diagram" data-diagram="D-031">
+        <figcaption>
+          두 엔드포인트의 구현 위치 — 게이트웨이 엔드포인트는 라우팅 테이블에
+          서비스의 접두사 목록을 대상으로 하는 경로 항목으로 붙고,
+          인터페이스 엔드포인트는 서브넷 안에 네트워크 인터페이스를 만들어
+          프라이빗 IP를 받고 프라이빗 DNS로 서비스 이름을 가로챕니다
+        </figcaption>
+      </figure>
+
+      <h3 id="gateway-endpoint">게이트웨이 엔드포인트 — 라우팅 테이블에 붙는다</h3>
+      <p>
+        게이트웨이 엔드포인트는 <strong>Amazon S3와 Amazon DynamoDB</strong>만 지원합니다.
+        VPC 엔드포인트를 만들 때 <strong>라우팅 테이블 ID를 지정</strong>하면,
+        선택한 각 라우팅 테이블에 <strong>AWS가 소유한 서비스 접두사 목록(prefix list)을 대상으로,
+        게이트웨이 엔드포인트를 타깃으로 하는 경로</strong>가 자동으로 추가됩니다.
+        하나의 라우팅 테이블에 S3용 경로와 DynamoDB용 경로를 함께 둘 수 있습니다.
+      </p>
+      <p>
+        AWS PrivateLink 문서는 <strong>게이트웨이 엔드포인트에 추가 요금이 없다</strong>고 명시합니다 —
+        시간당 요금도 데이터 처리 요금도 붙지 않습니다.
+        그리고 <strong>게이트웨이 엔드포인트는 AWS PrivateLink를 사용하지 않습니다.</strong>
+        PrivateLink는 인터페이스 엔드포인트 쪽의 기술입니다.
+      </p>
+      <figure class="code">
+        <figcaption><span class="code__name">create-s3-gateway-endpoint.sh</span> — S3 게이트웨이 엔드포인트 생성 (리소스 ID와 리전 코드는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws ec2 create-vpc-endpoint \
+  --vpc-id vpc-0123456789abcdef0 \
+  --vpc-endpoint-type Gateway \
+  --service-name com.amazonaws.ap-northeast-2.s3 \
+  --route-table-ids rtb-0aaaaaaaaaaaaaaa1 rtb-0bbbbbbbbbbbbbbb2</code></pre>
+      </figure>
+
+      <h3 id="interface-endpoint">인터페이스 엔드포인트 — 서브넷 안에 ENI를 만든다</h3>
+      <p>
+        인터페이스 엔드포인트는 <strong>AWS PrivateLink</strong>로 동작합니다.
+        지정한 <strong>서브넷마다 엔드포인트 네트워크 인터페이스</strong>가 만들어지고
+        그 서브넷의 주소 범위에서 <strong>프라이빗 IP 주소</strong>를 받습니다.
+        이 네트워크 인터페이스는 <strong>요청자 관리형</strong>이어서 계정에서 볼 수는 있지만
+        직접 관리하지는 않습니다.
+      </p>
+      <p>
+        여기서 게이트웨이 엔드포인트와 갈리는 두 가지가 나옵니다.
+      </p>
+      <ul>
+        <li><strong>보안 그룹을 붙일 수 있습니다.</strong>
+          엔드포인트 네트워크 인터페이스에 보안 그룹을 연결하며,
+          지정하지 않으면 VPC의 기본 보안 그룹이 붙습니다.
+          엔드포인트가 VPC 안의 실제 네트워크 인터페이스이기 때문에 가능한 일입니다.</li>
+        <li><strong>프라이빗 DNS로 이름을 가로챌 수 있습니다.</strong>
+          프라이빗 DNS 이름을 켜면 프라이빗 호스팅 영역이 만들어지고,
+          그 서비스의 <strong>기본 퍼블릭 DNS 이름</strong>이
+          엔드포인트 네트워크 인터페이스의 프라이빗 IP로 해석됩니다.
+          <strong>애플리케이션 코드나 SDK 설정을 바꾸지 않아도</strong> 경로가 바뀌는 이유가 이것입니다.
+          다만 VPC의 <strong>DNS 호스트 이름과 DNS 확인이 모두 켜져 있어야</strong> 하고,
+          만들어지는 DNS 레코드는 프라이빗이라 외부에서는 해석되지 않습니다.</li>
+      </ul>
+      <p>
+        인터페이스 엔드포인트는 대부분의 AWS 서비스를 지원하고,
+        <strong>다른 계정이 제공하는 서비스에도 연결할 수 있습니다.</strong>
+        서비스 제공자는 <strong>Network Load Balancer</strong> 앞에 엔드포인트 서비스를 만들고
+        소비자가 인터페이스 엔드포인트로 접속하는 구조입니다.
+        <strong>Gateway Load Balancer</strong> 앞에 만들면 소비자는
+        Gateway Load Balancer 엔드포인트로 접속합니다.
+      </p>
+
+      <h3 id="endpoint-comparison">두 유형 비교</h3>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>게이트웨이 엔드포인트와 인터페이스 엔드포인트 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">게이트웨이 엔드포인트</th>
+              <th scope="col">인터페이스 엔드포인트 (AWS PrivateLink)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">지원 서비스</th>
+              <td><strong>Amazon S3와 Amazon DynamoDB만</strong></td>
+              <td>대부분의 AWS 서비스, <strong>서드파티·자체 서비스 포함</strong> (S3와 DynamoDB도 지원)</td>
+            </tr>
+            <tr>
+              <th scope="row">구현 위치</th>
+              <td><strong>라우팅 테이블의 경로 항목</strong></td>
+              <td><strong>서브넷 안의 네트워크 인터페이스</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">지정하는 것</th>
+              <td>라우팅 테이블 ID</td>
+              <td>서브넷 ID (+ 보안 그룹)</td>
+            </tr>
+            <tr>
+              <th scope="row">보안 그룹</th>
+              <td><span class="mark-no">붙일 수 없다</span></td>
+              <td><span class="mark-ok">붙일 수 있다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">프라이빗 DNS</th>
+              <td>해당 없음 — 접두사 목록으로 라우팅한다</td>
+              <td><span class="mark-ok">기본 퍼블릭 DNS 이름을 프라이빗 IP로 해석</span></td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스에서의 접근</th>
+              <td><span class="mark-no">불가</span> — VPC 라우팅 테이블에만 붙는다</td>
+              <td><span class="mark-ok">가능</span> — VPN이나 Direct Connect를 통해 프라이빗 IP로 도달한다</td>
+            </tr>
+            <tr>
+              <th scope="row">피어링 상대의 사용</th>
+              <td><span class="mark-no">불가</span></td>
+              <td>엔드포인트의 프라이빗 IP로 도달할 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">요금 구조</th>
+              <td><span class="mark-ok">추가 요금 없음</span> — 시간당·데이터 처리 요금이 붙지 않는다</td>
+              <td>엔드포인트 시간당 요금과 데이터 처리 요금이 부과된다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS PrivateLink 사용</th>
+              <td><span class="mark-no">사용하지 않는다</span></td>
+              <td><span class="mark-ok">사용한다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="endpoint-policy">엔드포인트 정책</h3>
+      <p>
+        두 유형 모두 <strong>엔드포인트 정책</strong>을 붙일 수 있습니다.
+        이것은 <a href="ch02.html#identity-vs-resource-policy">리소스 기반 정책</a>이며,
+        <strong>지정하지 않으면 서비스에 대한 전체 접근을 허용하는 기본 정책이 붙습니다.</strong>
+        "엔드포인트를 만들었으니 안전하다"가 성립하지 않는 이유가 여기 있습니다.
+      </p>
+      <figure class="code">
+        <figcaption><span class="code__name">s3-endpoint-policy.json</span> — 지정한 버킷만 허용하는 엔드포인트 정책</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowOnlyApprovedBuckets",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::example-app-reports/*",
+        "arn:aws:s3:::example-app-artifacts/*"
+      ]
+    }
+  ]
+}</code></pre>
+      </figure>
+      <p>
+        반대 방향도 있습니다. 버킷 정책에서
+        <code>aws:SourceVpce</code> 조건 키로 <strong>특정 엔드포인트를 통한 요청만 허용</strong>하면,
+        같은 버킷에 인터넷 경로로 들어오는 요청을 차단할 수 있습니다.
+        데이터 유출 통제(data perimeter)를 세울 때 쓰는 조합입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="must-not-traverse-the-internet">
+      <h2 id="must-not-traverse-the-internet">"데이터가 인터넷을 거치면 안 된다" <span class="badge badge--saa">SAA 빈출</span></h2>
+
+      <p>
+        이 한정어는 SAA에서 정답을 결정하는 대표적인 신호입니다.
+        프라이빗 서브넷의 인스턴스가 Amazon S3에 접근한다고 할 때 후보 경로는 셋인데,
+        <strong>조건을 만족하는 것과 만족하지 않는 것이 갈립니다.</strong>
+      </p>
+
+      <figure class="diagram" data-diagram="D-032">
+        <figcaption>
+          프라이빗 서브넷에서 Amazon S3에 닿는 세 경로 —
+          NAT 게이트웨이와 인터넷 게이트웨이를 지나는 경로는 퍼블릭 엔드포인트를 향하고,
+          게이트웨이 엔드포인트와 인터페이스 엔드포인트를 지나는 경로는 VPC를 벗어나지 않습니다.
+          인터넷을 거치면 안 된다는 조건에서 남는 것은 뒤의 두 경로입니다
+        </figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>프라이빗 서브넷에서 Amazon S3로 가는 세 경로</caption>
+          <thead>
+            <tr>
+              <th scope="col">경로</th>
+              <th scope="col">지나는 구간</th>
+              <th scope="col">인터넷 경유</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">NAT 게이트웨이 + 인터넷 게이트웨이</th>
+              <td>프라이빗 서브넷에서 NAT 게이트웨이와 인터넷 게이트웨이를 거쳐 S3 퍼블릭 엔드포인트로</td>
+              <td><span class="mark-no">거친다</span> — 퍼블릭 엔드포인트로 나간다</td>
+            </tr>
+            <tr>
+              <th scope="row">게이트웨이 엔드포인트</th>
+              <td>프라이빗 서브넷에서 라우팅 테이블의 접두사 목록 경로를 거쳐 S3로</td>
+              <td><span class="mark-ok">거치지 않는다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">인터페이스 엔드포인트</th>
+              <td>프라이빗 서브넷에서 엔드포인트 네트워크 인터페이스(프라이빗 IP)를 거쳐 S3로</td>
+              <td><span class="mark-ok">거치지 않는다</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        둘 다 조건을 만족한다면 무엇으로 가를까요.
+        <strong>추가 조건을 보고 고릅니다.</strong>
+      </p>
+      <ul>
+        <li>대상이 <strong>S3나 DynamoDB뿐</strong>이고 <strong>VPC 안에서만</strong> 접근한다면
+          <strong>게이트웨이 엔드포인트</strong>가 단순하고 추가 요금이 없습니다.</li>
+        <li><strong>온프레미스나 다른 VPC에서도</strong> 그 서비스에 프라이빗하게 닿아야 한다면
+          <strong>인터페이스 엔드포인트</strong>입니다.
+          게이트웨이 엔드포인트는 VPC 라우팅 테이블에만 붙으므로 VPC 밖에서는 쓸 수 없습니다.</li>
+        <li>대상이 <strong>S3와 DynamoDB가 아닌 다른 AWS 서비스</strong>라면
+          선택지는 인터페이스 엔드포인트뿐입니다.</li>
+      </ul>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          한정어 <strong><code>must not traverse the internet</code></strong>,
+          <strong>"퍼블릭 인터넷을 거치지 않고"</strong>, <strong>"프라이빗 연결로"</strong>가 보이면
+          답의 후보는 <strong>VPC 엔드포인트 · AWS PrivateLink · AWS Direct Connect</strong> 셋으로 좁혀집니다.
+          NAT 게이트웨이는 <strong>인터넷으로 나가는 장치</strong>이므로 이 조건에서 언제나 탈락합니다.
+        </p>
+        <p>
+          "S3 버킷을 퍼블릭 액세스 차단으로 두면 인터넷을 거치지 않는다"는 서술도 오답입니다.
+          <strong>퍼블릭 액세스 차단은 누가 접근할 수 있는지를 정하는 것이고,
+          엔드포인트는 트래픽이 어느 경로로 가는지를 정하는 것</strong>입니다.
+          다른 층의 통제입니다.
+        </p>
+      </aside>
+
+      <h3 id="nat-cost-optimization">NAT 게이트웨이 비용을 엔드포인트로 줄인다</h3>
+      <p>
+        같은 변경이 비용 문항에서도 정답이 됩니다.
+        VPC 사용 설명서의 요금 페이지는 NAT 게이트웨이에 대해
+        <strong>프로비저닝되어 사용 가능한 시간마다 요금이 부과되고,
+        트래픽의 출발지나 목적지와 무관하게 게이트웨이를 통과한 데이터 양에 따라
+        데이터 처리 요금이 부과된다</strong>고 설명합니다.
+      </p>
+      <p>
+        그런데 프라이빗 서브넷의 워크로드가 만드는 아웃바운드 트래픽 중 상당 부분은
+        <strong>인터넷이 아니라 Amazon S3나 DynamoDB로</strong> 갑니다 —
+        로그 업로드, 아티팩트 내려받기, 백업이 전부 그렇습니다.
+        이 트래픽을 게이트웨이 엔드포인트로 옮기면
+        <strong>NAT 게이트웨이를 통과하는 데이터 자체가 사라지고,
+        게이트웨이 엔드포인트에는 추가 요금이 붙지 않습니다.</strong>
+      </p>
+      <div class="diff">
+        <div class="diff__before">
+          <p>
+            프라이빗 서브넷의 애플리케이션이 로그와 백업을 S3에 올립니다.
+            모든 트래픽이 NAT 게이트웨이를 지나므로 데이터 양에 비례해 처리 요금이 붙고,
+            NAT 게이트웨이가 다른 가용 영역에 있으면 가용 영역 간 전송 요금까지 더해집니다.
+          </p>
+        </div>
+        <div class="diff__after">
+          <p>
+            S3 게이트웨이 엔드포인트를 만들고 프라이빗 라우팅 테이블에 연결합니다.
+            S3로 가는 트래픽은 NAT 게이트웨이를 지나지 않게 되고,
+            남은 인터넷 트래픽만 NAT 게이트웨이를 씁니다.
+            보안과 비용이 <strong>같은 방향으로</strong> 개선되는 흔치 않은 변경입니다.
+          </p>
+          <figure class="code">
+            <figcaption>기존 프라이빗 라우팅 테이블에 엔드포인트를 연결 (리소스 ID는 예시입니다)</figcaption>
+            <pre><code class="lang-bash">aws ec2 modify-vpc-endpoint \
+  --vpc-endpoint-id vpce-0123456789abcdef0 \
+  --add-route-table-ids rtb-0aaaaaaaaaaaaaaa1 rtb-0bbbbbbbbbbbbbbb2</code></pre>
+          </figure>
+        </div>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          <strong>"NAT 게이트웨이 요금이 예상보다 많다"</strong>는 시나리오에서
+          가장 먼저 확인할 것은 <strong>그 트래픽이 정말 인터넷으로 가는가</strong>입니다.
+          S3나 DynamoDB로 가는 트래픽이면 <strong>게이트웨이 엔드포인트</strong>가 답이고,
+          다른 AWS 서비스로 가는 트래픽이면 <strong>인터페이스 엔드포인트</strong>가 후보입니다.
+        </p>
+        <p>
+          <strong>"NAT 게이트웨이를 더 큰 것으로 바꾼다"</strong>는 선택지는 존재하지 않는 조작입니다.
+          <strong>"NAT 인스턴스로 바꿔 비용을 줄인다"</strong>는 선택지는
+          운영 부담 한정어가 함께 붙어 있으면 밀립니다.
+          데이터 전송 요금의 전체 지도는
+          <a href="ch18.html">18장 비용 최적화·마이그레이션·재해 복구</a>에서 다룹니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="hybrid-connectivity">
+      <h2 id="hybrid-connectivity">온프레미스와 잇기 — VPN과 Direct Connect</h2>
+
+      <figure class="diagram" data-diagram="D-033">
+        <figcaption>
+          두 하이브리드 경로 — Site-to-Site VPN은 고객 게이트웨이에서 터널 두 개로
+          가상 프라이빗 게이트웨이나 Transit Gateway에 붙고, AWS Direct Connect는
+          전용 회선으로 Direct Connect 로케이션을 거쳐 들어옵니다.
+          회선 장애에 대비해 Direct Connect에 VPN을 백업으로 두는 조합이 표준입니다
+        </figcaption>
+      </figure>
+
+      <h3 id="site-to-site-vpn">Site-to-Site VPN — 인터넷 위의 암호화 터널</h3>
+      <p>
+        Site-to-Site VPN은 온프레미스 네트워크와 VPC를 <strong>IPsec 터널</strong>로 잇습니다.
+        구성 요소는 세 가지입니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Site-to-Site VPN의 구성 요소</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성 요소</th>
+              <th scope="col">역할</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">고객 게이트웨이(customer gateway)</th>
+              <td>온프레미스 쪽 장비의 정보를 AWS에 알려 주는 리소스. <strong>외부 인터페이스의 고정 IP 주소</strong>가 필요하고, BGP를 쓴다면 ASN도 알려 준다</td>
+            </tr>
+            <tr>
+              <th scope="row">가상 프라이빗 게이트웨이(virtual private gateway)</th>
+              <td>AWS 쪽 VPN 종단점. <strong>VPC 하나에</strong> 연결된다</td>
+            </tr>
+            <tr>
+              <th scope="row">VPN 연결</th>
+              <td>둘을 잇는 연결. <strong>각 VPN 연결은 터널 두 개</strong>를 포함하며 <strong>동시에 사용해 가용성을 높일 수 있다</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        가상 프라이빗 게이트웨이 대신 <strong>Transit Gateway</strong>에 붙일 수도 있습니다.
+        VPC가 여러 개인 환경에서는 이쪽이 표준입니다 —
+        VPC마다 VPN을 따로 만들지 않아도 되기 때문입니다.
+      </p>
+      <p>
+        라우팅은 두 가지 중에서 고릅니다.
+        고객 게이트웨이 장비가 <strong>BGP를 지원하면 동적 라우팅</strong>을 쓰고,
+        지원하지 않으면 <strong>정적 라우팅</strong>을 쓰면서 우리 네트워크의 IP 접두사를 직접 입력합니다.
+        AWS 문서는 <strong>BGP가 견고한 활성 상태 감지를 제공하므로
+        첫 터널이 끊겼을 때 두 번째 터널로의 장애 조치를 돕는다</strong>고 설명합니다 —
+        동적 라우팅을 권하는 근거가 이것입니다.
+      </p>
+
+      <h3 id="direct-connect">AWS Direct Connect — 전용 회선</h3>
+      <p>
+        Direct Connect는 온프레미스와 AWS를 <strong>전용 네트워크 연결</strong>로 잇습니다.
+        인터넷을 거치지 않으므로 <strong>대역폭이 일정하고 지연이 예측 가능</strong>합니다.
+        회선 위에는 <strong>가상 인터페이스(virtual interface, VIF)</strong>를 만들어 씁니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Direct Connect 가상 인터페이스 세 종류</caption>
+          <thead>
+            <tr>
+              <th scope="col">유형</th>
+              <th scope="col">무엇에 접근하는가</th>
+              <th scope="col">주소</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">프라이빗 VIF</th>
+              <td>Amazon VPC</td>
+              <td><strong>프라이빗 IP 주소</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">퍼블릭 VIF</th>
+              <td>모든 AWS 퍼블릭 서비스 (예: Amazon S3)</td>
+              <td><strong>퍼블릭 IP 주소</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">전송(transit) VIF</th>
+              <td>Direct Connect 게이트웨이에 연결된 <strong>하나 이상의 Transit Gateway</strong></td>
+              <td>프라이빗 IP 주소</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        <strong>Direct Connect 게이트웨이</strong>는 전역 리소스이며,
+        <strong>여러 리전이나 여러 계정의 VPC 또는 Transit Gateway</strong>에
+        하나의 연결로 도달할 수 있게 해 줍니다.
+        "리전마다 회선을 따로 끌어야 하는가"라는 질문의 답이 여기 있습니다.
+      </p>
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>AWS Direct Connect는 기본적으로 암호화되지 않습니다.</strong>
+          전용 회선이라 인터넷을 거치지 않을 뿐, 그 자체가 암호화를 제공하지는 않습니다.
+          암호화가 규정 요구사항이라면 두 가지 방법이 있습니다 —
+          10 Gbps 또는 100 Gbps 전용 연결에서는 <strong>MACsec</strong>을 쓰고,
+          1 Gbps 이하 연결에서는 <strong>Direct Connect 위에 VPN 터널</strong>을 얹습니다.
+        </p>
+      </aside>
+
+      <h3 id="vpn-vs-direct-connect">무엇을 고를 것인가</h3>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Site-to-Site VPN과 AWS Direct Connect 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Site-to-Site VPN</th>
+              <th scope="col">AWS Direct Connect</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">기반 회선</th>
+              <td>퍼블릭 인터넷</td>
+              <td><strong>전용 연결</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">암호화</th>
+              <td><span class="mark-ok">IPsec으로 기본 암호화</span></td>
+              <td><span class="mark-no">기본 암호화 없음</span> — MACsec 또는 VPN 병행</td>
+            </tr>
+            <tr>
+              <th scope="row">지연과 대역폭</th>
+              <td>인터넷 상태에 따라 <strong>변동</strong></td>
+              <td><span class="mark-ok">일정하고 예측 가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row">준비 기간</th>
+              <td><span class="mark-ok">짧다</span> — 설정으로 끝난다</td>
+              <td><span class="mark-no">길다</span> — 물리 회선을 준비해야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">이중화</th>
+              <td>연결마다 터널 <strong>2개</strong></td>
+              <td>연결을 <strong>두 개 이상</strong> 두거나 <strong>VPN을 백업</strong>으로 둔다</td>
+            </tr>
+            <tr>
+              <th scope="row">대표 신호</th>
+              <td>"빠르게 연결", "임시", "백업 경로"</td>
+              <td>"일관된 지연", "대용량 상시 전송", "예측 가능한 성능"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        둘은 배타적이지 않습니다. <strong>Direct Connect를 주 경로로 두고
+        Site-to-Site VPN을 백업으로 두는 조합</strong>이 표준 구성입니다 —
+        회선 장애가 났을 때 즉시 인터넷 경로로 넘어갈 수 있기 때문입니다.
+        문제문에 <strong>"Direct Connect 장애에 대비"</strong>가 보이면 이 조합이 답입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          Direct Connect와 관련해 가장 자주 나오는 함정 두 가지를 정리합니다.
+          <strong>(1) "Direct Connect는 암호화된다"는 서술은 틀렸습니다.</strong>
+          암호화 요구가 있으면 VPN이나 MACsec을 얹어야 합니다.
+          <strong>(2) "Direct Connect 하나로 고가용성이 된다"는 서술도 틀렸습니다.</strong>
+          회선 자체가 단일 장애점이므로 두 번째 연결이나 VPN 백업이 필요합니다.
+        </p>
+        <p>
+          퍼블릭 VIF와 프라이빗 VIF의 구분도 자주 나옵니다.
+          <strong>VPC 안의 리소스에 프라이빗 IP로 닿아야 하면 프라이빗 VIF</strong>,
+          <strong>Amazon S3 같은 퍼블릭 서비스에 전용 회선으로 닿아야 하면 퍼블릭 VIF</strong>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="outposts">
+      <h2 id="outposts">AWS Outposts — AWS를 데이터센터 안으로</h2>
+      <p>
+        AWS Outposts는 <strong>AWS가 관리하는 인프라를 고객의 시설에 설치</strong>해
+        같은 API와 도구로 운영할 수 있게 합니다.
+        폼 팩터는 두 가지입니다 —
+        서버와 스위치, 전원 선반을 포함한 <strong>랙(rack)</strong> 형태와,
+        표준 랙에 장착하는 <strong>서버(server)</strong> 형태입니다.
+        공간이나 용량 요구가 작은 현장에는 서버 형태를 씁니다.
+      </p>
+      <p>
+        Outposts는 항상 <strong>홈 리전(부모 리전)</strong>에 연결됩니다.
+        그 연결을 <strong>서비스 링크</strong>라고 하며,
+        Outpost가 홈 리전과 통신할 때 사용하는 <strong>암호화된 VPN 연결의 집합</strong>입니다.
+        온프레미스 네트워크와의 통신은 랙 형태에서 제공되는
+        <strong>로컬 게이트웨이(local gateway)</strong>가 담당합니다.
+      </p>
+      <p>
+        고르는 기준은 단순합니다.
+        <strong>"온프레미스에 남아야 하는 요구(지연, 데이터 레지던시, 로컬 시스템 의존)가 있는데
+        AWS API와 운영 방식은 그대로 쓰고 싶다"</strong>면 Outposts입니다.
+        단지 온프레미스와 <em>연결</em>만 하면 되는 경우에는
+        Direct Connect나 VPN이 맞고, Outposts는 과합니다.
+      </p>
+      <p>
+        같은 계열의 선택지로 특정 대도시권의 지연을 줄이는 <strong>AWS Local Zones</strong>와
+        통신 사업자 네트워크 안의 <strong>AWS Wavelength</strong>가 있습니다.
+        셋의 구분은 <a href="ch01.html#local-and-wavelength-zones">1장 로컬 존과 Wavelength 존</a>에 정리해 두었습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"VPC A가 B와, B가 C와 피어링되어 있으면 A와 C도 통신한다"</strong> —
+          VPC 피어링은 <strong>전이적이지 않습니다.</strong>
+          직접 피어링되지 않은 VPC와는 어떤 관계도 없습니다.
+          같은 제약이 게이트웨이에도 적용됩니다 —
+          <strong>피어 VPC의 인터넷 게이트웨이, NAT 장치, VPN 연결, Direct Connect 연결,
+          그리고 게이트웨이 엔드포인트를 빌려 쓸 수 없습니다.</strong>
+          "공유 VPC에 NAT를 하나 두고 전부 피어링으로 나간다"는 설계는 성립하지 않으며,
+          이 요구를 푸는 것은 Transit Gateway입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"VPC 엔드포인트는 다 같은 것이다"</strong> —
+          구현 위치가 다릅니다.
+          <strong>게이트웨이 엔드포인트는 라우팅 테이블에 붙는 경로 항목</strong>이라
+          보안 그룹을 붙일 수 없고 VPC 밖에서는 쓸 수 없으며 Amazon S3와 DynamoDB만 지원합니다.
+          <strong>인터페이스 엔드포인트는 서브넷 안의 네트워크 인터페이스</strong>라
+          보안 그룹을 붙일 수 있고 온프레미스나 다른 VPC에서도 프라이빗 IP로 도달할 수 있습니다.
+          "온프레미스에서 S3에 프라이빗하게 접근하라"는 요구에
+          게이트웨이 엔드포인트를 답으로 고르는 것이 대표적인 오답입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"Direct Connect는 전용 회선이니까 암호화되어 있다"</strong> —
+          Direct Connect는 <strong>기본적으로 암호화되지 않습니다.</strong>
+          인터넷을 거치지 않는 것과 암호화되는 것은 다른 이야기입니다.
+          전송 중 암호화가 규정 요구사항이면
+          <strong>10/100 Gbps 전용 연결에서는 MACsec</strong>을 쓰거나
+          <strong>Direct Connect 위에 VPN 터널</strong>을 얹어야 합니다.
+          덧붙여 Direct Connect 연결 하나는 그 자체가 단일 장애점이므로,
+          고가용성이 요구되면 <strong>연결을 이중화하거나 VPN을 백업</strong>으로 둡니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <p>
+        이 장은 <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a>와
+        <a href="../saa/domain-cost.html">비용 최적화 아키텍처 설계(20%)</a>에 함께 걸치며,
+        하이브리드 연결은 <a href="../saa/domain-performance.html">고성능 아키텍처 설계(24%)</a>의
+        과제 진술 3.4에도 등장합니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>4장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">피어링의 전이성</th>
+                <td><strong>지원하지 않는다.</strong> 직접 피어링된 상대와만 통신한다</td>
+                <td>중간 VPC를 경유해 라우팅한다는 선택지</td>
+              </tr>
+              <tr>
+                <th scope="row">엣지 투 엣지 라우팅</th>
+                <td>피어 VPC의 <strong>인터넷 게이트웨이·NAT·VPN·Direct Connect·게이트웨이 엔드포인트를 쓸 수 없다</strong></td>
+                <td>공유 VPC의 NAT 게이트웨이를 피어링으로 나눠 쓰는 설계</td>
+              </tr>
+              <tr>
+                <th scope="row">피어링과 CIDR</th>
+                <td>CIDR이 <strong>겹치면 만들 수 없다.</strong> 여러 블록 중 하나만 겹쳐도 안 된다</td>
+                <td>겹치지 않는 블록만 쓰면 된다고 판단</td>
+              </tr>
+              <tr>
+                <th scope="row">피어링의 범위</th>
+                <td>다른 계정·다른 리전과도 가능하다. 트래픽은 <strong>퍼블릭 인터넷을 거치지 않는다</strong></td>
+                <td>같은 계정·같은 리전에서만 된다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">리전 간 피어링</th>
+                <td>피어 VPC의 <strong>보안 그룹을 참조할 수 없고</strong> MTU가 1,500바이트다</td>
+                <td>같은 리전 피어링과 동일하다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">Transit Gateway</th>
+                <td>허브 앤 스포크. 연결 개수가 <em>N</em>으로 늘고 <strong>전이 라우팅을 지원한다</strong></td>
+                <td>VPC가 많은데 피어링을 답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">TGW 라우팅 테이블</th>
+                <td><strong>연결</strong>은 트래픽의 다음 홉을, <strong>전파</strong>는 경로의 학습을 정한다. 여러 개를 만들어 세그먼트를 나눈다</td>
+                <td>둘을 같은 것으로 취급</td>
+              </tr>
+              <tr>
+                <th scope="row">TGW 피어링</th>
+                <td><strong>정적 경로만</strong> 지원한다</td>
+                <td>BGP로 자동 전파된다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">게이트웨이 엔드포인트 대상</th>
+                <td><strong>Amazon S3와 Amazon DynamoDB만</strong></td>
+                <td>다른 서비스도 게이트웨이 엔드포인트로 된다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">게이트웨이 엔드포인트 구현</th>
+                <td><strong>라우팅 테이블</strong>에 서비스 접두사 목록 경로가 자동 추가된다</td>
+                <td>서브넷과 보안 그룹을 지정하려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">게이트웨이 엔드포인트 요금</th>
+                <td><strong>추가 요금 없음</strong> — 시간당·데이터 처리 요금이 없다</td>
+                <td>인터페이스 엔드포인트와 같은 요금 구조라고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">인터페이스 엔드포인트 구현</th>
+                <td><strong>서브넷 안에 네트워크 인터페이스</strong>가 만들어지고 프라이빗 IP를 받는다. <strong>보안 그룹을 붙일 수 있다</strong></td>
+                <td>게이트웨이 엔드포인트에도 보안 그룹을 붙일 수 있다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">프라이빗 DNS</th>
+                <td>서비스의 <strong>기본 퍼블릭 DNS 이름</strong>이 엔드포인트의 프라이빗 IP로 해석된다. VPC의 DNS 호스트 이름과 DNS 확인이 켜져 있어야 한다</td>
+                <td>애플리케이션 엔드포인트 설정을 바꿔야 한다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">온프레미스에서의 프라이빗 접근</th>
+                <td><strong>인터페이스 엔드포인트</strong>만 가능하다</td>
+                <td>게이트웨이 엔드포인트를 답으로 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">엔드포인트 정책</th>
+                <td>지정하지 않으면 <strong>전체 접근을 허용하는 기본 정책</strong>이 붙는다</td>
+                <td>엔드포인트를 만들면 자동으로 좁아진다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">인터넷 비경유 한정어</th>
+                <td>답은 <strong>VPC 엔드포인트 · PrivateLink · Direct Connect</strong></td>
+                <td>NAT 게이트웨이를 답으로 고름 — NAT는 인터넷으로 나가는 장치다</td>
+              </tr>
+              <tr>
+                <th scope="row">NAT 요금 구조</th>
+                <td>프로비저닝 시간당 요금 + <strong>통과한 데이터 양에 따른 처리 요금</strong></td>
+                <td>인터넷으로 가지 않는 트래픽에는 요금이 없다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">NAT 비용 최적화</th>
+                <td>S3·DynamoDB 트래픽을 <strong>게이트웨이 엔드포인트</strong>로 옮긴다</td>
+                <td>NAT 게이트웨이 크기를 바꾸려 함 (그런 설정은 없다)</td>
+              </tr>
+              <tr>
+                <th scope="row">Site-to-Site VPN</th>
+                <td>연결마다 <strong>터널 2개</strong>. 가상 프라이빗 게이트웨이는 <strong>VPC 하나</strong>에 붙는다</td>
+                <td>터널이 하나라고 알고 이중화를 따로 설계</td>
+              </tr>
+              <tr>
+                <th scope="row">VPN 라우팅</th>
+                <td>고객 게이트웨이가 <strong>BGP를 지원하면 동적</strong>, 아니면 정적</td>
+                <td>항상 정적으로 설정</td>
+              </tr>
+              <tr>
+                <th scope="row">Direct Connect 암호화</th>
+                <td><strong>기본적으로 암호화되지 않는다.</strong> MACsec 또는 VPN 병행</td>
+                <td>전용 회선이니 암호화된다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">Direct Connect VIF</th>
+                <td>프라이빗 VIF는 VPC, <strong>퍼블릭 VIF는 AWS 퍼블릭 서비스</strong>, 전송 VIF는 Transit Gateway</td>
+                <td>모든 접근에 프라이빗 VIF를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">Direct Connect 게이트웨이</th>
+                <td>전역 리소스. <strong>여러 리전·여러 계정</strong>의 VPC나 Transit Gateway에 도달한다</td>
+                <td>리전마다 회선을 새로 끌어야 한다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">하이브리드 이중화</th>
+                <td><strong>Direct Connect + VPN 백업</strong>이 표준 조합</td>
+                <td>Direct Connect 하나로 고가용성이 된다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">AWS Outposts</th>
+                <td>AWS 인프라를 고객 시설에 설치. <strong>서비스 링크</strong>로 홈 리전과 연결되고, 랙은 <strong>로컬 게이트웨이</strong>로 온프레미스와 통신한다</td>
+                <td>단순 연결 요구에 Outposts를 고름 (VPN·Direct Connect가 맞다)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          이 장의 비용 판단은 한 문장으로 압축됩니다 —
+          <strong>인터넷으로 갈 필요가 없는 트래픽을 인터넷 경로로 보내지 않는다.</strong>
+          NAT 게이트웨이를 지나던 S3·DynamoDB 트래픽을 게이트웨이 엔드포인트로 옮기고,
+          가용 영역을 넘던 트래픽을 같은 가용 영역 안으로 되돌리고
+          (<a href="ch03.html#nat-gateway-az-redundancy">3장</a>),
+          리전을 넘던 트래픽이 정말 넘어야 하는지 확인합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <p>
+        <span class="badge badge--study">학습용 유형</span>
+        연결형과 순서 배열 문항이 섞여 있을 수 있습니다.
+        이 두 유형은 암기 확인에 효율이 좋아서 기본개념 확인 문제에만 넣었으며,
+        실제 SAA-C03 시험에는 출제되지 않습니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch04" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch03.html">
+          <span class="card__title">3장 · VPC 네트워킹 기초</span>
+          <span class="card__desc">라우팅 테이블과 NAT 게이트웨이의 기본 동작을 다시 확인합니다. 이 장의 엔드포인트 판단이 그 위에 얹힙니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch02.html">
+          <span class="card__title">2장 · IAM과 자격 증명</span>
+          <span class="card__desc">엔드포인트 정책과 버킷 정책은 모두 리소스 기반 정책입니다. 결합 규칙을 알아야 경로 통제가 완성됩니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab10.html">
+          <span class="card__title">실습 10 · VPC 엔드포인트로 S3 비공개 접근</span>
+          <span class="card__desc">게이트웨이 엔드포인트와 인터페이스 엔드포인트를 직접 만들어 경로가 어떻게 바뀌는지 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case06.html">
+          <span class="card__title">케이스 6 · 데이터 전송 요금이 예산을 넘겼다</span>
+          <span class="card__desc">NAT 게이트웨이와 리전 간 전송이 만드는 비용 구조를 뜯어보고 엔드포인트로 되돌리는 순서를 따라갑니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/network.html">
+          <span class="card__title">네트워크 빠른참조</span>
+          <span class="card__desc">VPC 연결 옵션 매트릭스를 한 화면에 모았습니다. 피어링·Transit Gateway·엔드포인트·VPN·Direct Connect를 나란히 비교합니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/keywords.html">
+          <span class="card__title">한정어 키워드 사전</span>
+          <span class="card__desc">"must not traverse the internet"를 포함해 정답을 결정하는 한정어와 그것이 가리키는 서비스를 정리했습니다.</span>
+          <span class="card__meta">시험 대비 · 최우선</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 개념 서술과 API 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-peering.html">Amazon VPC 사용 설명서 — VPC 피어링으로 VPC 연결</a>
+          — 피어링 트래픽이 퍼블릭 인터넷을 거치지 않는다는 서술, 게이트웨이나 VPN이 아니어서 단일 장애점과 대역폭 병목이 없다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html">Amazon VPC 피어링 안내서 — 피어링 기본</a>
+          — 일대일 관계이며 전이적 피어링을 지원하지 않는다는 서술, 엣지 투 엣지 라우팅 제약 목록(인터넷 게이트웨이·NAT 장치·VPN·Direct Connect·게이트웨이 엔드포인트), CIDR이 겹치면 만들 수 없다는 제약, 리전 간 피어링의 보안 그룹 참조 불가와 MTU 1,500바이트</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpcPeeringConnection.html">Amazon EC2 API 레퍼런스 — CreateVpcPeeringConnection</a>
+          — 수락자 VPC가 다른 계정·다른 리전에 있을 수 있다는 점, CIDR이 겹치면 상태가 실패가 된다는 점, 요청이 7일 뒤 만료된다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/tgw/how-transit-gateways-work.html">AWS Transit Gateway — 동작 방식</a>
+          — 연결 유형과 허브 앤 스포크 라우팅 구조</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/tgw/tgw-route-tables.html">AWS Transit Gateway — 라우팅 테이블</a>
+          — 연결과 전파의 구분, 라우팅 테이블을 여러 개 만들어 네트워크를 분리하는 방법, 피어링 연결이 정적 경로만 지원한다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateTransitGateway.html">Amazon EC2 API 레퍼런스 — CreateTransitGateway</a>
+          — 기본 라우팅 테이블이 기본 연결·전파 라우팅 테이블이 된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html">AWS PrivateLink — 게이트웨이 엔드포인트</a>
+          — 게이트웨이 엔드포인트가 Amazon S3와 DynamoDB에 대한 연결을 제공한다는 점, 서비스 접두사 목록을 대상으로 하는 경로가 선택한 라우팅 테이블에 자동 추가된다는 점, 추가 요금이 없다는 점, 게이트웨이 엔드포인트는 AWS PrivateLink를 사용하지 않는다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html">AWS PrivateLink — Amazon S3용 게이트웨이 엔드포인트</a>
+          — S3 게이트웨이 엔드포인트의 구성과 라우팅</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-ddb.html">AWS PrivateLink — Amazon DynamoDB용 게이트웨이 엔드포인트</a>
+          — DynamoDB 게이트웨이 엔드포인트의 구성</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html">AWS PrivateLink — 인터페이스 VPC 엔드포인트로 AWS 서비스 접근</a>
+          — 지정한 서브넷마다 엔드포인트 네트워크 인터페이스가 만들어지고 서브넷 주소 범위의 프라이빗 IP를 받는다는 점, 요청자 관리형이라는 점, 보안 그룹을 지정하지 않으면 VPC 기본 보안 그룹이 붙는다는 점, 프라이빗 DNS 이름을 쓰려면 VPC의 DNS 호스트 이름과 DNS 확인을 켜야 한다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html">AWS PrivateLink — 인터페이스 엔드포인트 구성</a>
+          — 프라이빗 DNS 이름이 퍼블릭 서비스 엔드포인트로 향하는 요청을 VPC 엔드포인트로 해석시킨다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/working-with-aws-managed-prefix-lists.html">Amazon VPC 사용 설명서 — AWS 관리형 접두사 목록</a>
+          — 게이트웨이 엔드포인트 경로의 대상이 되는 AWS 소유 접두사 목록</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpcEndpoint.html">Amazon EC2 API 레퍼런스 — CreateVpcEndpoint</a>
+          — 엔드포인트 유형의 기본값이 <code>Gateway</code>라는 점, 게이트웨이 엔드포인트는 라우팅 테이블 ID를, 인터페이스 엔드포인트는 서브넷 ID와 보안 그룹을 받는다는 점, 정책을 지정하지 않으면 전체 접근을 허용하는 기본 정책이 붙는다는 점, 프라이빗 DNS가 프라이빗 호스팅 영역을 만든다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpcEndpointServiceConfiguration.html">Amazon EC2 API 레퍼런스 — CreateVpcEndpointServiceConfiguration</a>
+          — 엔드포인트 서비스를 Network Load Balancer 또는 Gateway Load Balancer 앞에 만든다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-pricing.html">Amazon VPC 사용 설명서 — NAT 게이트웨이 요금</a>
+          — 프로비저닝된 시간마다, 그리고 트래픽의 출발지·목적지와 무관하게 통과한 데이터 양에 따라 요금이 부과된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/vpn/latest/s2svpn/VPC_VPN.html">AWS Site-to-Site VPN 사용 설명서 — 개요</a>
+          — 각 VPN 연결이 터널 두 개를 포함하며 동시에 사용해 가용성을 높일 수 있다는 점, 고객 게이트웨이와 가상 프라이빗 게이트웨이의 역할</li>
+        <li><a href="https://docs.aws.amazon.com/vpn/latest/s2svpn/vpn-static-dynamic.html">AWS Site-to-Site VPN 사용 설명서 — 정적 라우팅과 동적 라우팅</a>
+          — BGP 지원 여부로 동적과 정적을 고른다는 점, BGP의 활성 상태 감지가 두 번째 터널로의 장애 조치를 돕는다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateCustomerGateway.html">Amazon EC2 API 레퍼런스 — CreateCustomerGateway</a>
+          — 고객 게이트웨이 장비의 외부 인터페이스에 고정 IP가 필요하다는 점과 BGP ASN</li>
+        <li><a href="https://docs.aws.amazon.com/directconnect/latest/UserGuide/WorkingWithVirtualInterfaces.html">AWS Direct Connect 사용 설명서 — 가상 인터페이스</a>
+          — 프라이빗 VIF는 프라이빗 IP로 VPC에, 퍼블릭 VIF는 퍼블릭 IP로 AWS 퍼블릭 서비스에, 전송 VIF는 Direct Connect 게이트웨이에 연결된 Transit Gateway에 접근한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/directconnect/latest/UserGuide/MACSec.html">AWS Direct Connect 사용 설명서 — MACsec</a>
+          — 전용 연결에서의 MAC 보안 암호화 옵션</li>
+        <li><a href="https://docs.aws.amazon.com/whitepapers/latest/aws-vpc-connectivity-options/aws-direct-connect.html">Amazon VPC 연결 옵션 백서 — AWS Direct Connect</a>
+          — Direct Connect가 기본적으로 암호화되지 않는다는 점, 10/100 Gbps 전용 연결에서는 MACsec을 쓰고 1 Gbps 이하에서는 VPN 터널을 얹는다는 점, Direct Connect 게이트웨이가 여러 리전·계정의 VPC나 Transit Gateway에 도달하는 전역 리소스라는 점</li>
+        <li><a href="https://docs.aws.amazon.com/outposts/latest/userguide/what-is-outposts.html">AWS Outposts 사용 설명서 — Outposts란</a>
+          — 랙과 서버 두 폼 팩터, AWS 인프라를 고객 시설에서 운영한다는 개념</li>
+        <li><a href="https://docs.aws.amazon.com/outposts/latest/userguide/how-outposts-works.html">AWS Outposts 사용 설명서 — 동작 방식</a>
+          — 서비스 링크가 홈 리전과의 암호화된 VPN 연결 집합이라는 서술, 로컬 게이트웨이가 온프레미스 네트워크와의 통신을 담당한다는 서술</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

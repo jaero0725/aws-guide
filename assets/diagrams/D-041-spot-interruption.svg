@@ -1,0 +1,62 @@
+<svg viewBox="0 0 720 350" role="img" aria-labelledby="d041-title d041-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d041-title">스팟 인스턴스 중단 처리 타임라인</title>
+  <desc id="d041-desc">스팟 인스턴스가 회수될 때 일어나는 일을 왼쪽에서 오른쪽으로 늘어놓은 타임라인입니다.
+    정상 실행 중이던 인스턴스에 대해 EC2 가 용량 회수를 결정하면 중단 알림이 인스턴스 메타데이터와 EventBridge 로 전달됩니다.
+    알림 이후 약 2분의 유예가 주어지고, 이 시간 안에 진행 중인 요청을 마무리하고 로드 밸런서에서 빠지고
+    작업 상태를 외부 스토리지에 체크포인트로 저장해야 합니다.
+    유예가 끝나면 인스턴스는 종료되고, Auto Scaling 그룹이나 EC2 플릿이 다른 용량 풀에서 대체 인스턴스를 시작합니다.
+    2분 안에 끝낼 수 있는 일만 남아 있어야 하므로 상태를 인스턴스 안에 두지 않는 설계가 전제입니다.</desc>
+
+  <defs>
+    <marker id="d041-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d041-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node" x="20" y="70" width="124" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="82" y="98" text-anchor="middle">정상 실행</text>
+  <text class="dg-fs-sm dg-muted" x="82" y="120" text-anchor="middle">스팟 용량으로</text>
+  <text class="dg-fs-sm dg-muted" x="82" y="140" text-anchor="middle">작업 처리 중</text>
+
+  <rect class="dg-node dg-node--warn" x="159" y="70" width="124" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="221" y="98" text-anchor="middle">중단 알림</text>
+  <text class="dg-fs-sm" x="221" y="120" text-anchor="middle">메타데이터와</text>
+  <text class="dg-fs-sm" x="221" y="140" text-anchor="middle">EventBridge 로</text>
+
+  <rect class="dg-node dg-node--accent" x="298" y="70" width="124" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="98" text-anchor="middle">약 2분 유예</text>
+  <text class="dg-fs-sm" x="360" y="120" text-anchor="middle">드레이닝 ·</text>
+  <text class="dg-fs-sm" x="360" y="140" text-anchor="middle">체크포인트 저장</text>
+
+  <rect class="dg-node dg-node--danger" x="437" y="70" width="124" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="499" y="98" text-anchor="middle">인스턴스 종료</text>
+  <text class="dg-fs-sm" x="499" y="120" text-anchor="middle">로컬 상태는</text>
+  <text class="dg-fs-sm" x="499" y="140" text-anchor="middle">함께 사라집니다</text>
+
+  <rect class="dg-node dg-node--ok" x="576" y="70" width="124" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="638" y="98" text-anchor="middle">재배치</text>
+  <text class="dg-fs-sm" x="638" y="120" text-anchor="middle">다른 용량 풀에서</text>
+  <text class="dg-fs-sm" x="638" y="140" text-anchor="middle">대체 인스턴스 시작</text>
+
+  <path class="dg-edge" d="M144 113 L155 113" marker-end="url(#d041-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M283 113 L294 113" marker-end="url(#d041-ar-accent)"/>
+  <path class="dg-edge" d="M422 113 L433 113" marker-end="url(#d041-ar)"/>
+  <path class="dg-edge" d="M561 113 L572 113" marker-end="url(#d041-ar)"/>
+
+  <path class="dg-grid" d="M20 184 L700 184"/>
+  <text class="dg-fs-sm dg-muted" x="20" y="204">시간 →</text>
+  <text class="dg-fs-sm dg-bold" x="360" y="204" text-anchor="middle">이 구간이 전부입니다</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="226" width="680" height="82" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="252" text-anchor="middle">2분 안에 끝낼 수 있는 일만 남아 있어야 합니다</text>
+  <text class="dg-fs-sm" x="360" y="276" text-anchor="middle">세션과 작업 상태를 인스턴스 밖(S3 · DynamoDB · ElastiCache)에 두고</text>
+  <text class="dg-fs-sm" x="360" y="298" text-anchor="middle">언제 사라져도 되는 상태 비저장 설계를 전제로 씁니다</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="336">여러 인스턴스 유형과 여러 AZ 를 후보로 두면 한 용량 풀이 마르더라도 대체를 찾기 쉬워집니다</text>
+</svg>

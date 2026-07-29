@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>보안과 암호화 — AWS SAA Guide</title>
+  <meta name="description" content="IAM 정책 패턴 스니펫과 정책 평가 순서, 저장 데이터 암호화 옵션 매트릭스(SSE-S3 · SSE-KMS · DSSE-KMS · SSE-C), AWS KMS 키 종류와 봉투 암호화, 탐지 서비스 네 가지의 역할 구분을 표와 코드로 정리했습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cheatsheet" data-page="security"></div>
+
+  <main id="main" class="page page--wide" data-page-id="cheatsheet/security">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">빠른참조</a></li>
+        <li><span aria-current="page">보안과 암호화</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">빠른참조 · 7</p>
+      <h1>보안과 암호화</h1>
+      <p class="page__lead">
+        가중치가 가장 큰 도메인(30퍼센트)의 판단 재료를 모았습니다.
+        IAM 정책의 <strong>모양</strong>, 암호화 방식의 <strong>선택 기준</strong>,
+        탐지 서비스의 <strong>역할 구분</strong> 세 가지입니다.
+      </p>
+      <p class="page__meta">
+        정책 스니펫은 시험이 요구하는 최소한의 형태만 담았습니다.
+        문법을 외우는 것이 아니라 <strong>어떤 요소가 어떤 통제를 만드는지</strong>를 보십시오.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">이 페이지 쓰는 법</h2>
+      <ul>
+        <li><a href="#policy-evaluation">정책 평가 순서</a>는 통째로 외웁니다. 도메인 1의 여러 문항이 여기서 갈립니다.</li>
+        <li>정책 스니펫은 <strong>어느 요소가 통제를 만드는지</strong>에 표시를 붙여 읽습니다.</li>
+        <li><a href="#encryption-matrix">암호화 매트릭스</a>는 "키를 누가 쥐는가" 한 줄로 요약됩니다.</li>
+        <li><a href="#detection-services">탐지 서비스</a>는 <strong>입력 데이터</strong>로 구분합니다. 이름이 아니라 입력이 기준입니다.</li>
+        <li>배경 설명은 <a href="../basics/ch02.html">2장</a>과 <a href="../basics/ch16.html">16장</a>에 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="policy-evaluation">
+      <h2 id="policy-evaluation">정책 평가 순서와 결합 규칙</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요청이 허용되는 과정 — 우선순위</caption>
+          <thead>
+            <tr>
+              <th scope="col">순위</th>
+              <th scope="col">판정</th>
+              <th scope="col">결과</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1</th>
+              <td>어떤 정책에서든 <strong>명시적 거부(explicit Deny)</strong>가 있는가</td>
+              <td>있으면 <strong>즉시 거부</strong>. 다른 허용을 모두 덮습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">2</th>
+              <td>명시적 허용(explicit Allow)이 있는가</td>
+              <td>있으면 허용 — 단, 상한 정책(권한 경계 · SCP · 세션 정책)도 허용해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">3</th>
+              <td>아무것도 없는 경우</td>
+              <td><strong>암묵적 거부(implicit Deny)</strong> — 기본값은 거부입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>정책 유형을 조합했을 때의 결과</caption>
+          <thead>
+            <tr>
+              <th scope="col">조합</th>
+              <th scope="col">결과</th>
+              <th scope="col">기억할 문장</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">자격 증명 기반 + 리소스 기반 (같은 계정)</th>
+              <td><strong>합집합</strong></td>
+              <td>둘 중 하나만 허용해도 됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + 권한 경계</th>
+              <td><strong>교집합</strong></td>
+              <td>둘 다 허용해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + 서비스 제어 정책(SCP)</th>
+              <td><strong>교집합</strong></td>
+              <td>둘 다 허용해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자격 증명 기반 + 세션 정책</th>
+              <td><strong>교집합</strong></td>
+              <td>둘 다 허용해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">셋 이상이 함께 있을 때</th>
+              <td>전부 허용해야 합니다</td>
+              <td>상한을 하나라도 통과하지 못하면 거부입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>SCP는 권한을 부여하지 않습니다.</strong> 상한만 정합니다.
+          그래서 SCP만 허용으로 바꿔도 아무 일이 일어나지 않고,
+          자격 증명 기반 정책이 별도로 허용해야 합니다.
+          그리고 SCP는 <strong>멤버 계정의 루트 사용자에게도 적용</strong>됩니다.
+          "루트라서 통과한다"는 선택지는 조직 멤버 계정에서 오답입니다.
+        </p>
+      </aside>
+
+      <h3 id="policy-anatomy">정책 문서의 뼈대</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">policy-skeleton.json</span> — 정책 문 하나가 담는 다섯 요소</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DescribeWhatThisAllows",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": ["arn:aws:s3:::example-bucket/reports/*"],
+      "Condition": {
+        "Bool": { "aws:SecureTransport": "true" }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>정책 요소가 만드는 통제</caption>
+          <thead>
+            <tr>
+              <th scope="col">요소</th>
+              <th scope="col">무엇을 정하는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>Effect</code></th>
+              <td><code>Allow</code> 또는 <code>Deny</code>. <code>Deny</code>는 다른 허용을 덮습니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Action</code></th>
+              <td>어떤 API 호출인가. 서비스 접두사와 작업 이름으로 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Resource</code></th>
+              <td>어떤 대상인가. 최소 권한은 대부분 여기를 좁히는 일입니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Principal</code></th>
+              <td><strong>리소스 기반 정책과 신뢰 정책에만</strong> 있습니다. 누가 요청하는가</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Condition</code></th>
+              <td>어떤 상황에서만 적용되는가. 암호화 강제, 전송 보안, 출처 제한이 여기서 만들어집니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="policy-patterns">
+      <h2 id="policy-patterns">IAM 정책 패턴</h2>
+
+      <p>
+        아래 패턴은 시험 시나리오에서 반복되는 형태입니다.
+        계정 ID는 <code>123456789012</code>, 리소스 이름은 예시값이며 실제 값이 아닙니다.
+      </p>
+
+      <h3 id="pattern-least-privilege">최소 권한 — 대상을 좁힌다</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">least-privilege-s3.json</span> — 특정 버킷의 특정 접두사만 읽기 (자격 증명 기반 정책)</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListOnlyThatPrefix",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::example-bucket",
+      "Condition": {
+        "StringLike": { "s3:prefix": ["reports/*"] }
+      }
+    },
+    {
+      "Sid": "ReadObjectsUnderPrefix",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::example-bucket/reports/*"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <p>
+        버킷 수준 작업(<code>s3:ListBucket</code>)과 객체 수준 작업(<code>s3:GetObject</code>)은
+        <strong>리소스 ARN의 모양이 다릅니다.</strong> 버킷은 <code>arn:aws:s3:::버킷</code>,
+        객체는 <code>arn:aws:s3:::버킷/키</code>입니다. 둘을 섞어 쓰면 정책이 동작하지 않습니다.
+      </p>
+
+      <h3 id="pattern-instance-role">EC2 인스턴스 역할 — 액세스 키를 심지 않는다</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">ec2-trust-policy.json</span> — 역할의 신뢰 정책. 누가 이 역할을 맡을 수 있는가</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "ec2.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          EC2 인스턴스에서 AWS API를 호출해야 한다면 답은 <strong>거의 언제나 IAM 역할</strong>입니다.
+          역할은 임시 자격 증명을 인스턴스 메타데이터로 전달하므로 유출된 키를 회수할 필요가 없습니다.
+          "액세스 키를 환경 변수로 넣는다", "키를 AMI에 굽는다", "키를 Secrets Manager에 넣는다" 는
+          모두 같은 이유로 후보에서 내려갑니다.
+        </p>
+      </aside>
+
+      <h3 id="pattern-cross-account">교차 계정 접근 — 양쪽이 필요하다</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cross-account-trust.json</span> — 신뢰하는 쪽(역할이 있는 계정)의 신뢰 정책</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": { "sts:ExternalId": "example-external-id" },
+        "Bool": { "aws:MultiFactorAuthPresent": "true" }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cross-account-caller.json</span> — 호출하는 쪽 주체에게 필요한 자격 증명 기반 정책</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::210987654321:role/ExampleCrossAccountRole"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <p>
+        교차 계정은 <strong>양쪽이 모두 허용해야</strong> 성립합니다.
+        역할 쪽 신뢰 정책만 고치고 호출자 쪽 권한을 빠뜨리는 것이 전형적인 실수이고,
+        문항에서는 "한쪽만 바꾸는 선택지" 로 나타납니다.
+        <code>sts:ExternalId</code>는 제삼자에게 역할을 위임할 때 혼동된 대리인 문제를 막는 장치입니다.
+      </p>
+
+      <h3 id="pattern-conditions">조건으로 강제하기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">enforce-tls-and-sse.json</span> — 버킷 정책으로 전송 보안과 암호화를 강제</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyInsecureTransport",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::example-bucket",
+        "arn:aws:s3:::example-bucket/*"
+      ],
+      "Condition": {
+        "Bool": { "aws:SecureTransport": "false" }
+      }
+    },
+    {
+      "Sid": "DenyUploadsWithoutKmsEncryption",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::example-bucket/*",
+      "Condition": {
+        "StringNotEquals": {
+          "s3:x-amz-server-side-encryption": "aws:kms"
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>시험에 자주 나오는 조건 키</caption>
+          <thead>
+            <tr>
+              <th scope="col">조건 키</th>
+              <th scope="col">무엇을 강제하는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>aws:SecureTransport</code></th>
+              <td>HTTPS로만 접근하게 합니다. <code>false</code>일 때 거부하는 형태로 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>s3:x-amz-server-side-encryption</code></th>
+              <td>지정한 암호화 방식으로만 업로드하게 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>aws:MultiFactorAuthPresent</code></th>
+              <td>다중 인증을 거친 세션만 허용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>aws:SourceVpce</code></th>
+              <td>특정 VPC 엔드포인트를 통과한 요청만 허용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>aws:SourceIp</code></th>
+              <td>특정 IP 대역에서 온 요청만 허용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>aws:PrincipalOrgID</code></th>
+              <td>우리 조직에 속한 주체만 허용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>aws:RequestedRegion</code></th>
+              <td>특정 리전에서만 작업하게 합니다. 데이터 레지던시 요구에 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>sts:ExternalId</code></th>
+              <td>제삼자 역할 위임에서 혼동된 대리인 문제를 막습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="pattern-private-access">비공개 경로만 허용하기</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">vpce-only-bucket.json</span> — 지정한 VPC 엔드포인트를 지나지 않은 요청 거부</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyAccessOutsideVpcEndpoint",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::example-bucket",
+        "arn:aws:s3:::example-bucket/*"
+      ],
+      "Condition": {
+        "StringNotEquals": {
+          "aws:SourceVpce": "vpce-0123456789abcdef0"
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <p>
+        "데이터가 인터넷을 거치면 안 된다" 는 요구는 두 겹으로 만족시킵니다.
+        <strong>경로</strong>는 VPC 엔드포인트로 만들고,
+        <strong>강제</strong>는 위와 같은 버킷 정책으로 겁니다.
+        경로만 만들고 정책을 걸지 않으면 다른 경로로도 여전히 접근할 수 있습니다.
+      </p>
+
+      <h3 id="pattern-guardrails">상한 걸기 — 권한 경계와 SCP</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">permissions-boundary.json</span> — 이 주체가 넘을 수 없는 최대 권한</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:*", "cloudwatch:*", "logs:*"],
+      "Resource": "*"
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">scp-region-restriction.json</span> — 조직 단위에 거는 리전 제한 서비스 제어 정책</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyOutsideApprovedRegions",
+      "Effect": "Deny",
+      "NotAction": ["iam:*", "organizations:*", "cloudfront:*", "route53:*", "support:*"],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "aws:RequestedRegion": ["ap-northeast-2", "us-east-1"]
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>권한 경계와 서비스 제어 정책의 차이</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">권한 경계</th>
+              <th scope="col">서비스 제어 정책(SCP)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">적용 대상</th>
+              <td>IAM 사용자 또는 역할 하나</td>
+              <td>계정 또는 조직 단위(OU) 전체</td>
+            </tr>
+            <tr>
+              <th scope="row">붙이는 곳</th>
+              <td>주체에 직접</td>
+              <td>AWS Organizations의 루트 · OU · 계정</td>
+            </tr>
+            <tr>
+              <th scope="row">권한 부여</th>
+              <td><span class="mark-no">하지 않음</span> — 상한만 정합니다</td>
+              <td><span class="mark-no">하지 않음</span> — 상한만 정합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">루트 사용자</th>
+              <td>해당 없음</td>
+              <td><strong>멤버 계정의 루트에도 적용됩니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">대표 용도</th>
+              <td>개발자에게 역할 생성 권한을 주되 그 역할의 권한을 제한</td>
+              <td>조직 전체에 리전 제한, 특정 서비스 금지, 로깅 해제 금지</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="encryption-matrix">
+      <h2 id="encryption-matrix">저장 데이터 암호화 매트릭스</h2>
+
+      <p>
+        네 방식의 차이는 한 줄로 요약됩니다 — <strong>키를 누가 쥐고, 사용 기록이 남는가</strong>입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon S3의 서버 측 암호화 네 가지</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">SSE-S3</th>
+              <th scope="col">SSE-KMS</th>
+              <th scope="col">DSSE-KMS</th>
+              <th scope="col">SSE-C</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">키 관리 주체</th>
+              <td>Amazon S3</td>
+              <td>AWS KMS</td>
+              <td>AWS KMS (이중 계층)</td>
+              <td><strong>고객</strong> — 요청마다 키를 보냅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">키 정책으로 접근 통제</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span></td>
+              <td><span class="mark-ok">가능</span></td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">키 사용 감사</th>
+              <td>남지 않습니다</td>
+              <td>KMS 호출이 <strong>AWS CloudTrail</strong>에 남습니다</td>
+              <td>남습니다</td>
+              <td>남지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">키 교체</th>
+              <td>Amazon S3가 관리합니다</td>
+              <td>고객 관리형 키면 자동 교체를 켤 수 있습니다</td>
+              <td>같습니다</td>
+              <td>고객 책임입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS의 키 저장</th>
+              <td>저장합니다</td>
+              <td>저장합니다</td>
+              <td>저장합니다</td>
+              <td><strong>저장하지 않습니다</strong> — 잃으면 복구할 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"암호화만 되면 된다"</td>
+              <td>"키 사용을 <strong>감사</strong>", "키 접근을 따로 통제"</td>
+              <td>규정이 <strong>이중 암호화</strong>를 명시할 때</td>
+              <td>"키를 AWS에 맡길 수 없다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          2023년 1월부터 <strong>모든 신규 객체가 SSE-S3로 자동 암호화</strong>됩니다.
+          따라서 "S3에 저장되는 데이터를 암호화해야 한다" 는 요구만으로는 추가 작업이 필요하지 않고,
+          <strong>"기본 암호화를 활성화해야 한다" 는 선택지는 이미 되어 있는 일</strong>입니다.
+          문항이 키 통제나 감사를 요구할 때만 SSE-KMS로 올라갑니다.
+        </p>
+      </aside>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>그 밖의 서비스에서 저장 데이터를 암호화하는 방식</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">방식</th>
+              <th scope="col">주의할 점</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Amazon EBS</th>
+              <td>볼륨 생성 시 KMS 키로 암호화합니다</td>
+              <td>암호화된 볼륨의 스냅샷과 그 스냅샷으로 만든 볼륨도 암호화 상태를 이어받습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon RDS</th>
+              <td>인스턴스 생성 시 지정합니다</td>
+              <td>이미 만들어진 암호화되지 않은 인스턴스는 <strong>스냅샷을 암호화해 복원</strong>하는 방식으로 전환합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon DynamoDB</th>
+              <td>저장 시 암호화가 적용됩니다</td>
+              <td>키 종류를 고르는 선택이 남습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon EFS · Amazon FSx</th>
+              <td>파일 시스템 생성 시 지정합니다</td>
+              <td>전송 중 암호화는 별도 설정입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Secrets Manager · Parameter Store</th>
+              <td>KMS 키로 값을 암호화합니다</td>
+              <td>Parameter Store는 <code>SecureString</code>일 때만 암호화됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">전송 중 암호화</th>
+              <td>AWS Certificate Manager 인증서로 TLS를 종료합니다</td>
+              <td>붙이는 지점은 Application Load Balancer · Amazon CloudFront · Amazon API Gateway입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="kms-keys">
+      <h2 id="kms-keys">AWS KMS — 키 종류와 봉투 암호화</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>KMS 키 세 종류의 통제 범위</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">AWS 소유 키</th>
+              <th scope="col">AWS 관리형 키</th>
+              <th scope="col">고객 관리형 키</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">키 정책 편집</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row">계정에서 보이는가</th>
+              <td>보이지 않습니다</td>
+              <td>보입니다</td>
+              <td>보입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">자동 교체</th>
+              <td>AWS가 관리합니다</td>
+              <td><strong>매년 자동</strong> — 켜고 끌 수 없습니다</td>
+              <td>켤 수 있고 기본 주기는 365일입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">교차 계정 사용</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span> — 키 정책으로 허용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">삭제</th>
+              <td>해당 없음</td>
+              <td>해당 없음</td>
+              <td>대기 기간을 두고 예약 삭제합니다. 되돌릴 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>특별한 요구가 없을 때의 기본</td>
+              <td>서비스가 알아서 만들어 주는 키</td>
+              <td>"키를 직접 통제", "교차 계정", "감사", "직접 교체 주기 지정"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>KMS 자동 교체의 확인된 값</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">값</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">고객 관리형 키 자동 교체 주기</th>
+              <td>기본 365일. <code>RotationPeriodInDays</code>로 조정할 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS 관리형 키</th>
+              <td>매년 자동 교체되며 켜고 끌 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">지원 대상</th>
+              <td><strong>대칭 암호화 키만</strong> — 비대칭 · HMAC · 가져온 키 재료 · 사용자 지정 키 스토어는 제외됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">주기 변경 이력</th>
+              <td>2022년 5월에 3년에서 1년으로 바뀌었습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="envelope-encryption">봉투 암호화 — 대용량 데이터가 KMS를 지나지 않는 이유</h3>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>봉투 암호화의 순서</caption>
+          <thead>
+            <tr>
+              <th scope="col">순서</th>
+              <th scope="col">일어나는 일</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">1</th>
+              <td>애플리케이션이 KMS에 데이터 키 생성을 요청합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">2</th>
+              <td>KMS가 <strong>평문 데이터 키</strong>와 <strong>암호문 데이터 키</strong> 두 벌을 돌려줍니다</td>
+            </tr>
+            <tr>
+              <th scope="row">3</th>
+              <td>애플리케이션이 평문 데이터 키로 데이터를 암호화합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">4</th>
+              <td>평문 데이터 키를 <strong>메모리에서 지우고</strong>, 암호문 데이터 키를 암호화된 데이터와 함께 저장합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">5</th>
+              <td>복호화할 때는 암호문 데이터 키를 KMS에 보내 평문 키를 받아 온 뒤 데이터를 풉니다</td>
+            </tr>
+            <tr>
+              <th scope="row">결론</th>
+              <td><strong>데이터 본체는 KMS를 지나지 않습니다.</strong> 그래서 크기 제약 없이 대용량을 다룰 수 있습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="AWS CloudHSM과의 구분">
+        <p>
+          규정이 <strong>단독 점유 하드웨어 보안 모듈</strong>이나 키를 AWS도 접근할 수 없는 형태로
+          보관할 것을 명시할 때만 AWS CloudHSM입니다.
+          그 밖의 모든 암호화 요구는 AWS KMS로 처리합니다.
+          "가장 안전한" 이라는 한정어만으로 CloudHSM을 고르면 과잉 설계입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="detection-services">
+      <h2 id="detection-services">탐지 서비스 네 가지 — 입력 데이터로 구분합니다</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon GuardDuty · Amazon Inspector · Amazon Macie · AWS Security Hub의 역할 구분</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Amazon GuardDuty</th>
+              <th scope="col">Amazon Inspector</th>
+              <th scope="col">Amazon Macie</th>
+              <th scope="col">AWS Security Hub</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">무엇을 입력으로 읽는가</th>
+              <td>로그와 네트워크 신호</td>
+              <td>워크로드의 소프트웨어와 네트워크 노출</td>
+              <td><strong>Amazon S3의 데이터 내용</strong></td>
+              <td>다른 보안 서비스의 결과</td>
+            </tr>
+            <tr>
+              <th scope="row">대답하는 질문</th>
+              <td>지금 <strong>수상한 활동</strong>이 일어나고 있는가</td>
+              <td>알려진 <strong>취약점</strong>이 있는가</td>
+              <td><strong>민감 정보</strong>가 어디 있는가</td>
+              <td>전체 보안 상태가 <strong>표준에 맞는가</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">에이전트</th>
+              <td>필요 없습니다</td>
+              <td>대상에 따라 필요합니다</td>
+              <td>필요 없습니다</td>
+              <td>필요 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"비정상 접근", "암호화폐 채굴 탐지", "침해 징후"</td>
+              <td>"인스턴스와 컨테이너 이미지 점검", "CVE"</td>
+              <td>"개인정보가 들어 있는지", "규정 대상 데이터 식별"</td>
+              <td>"한곳에서 모아 본다", "규정 준수 점수"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>감사와 조사에 쓰는 서비스의 역할 구분</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">대답하는 질문</th>
+              <th scope="col">이 서비스를 지목하는 표현</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS CloudTrail</th>
+              <td><strong>누가 무엇을 호출했는가</strong></td>
+              <td>"API 호출 기록", "누가 이 리소스를 지웠나"</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Config</th>
+              <td><strong>구성이 규칙을 지키는가</strong></td>
+              <td>"규정 준수 여부 평가", "언제부터 어긋났나", "구성 변경 이력"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon CloudWatch</th>
+              <td>얼마나 잘 동작하는가</td>
+              <td>"지표", "알람", "로그 패턴"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Detective</th>
+              <td>이 탐지 결과의 원인이 무엇인가</td>
+              <td>"근본 원인 조사", "관련 활동 추적"</td>
+            </tr>
+            <tr>
+              <th scope="row">IAM Access Analyzer</th>
+              <td>외부에 열린 접근 경로가 있는가</td>
+              <td>"의도치 않게 공유된 리소스", "쓰이지 않는 권한"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          규정 준수 시나리오에서 서비스를 고르는 유일한 기준은 <strong>질문의 형태</strong>입니다.
+          "누가 했나" 는 AWS CloudTrail, "규칙에 맞나" 는 AWS Config,
+          "얼마나 잘 도나" 는 Amazon CloudWatch입니다.
+          셋을 나란히 놓은 선택지가 나오면 문제문의 동사를 다시 읽으십시오.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="identity-services">
+      <h2 id="identity-services">누구의 자격 증명인가</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자격 증명 서비스의 대상 구분</caption>
+          <thead>
+            <tr>
+              <th scope="col">서비스</th>
+              <th scope="col">누구를 위한 것인가</th>
+              <th scope="col">고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">AWS IAM 역할</th>
+              <td>AWS 리소스와 서비스</td>
+              <td>"EC2에서 S3를 호출", "Lambda가 DynamoDB에 접근"</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS IAM Identity Center</th>
+              <td><strong>직원</strong>이 여러 AWS 계정에 접근</td>
+              <td>"사내 사용자가 여러 계정에", "외부 IdP와 연동한 단일 로그인"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Cognito 사용자 풀</th>
+              <td>애플리케이션의 <strong>최종 사용자</strong> 인증</td>
+              <td>"모바일 앱 회원 가입과 로그인"</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Cognito 자격 증명 풀</th>
+              <td>인증된 사용자에게 <strong>임시 AWS 자격 증명</strong> 부여</td>
+              <td>"앱이 직접 S3에 업로드해야 한다"</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Directory Service</th>
+              <td>Active Directory 기반 인증</td>
+              <td>"도메인 조인", "기존 AD 자격 증명 사용"</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS STS</th>
+              <td>모든 임시 자격 증명의 발급자</td>
+              <td>"역할 위임", "교차 계정", "페더레이션"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        비밀 저장과 자동 교체의 선택은
+        <a href="compare.html#secrets-vs-parameter-store">Secrets Manager와 Parameter Store 비교</a>에 있습니다.
+        판단 기준은 하나, <strong>자동 교체가 필요한가</strong>입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch02.html">
+          <span class="card__title">2장 · IAM과 자격 증명</span>
+          <span class="card__desc">정책 평가 로직, 역할 위임, 권한 경계와 SCP를 설명과 다이어그램으로 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch16.html">
+          <span class="card__title">16장 · 보안 · 암호화 · 거버넌스</span>
+          <span class="card__desc">KMS 키 정책, 봉투 암호화, 탐지 서비스, Cognito를 자세히 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-secure.html">
+          <span class="card__title">보안 아키텍처 설계 (30%)</span>
+          <span class="card__desc">가중치가 가장 큰 도메인의 과제 진술 세 개와 출제 포인트입니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="compare.html#security-pairs">
+          <span class="card__title">헷갈리는 쌍 비교 — 보안</span>
+          <span class="card__desc">Secrets Manager와 Parameter Store의 속성 대조표입니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="network.html#traffic-controls">
+          <span class="card__title">네트워크 연결 매트릭스 — 트래픽 통제 계층</span>
+          <span class="card__desc">보안 그룹부터 AWS WAF까지 어느 계층에서 무엇을 막는지 정리했습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">SCP와 권한 경계, 자격 증명 기반과 리소스 기반 정책 등 보안 쌍의 오답 패턴입니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html">IAM 사용 설명서 — 정책 평가 로직</a>
+          — 평가 순서, 명시적 거부의 우선, 정책 유형별 결합 규칙</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html">IAM 사용 설명서 — 정책과 권한</a>
+          — 자격 증명 기반 정책과 리소스 기반 정책의 구분</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html">IAM 사용 설명서 — 정책 요소 참조</a>
+          — <code>Effect</code> · <code>Action</code> · <code>Resource</code> · <code>Principal</code> · <code>Condition</code></li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html">IAM 사용 설명서 — 전역 조건 키</a>
+          — <code>aws:SecureTransport</code> · <code>aws:SourceVpce</code> · <code>aws:PrincipalOrgID</code> · <code>aws:RequestedRegion</code> 등</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">IAM 사용 설명서 — 권한 경계</a>
+          — 상한만 정하고 권한을 부여하지 않는다는 성격</li>
+        <li><a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html">IAM 사용 설명서 — 외부 ID와 혼동된 대리인 문제</a>
+          — <code>sts:ExternalId</code>의 용도</li>
+        <li><a href="https://docs.aws.amazon.com/organizations/latest/userguide/SCP_strategies.html">AWS Organizations 사용 설명서 — SCP 전략</a>
+          — SCP가 상한만 정하고 멤버 계정 루트에도 적용된다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html">Amazon S3 사용 설명서 — 서버 측 암호화</a>
+          — SSE-S3 · SSE-KMS · DSSE-KMS · SSE-C의 키 관리 주체</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-encryption-faq.html">Amazon S3 사용 설명서 — 기본 암호화 FAQ</a>
+          — 신규 객체의 SSE-S3 자동 암호화</li>
+        <li><a href="https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html">AWS KMS 개발자 안내서 — 개념</a>
+          — 키 종류와 봉투 암호화, 데이터 키</li>
+        <li><a href="https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html">AWS KMS API 레퍼런스 — EnableKeyRotation</a>
+          — 자동 교체 주기와 지원 대상 키 종류</li>
+        <li><a href="https://docs.aws.amazon.com/kms/latest/developerguide/key-policies.html">AWS KMS 개발자 안내서 — 키 정책</a>
+          — 키 정책과 IAM 정책이 함께 접근을 결정한다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html">Amazon GuardDuty 사용 설명서</a>
+          — 로그와 네트워크 신호를 읽는 위협 탐지</li>
+        <li><a href="https://docs.aws.amazon.com/inspector/latest/user/what-is-inspector.html">Amazon Inspector 사용 설명서</a>
+          — 워크로드 취약점 검사</li>
+        <li><a href="https://docs.aws.amazon.com/macie/latest/user/what-is-macie.html">Amazon Macie 사용 설명서</a>
+          — Amazon S3의 민감 데이터 탐지</li>
+        <li><a href="https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html">AWS Security Hub 사용 설명서</a>
+          — 결과 집계와 표준 점검</li>
+        <li><a href="https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html">AWS CloudTrail 사용 설명서</a>
+          — API 호출 기록</li>
+        <li><a href="https://docs.aws.amazon.com/config/latest/developerguide/WhatIsConfig.html">AWS Config 개발자 안내서</a>
+          — 구성 기록과 규칙 평가</li>
+        <li><a href="https://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html">Amazon Cognito 개발자 안내서</a>
+          — 사용자 풀과 자격 증명 풀의 역할 구분</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

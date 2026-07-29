@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>케이스 8 · 리전 장애에 대비한 DR을 설계하라 — AWS SAA Guide</title>
+  <meta name="description" content="RTO와 RPO 요구에서 출발해 백업·복원, 파일럿 라이트, 웜 스탠바이, 다중 사이트 액티브-액티브 네 전략을 비교합니다. 데이터 복제·DNS 전환·용량 확보 세 결정으로 내려가는 판단 경로와 정기 훈련까지 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cases" data-page="case08"></div>
+
+  <main id="main" class="page" data-page-id="cases/case08">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">아키텍처 케이스</a></li>
+        <li><span aria-current="page">케이스 8 · 리전 장애에 대비한 DR을 설계하라</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">아키텍처 케이스 · 8</p>
+      <h1>리전 장애에 대비한 DR을 설계하라</h1>
+      <p class="page__lead">
+        재해 복구 설계는 서비스를 고르는 문제가 아니라
+        <strong>RTO와 RPO를 먼저 정하는 문제</strong>입니다.
+        두 값이 정해지면 전략이 좁혀지고, 전략이 정해지면
+        데이터 복제 · DNS 전환 · 용량 확보 세 가지 결정이 따라옵니다.
+        이 케이스는 그 순서를 그대로 밟습니다.
+      </p>
+      <p class="page__meta">
+        주 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a> ·
+        <a href="../saa/domain-cost.html">비용 최적화 아키텍처 설계(20%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>RTO와 RPO를 정의하고 요구사항에서 두 값을 뽑아낼 수 있습니다.</li>
+        <li>DR 4전략의 차이를 <strong>평상시에 무엇이 켜져 있는가</strong>로 설명할 수 있습니다.</li>
+        <li>데이터 계층별 복제 수단을 고르고 각각의 RPO 성격을 설명할 수 있습니다.</li>
+        <li>DNS 장애 조치와 상태 확인으로 전환 경로를 설계할 수 있습니다.</li>
+        <li>대상 리전의 용량 확보 위험과 정기 훈련의 필요성을 설명할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="situation">
+      <h2 id="situation">상황</h2>
+
+      <p>
+        결제 중개 서비스가 단일 리전에서 다중 가용 영역으로 운영되고 있습니다.
+        가용 영역 장애에는 대비되어 있지만, <strong>리전 전체가 손상되는 경우</strong>에는
+        복구 계획이 없습니다. 경영진은 다음을 요구했습니다.
+      </p>
+
+      <ul>
+        <li>리전 장애가 나도 <strong>결제 기록이 유실되면 안 됩니다.</strong></li>
+        <li>서비스는 <strong>수십 분 안에</strong> 다른 리전에서 재개되어야 합니다.</li>
+        <li>평상시 비용은 <strong>현재의 두 배가 되어서는 안 됩니다.</strong></li>
+        <li>규정상 데이터는 <strong>국내 리전 안에서만</strong> 처리되어야 합니다.</li>
+      </ul>
+
+      <p>
+        현재 구성은 이렇습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>현재 구성 요소와 리전 장애 시 상태</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성 요소</th>
+              <th scope="col">현재</th>
+              <th scope="col">리전 장애 시</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">웹·애플리케이션</th>
+              <td>Auto Scaling 그룹, 다중 가용 영역</td>
+              <td>전부 소실</td>
+            </tr>
+            <tr>
+              <th scope="row">관계형 데이터베이스</th>
+              <td>Amazon RDS Multi-AZ</td>
+              <td>대기 인스턴스도 같은 리전이라 함께 소실</td>
+            </tr>
+            <tr>
+              <th scope="row">주문 이력</th>
+              <td>Amazon DynamoDB 단일 리전 테이블</td>
+              <td>소실</td>
+            </tr>
+            <tr>
+              <th scope="row">영수증 파일</th>
+              <td>Amazon S3 버킷, 복제 없음</td>
+              <td>접근 불가</td>
+            </tr>
+            <tr>
+              <th scope="row">DNS</th>
+              <td>Amazon Route 53, 단순 라우팅</td>
+              <td>계속 죽은 리전을 가리킨다</td>
+            </tr>
+            <tr>
+              <th scope="row">인프라 정의</th>
+              <td>일부만 CloudFormation, 나머지는 수동</td>
+              <td>다른 리전에 재구축하는 데 시간이 오래 걸린다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>Multi-AZ는 리전 장애 대비가 아닙니다.</strong>
+          대기 인스턴스는 같은 리전의 다른 가용 영역에 있으므로,
+          리전이 손상되면 함께 사라집니다.
+          리전 경계를 넘는 것은 <strong>교차 리전 복제 · 교차 리전 읽기 전용 복제본 ·
+          글로벌 테이블 · 스냅샷 복사</strong>처럼 명시적으로 리전 간 동작을 하는 기능뿐입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="rto-rpo">
+      <h2 id="rto-rpo">먼저 RTO와 RPO를 숫자로 만든다</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>RTO와 RPO의 정의와 이 케이스의 요구</caption>
+          <thead>
+            <tr>
+              <th scope="col">지표</th>
+              <th scope="col">무엇을 묻는가</th>
+              <th scope="col">이 케이스의 요구</th>
+              <th scope="col">무엇을 결정하는가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">RTO (Recovery Time Objective)</th>
+              <td>장애 발생부터 <strong>서비스 재개</strong>까지 허용되는 시간</td>
+              <td>수십 분</td>
+              <td>대상 리전에 무엇이 미리 서 있어야 하는가</td>
+            </tr>
+            <tr>
+              <th scope="row">RPO (Recovery Point Objective)</th>
+              <td>장애로 <strong>잃어도 되는 데이터</strong>의 시간 폭</td>
+              <td>결제 기록은 사실상 0에 가깝게</td>
+              <td>데이터를 어떤 방식으로 복제하는가</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        두 값은 서로 독립적으로 정해집니다.
+        <strong>RPO는 데이터 복제 방식이 결정하고, RTO는 대상 리전의 준비 수준이 결정합니다.</strong>
+        RPO를 0에 가깝게 만들면서 RTO는 몇 시간을 허용하는 설계도 가능하고,
+        그 반대도 가능합니다.
+      </p>
+
+      <p>
+        이 케이스에서는 요구가 갈립니다 —
+        <strong>결제 기록은 RPO가 매우 작아야 하지만, 서비스 재개는 수십 분을 허용</strong>합니다.
+        그래서 데이터는 상시 복제하되 컴퓨팅은 최소만 켜 두는 구성이 자연스럽게 나옵니다.
+      </p>
+
+      <figure class="chart" data-chart="C-040">
+        <figcaption>
+          DR 4전략을 RTO와 RPO 두 축 위에 놓은 위치 비교.
+          <strong>왼쪽 아래로 갈수록 요구가 엄격해지고 평상시 켜 두어야 하는 구성 요소가 늘어납니다.</strong>
+          축은 순서 척도이며 특정 전략의 복구 시간을 숫자로 단정하지 않습니다
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="options">
+      <h2 id="options">후보 설계안 비교 — DR 4전략</h2>
+
+      <p>
+        네 전략의 차이는 한 문장으로 요약됩니다 —
+        <strong>평상시에 대상 리전에서 무엇이 켜져 있는가.</strong>
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>DR 4전략 비교 — 평상시 대상 리전의 상태를 기준으로</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">A · 백업과 복원</th>
+              <th scope="col">B · 파일럿 라이트</th>
+              <th scope="col">C · 웜 스탠바이</th>
+              <th scope="col">D · 다중 사이트 액티브-액티브</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">평상시 데이터</th>
+              <td>백업이 복사되어 있다</td>
+              <td><span class="mark-ok">상시 복제된다</span></td>
+              <td><span class="mark-ok">상시 복제된다</span></td>
+              <td><span class="mark-ok">양방향 복제</span></td>
+            </tr>
+            <tr>
+              <th scope="row">평상시 컴퓨팅</th>
+              <td>없음</td>
+              <td>최소 코어만 (또는 꺼진 상태로 정의만)</td>
+              <td>축소된 규모로 <strong>실제 가동</strong></td>
+              <td>운영 규모로 가동, 트래픽도 받는다</td>
+            </tr>
+            <tr>
+              <th scope="row">복구 시 할 일</th>
+              <td>인프라 생성 + 데이터 복원 + 전환</td>
+              <td>컴퓨팅 시작 + 확장 + 전환</td>
+              <td>확장 + 전환</td>
+              <td><span class="mark-ok">전환만 (또는 자동)</span></td>
+            </tr>
+            <tr>
+              <th scope="row">RTO 성격</th>
+              <td>가장 길다</td>
+              <td>중간</td>
+              <td>짧다</td>
+              <td><span class="mark-ok">가장 짧다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">RPO 성격</th>
+              <td>백업 주기에 묶인다</td>
+              <td>복제 지연 수준</td>
+              <td>복제 지연 수준</td>
+              <td>복제 지연 수준</td>
+            </tr>
+            <tr>
+              <th scope="row">평상시 비용</th>
+              <td><span class="mark-ok">가장 낮다</span></td>
+              <td>낮다</td>
+              <td>중간</td>
+              <td><span class="mark-no">가장 높다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">이 케이스 판정</th>
+              <td><span class="mark-no">RTO 요구 미달</span></td>
+              <td>경계선 — 확장 시간이 변수</td>
+              <td><span class="mark-ok">선택</span></td>
+              <td><span class="mark-no">비용 제약 위반</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="diagram" data-diagram="D-185">
+        <figcaption>
+          요구 RTO와 RPO에서 출발해 데이터 복제 방식 · DNS 전환 방식 · 대상 리전 용량 확보 수준
+          세 가지 결정으로 내려가는 판단 경로.
+          각 결정이 어떤 구성 요소를 대상 리전에 상시로 세우게 만드는지 표시합니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          문제문에서 전략을 고를 때 보는 것은 두 문장입니다.
+        </p>
+        <ul>
+          <li><strong>"몇 시간의 중단을 허용한다" + "비용을 최소화"</strong> → 백업과 복원</li>
+          <li><strong>"수 분 안에 복구" + "데이터 손실 최소"</strong> → 웜 스탠바이 이상</li>
+          <li><strong>"중단이 전혀 없어야 한다"</strong> → 다중 사이트 액티브-액티브</li>
+          <li><strong>"핵심 데이터베이스만 미리 띄워 둔다"</strong> → 파일럿 라이트</li>
+        </ul>
+        <p>
+          네 전략의 이름을 외우는 것보다
+          <strong>"평상시 무엇이 켜져 있는가"로 구분</strong>하는 편이 문항을 빠르게 풉니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="decision">
+      <h2 id="decision">선택과 근거</h2>
+
+      <p>
+        <strong>C · 웜 스탠바이</strong>를 고릅니다.
+        RTO 요구(수십 분)는 인프라를 새로 만들 여유가 없다는 뜻이고,
+        비용 제약은 운영 규모를 그대로 두 벌 유지할 수 없다는 뜻입니다.
+        <strong>축소된 규모로 상시 가동하되 장애 시 확장</strong>하는 구성이 두 요구 사이에 정확히 놓입니다.
+      </p>
+
+      <p>
+        규정 제약(국내 리전)은 <strong>대상 리전 후보를 좁힙니다.</strong>
+        데이터가 국경을 넘어서는 안 된다면, 다른 나라의 리전은 아무리 가깝고 싸도 선택지가 아닙니다.
+        국내에 사용 가능한 리전이 하나뿐이라면
+        <strong>DR 전략 자체를 다시 논의</strong>해야 하며, 이 사실을 먼저 확인합니다.
+      </p>
+
+      <h3 id="decision-1-data">결정 1 · 데이터 복제</h3>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>데이터 계층별 리전 간 복제 수단과 RPO 성격</caption>
+          <thead>
+            <tr>
+              <th scope="col">데이터</th>
+              <th scope="col">수단</th>
+              <th scope="col">RPO 성격</th>
+              <th scope="col">주의</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">관계형 데이터베이스</th>
+              <td>교차 리전 읽기 전용 복제본</td>
+              <td>비동기 — 복제 지연만큼 손실 가능</td>
+              <td>장애 시 <strong>수동 승격</strong>이 필요하다. 자동 장애 조치가 아니다</td>
+            </tr>
+            <tr>
+              <th scope="row">관계형(Aurora)</th>
+              <td>글로벌 데이터베이스</td>
+              <td>비동기지만 지연이 작다</td>
+              <td>보조 리전에서 쓰기가 필요하면 승격해야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">주문 이력(DynamoDB)</th>
+              <td>글로벌 테이블</td>
+              <td>다중 리전 복제. 리전 간 최종 일관성</td>
+              <td>같은 항목을 두 리전에서 동시에 쓰면 충돌 해결 규칙이 적용된다</td>
+            </tr>
+            <tr>
+              <th scope="row">영수증 파일(S3)</th>
+              <td>교차 리전 복제(CRR)</td>
+              <td>객체 단위 비동기</td>
+              <td><strong>버전 관리가 필수</strong>이고, 규칙 생성 이전 객체는 자동 복제되지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">머신 이미지·볼륨</th>
+              <td>AMI·스냅샷 리전 간 복사</td>
+              <td>복사 주기에 묶인다</td>
+              <td>암호화된 스냅샷은 대상 리전의 키 설정이 필요하다</td>
+            </tr>
+            <tr>
+              <th scope="row">백업 전반</th>
+              <td>AWS Backup의 리전 간 복사</td>
+              <td>백업 계획 주기</td>
+              <td>복원 절차를 실제로 시험해 두어야 한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          S3 교차 리전 복제에는 세 가지 전제가 있습니다.
+        </p>
+        <ul>
+          <li>원본과 대상 버킷 <strong>모두 버전 관리가 켜져 있어야</strong> 합니다.</li>
+          <li><strong>규칙을 만들기 이전에 존재하던 객체는 자동으로 복제되지 않습니다.</strong>
+            기존 객체를 옮기려면 별도의 일괄 복제 작업이 필요합니다.</li>
+          <li>삭제 마커 복제는 <strong>선택 사항</strong>입니다.
+            한쪽에서 지운 것이 다른 쪽에도 지워질지를 의도적으로 정해야 합니다.</li>
+        </ul>
+      </aside>
+
+      <figure class="code">
+        <figcaption><span class="code__name">setup-crr.sh</span> — 버전 관리 활성화와 교차 리전 복제 규칙 적용 (버킷 이름과 역할 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws s3api put-bucket-versioning \
+  --bucket example-receipts-primary \
+  --versioning-configuration Status=Enabled
+
+aws s3api put-bucket-versioning \
+  --bucket example-receipts-dr \
+  --versioning-configuration Status=Enabled
+
+aws s3api put-bucket-replication \
+  --bucket example-receipts-primary \
+  --replication-configuration file://replication.json</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">replication.json</span> — 전체 객체를 대상 버킷으로 복제하는 규칙</figcaption>
+        <pre><code class="lang-json">{
+  "Role": "arn:aws:iam::123456789012:role/S3ReplicationRole",
+  "Rules": [
+    {
+      "ID": "receipts-to-dr",
+      "Status": "Enabled",
+      "Priority": 1,
+      "Filter": { "Prefix": "" },
+      "DeleteMarkerReplication": { "Status": "Disabled" },
+      "Destination": {
+        "Bucket": "arn:aws:s3:::example-receipts-dr",
+        "StorageClass": "STANDARD_IA"
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cross-region-replica.sh</span> — 교차 리전 읽기 전용 복제본 생성 (식별자와 리전은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws rds create-db-instance-read-replica \
+  --db-instance-identifier payments-dr \
+  --source-db-instance-identifier arn:aws:rds:ap-northeast-2:123456789012:db:payments-prod \
+  --region us-west-2
+
+# 장애 시에는 복제본을 독립 인스턴스로 승격합니다. 자동으로 일어나지 않습니다.
+aws rds promote-read-replica \
+  --db-instance-identifier payments-dr \
+  --region us-west-2</code></pre>
+      </figure>
+
+      <p>
+        위 예시의 리전 코드는 <strong>명령 형태를 보이기 위한 값</strong>입니다.
+        실제 대상 리전은 규정 제약(데이터 레지던시)을 먼저 확인해 정합니다.
+      </p>
+
+      <h3 id="decision-2-dns">결정 2 · 전환 경로</h3>
+      <p>
+        데이터가 대상 리전에 있어도 <strong>사용자를 그쪽으로 보내지 못하면</strong> 복구가 아닙니다.
+        Amazon Route 53의 장애 조치 라우팅은 상태 확인 결과에 따라
+        기본(primary) 레코드에서 보조(secondary) 레코드로 응답을 바꿉니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>전환 수단 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">수단</th>
+              <th scope="col">전환 방식</th>
+              <th scope="col">전환 속도에 영향을 주는 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Route 53 장애 조치 라우팅</th>
+              <td>상태 확인 실패 시 보조 레코드로 응답</td>
+              <td>상태 확인 주기와 임계 횟수, 레코드 TTL, 클라이언트 캐시</td>
+            </tr>
+            <tr>
+              <th scope="row">Route 53 가중치 기반</th>
+              <td>가중치를 조정해 트래픽을 옮긴다</td>
+              <td>수동 조작 시점, TTL</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS Global Accelerator</th>
+              <td>고정 IP를 유지한 채 엔드포인트 그룹을 전환</td>
+              <td>DNS 캐시의 영향을 받지 않는다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          DNS 기반 전환은 <strong>TTL만큼 늦습니다.</strong>
+          평상시 TTL이 길면 전환 후에도 상당 시간 동안 옛 주소로 요청이 갑니다.
+          DR을 전제한 레코드는 TTL을 짧게 유지하고,
+          그 대가로 질의 수가 늘어난다는 점을 감수합니다.
+        </p>
+        <p>
+          클라이언트나 중간 리졸버가 TTL을 무시하는 경우도 있으므로,
+          <strong>DNS 전환만으로 RTO를 보장한다고 가정하지 않습니다.</strong>
+          고정 IP가 필요한 요구에는 Global Accelerator가 답이 됩니다.
+        </p>
+      </aside>
+
+      <h3 id="decision-3-capacity">결정 3 · 대상 리전의 용량</h3>
+      <p>
+        웜 스탠바이에서 가장 자주 간과되는 위험이 여기 있습니다.
+        <strong>장애가 나면 우리만 확장하는 것이 아닙니다.</strong>
+        같은 리전을 DR 대상으로 삼은 다른 조직들도 동시에 확장을 시도하므로,
+        필요한 만큼의 인스턴스를 즉시 얻지 못할 수 있습니다.
+      </p>
+      <ul>
+        <li>축소된 규모라도 <strong>실제로 가동</strong>해 두면 그만큼은 이미 확보된 것입니다.
+          이것이 파일럿 라이트보다 웜 스탠바이의 RTO가 짧은 이유이기도 합니다.</li>
+        <li>중요한 워크로드는 <strong>용량 예약</strong>을 검토합니다.</li>
+        <li>인스턴스 타입을 하나로 고정하지 말고
+          <strong>대체 가능한 타입 목록</strong>을 시작 템플릿에 넣어 둡니다.</li>
+      </ul>
+
+      <h3 id="decision-4-iac">결정 4 · 인프라를 코드로</h3>
+      <p>
+        현재 인프라의 일부만 CloudFormation으로 정의되어 있다는 점은 그 자체로 위험입니다.
+        수동으로 만든 리소스는 <strong>대상 리전에 재현할 방법이 사람의 기억뿐</strong>입니다.
+      </p>
+      <ul>
+        <li>모든 계층을 템플릿으로 정의하고, 리전에 따라 달라지는 값은 파라미터로 뺍니다.</li>
+        <li>템플릿을 대상 리전에도 <strong>실제로 배포해 봅니다.</strong>
+          배포해 보지 않은 템플릿은 검증되지 않은 계획입니다.</li>
+        <li>AWS CloudFormation은 시험 범위 안이며, 이 사이트도 정식으로 다룹니다.</li>
+      </ul>
+
+      <aside class="note note--warn" data-label="시험 범위 아님">
+        <p>
+          인프라를 코드로 정의하는 다른 도구들도 있지만,
+          <strong>AWS CDK는 SAA-C03 시험 범위 밖</strong>입니다.
+          학습 시간은 CloudFormation에 씁니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost-and-ops">
+      <h2 id="cost-and-ops">비용과 운영에 미치는 영향</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>웜 스탠바이가 만드는 비용·운영 항목 — 금액이 아니라 항목의 성격입니다</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">성격</th>
+              <th scope="col">줄이는 방법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">대상 리전의 상시 컴퓨팅</th>
+              <td>축소 규모만큼 지속 발생</td>
+              <td>규모를 최소로 유지하고 장애 시 확장에 의존</td>
+            </tr>
+            <tr>
+              <th scope="row">교차 리전 복제 데이터 전송</th>
+              <td>복제하는 양에 비례</td>
+              <td>복제 대상을 접두사·태그로 한정, 옮기기 전에 압축</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 리전의 스토리지</th>
+              <td>사본 한 벌만큼</td>
+              <td>대상 버킷의 스토리지 클래스를 낮춰 설정</td>
+            </tr>
+            <tr>
+              <th scope="row">교차 리전 읽기 전용 복제본</th>
+              <td>인스턴스 한 벌</td>
+              <td>인스턴스 크기를 작게 두고 장애 시 확대(다만 RTO가 늘어난다)</td>
+            </tr>
+            <tr>
+              <th scope="row">DR 훈련</th>
+              <td>일회성 비용과 사람 시간</td>
+              <td>줄이지 않는다. <strong>훈련하지 않은 계획은 계획이 아니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">운영 복잡도</th>
+              <td>두 리전의 구성이 어긋나면 전환이 실패한다</td>
+              <td>템플릿으로 정의하고 드리프트를 감지</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          DR 문항의 비용 축은 <strong>평상시 켜 두는 자원의 양</strong>입니다.
+          같은 RTO를 만족하는 두 안이 있다면
+          <strong>평상시에 덜 켜 두는 쪽</strong>이 정답입니다.
+          반대로 비용만 보고 RTO 요구를 위반하는 안을 고르면 오답입니다.
+          <strong>명시된 요구를 위반하는 선택지는 아무리 싸도 소거</strong>합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="checklist">
+      <h2 id="checklist">설계 체크리스트</h2>
+
+      <h3 id="checklist-requirements">요구 정의</h3>
+      <ul>
+        <li><label><input type="checkbox"> RTO와 RPO를 <strong>워크로드별로</strong> 정의했다 (하나의 값으로 뭉뚱그리지 않았다)</label></li>
+        <li><label><input type="checkbox"> 데이터 레지던시 등 규정 제약으로 <strong>대상 리전 후보</strong>를 먼저 좁혔다</label></li>
+        <li><label><input type="checkbox"> 요구 RTO·RPO에 맞는 전략을 골랐고, 그 근거를 문서로 남겼다</label></li>
+        <li><label><input type="checkbox"> 평상시 비용 상한을 정하고 전략과 대조했다</label></li>
+      </ul>
+
+      <h3 id="checklist-data">데이터</h3>
+      <ul>
+        <li><label><input type="checkbox"> 모든 데이터 저장소에 리전 간 복제 또는 복사 수단이 배정되어 있다</label></li>
+        <li><label><input type="checkbox"> S3 교차 리전 복제를 쓴다면 <strong>양쪽 버킷의 버전 관리</strong>가 켜져 있다</label></li>
+        <li><label><input type="checkbox"> 규칙 생성 이전 객체를 옮기는 계획이 있다</label></li>
+        <li><label><input type="checkbox"> 암호화된 스냅샷·객체의 <strong>대상 리전 키</strong> 설정을 확인했다</label></li>
+        <li><label><input type="checkbox"> 읽기 전용 복제본 승격이 <strong>수동</strong>이라는 사실이 절차서에 반영되어 있다</label></li>
+        <li><label><input type="checkbox"> 복제 지연을 지표로 감시하고 있다</label></li>
+      </ul>
+
+      <h3 id="checklist-switch">전환</h3>
+      <ul>
+        <li><label><input type="checkbox"> DNS 레코드에 장애 조치 라우팅과 상태 확인이 구성되어 있다</label></li>
+        <li><label><input type="checkbox"> DR 관련 레코드의 TTL이 짧다</label></li>
+        <li><label><input type="checkbox"> 상태 확인이 <strong>의존 관계까지</strong> 확인하는 경로를 본다</label></li>
+        <li><label><input type="checkbox"> 전환을 누가 언제 결정하는지(사람인지 자동인지) 정해져 있다</label></li>
+        <li><label><input type="checkbox"> 원래 리전이 복구됐을 때 <strong>되돌리는 절차</strong>도 정의되어 있다</label></li>
+      </ul>
+
+      <h3 id="checklist-drill">훈련</h3>
+      <ul>
+        <li><label><input type="checkbox"> 대상 리전에 인프라 템플릿을 <strong>실제로 배포해 봤다</strong></label></li>
+        <li><label><input type="checkbox"> 백업에서 복원하는 절차를 실제로 수행해 봤다</label></li>
+        <li><label><input type="checkbox"> 전환 훈련의 <strong>측정된 소요 시간</strong>이 요구 RTO 안에 들어간다</label></li>
+        <li><label><input type="checkbox"> 훈련 주기가 정해져 있고 담당이 지정되어 있다</label></li>
+        <li><label><input type="checkbox"> 두 리전의 구성 차이(드리프트)를 감지하는 수단이 있다</label></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">관련 시험 포인트</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>문제문의 신호와 정답 방향</caption>
+          <thead>
+            <tr>
+              <th scope="col">문제문의 신호</th>
+              <th scope="col">고르는 것</th>
+              <th scope="col">소거하는 것</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">리전 장애를 견뎌야 한다</th>
+              <td>교차 리전 복제 · 글로벌 테이블 · 교차 리전 복제본</td>
+              <td>Multi-AZ(같은 리전 안이다)</td>
+            </tr>
+            <tr>
+              <th scope="row">몇 시간의 중단 허용 + 비용 최소</th>
+              <td>백업과 복원</td>
+              <td>액티브-액티브</td>
+            </tr>
+            <tr>
+              <th scope="row">수 분 내 복구 + 데이터 손실 최소</th>
+              <td>웜 스탠바이 이상</td>
+              <td>백업과 복원</td>
+            </tr>
+            <tr>
+              <th scope="row">여러 리전에서 <strong>동시에 쓰기</strong>가 필요하다</th>
+              <td>DynamoDB 글로벌 테이블</td>
+              <td>교차 리전 읽기 전용 복제본(쓰기를 받지 않는다)</td>
+            </tr>
+            <tr>
+              <th scope="row">DNS 캐시 때문에 전환이 느리다</th>
+              <td>AWS Global Accelerator(고정 IP)</td>
+              <td>TTL만 더 줄이는 안</td>
+            </tr>
+            <tr>
+              <th scope="row">기존 S3 객체도 다른 리전으로 옮겨야 한다</th>
+              <td>일괄 복제 작업</td>
+              <td>복제 규칙만 켜는 안(이전 객체는 복제되지 않는다)</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터가 국경을 넘으면 안 된다</th>
+              <td>리전을 고정하고 복제 대상도 같은 관할로 제한</td>
+              <td>가장 싸거나 가까운 해외 리전을 고르는 안</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          RTO와 RPO를 뒤바꿔 읽는 실수가 잦습니다.
+          <strong>RTO는 시간(언제 다시 켜지는가), RPO는 데이터(얼마나 잃는가)</strong>입니다.
+          "마지막 백업 이후의 데이터를 잃어도 되는가"를 묻는 문장은 RPO이고,
+          "얼마나 빨리 서비스를 재개해야 하는가"는 RTO입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch18.html">
+          <span class="card__title">18장 · 비용 최적화 · 마이그레이션 · 재해 복구</span>
+          <span class="card__desc">DR 4전략과 RTO·RPO의 교환, 6R 마이그레이션 전략을 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 2·4</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch14.html">
+          <span class="card__title">14장 · 엣지와 DNS</span>
+          <span class="card__desc">Route 53 라우팅 정책 8종과 상태 확인, Global Accelerator의 차이를 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 3</span>
+        </a></li>
+        <li><a class="card" href="case05.html">
+          <span class="card__title">케이스 5 · 단일 AZ 설계가 장애로 전면 중단됐다</span>
+          <span class="card__desc">가용 영역 수준의 대비가 먼저입니다. 그 위에 리전 대비를 얹습니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="case10.html">
+          <span class="card__title">케이스 10 · 규정 준수 감사에 대응하라</span>
+          <span class="card__desc">데이터 레지던시와 보관 요구가 DR 설계를 어떻게 제약하는지 이어서 봅니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../labs/lab04.html">
+          <span class="card__title">실습 4 · RDS Multi-AZ와 읽기 전용 복제본</span>
+          <span class="card__desc">장애 조치와 복제본 승격의 차이를 직접 실행해 확인합니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">고가용성과 내결함성, DR의 출제 포인트를 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html">Amazon S3 사용 설명서 — 객체 복제</a>
+          — 버전 관리 전제, 규칙 생성 이전 객체가 복제되지 않는다는 제약, 대상 스토리지 클래스 지정</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketReplication.html">Amazon S3 API 레퍼런스 — PutBucketReplication</a>
+          — 복제 규칙의 요소와 삭제 마커 복제 설정</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html">Amazon RDS 사용 설명서 — 읽기 전용 복제본 사용</a>
+          — 비동기 복제, 교차 리전 생성, 승격이 별도의 작업이라는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstanceReadReplica.html">Amazon RDS API 레퍼런스 — CreateDBInstanceReadReplica</a>
+          — 원본을 ARN으로 지정해 다른 리전에 복제본을 만드는 방법</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GlobalTables.html">Amazon DynamoDB 개발자 안내서 — 글로벌 테이블</a>
+          — 다중 리전 복제의 동작과 일관성 모드</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover.html">Amazon Route 53 개발자 안내서 — DNS 장애 조치 구성</a>
+          — 기본·보조 레코드와 상태 확인의 연동</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/dns-failover-determining-health-of-endpoints.html">Amazon Route 53 개발자 안내서 — 엔드포인트 상태 판정</a>
+          — 상태 확인이 정상·비정상을 확정하는 방식</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html">Amazon Route 53 개발자 안내서 — 라우팅 정책 선택</a>
+          — 장애 조치 · 가중치 기반 등 정책별 용도</li>
+        <li><a href="https://docs.aws.amazon.com/aws-backup/latest/devguide/recov-point-create-a-copy.html">AWS Backup 개발자 안내서 — 복구 지점 복사</a>
+          — 리전 간 백업 복사 동작</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<svg viewBox="0 0 720 340" role="img" aria-labelledby="d024-title d024-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d024-title">보안 그룹 참조로 만드는 계층 방어</title>
+  <desc id="d024-desc">인터넷에서 들어온 트래픽이 ALB, 애플리케이션 인스턴스, 데이터베이스로 내려가는 3계층 구성에서
+    각 계층의 보안 그룹 인바운드 규칙을 나란히 보여 줍니다.
+    ALB 의 보안 그룹만 인터넷 CIDR 을 소스로 받고, 애플리케이션 보안 그룹은 소스를 ALB 의 보안 그룹 ID 로,
+    데이터베이스 보안 그룹은 소스를 애플리케이션 보안 그룹 ID 로 지정합니다.
+    소스가 IP 주소 범위가 아니라 보안 그룹 ID 이므로 인스턴스가 늘거나 줄어도, 사설 IP 가 바뀌어도
+    규칙을 고칠 필요가 없다는 것이 이 구성의 결론입니다.</desc>
+
+  <defs>
+    <marker id="d024-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="30">인터넷</text>
+  <path class="dg-edge dg-edge--accent" d="M20 44 L20 130 L36 130" marker-end="url(#d024-ar)"/>
+
+  <rect class="dg-node" x="40" y="96" width="180" height="68" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="130" y="122" text-anchor="middle">Application Load Balancer</text>
+  <text class="dg-fs-sm dg-mono" x="130" y="146" text-anchor="middle">sg-alb</text>
+
+  <rect class="dg-node" x="270" y="96" width="180" height="68" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="122" text-anchor="middle">앱 인스턴스</text>
+  <text class="dg-fs-sm dg-mono" x="360" y="146" text-anchor="middle">sg-app</text>
+
+  <rect class="dg-node" x="500" y="96" width="180" height="68" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="590" y="122" text-anchor="middle">Amazon RDS</text>
+  <text class="dg-fs-sm dg-mono" x="590" y="146" text-anchor="middle">sg-db</text>
+
+  <path class="dg-edge dg-edge--accent" d="M220 130 L266 130" marker-end="url(#d024-ar)"/>
+  <path class="dg-edge dg-edge--accent" d="M450 130 L496 130" marker-end="url(#d024-ar)"/>
+
+  <rect class="dg-node dg-node--alt" x="40" y="188" width="180" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="130" y="208" text-anchor="middle">sg-alb 인바운드</text>
+  <text class="dg-fs-sm dg-mono" x="130" y="230" text-anchor="middle">443 ← 0.0.0.0/0</text>
+  <text class="dg-fs-sm dg-muted" x="130" y="250" text-anchor="middle">여기만 CIDR 을 씁니다</text>
+
+  <rect class="dg-node dg-node--accent" x="270" y="188" width="180" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="360" y="208" text-anchor="middle">sg-app 인바운드</text>
+  <text class="dg-fs-sm dg-mono dg-bold" x="360" y="230" text-anchor="middle">8080 ← sg-alb</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="250" text-anchor="middle">소스가 보안 그룹 ID</text>
+
+  <rect class="dg-node dg-node--accent" x="500" y="188" width="180" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="590" y="208" text-anchor="middle">sg-db 인바운드</text>
+  <text class="dg-fs-sm dg-mono dg-bold" x="590" y="230" text-anchor="middle">3306 ← sg-app</text>
+  <text class="dg-fs-sm dg-muted" x="590" y="250" text-anchor="middle">소스가 보안 그룹 ID</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="278" width="680" height="52" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="300" text-anchor="middle">소스가 CIDR 이 아니라 보안 그룹 ID 입니다</text>
+  <text class="dg-fs-sm" x="360" y="320" text-anchor="middle">인스턴스가 늘거나 줄어도, 사설 IP 가 바뀌어도 규칙을 고칠 필요가 없습니다</text>
+</svg>

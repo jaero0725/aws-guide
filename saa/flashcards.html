@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>플래시카드 — AWS SAA Guide</title>
+  <meta name="description" content="SAA-C03 암기 항목을 간격 반복으로 익히는 플래시카드입니다. 알았음 3회 연속이면 졸업하고, 몰랐음을 고르면 연속 기록과 졸업이 초기화됩니다. 진도는 브라우저에 저장되며 키보드만으로 사용할 수 있습니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="saa" data-page="flashcards"></div>
+
+  <main id="main" class="page" data-page-id="saa/flashcards">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="index.html">시험 대비</a></li>
+        <li><span aria-current="page">플래시카드</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">시험 대비 · 암기</p>
+      <h1>플래시카드</h1>
+      <p class="page__lead">
+        SAA-C03에는 <strong>판단으로 풀 수 없고 알고 있어야만 풀리는 항목</strong>이 있습니다.
+        서비스와 용도의 대응, 확인된 한도값, 열거 목록이 그렇습니다.
+        이 페이지는 그 항목들을 <strong>간격 반복(spaced repetition)</strong>으로 익히는 도구입니다.
+        읽는 것이 아니라 <strong>떠올리는 것</strong>이 목적입니다.
+      </p>
+      <p class="page__meta">
+        진도는 브라우저에 저장되므로 여러 번에 나누어 돌려도 이어집니다.
+        도메인 지식은 <a href="domain-secure.html">도메인 페이지 네 개</a>가,
+        쌍 단위 구분은 <a href="traps.html">함정 사전</a>이 담당합니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>암기가 필요한 항목과 판단으로 푸는 항목을 구분해 학습 시간을 배분할 수 있습니다.</li>
+        <li>간격 반복의 졸업 규칙에 맞춰 자기 진도를 관리할 수 있습니다.</li>
+        <li>카드를 키보드만으로 넘기며 인출 연습을 할 수 있습니다.</li>
+        <li>졸업하지 못한 카드를 근거로 다시 볼 챕터를 고를 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="deck">
+      <h2 id="deck">카드 돌리기</h2>
+
+      <p>
+        앞면을 보고 <strong>답을 먼저 소리 내어 말하거나 떠올린 뒤</strong> 뒤집으십시오.
+        보고 나서 "아, 맞아"라고 느끼는 것은 학습이 아닙니다.
+        떠올리지 못한 카드는 <strong>주저 없이 몰랐음으로 기록</strong>해야 간격 반복이 제 역할을 합니다.
+      </p>
+
+      <div class="flashcard-embed" data-exam="SAA" data-deck="all" data-shuffle="true"></div>
+
+      <aside class="note" data-label="카드가 보이지 않는다면">
+        <p>
+          덱 데이터가 아직 준비되지 않았으면 위 자리에 안내 메시지가 표시됩니다. 정상 동작입니다.
+        </p>
+        <p>
+          또한 이 페이지를 <code>file://</code>로 직접 열면 브라우저가 JSON 로드를 차단합니다.
+          로컬에서 확인할 때는 정적 서버로 열어야 카드가 표시됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="how-it-works">
+      <h2 id="how-it-works">간격 반복 규칙</h2>
+
+      <p>
+        규칙은 하나뿐입니다.
+        <strong>알았음을 3회 연속으로 고르면 그 카드는 졸업</strong>하고 기본 출제 대상에서 빠집니다.
+        중간에 한 번이라도 몰랐음을 고르면 <strong>연속 기록과 졸업이 모두 초기화</strong>되어
+        처음부터 세 번을 다시 맞혀야 합니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>카드 상태와 다음 동작</caption>
+          <thead>
+            <tr>
+              <th scope="col">상태</th>
+              <th scope="col">의미</th>
+              <th scope="col">다음에 할 일</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">연속 0회</th>
+              <td>아직 맞힌 적이 없거나, 직전에 몰랐음을 골랐습니다</td>
+              <td>답을 확인한 뒤 관련 챕터를 짧게 다시 봅니다</td>
+            </tr>
+            <tr>
+              <th scope="row">연속 1~2회</th>
+              <td>기억이 붙는 중입니다. 아직 안정적이지 않습니다</td>
+              <td>같은 세션에서 몰아 맞히기보다 <strong>날짜를 나누어</strong> 다시 돌립니다</td>
+            </tr>
+            <tr>
+              <th scope="row">졸업 (연속 3회)</th>
+              <td>기본 출제 대상에서 빠집니다</td>
+              <td>시험 직전에 <strong>졸업 카드 제외를 끄고</strong> 한 번 훑어 확인합니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        연속 3회를 <strong>한 자리에서 채우면 효과가 거의 없습니다.</strong>
+        방금 본 답을 다시 맞히는 것은 인출이 아니라 단기 기억 확인이기 때문입니다.
+        하루에 한 번씩 사흘에 걸쳐 졸업시키는 편이 같은 횟수로 훨씬 오래 갑니다.
+      </p>
+
+      <figure class="chart" data-chart="C-106">
+        <figcaption>
+          현재 덱에서 <strong>연속 정답 단계별로 카드가 몇 장씩 남아 있는지</strong> 보여 줍니다.
+          연속 0회 구간이 두꺼우면 아직 인출이 되지 않는 항목이 많다는 뜻이므로,
+          카드를 더 돌리기보다 해당 챕터를 먼저 다시 보는 편이 낫습니다
+        </figcaption>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          진도는 이 브라우저에만 저장됩니다.
+          시크릿 창을 쓰거나 브라우저 저장 데이터를 지우면 <strong>연속 기록과 졸업 상태가 사라집니다.</strong>
+          다른 기기로 옮겨 가지도 않습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="keyboard">
+      <h2 id="keyboard">키보드 조작</h2>
+
+      <p>
+        카드는 마우스 없이 전부 조작할 수 있습니다.
+        한 손을 키보드에 두고 돌리는 편이 속도가 훨씬 빠릅니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>플래시카드 키보드 단축키</caption>
+          <thead>
+            <tr>
+              <th scope="col">키</th>
+              <th scope="col">동작</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><kbd>Space</kbd> 또는 <kbd>Enter</kbd></th><td>카드 뒤집기</td></tr>
+            <tr><th scope="row"><kbd>1</kbd></th><td>몰랐음으로 기록</td></tr>
+            <tr><th scope="row"><kbd>2</kbd></th><td>알았음으로 기록</td></tr>
+            <tr><th scope="row"><kbd>N</kbd> 또는 <kbd>→</kbd></th><td>다음 카드</td></tr>
+            <tr><th scope="row"><kbd>←</kbd></th><td>이전 카드</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="what-to-memorize">
+      <h2 id="what-to-memorize">무엇을 외우고 무엇을 외우지 않는가</h2>
+
+      <p>
+        플래시카드를 잘못 쓰는 가장 흔한 방식은 <strong>판단으로 푸는 것까지 외우려는 것</strong>입니다.
+        시나리오 문항은 암기로 풀리지 않습니다. 아래 기준으로 나누십시오.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>암기 대상과 판단 대상의 구분</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">예</th>
+              <th scope="col">학습 도구</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">외워야 하는 것</th>
+              <td>확인된 한도값, 열거 목록(Route 53 라우팅 정책 8종 등), 서비스와 한 줄 용도의 대응</td>
+              <td>이 페이지의 플래시카드</td>
+            </tr>
+            <tr>
+              <th scope="row">구분할 수 있어야 하는 것</th>
+              <td>혼동되는 개념 쌍의 결정적 차이</td>
+              <td><a href="traps.html">함정 사전</a></td>
+            </tr>
+            <tr>
+              <th scope="row">해석할 수 있어야 하는 것</th>
+              <td>한정어가 가리키는 선택지와 배제하는 선택지</td>
+              <td><a href="keywords.html">한정어 키워드 사전</a></td>
+            </tr>
+            <tr>
+              <th scope="row">판단할 수 있어야 하는 것</th>
+              <td>요구사항에서 아키텍처를 고르는 일</td>
+              <td><a href="../quiz/index.html">문제 풀이</a>와 도메인 페이지</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          암기가 실제로 점수로 이어지는 대표 항목은 <strong>수치가 판단을 가르는 경우</strong>입니다.
+          S3 Standard-IA와 One Zone-IA의 <strong>최소 저장 기간 30일</strong>,
+          Glacier 계열의 <strong>90일과 180일</strong>,
+          그리고 <code>gp3</code>의 현행 상한이 그렇습니다.
+          이 값을 모르면 "더 저렴한 클래스로 옮긴다"가 왜 손해인지 판단할 수 없습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="routine">
+      <h2 id="routine">권장 사용 방식</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>학습 단계별 플래시카드 사용법</caption>
+          <thead>
+            <tr>
+              <th scope="col">시기</th>
+              <th scope="col">사용 방식</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">챕터를 막 읽은 직후</th>
+              <td>그 챕터에 해당하는 카드만 돌립니다. 개념이 아직 붙어 있을 때가 인출 효과가 가장 큽니다</td>
+            </tr>
+            <tr>
+              <th scope="row">학습 기간 중</th>
+              <td>하루에 짧게 여러 번. 한 번에 오래 돌리는 것보다 <strong>날짜를 나누는 것</strong>이 중요합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">모의고사 직후</th>
+              <td>틀린 문항과 관련된 카드를 우선 돌립니다. <a href="../quiz/review.html">오답 노트</a>와 함께 씁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">시험 전날</th>
+              <td>졸업 카드 제외를 끄고 전체를 한 번 훑습니다. 새 카드를 추가로 파지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">시험 직전</th>
+              <td>카드 대신 <a href="cram.html">벼락치기 요약</a>을 봅니다. 이 시점에는 통독이 더 효율적입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--ok" data-label="권장">
+        <p>
+          한 세션의 목표를 <strong>"덱 전체 완주"가 아니라 "몰랐음 카드 찾기"</strong>로 잡으십시오.
+          모르는 카드를 찾아내는 것이 이 도구의 목적이고,
+          찾아낸 뒤에 담당 챕터로 돌아가는 것이 실제 학습입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="cram.html">
+          <span class="card__title">벼락치기 요약</span>
+          <span class="card__desc">확인된 한도값과 열거 목록을 표로 모았습니다. 카드로 외운 것을 한 번에 대조할 때 씁니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">암기가 아니라 구분이 필요한 항목입니다. 쌍마다 결정적 차이를 한 문장으로 정리했습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../quiz/review.html">
+          <span class="card__title">오답 노트</span>
+          <span class="card__desc">같은 간격 반복 규칙이 문항에도 적용됩니다. 3회 연속 정답이면 졸업합니다.</span>
+          <span class="card__meta">문제 풀이</span>
+        </a></li>
+        <li><a class="card" href="../quiz/index.html">
+          <span class="card__title">문제 풀이 허브</span>
+          <span class="card__desc">암기로 풀리지 않는 시나리오 판단은 문항으로 훈련합니다. 도메인 연습과 모의고사가 있습니다.</span>
+          <span class="card__meta">문제 풀이</span>
+        </a></li>
+        <li><a class="card" href="index.html">
+          <span class="card__title">시험 개요와 8주 플랜</span>
+          <span class="card__desc">플래시카드를 학습 일정의 어디에 넣을지 정할 때 봅니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/limits.html">
+          <span class="card__title">한도·기본값 빠른참조</span>
+          <span class="card__desc">카드로 외우는 수치의 원본 목록입니다. 확인된 값만 담겨 있습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html">SAA-C03 시험 가이드</a>
+          — 카드가 다루는 범위의 기준이 되는 도메인과 과제 진술</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html">AWS Lambda 개발자 안내서 — 할당량</a>
+          — 한도값 카드의 근거</li>
+        <li><a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html">Amazon SQS API 레퍼런스 — CreateQueue</a>
+          — 큐 속성 기본값과 범위 카드의 근거</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 최소 저장 기간과 최소 청구 크기 카드의 근거</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVolume.html">Amazon EC2 API 레퍼런스 — CreateVolume</a>
+          — EBS 볼륨 타입 카드의 근거</li>
+        <li><a href="https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html">Amazon Route 53 API 레퍼런스 — ResourceRecordSet</a>
+          — 라우팅 정책 여덟 가지 카드의 근거</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/flashcard.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

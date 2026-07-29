@@ -1,0 +1,295 @@
+{
+  "setId": "basics-ch16",
+  "title": "16장 · 보안 · 암호화 · 거버넌스 — 확인 문제",
+  "exam": "BASICS",
+  "domain": "보안 · 암호화 · 거버넌스",
+  "examCode": "SAA-C03",
+  "questions": [
+    {
+      "id": "basics-ch16-001",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "애플리케이션이 500 MB 크기의 파일을 AWS KMS 고객 관리형 키로 보호해야 합니다. 어떤 방식이 적절합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "파일 전체를 KMS `Encrypt` 요청에 실어 보내 암호문을 돌려받습니다." },
+        { "id": "B", "text": "파일을 4,096바이트씩 나눠 KMS `Encrypt` 를 반복 호출한 뒤 이어 붙입니다." },
+        { "id": "C", "text": "`GenerateDataKey` 로 받은 데이터 키로 파일을 암호화하고 암호화된 키를 함께 보관합니다." },
+        { "id": "D", "text": "KMS 키 재료를 내려받아 파일과 같은 위치에 두고 필요할 때 꺼내 씁니다." }
+      ],
+      "answer": ["C"],
+      "explanation": "KMS는 데이터를 직접 암호화하는 서비스가 아니라 키를 관리하는 서비스입니다. `Encrypt` 작업은 최대 4,096바이트까지만 처리하도록 설계되어 있으며, 이는 제한이라기보다 용도의 선언에 가깝습니다. 실제 데이터는 봉투 암호화로 다룹니다. `GenerateDataKey` 가 평문 데이터 키와 그 키를 KMS 키로 암호화한 사본을 함께 돌려주면, 애플리케이션은 평문 키로 로컬에서 데이터를 암호화한 뒤 평문 키를 즉시 폐기하고 암호화된 키만 암호문 옆에 남깁니다. Amazon S3의 SSE-KMS도 내부에서 같은 구조로 동작합니다.",
+      "distractorNotes": {
+        "A": "요청 크기 제한을 넘어 실패합니다. 대용량 데이터를 KMS로 직접 보내는 선택지는 봉투 암호화를 모른다는 신호입니다.",
+        "B": "쪼개서 보내면 호출 횟수와 지연이 폭증하고, 조각마다 암호문 형식이 달라져 관리가 무너집니다. 기술적으로도 이런 사용을 전제한 설계가 아닙니다.",
+        "D": "KMS 키의 키 재료는 서비스 밖으로 나오지 않습니다. 밖으로 나올 수 있다면 키를 KMS에 두는 의미 자체가 사라집니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKey.html", "title": "AWS KMS API 레퍼런스 — GenerateDataKey" },
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_Encrypt.html", "title": "AWS KMS API 레퍼런스 — Encrypt" }
+      ],
+      "tags": ["kms", "envelope-encryption", "encryption"]
+    },
+    {
+      "id": "basics-ch16-002",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 데이터베이스 자격 증명을 코드에서 분리하려 합니다. 보안 정책상 이 자격 증명은 정기적으로 자동 교체되어야 하고, 교체 로직을 팀이 직접 운영하지 않기를 원합니다. 무엇을 써야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Parameter Store의 `SecureString` 파라미터에 저장하고 교체 함수를 직접 구현합니다." },
+        { "id": "B", "text": "AWS Secrets Manager에 저장하고 관리형 자동 교체를 활성화합니다." },
+        { "id": "C", "text": "배포 파이프라인의 환경 변수에 넣고 배포할 때마다 새 값으로 바꿉니다." },
+        { "id": "D", "text": "AWS KMS 키에 자격 증명을 저장하고 키 자동 교체를 활성화합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "비밀 보관 서비스를 고르는 기준은 사실 하나로 좁혀집니다. 자동 교체를 서비스가 대신 해 주어야 하는지 여부입니다. Secrets Manager는 교체 일정과 교체 함수를 관리형으로 제공하고 데이터베이스 자격 증명에 대한 통합도 갖추고 있습니다. Parameter Store는 값을 안전하게 보관하고 KMS로 암호화하지만 교체는 사용자가 만들어야 하므로, 교체 요구가 없는 설정값이라면 오히려 더 단순하고 저렴한 선택이 됩니다. 비밀이라는 단어만 보고 항상 Secrets Manager를 고르면 비용 한정어가 붙은 문항에서 틀립니다.",
+      "distractorNotes": {
+        "A": "보관은 되지만 교체 로직을 팀이 만들고 유지해야 합니다. 운영 부담을 줄이겠다는 요구사항과 정면으로 어긋납니다.",
+        "C": "환경 변수에 값을 넣으면 배포 이력과 로그에 남을 위험이 커지고, 교체도 배포 주기에 묶입니다. 비밀 관리 문제를 배포 문제로 바꾼 것뿐입니다.",
+        "D": "KMS는 키를 보관하는 서비스이지 임의의 문자열을 보관하는 저장소가 아닙니다. 키 교체와 자격 증명 교체는 서로 다른 개념입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/secretsmanager/latest/APIReference/API_RotateSecret.html", "title": "AWS Secrets Manager API 레퍼런스 — RotateSecret" },
+        { "url": "https://docs.aws.amazon.com/systems-manager/latest/APIReference/API_PutParameter.html", "title": "AWS Systems Manager API 레퍼런스 — PutParameter" }
+      ],
+      "tags": ["secrets-manager", "parameter-store", "rotation"]
+    },
+    {
+      "id": "basics-ch16-003",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "분석 팀의 IAM 역할에 `kms:Decrypt` 를 허용하는 정책을 붙였는데도 고객 관리형 키로 암호화된 객체를 읽을 때 `AccessDenied` 가 발생합니다. 원인으로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "고객 관리형 키의 키 정책이 그 역할을 허용하지 않아 요청이 막힙니다." },
+        { "id": "B", "text": "IAM 정책과 키 정책은 합집합이므로 정책 전파가 끝나면 자동으로 해결됩니다." },
+        { "id": "C", "text": "키를 AWS 관리형 키로 바꾸면 IAM 정책만으로 복호화할 수 있게 됩니다." },
+        { "id": "D", "text": "역할에 권한 경계를 추가해 KMS 작업을 허용 목록에 넣어야 합니다." }
+      ],
+      "answer": ["A"],
+      "explanation": "KMS는 일반적인 리소스 기반 정책의 결합 규칙에서 벗어나는 대표적인 서비스입니다. 같은 계정 안에서 자격 증명 기반 정책과 리소스 기반 정책이 합집합으로 결합된다는 규칙이 KMS 키에는 그대로 적용되지 않습니다. 키 정책이 먼저 그 주체에게 문을 열어 주지 않으면 IAM 정책이 아무리 넓어도 요청은 거부됩니다. 그래서 KMS 관련 접근 거부를 조사할 때는 IAM 정책보다 키 정책을 먼저 확인하는 것이 순서이며, 임시로 위임할 때는 권한 부여를 함께 검토합니다.",
+      "distractorNotes": {
+        "B": "KMS에서는 두 정책이 모두 허용해야 하며 한쪽만으로는 통과하지 않습니다. 시간이 지난다고 달라지지 않습니다.",
+        "C": "AWS 관리형 키는 키 정책을 편집할 수 없고 해당 서비스를 통한 사용만 전제합니다. 통제를 세밀하게 하려면 오히려 고객 관리형 키가 필요합니다.",
+        "D": "권한 경계는 상한을 정할 뿐 권한을 부여하지 않습니다. 경계를 손봐도 키 정책이 닫혀 있으면 결과는 같습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html", "title": "AWS Key Management Service 개발자 안내서 — 개요" },
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateGrant.html", "title": "AWS KMS API 레퍼런스 — CreateGrant" }
+      ],
+      "tags": ["kms", "key-policy", "iam", "access-denied"]
+    },
+    {
+      "id": "basics-ch16-004",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "서울 리전의 Application Load Balancer 앞에 Amazon CloudFront 배포를 두고, 두 계층 모두 회사 도메인으로 HTTPS를 제공하려 합니다. AWS Certificate Manager 인증서를 어떻게 발급해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "서울 리전에서 인증서를 하나 발급해 CloudFront와 로드 밸런서에 함께 연결합니다." },
+        { "id": "B", "text": "CloudFront용은 서울 리전에서, 로드 밸런서용은 `us-east-1` 에서 각각 발급합니다." },
+        { "id": "C", "text": "자체 서명 인증서를 만들어 두 계층에 각각 설치하고 신뢰 저장소에 등록합니다." },
+        { "id": "D", "text": "CloudFront용은 `us-east-1` 에서, 로드 밸런서용은 서울 리전에서 각각 발급합니다." }
+      ],
+      "answer": ["D"],
+      "explanation": "ACM 인증서는 리전 리소스이므로 연결하려는 대상과 같은 리전에 있어야 합니다. 로드 밸런서는 서울 리전의 리소스이니 서울 리전 인증서를 쓰고, CloudFront는 엣지에서 동작하는 글로벌 서비스여서 `us-east-1` 에서 발급한 인증서만 연결할 수 있습니다. 이 예외 하나 때문에 두 계층이 같은 도메인을 쓰더라도 인증서는 두 장이 필요합니다. AWS WAF 웹 ACL도 같은 형태의 제약을 갖는데, CloudFront에 붙일 웹 ACL은 `CLOUDFRONT` 범위로 `us-east-1` 에서 만들고 로드 밸런서용은 같은 리전에서 `REGIONAL` 범위로 만듭니다.",
+      "distractorNotes": {
+        "A": "하나의 인증서를 두 계층이 공유할 수 없습니다. 리전이 다르면 목록에 나타나지도 않습니다.",
+        "B": "두 대상의 리전을 서로 뒤바꾼 구성입니다. 이 형태가 시험에서 가장 자주 나오는 오답입니다.",
+        "C": "자체 서명 인증서는 브라우저가 신뢰하지 않아 공개 사이트에 쓸 수 없고, 갱신도 사람이 직접 해야 합니다. ACM의 DNS 검증을 쓰면 갱신이 자동으로 이어집니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/acm/latest/APIReference/API_RequestCertificate.html", "title": "AWS Certificate Manager API 레퍼런스 — RequestCertificate" },
+        { "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_ViewerCertificate.html", "title": "Amazon CloudFront API 레퍼런스 — ViewerCertificate" }
+      ],
+      "tags": ["acm", "cloudfront", "elb", "tls"]
+    },
+    {
+      "id": "basics-ch16-005",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "규정이 바뀌어 이미 운영 중인 암호화되지 않은 Amazon RDS DB 인스턴스를 저장 데이터 암호화 상태로 만들어야 합니다. 어떤 절차가 필요합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "DB 인스턴스 수정 화면에서 암호화 옵션을 켜고 다음 유지 관리 기간에 적용합니다." },
+        { "id": "B", "text": "스냅샷을 만들고 그 스냅샷을 암호화 사본으로 복사한 뒤 복원해 교체합니다." },
+        { "id": "C", "text": "암호화가 켜진 읽기 전용 복제본을 만든 다음 그 복제본을 승격합니다." },
+        { "id": "D", "text": "스토리지 유형을 바꾸면서 KMS 키를 지정하면 기존 데이터가 다시 암호화됩니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "저장 데이터 암호화는 리소스를 만들 때 결정되는 속성이며 나중에 제자리에서 켤 수 없습니다. Amazon EBS 볼륨도 마찬가지라 두 서비스가 같은 패턴으로 출제됩니다. 방법은 스냅샷을 경유하는 것으로, 스냅샷을 복사할 때 암호화를 지정하면 암호화된 사본이 만들어지고 그것을 복원해 새 리소스를 세우면 됩니다. 그다음 애플리케이션의 연결 대상을 새 리소스로 바꾸고 기존 것을 정리하는 전환 작업이 따르므로, 이 유형의 문항은 다운타임 계획이 함께 붙는 경우가 많습니다.",
+      "distractorNotes": {
+        "A": "설정에서 암호화를 켜는 경로 자체가 없습니다. 이 선택지는 가장 그럴듯해 보이지만 존재하지 않는 조작입니다.",
+        "C": "읽기 전용 복제본은 소스의 암호화 상태를 따릅니다. 암호화되지 않은 소스에서 암호화된 복제본을 만들 수 없습니다.",
+        "D": "스토리지 유형 변경은 성능과 비용 속성을 바꾸는 작업이며 암호화 상태와는 무관합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html", "title": "Amazon S3 사용 설명서 — 서버 측 암호화" },
+        { "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html", "title": "AWS Key Management Service 개발자 안내서 — 개요" }
+      ],
+      "tags": ["rds", "encryption", "kms", "snapshot"]
+    },
+    {
+      "id": "basics-ch16-006",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "SSE-KMS로 암호화된 Amazon S3 버킷을 다른 리전으로 복제하려 합니다. 대상 리전에서도 같은 키 재료로 복호화가 되게 하려면 어떤 설계가 필요합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "원본 리전의 단일 리전 키를 대상 리전 버킷의 기본 키로 그대로 지정합니다." },
+        { "id": "B", "text": "대상 리전에 새 고객 관리형 키를 만들고 원본 키와 같은 별칭을 붙여 맞춥니다." },
+        { "id": "C", "text": "다중 리전 키를 만들고 대상 리전에 복제본 키를 두어 양쪽이 그 키를 쓰게 합니다." },
+        { "id": "D", "text": "원본 키의 키 정책에 대상 리전을 허용하는 조건을 추가해 범위를 넓힙니다." }
+      ],
+      "answer": ["C"],
+      "explanation": "KMS 키는 기본적으로 리전 안에 갇힌 리소스여서 다른 리전에서는 같은 키를 참조할 수 없습니다. 그래서 리전을 넘나드는 암호문이 있으면 대상 리전에도 같은 키 재료가 있어야 하고, 그 목적을 위해 만들어진 것이 다중 리전 키입니다. 다중 리전 키는 키 ID와 키 재료를 여러 리전이 공유하므로 한쪽에서 암호화한 데이터를 다른 쪽에서 복호화할 수 있습니다. 다만 다중 리전 여부는 키를 만들 때만 정할 수 있어서, 이미 단일 리전 키로 운영 중이라면 새 키를 만들고 데이터를 다시 암호화하는 전환이 필요합니다. 별칭은 사람이 읽기 쉬운 이름일 뿐 키 재료와 아무 관계가 없습니다.",
+      "distractorNotes": {
+        "A": "단일 리전 키는 다른 리전에서 참조할 수 없습니다. 대상 리전 설정 화면의 키 목록에 아예 나타나지 않습니다.",
+        "B": "별칭이 같아도 서로 다른 키 재료를 가진 별개의 키입니다. 원본에서 암호화한 데이터를 대상 키로 복호화할 수 없습니다.",
+        "D": "키 정책은 누가 키를 쓸 수 있는지를 정할 뿐 키가 존재하는 리전을 바꾸지 못합니다. 권한 문제가 아니라 키 재료의 위치 문제입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_ReplicateKey.html", "title": "AWS KMS API 레퍼런스 — ReplicateKey" },
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html", "title": "AWS KMS API 레퍼런스 — CreateKey" }
+      ],
+      "tags": ["kms", "multi-region-key", "s3", "replication"]
+    },
+    {
+      "id": "basics-ch16-007",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "AWS WAF와 AWS Shield에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "SQL 삽입이나 크로스 사이트 스크립팅처럼 요청 내용을 보고 막는 일은 AWS WAF가 담당합니다." },
+        { "id": "B", "text": "대규모 분산 서비스 거부 공격에 대한 보호는 AWS Shield가 담당합니다." },
+        { "id": "C", "text": "AWS Shield에서 HTTP 헤더 값을 조건으로 하는 규칙을 직접 작성할 수 있습니다." },
+        { "id": "D", "text": "CloudFront에 붙일 웹 ACL은 대상과 같은 리전에서 `REGIONAL` 범위로 만듭니다." },
+        { "id": "E", "text": "AWS WAF를 활성화하면 네트워크 계층 디도스 공격도 함께 자동으로 완화됩니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "두 서비스는 보는 계층이 다릅니다. WAF는 요청 하나하나의 내용을 규칙과 대조해 허용하거나 차단하므로 애플리케이션 계층 공격에 대응하고, Shield는 트래픽 규모로 서비스를 마비시키는 공격을 완화합니다. 그래서 요구사항에 특정 패턴이나 요청 속도 같은 표현이 나오면 WAF, 대규모 공격 트래픽이나 가용성 유지가 나오면 Shield 쪽입니다. 둘은 대체재가 아니라 겹쳐 쓰는 계층이라는 점도 함께 기억합니다.",
+      "distractorNotes": {
+        "C": "요청 내용을 조건으로 규칙을 쓰는 것은 WAF의 웹 ACL입니다. Shield에는 그런 규칙 작성 인터페이스가 없습니다.",
+        "D": "CloudFront용 웹 ACL은 `CLOUDFRONT` 범위로 `us-east-1` 에서 만들어야 합니다. `REGIONAL` 범위는 로드 밸런서나 API Gateway처럼 리전 리소스에 붙일 때 씁니다.",
+        "E": "WAF는 요청 내용을 검사할 뿐 네트워크 계층 공격을 완화하는 도구가 아닙니다. 그 역할은 Shield가 맡습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html", "title": "AWS WAF API 레퍼런스 — CreateWebACL" },
+        { "url": "https://docs.aws.amazon.com/waf/latest/developerguide/shield-chapter.html", "title": "AWS WAF 및 AWS Shield 개발자 안내서 — AWS Shield" }
+      ],
+      "tags": ["waf", "shield", "ddos", "cloudfront"]
+    },
+    {
+      "id": "basics-ch16-008",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "AWS KMS 키의 교체와 삭제 운영에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "고객 관리형 키의 자동 교체를 켜면 기본 1년 주기로 교체되며 주기를 지정할 수 있습니다." },
+        { "id": "B", "text": "키를 잠시 쓰지 못하게 막으려면 삭제 예약이 아니라 키 비활성화를 사용합니다." },
+        { "id": "C", "text": "AWS 관리형 키의 자동 교체는 필요에 따라 끌 수 있습니다." },
+        { "id": "D", "text": "자동 교체는 비대칭 키와 HMAC 키에도 동일하게 활성화할 수 있습니다." },
+        { "id": "E", "text": "삭제를 한 번 예약하면 취소할 수 없으므로 대기 기간이 지난 뒤 새로 만들어야 합니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "키 삭제는 되돌릴 수 없는 조작입니다. 키가 사라지면 그 키로 암호화된 모든 데이터가 영구히 복구 불가능해지기 때문에 KMS는 삭제를 즉시 수행하지 않고 대기 기간을 둡니다. 그래서 잠깐 사용을 막고 싶다는 요구에는 삭제 예약이 아니라 비활성화가 답이고, 이 둘을 바꿔 고르는 것이 전형적인 함정입니다. 교체는 성격이 다릅니다. 고객 관리형 키의 자동 교체는 선택 사항이고 주기를 정할 수 있는 반면, AWS 관리형 키는 매년 자동으로 교체되며 사용자가 끄고 켤 수 없습니다.",
+      "distractorNotes": {
+        "C": "AWS 관리형 키의 교체는 AWS가 수행하며 사용자가 제어할 수 없습니다. 교체 주기를 통제해야 한다는 요구가 있으면 고객 관리형 키를 써야 합니다.",
+        "D": "자동 교체는 대칭 암호화 키를 대상으로 합니다. 비대칭 키나 HMAC 키, 가져온 키 재료에는 적용되지 않습니다.",
+        "E": "대기 기간을 두는 이유가 바로 되돌릴 기회를 주기 위해서입니다. 대기 기간 동안에는 예약을 취소해 키를 되살릴 수 있습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html", "title": "AWS KMS API 레퍼런스 — EnableKeyRotation" },
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_ScheduleKeyDeletion.html", "title": "AWS KMS API 레퍼런스 — ScheduleKeyDeletion" }
+      ],
+      "tags": ["kms", "key-rotation", "key-deletion"]
+    },
+    {
+      "id": "basics-ch16-009",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "matching",
+      "question": "각 요구사항을 해결하는 AWS 보안 서비스를 연결하세요. 목록에는 정답이 아닌 미끼 값이 섞여 있습니다.",
+      "code": null,
+      "pairs": [
+        { "id": "p1", "left": "계정의 로그와 네트워크 신호를 분석해 비정상적인 API 호출이나 침해 징후를 찾아내야 한다", "right": "Amazon GuardDuty" },
+        { "id": "p2", "left": "EC2 인스턴스와 컨테이너 이미지, Lambda 함수에 패치되지 않은 소프트웨어 취약점이 있는지 평가해야 한다", "right": "Amazon Inspector" },
+        { "id": "p3", "left": "Amazon S3에 쌓인 파일 중 개인 식별 정보가 들어 있는 것을 찾아 분류해야 한다", "right": "Amazon Macie" },
+        { "id": "p4", "left": "여러 보안 서비스가 낸 결과를 한곳에 모으고 보안 표준 대비 준수 상태를 보고 싶다", "right": "AWS Security Hub" },
+        { "id": "p5", "left": "VPC 경계에서 상태 저장 규칙으로 트래픽을 검사하고 차단하는 관리형 방화벽이 필요하다", "right": "AWS Network Firewall" }
+      ],
+      "extraRights": ["AWS WAF", "AWS CloudHSM"],
+      "explanation": "이 서비스들은 입력이 서로 달라서 대체 관계가 성립하지 않습니다. 무엇을 읽어 무엇을 찾는지를 기준으로 나누면 정리가 됩니다. 로그와 네트워크 신호에서 이상 행위를 찾는 쪽, 소프트웨어 목록에서 취약점을 찾는 쪽, 객체 안의 내용에서 민감 데이터를 찾는 쪽이 각각 다르고, 결과를 모으기만 하는 계층이 하나 더 있습니다. Security Hub는 스스로 탐지하지 않으므로 이것만 켜면 아무것도 발견되지 않습니다. 미끼로 넣은 AWS WAF는 HTTP 요청 내용을 보는 애플리케이션 계층 도구이고, CloudHSM은 규정이 단독 점유 하드웨어를 요구할 때 쓰는 키 저장 수단입니다.",
+      "distractorNotes": {
+        "p1": "이상 행위 탐지와 취약점 평가를 하나로 묶어 생각하면 여기서 틀립니다. 탐지의 입력이 로그와 네트워크 신호라는 점이 표지입니다.",
+        "p2": "패치되지 않은 소프트웨어라는 표현이 나오면 취약점 평가입니다. 침입 탐지 도구로 오해하기 쉬운 자리입니다.",
+        "p3": "민감 데이터 발견의 대상은 Amazon S3입니다. 모든 데이터 저장소를 훑는다고 확대 해석하지 않습니다.",
+        "p4": "집계와 표준 대조만 담당하며 자체 탐지 기능은 없습니다. 이 구분이 서비스 선택 문항의 갈림길입니다.",
+        "p5": "요청 내용을 보는 AWS WAF와 헷갈리는 자리입니다. VPC 경계와 상태 저장 트래픽 검사라는 단어가 네트워크 계층 방화벽을 가리킵니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html", "title": "Amazon GuardDuty 사용 설명서 — GuardDuty란" },
+        { "url": "https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-securityhub.html", "title": "AWS Security Hub 사용 설명서 — Security Hub란" }
+      ],
+      "tags": ["guardduty", "inspector", "macie", "security-hub"]
+    },
+    {
+      "id": "basics-ch16-010",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "chapter": "ch16",
+      "difficulty": "hard",
+      "type": "ordering",
+      "question": "애플리케이션이 봉투 암호화로 파일 하나를 보호하고 나중에 다시 읽기까지의 과정을 순서대로 배열하세요.",
+      "code": null,
+      "items": [
+        { "id": "i3", "text": "평문 데이터 키로 파일을 로컬에서 암호화한다" },
+        { "id": "i5", "text": "다시 읽을 때는 암호화된 데이터 키를 KMS에 보내 평문 데이터 키를 되받는다" },
+        { "id": "i1", "text": "KMS 키를 지정해 `GenerateDataKey` 를 호출한다" },
+        { "id": "i4", "text": "메모리의 평문 데이터 키를 지우고 암호화된 데이터 키를 암호문 옆에 저장한다" },
+        { "id": "i2", "text": "KMS가 평문 데이터 키와 그것을 KMS 키로 암호화한 사본을 함께 반환한다" }
+      ],
+      "answer": ["i1", "i2", "i3", "i4", "i5"],
+      "explanation": "봉투 암호화의 핵심은 데이터를 지키는 키를 다시 키로 감싼다는 구조입니다. 데이터마다 새 데이터 키를 만들어 쓰기 때문에 키 하나가 노출되어도 피해 범위가 그 데이터로 한정되고, 대용량 데이터가 네트워크를 왕복할 필요도 없습니다. 여기서 가장 중요한 규칙은 평문 데이터 키를 절대 저장하지 않는 것입니다. 평문 키를 암호문 옆에 함께 두면 봉투가 열린 채로 놓인 것과 같아 암호화의 의미가 사라집니다. 복호화는 이 과정을 거꾸로 밟아, 저장해 둔 암호화된 데이터 키를 KMS에 보내 평문 키를 잠시 되받는 것으로 시작합니다.",
+      "distractorNotes": {
+        "i4": "평문 데이터 키를 폐기하는 단계를 빠뜨리거나 뒤로 미루는 실수가 잦습니다. 이 단계가 봉투 암호화가 의미를 갖는 지점입니다.",
+        "i5": "복호화가 KMS 호출로 시작한다는 점을 놓치기 쉽습니다. 저장된 것은 암호화된 데이터 키뿐이므로 먼저 그것을 풀어야 합니다.",
+        "i2": "KMS가 돌려주는 것이 두 개라는 사실이 이 구조의 출발점입니다. 하나만 반환된다고 이해하면 이후 단계가 전부 어긋납니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKey.html", "title": "AWS KMS API 레퍼런스 — GenerateDataKey" },
+        { "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html", "title": "AWS Key Management Service 개발자 안내서 — 개요" }
+      ],
+      "tags": ["kms", "envelope-encryption", "data-key"]
+    }
+  ]
+}

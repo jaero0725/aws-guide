@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>헷갈리는 쌍 비교 — AWS SAA Guide</title>
+  <meta name="description" content="RDS Multi-AZ와 읽기 전용 복제본, 보안 그룹과 네트워크 ACL, ALB·NLB·GWLB, LSI와 GSI, VPC 엔드포인트 두 유형, Secrets Manager와 Parameter Store, EFS와 FSx 네 종류, 볼륨 게이트웨이 캐시형과 저장형, S3 스토리지 클래스, Kinesis 두 서비스, 컨테이너와 서버리스 실행 모델, CloudFront와 Global Accelerator를 속성별 대조표로 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="cheatsheet" data-page="compare"></div>
+
+  <main id="main" class="page page--wide" data-page-id="cheatsheet/compare">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">빠른참조</a></li>
+        <li><span aria-current="page">헷갈리는 쌍 비교</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">빠른참조 · 2</p>
+      <h1>헷갈리는 쌍 비교</h1>
+      <p class="page__lead">
+        후보가 둘로 좁혀졌을 때 <strong>어느 속성에서 갈리는지</strong>를 보는 페이지입니다.
+        각 표는 속성을 행에, 후보를 열에 놓았습니다.
+        요구사항에서 이름이 붙은 속성 하나만 찾으면 그 행에서 답이 결정됩니다.
+      </p>
+      <p class="page__meta">
+        같은 쌍을 <strong>시험이 노리는 지점</strong>의 관점으로 보려면
+        <a href="../saa/traps.html">함정 사전</a>으로 가십시오.
+        두 페이지의 역할은 <a href="#how-to-read">아래</a>에서 나눠 두었습니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">이 페이지 쓰는 법</h2>
+      <ul>
+        <li>표의 <strong>첫 열(속성)</strong>을 먼저 훑고, 요구사항이 언급한 속성의 행만 읽습니다.</li>
+        <li>맨 아래 <strong>고르는 신호</strong> 행은 문제문에 그대로 나오는 표현을 모아 둔 것입니다.</li>
+        <li>후보가 셋 이상인 표(ALB·NLB·GWLB, FSx 네 종류 등)는 열을 좌우로 스크롤해 봅니다.</li>
+        <li>복습할 때는 열 머리글을 가리고 속성만 보며 각 칸을 스스로 채운 뒤 대조하십시오.</li>
+        <li>쌍의 이름을 모르는 상태라면 <a href="services.html">서비스 한 줄 정의</a>를 먼저 봅니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="how-to-read">
+      <h2 id="how-to-read">함정 사전과 이 페이지는 무엇이 다른가</h2>
+
+      <p>
+        같은 쌍을 다루지만 <strong>보는 방향이 반대</strong>입니다.
+        <a href="../saa/traps.html">함정 사전</a>은 시험지 쪽에서 출발해
+        "이 쌍에서 오답 선택지가 무엇을 뒤집는가"를 정리합니다.
+        이 페이지는 서비스 쪽에서 출발해 "두 서비스가 어느 속성에서 실제로 다른가"를 늘어놓습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>같은 쌍을 다루는 두 페이지의 역할 구분</caption>
+          <thead>
+            <tr>
+              <th scope="col">구분</th>
+              <th scope="col">이 페이지 (헷갈리는 쌍 비교)</th>
+              <th scope="col">함정 사전</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">표의 구조</th>
+              <td>쌍 하나가 표 하나. <strong>속성이 행, 후보가 열</strong></td>
+              <td>쌍 하나가 행 하나. 결정적 차이 · 어느 쪽이 언제 · 노리는 지점이 열</td>
+            </tr>
+            <tr>
+              <th scope="row">담는 내용</th>
+              <td>확인된 속성값 — 복제 방식, 계층, 프로토콜, 개수 상한, 기본값</td>
+              <td>오답 선택지가 뒤집는 문장과 그 문장이 왜 틀리는지</td>
+            </tr>
+            <tr>
+              <th scope="row">쓰는 시점</th>
+              <td>개념을 정리할 때, 두 후보의 차이를 정확히 확인할 때</td>
+              <td>문제를 풀다 틀렸을 때, 시험 직전 오답 패턴을 복습할 때</td>
+            </tr>
+            <tr>
+              <th scope="row">다루는 범위</th>
+              <td>속성이 여러 개라 대조가 필요한 <strong>열두 묶음</strong></td>
+              <td>혼동되는 <strong>쌍 전체</strong>를 넓게 훑습니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="diagram" data-diagram="D-193">
+        <figcaption>
+          시험 직전 한 장 요약 — Multi-AZ 배포와 읽기 전용 복제본, 보안 그룹과 네트워크 ACL,
+          ALB와 NLB, LSI와 GSI, Secrets Manager와 Parameter Store,
+          게이트웨이 엔드포인트와 인터페이스 엔드포인트를 각 쌍의 결정 질문 한 줄과 함께 배치합니다
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="database-pairs">
+      <h2 id="database-pairs">데이터베이스</h2>
+
+      <h3 id="multi-az-vs-read-replica">RDS Multi-AZ 배포 대 읽기 전용 복제본</h3>
+
+      <p>
+        복제 방식이 <strong>동기</strong>인가 <strong>비동기</strong>인가 하나에서 나머지가 모두 갈립니다.
+        동기 복제는 지연을 감수하고 데이터 손실을 없애므로 가용성 장치가 되고,
+        비동기 복제는 지연을 허용하는 대신 복제본을 여러 개 두고 읽기를 나눌 수 있게 합니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon RDS Multi-AZ 배포와 읽기 전용 복제본의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">Multi-AZ 배포</th>
+              <th scope="col">읽기 전용 복제본</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">복제 방식</th>
+              <td><strong>동기(synchronous)</strong></td>
+              <td><strong>비동기(asynchronous)</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">해결하는 문제</th>
+              <td>가용 영역 장애를 견디는 것 — 고가용성</td>
+              <td>읽기 부하를 나누는 것 — 성능 확장</td>
+            </tr>
+            <tr>
+              <th scope="row">대기·복제 인스턴스의 읽기 처리</th>
+              <td><span class="mark-no">받지 않음</span> — 대기 인스턴스는 트래픽을 처리하지 않습니다</td>
+              <td><span class="mark-ok">받음</span> — 읽기 전용 질의를 처리합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트</th>
+              <td>같은 엔드포인트를 유지하고 장애 조치 시 DNS가 대기 인스턴스를 가리킵니다</td>
+              <td><strong>별도의 읽기 엔드포인트</strong>가 생기며 애플리케이션이 나눠 보내야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">장애 조치</th>
+              <td>자동</td>
+              <td>자동 승격 없음 — 필요하면 수동으로 독립 인스턴스로 승격합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">배치 범위</th>
+              <td>같은 리전의 다른 가용 영역</td>
+              <td>같은 리전 또는 <strong>다른 리전</strong>도 가능</td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 지정</th>
+              <td>Multi-AZ 배포에서는 <code>AvailabilityZone</code>을 지정할 수 없습니다</td>
+              <td>배치 위치를 지정할 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">개수</th>
+              <td>대기 인스턴스 하나</td>
+              <td>여러 개를 둘 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">백업 설정</th>
+              <td>동기 복제된 대기 인스턴스가 있어 백업 중 지연 급증이 줄어듭니다</td>
+              <td>생성 시 <strong>백업이 비활성 상태</strong>로 만들어집니다. 원본은 백업 보존이 켜져 있어야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon Aurora에서</th>
+              <td>클러스터가 여러 가용 영역에 걸친 스토리지를 씁니다</td>
+              <td><code>CreateDBInstanceReadReplica</code>를 지원하지 않습니다 — 클러스터에 인스턴스를 추가합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"가용 영역 장애에도 계속", "자동 장애 조치", "다운타임 최소화"</td>
+              <td>"읽기 질의가 많아 느리다", "보고서 조회를 분리", "다른 리전에서도 읽어야"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          위 표는 <strong>표준 Multi-AZ 인스턴스 배포</strong> 기준입니다.
+          Multi-AZ <strong>DB 클러스터</strong> 배포는 읽기 가능한 대기 인스턴스 둘을 두는
+          별개의 아키텍처이므로 "대기 인스턴스는 읽기를 받지 않는다"가 그대로 적용되지 않습니다.
+          문제문이 어느 배포를 말하는지 그대로 따르고, 명시가 없으면 표준 인스턴스 배포로 읽습니다.
+        </p>
+      </aside>
+
+      <h3 id="lsi-vs-gsi">DynamoDB LSI 대 GSI</h3>
+
+      <p>
+        <strong>파티션 키를 테이블과 공유하는가</strong>가 갈림길이고,
+        거기서 개수 상한 · 용량 · 생성 시점 제약이 전부 따라옵니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon DynamoDB 로컬 보조 인덱스와 글로벌 보조 인덱스의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">LSI (로컬 보조 인덱스)</th>
+              <th scope="col">GSI (글로벌 보조 인덱스)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">파티션 키</th>
+              <td>테이블과 <strong>같아야 합니다</strong></td>
+              <td>테이블과 <strong>달라도 됩니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">정렬 키</th>
+              <td>테이블과 다른 속성을 씁니다</td>
+              <td>임의로 지정합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">테이블당 최대 개수</th>
+              <td><strong>5개</strong></td>
+              <td><strong>20개</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">크기 제약</th>
+              <td>파티션 키 값당 <strong>10 GB</strong></td>
+              <td>제약 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">처리 용량</th>
+              <td>테이블의 용량을 함께 씁니다</td>
+              <td><strong>자체 읽기·쓰기 용량</strong>을 따로 가집니다</td>
+            </tr>
+            <tr>
+              <th scope="row">생성 시점</th>
+              <td>테이블을 만들 때만 — 이후 추가·삭제할 API가 없습니다</td>
+              <td>운영 중 언제든 추가·삭제할 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 일관성</th>
+              <td>강력한 일관된 읽기를 요청할 수 있습니다</td>
+              <td>최종적 일관성만 지원합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">프로젝션 타입</th>
+              <td colspan="2"><code>KEYS_ONLY</code> · <code>INCLUDE</code> · <code>ALL</code> — 두 인덱스 유형이 동일합니다. <code>INCLUDE</code>의 비키 속성은 모든 보조 인덱스를 통틀어 100개를 넘을 수 없습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"같은 파티션 안에서 다른 순서로 조회", "강력한 일관성이 필요"</td>
+              <td>"운영 중인 테이블에 인덱스를 추가", "다른 속성으로 조회"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계">
+        <p>
+          "이미 운영 중인 테이블에 새 조회 패턴을 추가해야 한다"는 시나리오의 답은
+          <strong>항상 GSI</strong>입니다. LSI는 테이블 생성 이후에 만들 수 없기 때문이며,
+          이는 <code>UpdateTable</code> API에 GSI 갱신 파라미터만 있고
+          LSI를 갱신하는 파라미터가 아예 없다는 구조로 확인됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="network-pairs">
+      <h2 id="network-pairs">네트워크와 접근 경로</h2>
+
+      <h3 id="sg-vs-nacl">보안 그룹 대 네트워크 ACL</h3>
+
+      <p>
+        적용 계층과 <strong>상태 저장 여부</strong> 두 가지가 축입니다.
+        나머지 차이는 이 둘에서 파생됩니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>보안 그룹과 네트워크 ACL의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">보안 그룹</th>
+              <th scope="col">네트워크 ACL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">적용 계층</th>
+              <td>인스턴스(ENI) 수준</td>
+              <td>서브넷 수준</td>
+            </tr>
+            <tr>
+              <th scope="row">적용 대상</th>
+              <td>연결된 인스턴스에만</td>
+              <td>연결된 서브넷의 <strong>모든 인스턴스</strong>에</td>
+            </tr>
+            <tr>
+              <th scope="row">규칙 종류</th>
+              <td><span class="mark-ok">허용만</span> — 거부 규칙이 없습니다</td>
+              <td><span class="mark-ok">허용과 거부 모두</span></td>
+            </tr>
+            <tr>
+              <th scope="row">평가 방식</th>
+              <td>모든 규칙을 평가합니다</td>
+              <td>가장 낮은 번호부터 <strong>순서대로</strong> 평가하고 먼저 일치한 규칙을 적용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">상태</th>
+              <td><strong>상태 저장(stateful)</strong> — 반환 트래픽이 자동 허용됩니다</td>
+              <td><strong>상태 비저장(stateless)</strong> — 반환 트래픽을 규칙으로 명시해야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">임시 포트 고려</th>
+              <td>불필요</td>
+              <td>필요 — 응답이 돌아오는 임시 포트 범위를 아웃바운드에 열어야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">출발지 지정</th>
+              <td>CIDR과 <strong>다른 보안 그룹 ID</strong>를 쓸 수 있습니다</td>
+              <td>CIDR만 쓸 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">기본 동작</th>
+              <td>기본 보안 그룹은 서로에게 제한 없는 접근을 허용하는 규칙을 갖습니다</td>
+              <td>기본 네트워크 ACL은 모든 인바운드·아웃바운드를 허용합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"특정 애플리케이션 계층만 접근", "웹 계층에서 앱 계층으로"</td>
+              <td>"특정 IP 주소를 <strong>차단</strong>", "서브넷 전체에 공통 규칙"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          "보안 그룹으로 특정 IP를 차단한다"는 선택지는 <strong>항상 오답</strong>입니다.
+          보안 그룹에는 거부 규칙이 없기 때문입니다.
+          차단은 네트워크 ACL 또는 상위 계층(AWS WAF)의 일입니다.
+        </p>
+      </aside>
+
+      <h3 id="gateway-vs-interface-endpoint">게이트웨이 엔드포인트 대 인터페이스 엔드포인트</h3>
+
+      <p>
+        <strong>어디에 만들어지는가</strong>가 갈림길입니다.
+        게이트웨이 엔드포인트는 라우팅 테이블의 항목이고,
+        인터페이스 엔드포인트는 서브넷 안의 네트워크 인터페이스입니다.
+        그래서 지원 서비스 범위, 보안 그룹 적용 여부, 온프레미스에서의 도달 가능성이 모두 갈립니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>VPC 게이트웨이 엔드포인트와 인터페이스 엔드포인트의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">게이트웨이 엔드포인트</th>
+              <th scope="col">인터페이스 엔드포인트 (AWS PrivateLink)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">지원 서비스</th>
+              <td>Amazon S3와 Amazon DynamoDB <strong>두 가지만</strong></td>
+              <td>대부분의 AWS 서비스, 다른 계정이 제공하는 서비스 포함</td>
+            </tr>
+            <tr>
+              <th scope="row">구현 위치</th>
+              <td>라우팅 테이블의 경로 항목</td>
+              <td>서브넷 안의 네트워크 인터페이스(ENI)</td>
+            </tr>
+            <tr>
+              <th scope="row">생성 시 지정하는 것</th>
+              <td>라우팅 테이블 ID</td>
+              <td>서브넷 ID와 보안 그룹</td>
+            </tr>
+            <tr>
+              <th scope="row">보안 그룹</th>
+              <td><span class="mark-no">붙일 수 없음</span></td>
+              <td><span class="mark-ok">붙일 수 있음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">DNS 동작</th>
+              <td>접두사 목록으로 라우팅합니다 — DNS 이름은 그대로입니다</td>
+              <td>프라이빗 DNS로 서비스의 기본 이름을 엔드포인트의 사설 IP로 해석시킵니다</td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스에서 접근</th>
+              <td><span class="mark-no">불가</span> — VPC 라우팅 테이블에만 붙습니다</td>
+              <td><span class="mark-ok">가능</span> — VPN이나 AWS Direct Connect를 통해 사설 IP로 도달합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">피어링된 VPC에서 사용</th>
+              <td><span class="mark-no">불가</span></td>
+              <td><span class="mark-ok">가능</span> — 엔드포인트의 사설 IP로 도달합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">과금 축</th>
+              <td>추가 요금이 없습니다</td>
+              <td>엔드포인트 <strong>시간</strong>과 <strong>처리 데이터</strong>로 과금됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트 정책</th>
+              <td colspan="2">두 유형 모두 붙일 수 있습니다. 리소스 기반 정책이며 권한을 부여하지 않고 통과 범위를 좁힙니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"S3 접근을 NAT 게이트웨이 밖으로", "추가 비용 없이 비공개 경로"</td>
+              <td>"온프레미스에서도 사설 경로로", "S3와 DynamoDB가 아닌 서비스", "보안 그룹으로 통제"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="alb-nlb-gwlb">ALB 대 NLB 대 GWLB</h3>
+
+      <p>
+        <strong>어느 계층에서 무슨 프로토콜을 다루는가</strong>가 전부입니다.
+        HTTP 내용을 보고 판단해야 하면 ALB, 전송 계층에서 그대로 흘려보내야 하면 NLB,
+        보안 어플라이언스를 트래픽 경로에 끼워 넣어야 하면 GWLB입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Application · Network · Gateway Load Balancer의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">Application Load Balancer</th>
+              <th scope="col">Network Load Balancer</th>
+              <th scope="col">Gateway Load Balancer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">API 타입 값</th>
+              <td><code>application</code></td>
+              <td><code>network</code></td>
+              <td><code>gateway</code></td>
+            </tr>
+            <tr>
+              <th scope="row">동작 계층</th>
+              <td>L7 애플리케이션</td>
+              <td>L4 전송</td>
+              <td>L3 · L4 게이트웨이</td>
+            </tr>
+            <tr>
+              <th scope="row">지원 프로토콜</th>
+              <td>HTTP · HTTPS</td>
+              <td>TCP · TLS · UDP · TCP_UDP · QUIC · TCP_QUIC</td>
+              <td><strong>GENEVE</strong> (포트 6081)</td>
+            </tr>
+            <tr>
+              <th scope="row">라우팅 판단 근거</th>
+              <td>경로 · 호스트 헤더 · HTTP 헤더 · 쿼리 문자열 · 출발지 IP</td>
+              <td>흐름 해시 — 내용을 보지 않습니다</td>
+              <td>어플라이언스로의 투명한 전달</td>
+            </tr>
+            <tr>
+              <th scope="row">고정 IP</th>
+              <td>제공하지 않습니다 — DNS 이름으로 접근합니다</td>
+              <td>가용 영역마다 <strong>정적 IP</strong>를 가지며 탄력적 IP를 붙일 수 있습니다</td>
+              <td>엔드포인트를 통해 트래픽을 받습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">교차 영역 로드 밸런싱 기본값</th>
+              <td><strong>켜짐 — 끌 수 없습니다</strong></td>
+              <td>꺼짐 (변경 가능)</td>
+              <td>꺼짐 (변경 가능)</td>
+            </tr>
+            <tr>
+              <th scope="row">대표 용도</th>
+              <td>웹 애플리케이션, 마이크로서비스 경로 라우팅, 컨테이너 대상</td>
+              <td>극단적 처리량, 비 HTTP 프로토콜, 고정 IP 요구</td>
+              <td>서드파티 방화벽 · 침입 탐지 어플라이언스 삽입</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"URL 경로에 따라", "호스트 이름별로", "HTTP 헤더 기반"</td>
+              <td>"수백만 요청", "게임 서버의 UDP", "정적 IP를 방화벽에 등록"</td>
+              <td>"가상 어플라이언스를 통과시켜야"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          교차 영역 로드 밸런싱의 기본값 차이가 실제 증상으로 나타납니다.
+          NLB를 여러 가용 영역에 두고 가용 영역마다 대상 수가 다르면
+          <strong>트래픽이 고르지 않게 분배</strong>됩니다. 기본값이 꺼져 있기 때문입니다.
+          ALB에서는 이 현상이 생기지 않습니다 — 항상 켜져 있고 끌 수 없습니다.
+        </p>
+      </aside>
+
+      <h3 id="cloudfront-vs-global-accelerator">CloudFront 대 Global Accelerator</h3>
+
+      <p>
+        둘 다 엣지 네트워크를 쓰지만 <strong>엣지에서 하는 일</strong>이 다릅니다.
+        CloudFront는 콘텐츠를 <strong>캐시해서 돌려주고</strong>,
+        Global Accelerator는 캐시하지 않고 <strong>백본으로 태워 보냅니다</strong>.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon CloudFront와 AWS Global Accelerator의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">Amazon CloudFront</th>
+              <th scope="col">AWS Global Accelerator</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">엣지에서 하는 일</th>
+              <td>콘텐츠를 <strong>캐시</strong>해 직접 응답합니다</td>
+              <td>캐시하지 않고 AWS 백본으로 <strong>전달</strong>합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">대상 트래픽</th>
+              <td>HTTP · HTTPS</td>
+              <td>TCP · UDP 전반</td>
+            </tr>
+            <tr>
+              <th scope="row">클라이언트가 보는 주소</th>
+              <td>배포의 도메인 이름</td>
+              <td><strong>고정 애니캐스트 IP</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트 유형</th>
+              <td>S3 버킷, 로드 밸런서, 임의의 HTTP 오리진</td>
+              <td>Application Load Balancer, Network Load Balancer, EC2 인스턴스, 탄력적 IP</td>
+            </tr>
+            <tr>
+              <th scope="row">장애 대응</th>
+              <td>오리진 그룹으로 오리진 장애 시 전환합니다</td>
+              <td>엔드포인트 상태를 보고 <strong>다른 리전으로 즉시 전환</strong>합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">비용 관점의 효과</th>
+              <td>캐시 적중이 <strong>오리진 송신량</strong>을 줄입니다</td>
+              <td>전송량을 줄이지는 않습니다 — 경로 품질을 개선합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">보안 서비스 연동</th>
+              <td>AWS WAF를 배포에 직접 연결합니다</td>
+              <td>표준 디도스 보호가 적용되며, 웹 규칙은 뒤의 로드 밸런서 쪽에 붙입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"정적 콘텐츠", "동영상 전송", "오리진 부하와 송신을 줄인다"</td>
+              <td>"게임·음성 같은 UDP", "고정 IP를 허용 목록에", "리전 간 빠른 장애 조치"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="storage-pairs">
+      <h2 id="storage-pairs">스토리지</h2>
+
+      <h3 id="s3-storage-classes">S3 스토리지 클래스 전체</h3>
+
+      <p>
+        선택 기준은 <strong>얼마나 자주 읽는가</strong>와 <strong>읽어야 할 때 얼마나 빨리 필요한가</strong> 둘뿐입니다.
+        여기에 최소 저장 기간과 최소 청구 크기라는 제약이 붙어, 짧게 두는 데이터를 차가운 클래스에 넣으면
+        오히려 손해가 나는 구간이 생깁니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>SAA 출제 범위 S3 스토리지 클래스 — 가용 영역 수, 접근 시간, 최소 저장 기간, 최소 청구 크기</caption>
+          <thead>
+            <tr>
+              <th scope="col">클래스</th>
+              <th scope="col">가용 영역 수</th>
+              <th scope="col">접근 시간</th>
+              <th scope="col">최소 저장 기간</th>
+              <th scope="col">최소 청구 크기</th>
+              <th scope="col">고르는 신호</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">S3 Standard</th>
+              <td>3개 이상</td>
+              <td>밀리초</td>
+              <td>없음</td>
+              <td>없음</td>
+              <td>자주 읽는 데이터. 지정하지 않으면 이 클래스입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Intelligent-Tiering</th>
+              <td>3개 이상</td>
+              <td>밀리초 (아카이브 티어 제외)</td>
+              <td>없음</td>
+              <td>없음</td>
+              <td><strong>접근 패턴을 모를 때</strong>. 자동으로 계층을 옮겨 줍니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Standard-IA</th>
+              <td>3개 이상</td>
+              <td>밀리초</td>
+              <td>30일</td>
+              <td>128 KB</td>
+              <td>드물게 읽지만 필요할 때 즉시 읽어야 하는 데이터</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 One Zone-IA</th>
+              <td><strong>1개</strong></td>
+              <td>밀리초</td>
+              <td>30일</td>
+              <td>128 KB</td>
+              <td>다시 만들 수 있거나 원본이 따로 있는 데이터. <strong>가용 영역 손실 시 데이터도 손실</strong>됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Instant Retrieval</th>
+              <td>3개 이상</td>
+              <td>밀리초</td>
+              <td>90일</td>
+              <td>128 KB</td>
+              <td>분기에 한 번 정도 읽지만 즉시 접근이 필요한 아카이브</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Flexible Retrieval</th>
+              <td>3개 이상</td>
+              <td>복원 필요 — 신속 1~5분, 대량 5~12시간</td>
+              <td>90일</td>
+              <td>40 KB</td>
+              <td>거의 읽지 않고 복원에 시간을 쓸 수 있는 아카이브</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 Glacier Deep Archive</th>
+              <td>3개 이상</td>
+              <td>복원 필요 — 기본 12시간</td>
+              <td>180일</td>
+              <td>40 KB</td>
+              <td>규정 때문에 몇 년간 보존하지만 거의 읽지 않는 데이터</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="이 표에 없는 것">
+        <p>
+          클래스별 설계 가용성 수치를 넣지 않았습니다.
+          내구성은 모든 클래스가 같은 값으로 설계되어 있지만, 가용성 수치는 이 사이트가 접근할 수 있는
+          1차 소스에서 현행 값으로 교차 확인하지 못했기 때문입니다.
+          판단에 실제로 쓰이는 것은 <strong>가용 영역 수</strong>이며 그쪽은 확인된 값입니다.
+          자세한 설명은 <a href="../basics/ch08.html#storage-classes">8장</a>에 있습니다.
+        </p>
+      </aside>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>수명 주기 전환에 걸리는 제약 — 클래스 선택과 함께 봐야 하는 조건</caption>
+          <thead>
+            <tr>
+              <th scope="col">제약</th>
+              <th scope="col">내용</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">30일 전환 제약</th>
+              <td>S3 Standard-IA 또는 S3 One Zone-IA로 전환하려면 객체가 최소 30일 저장되어 있어야 합니다. 버전 관리 버킷의 비현재 버전도 최소 30일 비현재 상태여야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">128 KB 미만 객체</th>
+              <td>작은 객체는 전환되지 않습니다. 대량의 작은 객체를 차가운 클래스로 옮기려는 설계는 의도대로 동작하지 않습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">최소 저장 요금</th>
+              <td>Standard-IA와 One Zone-IA는 30일 최소 저장 기간에 해당하는 요금이 부과됩니다. 자주 지우는 데이터에는 손해입니다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="efs-vs-fsx">EFS 대 FSx 네 종류</h3>
+
+      <p>
+        EFS와 FSx는 성능 등급의 위아래가 아니라 <strong>서로 다른 파일 시스템</strong>입니다.
+        판단은 언제나 워크로드가 어떤 프로토콜과 어떤 생태계를 요구하는지에서 나옵니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon EFS와 Amazon FSx 네 종류의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">Amazon EFS</th>
+              <th scope="col">FSx for Windows File Server</th>
+              <th scope="col">FSx for Lustre</th>
+              <th scope="col">FSx for NetApp ONTAP</th>
+              <th scope="col">FSx for OpenZFS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">프로토콜</th>
+              <td>NFS</td>
+              <td>SMB</td>
+              <td>Lustre</td>
+              <td>NFS · SMB · iSCSI</td>
+              <td>NFS</td>
+            </tr>
+            <tr>
+              <th scope="row">주 클라이언트</th>
+              <td>리눅스</td>
+              <td>Windows</td>
+              <td>리눅스 HPC 노드</td>
+              <td>리눅스와 Windows 혼재</td>
+              <td>리눅스</td>
+            </tr>
+            <tr>
+              <th scope="row">디렉터리 통합</th>
+              <td>해당 없음</td>
+              <td><strong>Active Directory</strong></td>
+              <td>해당 없음</td>
+              <td>Active Directory 연동 가능</td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">용량</th>
+              <td>쓰는 만큼 자동으로 늘고 줄어듭니다</td>
+              <td>생성 시 지정합니다</td>
+              <td>생성 시 지정합니다</td>
+              <td>생성 시 지정합니다</td>
+              <td>생성 시 지정합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">배포 유형</th>
+              <td>리전 또는 단일 가용 영역</td>
+              <td><code>SINGLE_AZ_1</code> · <code>SINGLE_AZ_2</code> · <code>MULTI_AZ_1</code></td>
+              <td><code>SCRATCH_1</code> · <code>SCRATCH_2</code> · <code>PERSISTENT_1</code> · <code>PERSISTENT_2</code></td>
+              <td><code>SINGLE_AZ_1</code> · <code>SINGLE_AZ_2</code> · <code>MULTI_AZ_1</code> · <code>MULTI_AZ_2</code></td>
+              <td><code>SINGLE_AZ_1</code> · <code>SINGLE_AZ_2</code> · <code>SINGLE_AZ_HA_1</code> · <code>SINGLE_AZ_HA_2</code> · <code>MULTI_AZ_1</code></td>
+            </tr>
+            <tr>
+              <th scope="row">Amazon S3 연동</th>
+              <td>해당 없음</td>
+              <td>해당 없음</td>
+              <td><strong>데이터 리포지토리로 연결</strong>해 객체를 파일처럼 읽고 결과를 내보냅니다</td>
+              <td>계층화 대상으로 쓸 수 있습니다</td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"리눅스 여러 대가 같은 디렉터리"</td>
+              <td>"Windows", "SMB", "Active Directory"</td>
+              <td>"HPC", "기계 학습 학습", "S3 데이터셋으로 대규모 병렬 처리"</td>
+              <td>"NFS와 SMB를 동시에", "기존 NetApp 운영 유지"</td>
+              <td>"리눅스 NFS를 ZFS 스냅샷 기능과 함께"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="volume-gateway-cached-vs-stored">볼륨 게이트웨이 캐시형 대 저장형</h3>
+
+      <p>
+        이름이 가리키는 것은 <strong>온프레미스 디스크의 역할</strong>입니다.
+        캐시형에서는 온프레미스 디스크가 캐시이고, 저장형에서는 원본 저장소입니다.
+        뒤집어 외우는 실수가 매우 흔하므로 이 한 문장만 붙잡으면 됩니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>AWS Storage Gateway 볼륨 게이트웨이 두 유형의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">캐시형 볼륨(cached)</th>
+              <th scope="col">저장형 볼륨(stored)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">주 데이터의 위치</th>
+              <td><strong>AWS</strong></td>
+              <td><strong>온프레미스</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스 디스크의 역할</th>
+              <td>자주 쓰는 데이터의 캐시</td>
+              <td>전체 데이터셋의 원본 저장소</td>
+            </tr>
+            <tr>
+              <th scope="row">AWS로 넘어가는 것</th>
+              <td>데이터 본체</td>
+              <td>비동기로 올라가는 <strong>스냅샷</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스에 필요한 용량</th>
+              <td>전체 데이터보다 작아도 됩니다</td>
+              <td>전체 데이터를 담을 수 있어야 합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">읽기 지연</th>
+              <td>캐시에 없는 데이터는 AWS에서 가져옵니다</td>
+              <td>전체 데이터에 로컬 속도로 접근합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">해결하는 문제</th>
+              <td>온프레미스 스토리지를 늘리지 않고 용량을 키우기</td>
+              <td>로컬 접근 속도를 유지하면서 클라우드 백업 확보하기</td>
+            </tr>
+            <tr>
+              <th scope="row">공통 사항</th>
+              <td colspan="2">둘 다 iSCSI 블록 볼륨으로 보이며, 스냅샷은 Amazon EBS 스냅샷으로 저장되어 EBS 볼륨으로 복원할 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"온프레미스 스토리지 용량이 부족한데 장비를 늘리고 싶지 않다"</td>
+              <td>"전체 데이터에 낮은 지연으로 접근해야 하고 백업만 클라우드로"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="compute-pairs">
+      <h2 id="compute-pairs">컴퓨팅 실행 모델</h2>
+
+      <h3 id="container-and-serverless">ECS 대 EKS 대 Fargate 대 Lambda</h3>
+
+      <p>
+        넷을 같은 줄에 놓으면 안 됩니다.
+        <strong>Amazon ECS와 Amazon EKS는 오케스트레이터</strong>이고,
+        <strong>AWS Fargate는 그 위에서 고르는 용량 제공 방식</strong>이며,
+        <strong>AWS Lambda는 컨테이너 오케스트레이션과 무관한 별개의 실행 모델</strong>입니다.
+        "ECS 대 Fargate" 라는 대립 자체가 성립하지 않습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>컨테이너 오케스트레이터 · 용량 제공 방식 · 함수 실행 모델의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">Amazon ECS</th>
+              <th scope="col">Amazon EKS</th>
+              <th scope="col">AWS Fargate</th>
+              <th scope="col">AWS Lambda</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">범주</th>
+              <td>컨테이너 오케스트레이터</td>
+              <td>컨테이너 오케스트레이터</td>
+              <td><strong>용량 제공 방식</strong> — 단독으로 쓰지 않습니다</td>
+              <td>함수 실행 모델</td>
+            </tr>
+            <tr>
+              <th scope="row">배포 단위</th>
+              <td>태스크와 서비스</td>
+              <td>파드와 디플로이먼트</td>
+              <td>ECS 태스크 또는 EKS 파드</td>
+              <td>함수</td>
+            </tr>
+            <tr>
+              <th scope="row">API 표준</th>
+              <td>AWS 고유</td>
+              <td><strong>Kubernetes</strong></td>
+              <td>해당 없음</td>
+              <td>AWS 고유</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 관리 책임</th>
+              <td>EC2 시작 유형이면 우리 몫</td>
+              <td>관리형 노드 그룹을 써도 노드는 우리 몫</td>
+              <td><span class="mark-ok">없음</span> — 인스턴스가 보이지 않습니다</td>
+              <td><span class="mark-ok">없음</span></td>
+            </tr>
+            <tr>
+              <th scope="row">실행 시간</th>
+              <td>제한 없이 상주할 수 있습니다</td>
+              <td>제한 없이 상주할 수 있습니다</td>
+              <td>제한 없이 상주할 수 있습니다</td>
+              <td>호출당 <strong>최대 900초</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">과금 축</th>
+              <td>EC2 시작 유형이면 인스턴스 가동 시간</td>
+              <td>클러스터 시간과 노드 가동 시간</td>
+              <td>태스크·파드가 요청한 자원과 실행 시간</td>
+              <td>호출 수와 실행 시간, 할당 메모리</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"컨테이너를 굴려야 하는데 Kubernetes 요구는 없다"</td>
+              <td>"Kubernetes", "기존 클러스터를 그대로"</td>
+              <td>"인스턴스를 관리하고 싶지 않다"</td>
+              <td>"이벤트에 반응", "간헐적 실행", "운영 부담 최소"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계">
+        <p>
+          컨테이너 문항에서 갈림길은 두 번입니다.
+          <strong>(1) Kubernetes API가 요구되는가</strong> — 그렇다면 Amazon EKS,
+          아니면 Amazon ECS입니다.
+          <strong>(2) 인스턴스를 우리가 관리해야 하는가</strong> — "운영 부담 최소" 라는 한정어가 있으면
+          시작 유형은 AWS Fargate입니다.
+          이 두 질문은 서로 독립이며, 하나의 축으로 뭉뚱그리면 선택지에 걸립니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="data-pairs">
+      <h2 id="data-pairs">데이터 수집</h2>
+
+      <h3 id="kinesis-streams-vs-firehose">Kinesis Data Streams 대 Data Firehose</h3>
+
+      <p>
+        <strong>데이터를 붙잡아 두는가, 흘려보내는가</strong>가 갈림길입니다.
+        Data Streams는 레코드를 보존해 여러 소비자가 각자의 속도로 읽게 하고,
+        Data Firehose는 버퍼에 모아 목적지에 적재하고 잊습니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>Amazon Kinesis Data Streams와 Amazon Data Firehose의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">Amazon Kinesis Data Streams</th>
+              <th scope="col">Amazon Data Firehose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">기본 성격</th>
+              <td>보존되는 스트림</td>
+              <td>목적지로 흘려보내는 전송 스트림</td>
+            </tr>
+            <tr>
+              <th scope="row">데이터 보존</th>
+              <td>보존 기간 동안 남으며 다시 읽을 수 있습니다</td>
+              <td>적재 후 남지 않습니다 — 다시 읽으려면 목적지에서 읽습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">전달 방식</th>
+              <td>소비자가 <strong>가져갑니다</strong></td>
+              <td>서비스가 목적지에 <strong>넣어 줍니다</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">소비자 수</th>
+              <td>여러 애플리케이션이 같은 데이터를 각자 읽습니다</td>
+              <td>전송 스트림마다 목적지 하나</td>
+            </tr>
+            <tr>
+              <th scope="row">지연 특성</th>
+              <td>거의 즉시 읽을 수 있습니다</td>
+              <td>버퍼링 후 적재하므로 지연이 생깁니다</td>
+            </tr>
+            <tr>
+              <th scope="row">용량 관리</th>
+              <td>샤드를 관리하거나 온디맨드 모드를 씁니다</td>
+              <td>자동으로 조정됩니다</td>
+            </tr>
+            <tr>
+              <th scope="row">사용자 코드</th>
+              <td>소비 애플리케이션을 우리가 만듭니다</td>
+              <td>코드 없이 구성만으로 동작하며, 필요하면 변환 함수를 붙입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"<strong>실시간</strong>으로 처리", "여러 팀이 같은 스트림을", "재처리가 필요"</td>
+              <td>"S3에 <strong>적재</strong>만 하면 된다", "코드를 만들지 않고", "관리 부담 최소"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>실시간(real-time)</strong>이라는 한정어가 붙으면 버퍼링이 있는 Data Firehose는
+          답이 되기 어렵습니다. 반대로 "S3에 모아 두었다가 나중에 분석" 이라면
+          스트림을 직접 소비하는 코드를 만드는 것이 과잉 설계입니다.
+          한정어를 먼저 읽는 것이 이 쌍을 가르는 가장 빠른 방법입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="security-pairs">
+      <h2 id="security-pairs">보안과 설정 관리</h2>
+
+      <h3 id="secrets-vs-parameter-store">Secrets Manager 대 Parameter Store</h3>
+
+      <p>
+        둘 다 값을 암호화해 저장하고 IAM으로 접근을 통제하며 런타임에 값을 내려 줍니다.
+        겹치지 않는 지점은 하나, <strong>자동 교체를 내장하는가</strong>입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>AWS Secrets Manager와 AWS Systems Manager Parameter Store의 속성 대조</caption>
+          <thead>
+            <tr>
+              <th scope="col">속성</th>
+              <th scope="col">AWS Secrets Manager</th>
+              <th scope="col">Parameter Store</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">주 용도</th>
+              <td>데이터베이스 자격 증명, API 키 같은 비밀</td>
+              <td>설정값과 파라미터</td>
+            </tr>
+            <tr>
+              <th scope="row">값 유형</th>
+              <td>비밀 문자열 또는 이진 값</td>
+              <td><code>String</code> · <code>StringList</code> · <code>SecureString</code></td>
+            </tr>
+            <tr>
+              <th scope="row">자동 교체</th>
+              <td><span class="mark-ok">내장</span> — 교체 함수를 붙여 자동화합니다</td>
+              <td><span class="mark-no">없음</span> — 새 값을 넣는 것은 우리 몫입니다</td>
+            </tr>
+            <tr>
+              <th scope="row">교체 동작</th>
+              <td><code>AWSCURRENT</code>와 <code>AWSPENDING</code> 준비 라벨로 새 버전을 만들며, 실패해도 현재 값이 살아 있습니다</td>
+              <td>해당 없음</td>
+            </tr>
+            <tr>
+              <th scope="row">계층 구조</th>
+              <td>비밀 단위로 관리합니다</td>
+              <td>이름을 <code>/app/prod/db/</code>처럼 경로로 계층화합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">계층 등급</th>
+              <td>해당 없음</td>
+              <td>Standard · Advanced · Intelligent-Tiering</td>
+            </tr>
+            <tr>
+              <th scope="row">암호화</th>
+              <td>AWS KMS로 암호화합니다</td>
+              <td><code>SecureString</code>일 때 AWS KMS로 암호화합니다</td>
+            </tr>
+            <tr>
+              <th scope="row">과금 성격</th>
+              <td>비밀 개수와 API 호출로 과금됩니다</td>
+              <td>표준 계층은 추가 비용 없이 쓸 수 있습니다</td>
+            </tr>
+            <tr>
+              <th scope="row">고르는 신호</th>
+              <td>"주기적으로 <strong>자동 교체</strong>", "비밀번호를 회전"</td>
+              <td>"설정값을 계층 구조로", "추가 비용 없이", "교체 요구가 없다"</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../saa/traps.html">
+          <span class="card__title">함정 사전</span>
+          <span class="card__desc">같은 쌍을 시험지 쪽에서 봅니다. 오답 선택지가 무엇을 뒤집는지, 44개 쌍을 훑습니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+        <li><a class="card" href="services.html">
+          <span class="card__title">서비스 한 줄 정의</span>
+          <span class="card__desc">쌍의 이름부터 낯설다면 여기서 정체와 담당 문제를 먼저 확인합니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="limits.html">
+          <span class="card__title">한도와 기본값</span>
+          <span class="card__desc">비교표에 나온 숫자의 근거와 나머지 확인된 한도값을 모았습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="decision-tree.html">
+          <span class="card__title">서비스 선택 결정 트리</span>
+          <span class="card__desc">후보를 둘로 좁히기 전 단계입니다. 요구사항에서 출발해 분기를 따라 내려갑니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../basics/ch10.html#multi-az-vs-read-replica">
+          <span class="card__title">10장 · RDS와 관계형 데이터베이스</span>
+          <span class="card__desc">Multi-AZ 배포와 읽기 전용 복제본의 동작 원리를 설명과 다이어그램으로 다룹니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-resilient.html">
+          <span class="card__title">복원력 있는 아키텍처 설계 (26%)</span>
+          <span class="card__desc">이 페이지의 데이터베이스·로드 밸런싱 쌍이 어느 과제 진술에 속하는지 확인합니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html">Amazon RDS 사용 설명서 — Multi-AZ 배포</a>
+          — 동기 복제와 대기 인스턴스의 성격</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html">Amazon RDS 사용 설명서 — 읽기 전용 복제본</a>
+          — 비동기 복제, 별도 읽기 엔드포인트, 백업 비활성 상태로 생성</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstanceReadReplica.html">Amazon RDS API 레퍼런스 — CreateDBInstanceReadReplica</a>
+          — 지원 엔진과 Amazon Aurora 미지원</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html">Amazon DynamoDB API 레퍼런스 — CreateTable</a>
+          — LSI 최대 5개·파티션 키 값당 10 GB, GSI 최대 20개, 프로젝션 타입</li>
+        <li><a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/SecondaryIndexes.html">Amazon DynamoDB 개발자 안내서 — 보조 인덱스</a>
+          — 두 인덱스 유형의 비교와 온라인 인덱스 작업</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html">Amazon VPC 사용 설명서 — 보안</a>
+          — 보안 그룹과 네트워크 ACL의 공식 비교표</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html">AWS PrivateLink 개념</a>
+          — 게이트웨이 엔드포인트와 인터페이스 엔드포인트의 차이</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateLoadBalancer.html">Elastic Load Balancing API 레퍼런스 — CreateLoadBalancer</a>
+          — 로드 밸런서 세 유형과 지원 프로토콜(GENEVE 포함)</li>
+        <li><a href="https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_LoadBalancerAttribute.html">Elastic Load Balancing API 레퍼런스 — LoadBalancerAttribute</a>
+          — 교차 영역 로드 밸런싱 기본값과 ALB에서 변경 불가</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html">Amazon S3 사용 설명서 — 스토리지 클래스 사용</a>
+          — 클래스별 가용 영역 수, 최소 저장 기간, 최소 청구 크기, 복원 시간</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html">Amazon S3 사용 설명서 — 수명 주기 전환 시 일반 고려 사항</a>
+          — 30일 전환 제약과 128 KB 미만 객체 제외</li>
+        <li><a href="https://docs.aws.amazon.com/fsx/latest/APIReference/API_CreateFileSystem.html">Amazon FSx API 레퍼런스 — CreateFileSystem</a>
+          — 파일 시스템 유형 네 가지와 배포 유형 열거값</li>
+        <li><a href="https://docs.aws.amazon.com/storagegateway/latest/userguide/StorageGatewayConcepts.html">AWS Storage Gateway 사용 설명서 — 게이트웨이 개념</a>
+          — 캐시형 볼륨과 저장형 볼륨의 데이터 위치</li>
+        <li><a href="https://docs.aws.amazon.com/firehose/latest/dev/what-is-this-service.html">Amazon Data Firehose 개발자 안내서</a>
+          — 버퍼링과 목적지 적재 동작</li>
+        <li><a href="https://docs.aws.amazon.com/streams/latest/dev/introduction.html">Amazon Kinesis Data Streams 개발자 안내서</a>
+          — 보존과 다중 소비자</li>
+        <li><a href="https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html">AWS Lambda 개발자 안내서 — 할당량</a>
+          — 최대 실행 시간 900초</li>
+        <li><a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html">AWS Secrets Manager 사용 설명서 — 소개</a>
+          — 자동 교체와 준비 라벨</li>
+        <li><a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">AWS Systems Manager 사용 설명서 — Parameter Store</a>
+          — 값 유형과 계층 등급</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

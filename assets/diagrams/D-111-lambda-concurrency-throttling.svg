@@ -1,0 +1,85 @@
+<svg viewBox="0 0 720 460" role="img" aria-labelledby="d111-title d111-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d111-title">Lambda 동시성 풀과 예약·프로비저닝된 동시성</title>
+  <desc id="d111-desc">맨 위 막대는 리전마다 하나씩 있는 계정 동시성 한도입니다.
+    예약 동시성을 설정한 함수는 이 풀에서 자기 몫을 미리 떼어 갑니다.
+    떼어 온 몫은 그 함수만 쓸 수 있는 보장인 동시에 그 함수가 넘을 수 없는 상한이기도 합니다.
+    나머지 구간은 예약하지 않은 모든 함수가 먼저 쓰는 쪽이 먼저 가져가는 공유 풀입니다.
+    가운데는 그래서 벌어지는 사고입니다. 공유 풀을 쓰는 함수 하나가 폭주해 풀을 다 써 버리면
+    같은 공유 풀에 있는 다른 함수는 실행 환경을 얻지 못해 호출이 스로틀됩니다.
+    예약 동시성은 바로 이 굶주림을 막는 칸막이입니다.
+    맨 아래는 프로비저닝된 동시성입니다. 온디맨드에서는 요청이 도착한 뒤에 실행 환경을 초기화하느라
+    콜드 스타트 구간이 생기지만, 프로비저닝된 동시성은 요청이 오기 전에 실행 환경을 미리 만들어 두므로
+    요청이 도착하는 즉시 핸들러가 실행됩니다. 예약 동시성은 개수를 나누는 장치이고
+    프로비저닝된 동시성은 지연 시간을 없애는 장치라는 점에서 목적이 다릅니다.</desc>
+
+  <defs>
+    <marker id="d111-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">계정 동시성 한도 — 리전마다 하나의 풀입니다</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="46">예약 동시성은 이 풀에서 몫을 떼어 옵니다. 보장이면서 동시에 상한입니다</text>
+
+  <!-- 동시성 풀 막대 -->
+  <rect class="dg-node dg-node--accent" x="20" y="58" width="170" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="105" y="80" text-anchor="middle">예약 동시성</text>
+  <text class="dg-fs-sm" x="105" y="98" text-anchor="middle">함수 A 전용</text>
+
+  <rect class="dg-node dg-node--accent" x="190" y="58" width="110" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="245" y="80" text-anchor="middle">예약 동시성</text>
+  <text class="dg-fs-sm" x="245" y="98" text-anchor="middle">함수 B 전용</text>
+
+  <rect class="dg-node dg-node--muted" x="300" y="58" width="400" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="500" y="80" text-anchor="middle">예약하지 않은 모든 함수의 공유 풀</text>
+  <text class="dg-fs-sm" x="500" y="98" text-anchor="middle">먼저 쓰는 쪽이 먼저 가져갑니다</text>
+
+  <path class="dg-grid" d="M20 114 L20 122 M300 114 L300 122 M700 114 L700 122 M20 122 L700 122"/>
+  <text class="dg-fs-sm dg-muted" x="360" y="140" text-anchor="middle">두 조각의 합이 계정 한도를 넘을 수 없습니다</text>
+
+  <!-- 폭주 -->
+  <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M500 106 L500 156"/>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="180">한 함수의 폭주가</text>
+  <text class="dg-fs-sm dg-bold" x="20" y="200">다른 함수를 굶깁니다</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="222">예약 동시성은 이 굶주림을</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="240">막는 칸막이입니다</text>
+
+  <rect class="dg-node dg-node--danger" x="350" y="160" width="150" height="58" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="425" y="184" text-anchor="middle">함수 C 폭주</text>
+  <text class="dg-fs-sm" x="425" y="206" text-anchor="middle">공유 풀을 소진</text>
+
+  <path class="dg-edge dg-edge--danger" d="M500 189 L554 189" marker-end="url(#d111-ar-danger)"/>
+
+  <rect class="dg-node dg-node--danger" x="560" y="160" width="140" height="58" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="184" text-anchor="middle">함수 D</text>
+  <text class="dg-fs-sm" x="630" y="206" text-anchor="middle">호출이 스로틀됩니다</text>
+
+  <text class="dg-fs-sm dg-muted" x="350" y="240">함수 A · B 는 예약 몫이 있으므로 영향을 받지 않습니다</text>
+
+  <!-- 프로비저닝된 동시성 -->
+  <path class="dg-grid" d="M20 256 L700 256"/>
+  <text class="dg-fs-md dg-bold" x="20" y="282">프로비저닝된 동시성 — 콜드 스타트 구간 자체를 없앱니다</text>
+
+  <path class="dg-edge dg-edge--dotted" d="M240 292 L240 386"/>
+  <text class="dg-fs-sm dg-bold" x="240" y="404" text-anchor="middle">요청 도착</text>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="316">온디맨드</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="334">초기화부터 시작</text>
+  <rect class="dg-node dg-node--warn" x="240" y="300" width="180" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="330" y="322" text-anchor="middle">콜드 스타트 · 초기화</text>
+  <rect class="dg-node" x="424" y="300" width="180" height="34" rx="4"/>
+  <text class="dg-fs-sm" x="514" y="322" text-anchor="middle">핸들러 실행</text>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="364">프로비저닝됨</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="382">이미 초기화되어 있음</text>
+  <rect class="dg-node dg-node--ok" x="240" y="348" width="180" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="330" y="370" text-anchor="middle">핸들러 실행</text>
+  <text class="dg-fs-sm dg-bold" x="432" y="370">초기화 구간이 없습니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="414" width="680" height="38" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="438" text-anchor="middle">예약 동시성은 개수를 나누는 장치, 프로비저닝된 동시성은 지연 시간을 없애는 장치입니다</text>
+</svg>

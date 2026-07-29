@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>6장 · EBS와 블록 스토리지 — AWS SAA Guide</title>
+  <meta name="description" content="Amazon EBS 볼륨 타입(gp3·gp2·io1·io2·st1·sc1)의 특성과 선택 기준, 2025년 9월에 상향된 gp3 상한, 증분 스냅샷과 AMI의 관계, KMS 기반 암호화의 전파 경로, 멀티 어태치, 그리고 인스턴스 스토어가 중지 시 소실되는 이유를 정리합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="basics" data-page="ch06"></div>
+
+  <main id="main" class="page" data-page-id="basics/ch06">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">기본개념</a></li>
+        <li><span aria-current="page">6장 · EBS와 블록 스토리지</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">기본개념 · 6장</p>
+      <h1>EBS와 블록 스토리지</h1>
+      <p class="page__lead">
+        블록 스토리지 문항은 대개 두 갈래로 갈립니다.
+        <strong>어느 볼륨 타입을 고를 것인가</strong>와
+        <strong>이 데이터가 인스턴스보다 오래 살아남아야 하는가</strong>입니다.
+        전자는 IOPS와 처리량 요구가, 후자는 인스턴스 스토어의 휘발성이 답을 정합니다.
+        그리고 볼륨 타입 판단에는 <strong>2025년에 바뀐 숫자</strong>가 걸려 있습니다.
+      </p>
+      <p class="page__meta">
+        이 장은 <strong>고성능 아키텍처 설계(24%)</strong>와
+        <strong>비용 최적화 아키텍처 설계(20%)</strong>에 걸칩니다. 18장 중 가장 짧지만,
+        여기서 다루는 gp3 상한은 시중 자료가 가장 자주 틀리는 항목입니다.
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>Amazon EBS가 네트워크로 연결된 블록 스토리지라는 성격에서 따라 나오는 제약을 설명할 수 있습니다.</li>
+        <li>EBS와 인스턴스 스토어의 수명 차이를 근거로 어떤 데이터를 어디에 둘지 판단할 수 있습니다.</li>
+        <li>볼륨 타입 여섯 가지를 SSD와 HDD로 나누고, IOPS 요구와 처리량 요구에 맞는 타입을 고를 수 있습니다.</li>
+        <li>gp3의 현행 상한을 말하고, 시중 자료에 남아 있는 옛 값과 구분할 수 있습니다.</li>
+        <li>증분 스냅샷의 과금·삭제 동작과 스냅샷·AMI·볼륨의 관계를 설명할 수 있습니다.</li>
+        <li>EBS 암호화가 스냅샷과 AMI로 전파되는 경로를 따라가고, 미암호화 볼륨을 암호화로 바꾸는 절차를 설명할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="block-storage-basics">
+      <h2 id="block-storage-basics">EBS는 네트워크 너머에 있는 디스크다</h2>
+
+      <p>
+        Amazon EBS 볼륨은 인스턴스에 물리적으로 꽂혀 있지 않습니다.
+        <strong>네트워크로 연결된 블록 디바이스</strong>이고, 인스턴스와는 별개의 수명을 가집니다.
+        이 한 가지 사실에서 실무와 시험의 결론이 대부분 따라 나옵니다.
+      </p>
+      <ul>
+        <li>인스턴스를 종료해도 볼륨은 남길 수 있고, 다른 인스턴스에 다시 붙일 수 있습니다.</li>
+        <li>볼륨은 <strong>특정 가용 영역에 속합니다.</strong> 다른 가용 영역의 인스턴스에는 붙일 수 없습니다.</li>
+        <li>가용 영역이나 리전을 넘기려면 <strong>스냅샷을 거쳐야</strong> 합니다.</li>
+        <li>인스턴스가 중지되어 있어도 볼륨 요금은 계속 발생합니다.</li>
+      </ul>
+
+      <figure class="diagram" data-diagram="D-050">
+        <figcaption>
+          인스턴스 스토어 · Amazon EBS · Amazon EFS의 연결 위치 비교 —
+          인스턴스 스토어는 호스트에 물리적으로 붙어 있고, EBS는 네트워크 너머의 블록 볼륨이며,
+          EFS는 여러 가용 영역의 여러 인스턴스가 동시에 공유하는 파일 시스템입니다
+        </figcaption>
+      </figure>
+
+      <h3 id="ebs-vs-instance-store">EBS와 인스턴스 스토어 — 무엇을 잃는가 <span class="badge badge--saa">SAA 빈출</span></h3>
+      <p>
+        인스턴스 스토어(instance store)는 <strong>호스트 컴퓨터에 물리적으로 붙어 있는 디스크</strong>입니다.
+        네트워크를 거치지 않으므로 지연이 매우 낮지만, 그 대가로 데이터가
+        <strong>인스턴스의 수명 동안만</strong> 유지됩니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>Amazon EBS와 인스턴스 스토어 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">Amazon EBS</th>
+              <th scope="col">인스턴스 스토어</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">연결 방식</th>
+              <td>네트워크로 연결된 블록 디바이스</td>
+              <td>호스트에 물리적으로 부착된 디스크</td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 재부팅</th>
+              <td><span class="mark-ok">데이터 유지</span></td>
+              <td><span class="mark-ok">데이터 유지</span></td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 중지 · 최대 절전</th>
+              <td><span class="mark-ok">데이터 유지</span></td>
+              <td><span class="mark-no">데이터 소실</span></td>
+            </tr>
+            <tr>
+              <th scope="row">인스턴스 종료</th>
+              <td>기본 동작은 루트 볼륨 삭제이며 설정으로 보존 가능</td>
+              <td><span class="mark-no">데이터 소실</span></td>
+            </tr>
+            <tr>
+              <th scope="row">기반 디스크 장애</th>
+              <td>인스턴스 수명과 독립적으로 유지되도록 설계되었고, 스냅샷으로 추가 보호한다</td>
+              <td><span class="mark-no">데이터 소실 — 문서가 명시하는 소실 조건이다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">분리 후 재연결</th>
+              <td><span class="mark-ok">가능 — 같은 가용 영역 안에서</span></td>
+              <td><span class="mark-no">불가 — 시작 시에만 지정할 수 있다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">스냅샷</th>
+              <td><span class="mark-ok">가능</span></td>
+              <td><span class="mark-no">불가 — AMI에도 보존되지 않는다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">적합한 데이터</th>
+              <td>운영체제, 데이터베이스 파일, 유지해야 하는 애플리케이션 데이터</td>
+              <td>버퍼, 캐시, 스크래치 데이터, 여러 인스턴스에 복제해 둔 임시 데이터</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        표에서 가장 자주 출제되는 줄은 <strong>인스턴스 중지</strong>입니다.
+        중지했다 시작하면 인스턴스가 다른 호스트로 옮겨질 수 있고,
+        그 순간 이전 호스트의 인스턴스 스토어 데이터는 접근할 수 없게 됩니다.
+        <strong>재부팅은 다릅니다</strong> — 인스턴스는 계속 같은 호스트에서
+        <code>running</code> 상태이므로 데이터가 남습니다
+        (<a href="ch05.html#instance-lifecycle">5장 인스턴스 수명주기</a>).
+      </p>
+      <p>
+        인스턴스 스토어를 포함하는 인스턴스 타입은 이름에 <code>d</code>가 붙습니다.
+        인스턴스 스토어가 정답이 되는 경우는 <strong>"매우 낮은 지연이 필요하고,
+        데이터가 사라져도 되거나 다른 곳에 복제본이 있다"</strong>는 조건이 모두 성립할 때입니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 고성능 아키텍처 설계">
+        <p>
+          <strong>"인스턴스를 중지했다 시작했더니 데이터가 사라졌다"</strong>는 시나리오의 원인은
+          거의 언제나 인스턴스 스토어입니다. 정답은 데이터를 Amazon EBS로 옮기거나,
+          공유가 필요하면 Amazon EFS, 객체라면 Amazon S3로 옮기는 것입니다.
+        </p>
+        <p>
+          반대로 <strong>"최고 수준의 임시 I/O 성능이 필요하고 데이터는 휘발성이어도 된다"</strong>면
+          인스턴스 스토어가 정답입니다. 캐시 계층이나 셔플 데이터가 그런 예입니다.
+          이때도 <strong>내구성 요구가 함께 있으면 인스턴스 스토어는 소거</strong>됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="volume-types">
+      <h2 id="volume-types">볼륨 타입 — SSD 넷과 HDD 둘</h2>
+
+      <p>
+        EBS 볼륨 타입은 API 열거값 기준으로
+        <code>gp3</code> · <code>gp2</code> · <code>io1</code> · <code>io2</code> ·
+        <code>st1</code> · <code>sc1</code> · <code>standard</code>입니다.
+        앞의 넷이 SSD, 다음 둘이 HDD이고, <code>standard</code>는 구세대 마그네틱 볼륨입니다.
+        <strong>볼륨 타입을 지정하지 않으면 기본값은 <code>gp2</code></strong>입니다.
+      </p>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>EBS 볼륨 타입별 분류 · 크기 범위 · 프로비저닝 가능한 성능</caption>
+          <thead>
+            <tr>
+              <th scope="col">타입</th>
+              <th scope="col">분류</th>
+              <th scope="col">크기 범위</th>
+              <th scope="col">IOPS</th>
+              <th scope="col">처리량</th>
+              <th scope="col">부트 볼륨</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>gp3</code></th>
+              <td>범용 SSD</td>
+              <td>1 – 65,536 GiB (64 TiB)</td>
+              <td>3,000(기본) – <strong>80,000</strong></td>
+              <td>125(기본) – <strong>2,000 MiB/s</strong></td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>gp2</code></th>
+              <td>범용 SSD</td>
+              <td>1 – 16,384 GiB (16 TiB)</td>
+              <td>별도로 지정할 수 없음 — <strong>크기가 성능을 결정</strong></td>
+              <td>별도로 지정할 수 없음</td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>io1</code></th>
+              <td>프로비저닝된 IOPS SSD</td>
+              <td>4 – 16,384 GiB (16 TiB)</td>
+              <td>100 – <strong>64,000</strong></td>
+              <td>지정 파라미터 없음</td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>io2</code></th>
+              <td>프로비저닝된 IOPS SSD</td>
+              <td>4 – 65,536 GiB (64 TiB)</td>
+              <td>100 – <strong>256,000</strong></td>
+              <td>지정 파라미터 없음</td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>st1</code></th>
+              <td>처리량 최적화 HDD</td>
+              <td>125 – 16,384 GiB</td>
+              <td>지정 파라미터 없음</td>
+              <td>지정 파라미터 없음</td>
+              <td><span class="mark-no">불가</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>sc1</code></th>
+              <td>콜드 HDD</td>
+              <td>125 – 16,384 GiB</td>
+              <td>지정 파라미터 없음</td>
+              <td>지정 파라미터 없음</td>
+              <td><span class="mark-no">불가</span></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>standard</code></th>
+              <td>마그네틱(구세대)</td>
+              <td>1 – 1,024 GiB</td>
+              <td>지정 파라미터 없음</td>
+              <td>지정 파라미터 없음</td>
+              <td>구세대이므로 새로 쓰지 않는다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--warn" data-label="이 표에 빠진 숫자에 대하여">
+        <p>
+          위 표의 <code>gp2</code> 최대 IOPS, GiB당 IOPS 비율, <code>st1</code>과 <code>sc1</code>의
+          기준 처리량과 버스트 처리량은 <strong>일부러 비워 두었습니다.</strong>
+          이 값들은 AWS API 모델에 존재하지 않아 1차 소스로 확인하지 못했기 때문입니다.
+          널리 유통되는 숫자가 있지만, 아래 <a href="#gp3-limits-2025">gp3 상한 변경</a>에서 보듯이
+          <strong>"널리 알려진 숫자"가 이미 낡은 값인 경우가 실제로 있습니다.</strong>
+          확인되지 않은 값을 확인된 값처럼 섞어 두면 학습자가 둘을 구분할 수 없으므로 넣지 않습니다.
+        </p>
+      </aside>
+
+      <figure class="chart" data-chart="C-020">
+        <figcaption>
+          프로비저닝할 수 있는 최대 IOPS 비교. <strong><code>io2</code>가 압도적으로 높고, <code>gp3</code>가
+          <code>io1</code>보다 높다</strong>는 것이 이 그림의 결론입니다 —
+          "IOPS가 필요하면 무조건 프로비저닝된 IOPS 타입"이라는 옛 상식이 더 이상 성립하지 않습니다.
+          <code>gp2</code>는 확인된 값이 없어 제외했습니다
+        </figcaption>
+      </figure>
+
+      <figure class="chart" data-chart="C-022">
+        <figcaption>
+          볼륨 타입별 크기 범위. <strong><code>gp3</code>와 <code>io2</code>만 64 TiB까지 올라가고,
+          HDD 두 타입은 125 GiB부터 시작</strong>한다는 점이 선택을 가릅니다
+        </figcaption>
+      </figure>
+
+      <h3 id="gp3-limits-2025">gp3 상한은 2025년 9월에 올라갔다 <span class="badge badge--saa">SAA 빈출</span></h3>
+
+      <aside class="note note--version" data-label="변경 이력">
+        <p>
+          <strong>2025년 9월, <code>gp3</code>의 최대 크기와 최대 프로비저닝 성능이 상향되었습니다.</strong>
+        </p>
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption><code>gp3</code> 상한의 변경 전후 비교</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">이전 값 (시중 자료 다수)</th>
+                <th scope="col">현행 값</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">최대 크기</th>
+                <td>16 TiB</td>
+                <td><strong>64 TiB (65,536 GiB)</strong></td>
+              </tr>
+              <tr>
+                <th scope="row">최대 IOPS</th>
+                <td>16,000</td>
+                <td><strong>80,000</strong></td>
+              </tr>
+              <tr>
+                <th scope="row">최대 처리량</th>
+                <td>1,000 MiB/s</td>
+                <td><strong>2,000 MiB/s</strong></td>
+              </tr>
+              <tr>
+                <th scope="row">기준값</th>
+                <td>3,000 IOPS / 125 MiB/s</td>
+                <td>3,000 IOPS / 125 MiB/s <span class="mark-ok">변경 없음</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          한국어 SAA 자료 상당수와 여러 블로그가 아직 <strong>"gp3는 최대 16,000 IOPS, 1,000 MiB/s"</strong>로 적고 있습니다.
+          그 서술로 공부하면 <strong>"gp3로는 부족하니 io1으로 가야 한다"</strong>는 잘못된 결론에 이릅니다.
+          현행 기준으로는 <code>gp3</code>의 최대 IOPS가 <code>io1</code>보다 높습니다.
+        </p>
+        <p>
+          바뀐 것은 <strong>상한</strong>이고 기준값은 그대로입니다.
+          <code>gp3</code>는 크기와 무관하게 <strong>3,000 IOPS와 125 MiB/s를 기본으로 제공</strong>하며,
+          더 필요한 만큼만 따로 프로비저닝합니다. 성능과 용량이 분리되어 있다는 것이 <code>gp3</code>의 핵심 성질입니다.
+        </p>
+      </aside>
+
+      <figure class="chart" data-chart="C-021">
+        <figcaption>
+          <code>gp3</code>의 옛 값과 현행 값 비교. <strong>세 항목이 모두 상향되었고 기준값만 그대로</strong>입니다.
+          이 차이를 모르면 볼륨 타입 선택 문항에서 불필요하게 비싼 답을 고르게 됩니다
+        </figcaption>
+      </figure>
+
+      <h3 id="ssd-vs-hdd">SSD와 HDD — IOPS인가 처리량인가</h3>
+      <p>
+        SSD 계열은 <strong>작은 I/O가 자주 일어나는 트랜잭션 워크로드</strong>에,
+        HDD 계열은 <strong>큰 블록을 순차적으로 읽고 쓰는 스트리밍 워크로드</strong>에 맞습니다.
+        판단 기준은 "빠른가"가 아니라 <strong>지배적인 성능 지표가 IOPS인가 처리량인가</strong>입니다.
+      </p>
+      <p>
+        HDD 두 타입에는 결정적인 제약이 하나 더 있습니다 —
+        <strong><code>st1</code>과 <code>sc1</code>은 부트 볼륨으로 쓸 수 없습니다.</strong>
+        "운영체제를 sc1에 올려 비용을 줄인다"는 선택지는 그 자리에서 소거됩니다.
+      </p>
+
+      <h3 id="ebs-volume-choice">볼륨 타입 선택 기준</h3>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요구사항에 따른 EBS 볼륨 타입 배정</caption>
+          <thead>
+            <tr>
+              <th scope="col">요구사항</th>
+              <th scope="col">선택</th>
+              <th scope="col">근거</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">대부분의 범용 워크로드, 부트 볼륨</th>
+              <td><code>gp3</code></td>
+              <td>기준 성능이 크기와 무관하고, 필요한 만큼만 성능을 따로 올릴 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">매우 높은 IOPS가 지속적으로 필요한 데이터베이스</th>
+              <td><code>io2</code></td>
+              <td>프로비저닝 가능한 IOPS 상한이 가장 높다</td>
+            </tr>
+            <tr>
+              <th scope="row">여러 인스턴스가 한 볼륨을 동시에 붙여야 함</th>
+              <td><code>io1</code> 또는 <code>io2</code></td>
+              <td>멀티 어태치는 이 두 타입에서만 지원된다</td>
+            </tr>
+            <tr>
+              <th scope="row">큰 파일을 순차적으로 읽는 빅데이터 · 로그 처리</th>
+              <td><code>st1</code></td>
+              <td>처리량 중심 워크로드에 맞고 SSD보다 저렴하다. 단 부트 볼륨 불가</td>
+            </tr>
+            <tr>
+              <th scope="row">접근 빈도가 매우 낮은 아카이브성 데이터</th>
+              <td><code>sc1</code></td>
+              <td>EBS 계열에서 가장 저렴하다. 단 부트 볼륨 불가</td>
+            </tr>
+            <tr>
+              <th scope="row">지연이 극도로 낮아야 하고 데이터는 휘발성이어도 됨</th>
+              <td>인스턴스 스토어</td>
+              <td>네트워크를 거치지 않는다. 대신 중지·종료 시 소실된다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        비용 관점의 기본 판단은 <strong><code>gp2</code>를 쓰고 있다면 <code>gp3</code>로 옮기는 것</strong>입니다.
+        <code>gp2</code>는 성능이 크기에 묶여 있어서, 성능이 필요하면 필요 없는 용량까지 사야 합니다.
+        <code>gp3</code>는 용량과 성능을 따로 정하므로 같은 성능을 더 작은 용량으로 얻을 수 있습니다.
+      </p>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          볼륨 타입 문항의 판단 순서입니다.
+        </p>
+        <ul>
+          <li><strong>부트 볼륨인가</strong> — 그렇다면 HDD 두 타입은 즉시 소거합니다.</li>
+          <li><strong>지배 지표가 IOPS인가 처리량인가</strong> — IOPS면 SSD, 처리량이면 HDD입니다.</li>
+          <li><strong>여러 인스턴스가 동시에 붙어야 하는가</strong> — <code>io1</code> · <code>io2</code>만 가능합니다.
+            다만 <strong>동시 접근이 파일 공유를 뜻한다면 답은 Amazon EFS</strong>일 가능성이 더 높습니다.</li>
+          <li><strong>비용 한정어가 붙었는가</strong> — 같은 성능을 <code>gp3</code>로 얻을 수 있다면 <code>gp3</code>입니다.</li>
+        </ul>
+        <p>
+          <strong>"IOPS 요구가 크면 자동으로 프로비저닝된 IOPS 타입"이라고 외우지 않습니다.</strong>
+          현행 <code>gp3</code>의 상한이 <code>io1</code>보다 높으므로, 요구 수치를 먼저 보고 판단해야 합니다.
+        </p>
+      </aside>
+
+      <h3 id="instance-side-limit">인스턴스 쪽 한계도 함께 본다</h3>
+      <p>
+        볼륨에 IOPS를 아무리 프로비저닝해도 인스턴스가 받아 주지 못하면 소용이 없습니다.
+        API 문서는 <strong>Nitro 시스템 기반 인스턴스는 최대 256,000 IOPS를,
+        그 외 인스턴스는 최대 32,000 IOPS를 지원</strong>한다고 명시합니다.
+        또한 인스턴스에 붙일 수 있는 EBS 볼륨 개수는 인스턴스 타입에 따라 다르고,
+        한도를 넘기면 연결 요청이 실패합니다.
+        <strong>스토리지 성능은 볼륨과 인스턴스 두 쪽의 최솟값</strong>이라는 점을 기억합니다.
+      </p>
+
+      <h3 id="elastic-volumes">볼륨 변경 — 대체로 무중단</h3>
+      <p>
+        현재 세대 인스턴스에 붙어 있는 볼륨이라면
+        <strong>크기 · 볼륨 타입 · IOPS를 인스턴스를 멈추지 않고 변경</strong>할 수 있습니다.
+        변경이 끝난 뒤에는 <strong>운영체제에서 파일 시스템을 확장</strong>해야 늘어난 공간을 쓸 수 있습니다.
+        하나의 볼륨은 <strong>24시간 이동 구간 안에서 최대 4회까지</strong> 변경할 수 있고,
+        이전 변경이 완료되기 전에는 다음 변경을 시작할 수 없습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">modify-volume.sh</span> — gp2 볼륨을 gp3로 전환하며 성능을 지정 (리소스 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">aws ec2 modify-volume \
+  --volume-id vol-0123456789abcdef0 \
+  --volume-type gp3 \
+  --iops 6000 \
+  --throughput 250
+
+# 변경 진행 상황 확인
+aws ec2 describe-volumes-modifications \
+  --volume-ids vol-0123456789abcdef0 \
+  --query 'VolumesModifications[].[ModificationState,Progress,TargetVolumeType]' \
+  --output table</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="snapshots">
+      <h2 id="snapshots">스냅샷 — 증분으로 저장되고 복원은 즉시 시작된다</h2>
+
+      <p>
+        EBS 스냅샷은 볼륨의 데이터를 Amazon S3에 백업하는 시점 복사본입니다.
+        여기서 "S3에 저장된다"는 것은 AWS가 관리하는 영역이라는 뜻이고,
+        <strong>우리 계정의 S3 버킷에 객체로 보이지는 않습니다.</strong>
+      </p>
+
+      <h3 id="incremental-snapshot">증분 스냅샷의 실제 동작</h3>
+      <p>
+        볼륨의 <strong>첫 스냅샷은 전체 스냅샷</strong>이고,
+        이후 스냅샷은 <strong>직전 스냅샷 이후 변경되거나 추가된 블록만</strong> 담습니다.
+        전체 스냅샷의 크기도 볼륨 크기가 아니라 <strong>실제로 쓰인 데이터 크기</strong>로 정해집니다.
+        200 GiB 볼륨에 50 GiB만 쓰여 있다면 첫 스냅샷은 50 GiB입니다.
+      </p>
+      <p>
+        여기서 자주 놓치는 지점이 <strong>삭제 동작</strong>입니다.
+        스냅샷을 지우면 <strong>그 스냅샷만 참조하던 데이터</strong>만 제거되고,
+        다른 스냅샷도 참조하는 블록은 남습니다.
+        그래서 <strong>스냅샷을 하나 지웠다고 저장 비용이 그만큼 줄지 않습니다.</strong>
+      </p>
+      <p>
+        복원은 반대 방향입니다. 스냅샷으로 볼륨을 만들면
+        <strong>데이터가 백그라운드에서 로드되는 동안에도 볼륨을 바로 쓸 수 있고</strong>,
+        아직 로드되지 않은 블록에 접근하면 그 블록을 즉시 내려받습니다.
+        "복원이 끝날 때까지 기다려야 한다"는 서술은 사실이 아닙니다.
+      </p>
+      <p>
+        사용 중인 볼륨의 스냅샷도 찍을 수 있지만,
+        스냅샷은 <strong>명령을 낸 시점까지 볼륨에 기록된 데이터만</strong> 담습니다.
+        애플리케이션이나 운영체제가 캐시에 들고 있던 데이터는 빠질 수 있으므로,
+        일관성이 중요하면 파일 시스템 쓰기를 잠깐 멈추거나 볼륨을 언마운트한 뒤 찍습니다.
+        여러 볼륨에 걸친 <strong>다중 볼륨 스냅샷</strong>을 쓰면
+        인스턴스에 붙은 볼륨들의 시점을 맞춰 한 번에 찍을 수 있습니다.
+      </p>
+
+      <h3 id="snapshot-and-ami">스냅샷 · AMI · 볼륨의 관계</h3>
+
+      <figure class="diagram" data-diagram="D-051">
+        <figcaption>
+          볼륨에서 스냅샷으로, 스냅샷에서 AMI와 새 볼륨으로 이어지는 관계 —
+          AMI는 스냅샷에 시작 메타데이터와 블록 디바이스 매핑을 더한 것이고,
+          리전 간 이동은 스냅샷 또는 AMI 복사로 일어납니다
+        </figcaption>
+      </figure>
+
+      <p>
+        AMI는 <strong>스냅샷 + 시작 메타데이터</strong>라고 이해하면 관계가 정리됩니다.
+        EBS 기반 인스턴스에서 AMI를 만들면 연결된 볼륨의 스냅샷이 함께 생성되고,
+        AMI에는 그 스냅샷을 어떤 디바이스에 붙일지 적은 블록 디바이스 매핑이 들어갑니다.
+        루트 볼륨 스냅샷 하나만 가지고 <code>RegisterImage</code>로 AMI를 만들 수도 있습니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>스냅샷 · AMI · 볼륨의 범위와 이동 방법</caption>
+          <thead>
+            <tr>
+              <th scope="col">리소스</th>
+              <th scope="col">범위</th>
+              <th scope="col">다른 위치로 옮기는 방법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">EBS 볼륨</th>
+              <td><strong>가용 영역</strong> 단위</td>
+              <td>스냅샷을 찍고 다른 가용 영역에서 볼륨을 새로 만든다</td>
+            </tr>
+            <tr>
+              <th scope="row">스냅샷</th>
+              <td><strong>리전</strong> 단위</td>
+              <td><code>CopySnapshot</code>으로 다른 리전에 복사한다</td>
+            </tr>
+            <tr>
+              <th scope="row">AMI</th>
+              <td><strong>리전</strong> 단위</td>
+              <td><code>CopyImage</code>로 복사하며, 복사는 <strong>대상 리전에서</strong> 시작한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        재해 복구 설계에서 이 표가 그대로 쓰입니다.
+        다른 리전으로 워크로드를 옮길 수 있게 하려면 <strong>스냅샷이나 AMI를 미리 복사</strong>해 두어야 하고,
+        그 복사 작업 자체를 자동화하는 것이 Amazon Data Lifecycle Manager나 AWS Backup의 역할입니다
+        (<a href="ch18.html">18장 비용 최적화·마이그레이션·재해 복구</a>).
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">snapshot-and-copy.sh</span> — 스냅샷 생성과 리전 간 복사 (리소스 ID와 리전은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">SNAP_ID=$(aws ec2 create-snapshot \
+  --volume-id vol-0123456789abcdef0 \
+  --description "nightly backup" \
+  --query 'SnapshotId' --output text)
+
+aws ec2 wait snapshot-completed --snapshot-ids "$SNAP_ID"
+
+# 복사 명령은 대상 리전에서 실행합니다.
+aws ec2 copy-snapshot \
+  --source-region ap-northeast-2 \
+  --source-snapshot-id "$SNAP_ID" \
+  --description "DR copy" \
+  --encrypted \
+  --region us-west-2</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 복원력 있는 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <p>
+          스냅샷 문항에서 반복되는 세 가지 사실입니다.
+        </p>
+        <ul>
+          <li><strong>증분이다</strong> — 그래서 백업 주기를 촘촘히 해도 저장량이 선형으로 늘지 않고,
+            <strong>스냅샷 하나를 지워도 그만큼 줄지 않습니다.</strong></li>
+          <li><strong>가용 영역을 넘으려면 스냅샷을 거쳐야 한다</strong> — 볼륨을 다른 가용 영역으로 직접 옮길 수 없습니다.</li>
+          <li><strong>리전을 넘으려면 복사해야 한다</strong> — 자동으로 다른 리전에 생기지 않습니다.</li>
+        </ul>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="ebs-encryption">
+      <h2 id="ebs-encryption">암호화 — 한 번 켜지면 따라다닌다</h2>
+
+      <p>
+        EBS 암호화는 AWS KMS 키를 써서 <strong>봉투 암호화(envelope encryption)</strong> 방식으로 동작합니다.
+        KMS가 데이터 키를 만들고 그 데이터 키를 우리가 지정한 KMS 키로 암호화해서 볼륨 메타데이터와 함께 저장합니다.
+        실제 디스크 I/O는 <strong>AES-256</strong> 데이터 키로 하이퍼바이저에서 암호화되며,
+        평문 데이터 키는 볼륨이 인스턴스에 붙어 있는 동안 메모리에만 존재합니다.
+      </p>
+      <p>
+        암호화된 볼륨을 쓰면 다음 네 가지가 함께 암호화됩니다.
+      </p>
+      <ul>
+        <li>볼륨 안에 저장된 데이터</li>
+        <li><strong>볼륨과 인스턴스 사이를 오가는 데이터</strong></li>
+        <li>그 볼륨에서 만든 <strong>모든 스냅샷</strong></li>
+        <li>그 스냅샷에서 만든 <strong>모든 볼륨</strong></li>
+      </ul>
+      <p>
+        암호화와 복호화는 투명하게 처리되어 애플리케이션이 따로 할 일이 없고,
+        <strong>모든 볼륨 타입에서 암호화를 지원</strong>하며 IOPS 성능도 사실상 동일합니다.
+        "암호화하면 느려지니 성능이 중요한 볼륨은 끈다"는 판단은 근거가 없습니다.
+      </p>
+
+      <figure class="diagram" data-diagram="D-052">
+        <figcaption>
+          EBS 암호화의 전파 경로 — KMS 키로 만든 볼륨에서 나온 스냅샷과 그 스냅샷에서 만든 볼륨·AMI가 암호화를 상속하며,
+          미암호화 볼륨을 암호화하려면 스냅샷을 암호화 옵션으로 복사하는 단계를 거쳐야 합니다
+        </figcaption>
+      </figure>
+
+      <h3 id="encryption-by-default">계정 수준 기본 암호화</h3>
+      <p>
+        계정과 리전 단위로 <strong>EBS 기본 암호화</strong>를 켤 수 있습니다.
+        켜면 그 이후에 만드는 볼륨이 항상 암호화되며,
+        키를 따로 지정하지 않으면 EBS용 기본 KMS 키가 쓰입니다.
+        중요한 제약이 둘 있습니다.
+      </p>
+      <ul>
+        <li><strong>기존 볼륨의 암호화 상태는 바뀌지 않습니다.</strong> 앞으로 만드는 볼륨에만 적용됩니다.</li>
+        <li>기본 암호화를 켠 뒤에는 <strong>암호화를 지원하지 않는 인스턴스 타입으로 시작할 수 없습니다.</strong></li>
+      </ul>
+
+      <h3 id="encrypt-existing-volume">이미 만든 미암호화 볼륨을 암호화하려면</h3>
+      <p>
+        볼륨의 암호화 상태는 <strong>제자리에서 바꿀 수 없습니다.</strong>
+        스냅샷을 거치는 우회 경로를 써야 합니다.
+      </p>
+      <ol>
+        <li>미암호화 볼륨의 스냅샷을 만듭니다.</li>
+        <li>그 스냅샷을 <strong>암호화 옵션을 켜서 복사</strong>합니다.</li>
+        <li>복사된 암호화 스냅샷에서 새 볼륨을 만듭니다.</li>
+        <li>인스턴스를 중지하고 기존 볼륨을 떼어 낸 뒤 새 볼륨을 붙입니다.</li>
+      </ol>
+      <p>
+        같은 이유로 <strong>암호화된 AMI를 만들려면</strong> 스냅샷 복사 단계에서 암호화를 지정하고
+        그 스냅샷으로 AMI를 등록합니다. 암호화된 스냅샷에서 만든 볼륨은 자동으로 암호화됩니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">encrypt-existing-volume.sh</span> — 미암호화 볼륨을 암호화 볼륨으로 전환 (리소스 ID는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">SNAP_ID=$(aws ec2 create-snapshot \
+  --volume-id vol-0123456789abcdef0 \
+  --query 'SnapshotId' --output text)
+aws ec2 wait snapshot-completed --snapshot-ids "$SNAP_ID"
+
+# 복사 단계에서 암호화를 켭니다. 고객 관리형 키를 지정할 수 있습니다.
+ENC_SNAP=$(aws ec2 copy-snapshot \
+  --source-region ap-northeast-2 \
+  --source-snapshot-id "$SNAP_ID" \
+  --encrypted \
+  --kms-key-id alias/ebs-app-key \
+  --query 'SnapshotId' --output text)
+
+aws ec2 create-volume \
+  --snapshot-id "$ENC_SNAP" \
+  --availability-zone ap-northeast-2a \
+  --volume-type gp3</code></pre>
+      </figure>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 보안 아키텍처 설계">
+        <p>
+          <strong>"기존 EBS 볼륨을 암호화하라"</strong>는 요구의 정답은 언제나
+          <strong>스냅샷 → 암호화 복사 → 새 볼륨</strong> 경로입니다.
+          "볼륨 속성에서 암호화를 켠다"는 선택지는 존재하지 않는 동작이므로 오답입니다.
+        </p>
+        <p>
+          <strong>"키 사용을 감사하고 교체 주기를 통제해야 한다"</strong>는 조건이 붙으면
+          기본 KMS 키가 아니라 <strong>고객 관리형 키</strong>를 지정합니다.
+          키 정책과 교체는 <a href="ch16.html">16장 보안·암호화·거버넌스</a>에서 다룹니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="multi-attach">
+      <h2 id="multi-attach">멀티 어태치 — 공유 파일 시스템이 아니다</h2>
+
+      <p>
+        EBS 멀티 어태치(Multi-Attach)는 볼륨 하나를 여러 인스턴스에 동시에 붙이는 기능입니다.
+        조건이 상당히 엄격합니다.
+      </p>
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>멀티 어태치의 조건과 제약</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">내용</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">지원 볼륨 타입</th>
+              <td><code>io1</code>과 <code>io2</code>만 지원한다</td>
+            </tr>
+            <tr>
+              <th scope="row">연결 가능 인스턴스</th>
+              <td><strong>같은 가용 영역</strong>의 Nitro 시스템 기반 인스턴스 <strong>최대 16대</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">기본값</th>
+              <td>비활성. 볼륨 생성 시 명시적으로 켜야 한다</td>
+            </tr>
+            <tr>
+              <th scope="row">부트 볼륨</th>
+              <td><span class="mark-no">불가</span></td>
+            </tr>
+            <tr>
+              <th scope="row">파일 시스템</th>
+              <td>XFS·EXT4 같은 <strong>일반 파일 시스템은 쓸 수 없다.</strong> 클러스터 파일 시스템이 필요하다</td>
+            </tr>
+            <tr>
+              <th scope="row">I/O 펜싱</th>
+              <td>지원하지 않는다. <strong>쓰기 순서 제어는 애플리케이션의 책임</strong>이다</td>
+            </tr>
+            <tr>
+              <th scope="row">성능</th>
+              <td>연결된 인스턴스들의 합산 성능이 볼륨의 프로비저닝된 성능을 넘지 못한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          <strong>"여러 인스턴스가 같은 데이터를 공유해야 한다"는 요구에 멀티 어태치를 고르는 것은
+          대체로 오답입니다.</strong>
+          멀티 어태치는 <strong>같은 가용 영역에 묶이고</strong> 일반 파일 시스템을 쓸 수 없어서,
+          일반적인 파일 공유 요구를 만족시키지 못합니다.
+          공유 파일 시스템이 필요하면 <strong>Amazon EFS</strong>(Linux, 다중 가용 영역)나
+          <strong>Amazon FSx</strong>가 답입니다(<a href="ch09.html">9장 파일 스토리지와 데이터 전송</a>).
+        </p>
+        <p>
+          멀티 어태치가 실제로 맞는 경우는 <strong>클러스터 파일 시스템이나
+          공유 디스크를 전제로 설계된 클러스터 소프트웨어</strong>를 쓸 때로 좁습니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls" id="common-misconceptions">
+      <h2 id="pitfalls">흔한 오해</h2>
+
+      <aside class="note note--warn" data-label="오해 1">
+        <p>
+          <strong>"gp3는 최대 16,000 IOPS, 1,000 MiB/s이다"</strong> —
+          <strong>2025년 9월에 상향되어 현행 상한은 80,000 IOPS · 2,000 MiB/s · 64 TiB입니다.</strong>
+          시중 한국어 자료와 여러 요약 글이 아직 옛 값을 싣고 있어서,
+          그대로 외우면 <strong>"gp3로는 부족하니 io1으로 가야 한다"</strong>는 잘못된 결론에 이릅니다.
+          현행 기준으로 <code>gp3</code>의 최대 IOPS는 <code>io1</code>보다 높습니다.
+          기준값 3,000 IOPS · 125 MiB/s는 바뀌지 않았다는 점도 함께 기억합니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 2">
+        <p>
+          <strong>"증분 스냅샷이니 오래된 스냅샷을 지우면 그만큼 용량이 준다"</strong> —
+          스냅샷을 지울 때 사라지는 것은 <strong>그 스냅샷만 참조하던 블록</strong>뿐입니다.
+          다른 스냅샷도 참조하는 블록은 그대로 남으므로,
+          스냅샷 하나를 지웠다고 저장량이 그 스냅샷 크기만큼 줄지 않습니다.
+          반대로 <strong>가장 오래된 스냅샷을 지워도 이후 스냅샷으로 복원하는 데는 문제가 없습니다</strong> —
+          필요한 블록은 남아 있기 때문입니다.
+        </p>
+      </aside>
+
+      <aside class="note note--warn" data-label="오해 3">
+        <p>
+          <strong>"멀티 어태치를 쓰면 여러 서버가 파일을 공유할 수 있다"</strong> —
+          멀티 어태치는 <code>io1</code>·<code>io2</code>에서만,
+          <strong>같은 가용 영역의</strong> Nitro 인스턴스 최대 16대에만 동작하고,
+          XFS·EXT4 같은 일반 파일 시스템으로 쓰면 데이터가 손상됩니다.
+          I/O 펜싱도 지원하지 않아 쓰기 순서를 애플리케이션이 직접 보장해야 합니다.
+          일반적인 파일 공유 요구의 답은 <strong>Amazon EFS 또는 Amazon FSx</strong>입니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="exam-points">
+      <h2 id="exam-points">시험 포인트 정리</h2>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 고성능 아키텍처 설계, 비용 최적화 아키텍처 설계">
+        <div class="table-scroll">
+          <table class="config-table">
+            <caption>6장 핵심 암기 항목과 함정</caption>
+            <thead>
+              <tr>
+                <th scope="col">항목</th>
+                <th scope="col">사실</th>
+                <th scope="col">함정</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">EBS의 범위</th>
+                <td><strong>가용 영역 단위.</strong> 다른 가용 영역의 인스턴스에는 붙일 수 없다</td>
+                <td>볼륨을 다른 가용 영역으로 직접 옮기려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">기본 볼륨 타입</th>
+                <td>타입을 지정하지 않으면 <code>gp2</code></td>
+                <td>기본이 <code>gp3</code>라고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>gp3</code> 상한 (2025-09)</th>
+                <td><strong>64 TiB · 80,000 IOPS · 2,000 MiB/s.</strong> 기준값은 3,000 IOPS · 125 MiB/s</td>
+                <td>옛 값(16 TiB · 16,000 · 1,000)으로 판단해 불필요하게 <code>io1</code>을 고름</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>io1</code>과 <code>io2</code></th>
+                <td><code>io1</code>은 최대 64,000 IOPS · 16 TiB, <code>io2</code>는 최대 <strong>256,000 IOPS</strong> · 64 TiB</td>
+                <td>두 타입의 상한을 같다고 봄</td>
+              </tr>
+              <tr>
+                <th scope="row"><code>gp2</code>의 성능</th>
+                <td><code>Iops</code> 파라미터를 받지 않는다 — <strong>크기가 성능을 결정</strong>한다</td>
+                <td><code>gp2</code>에 IOPS를 따로 지정할 수 있다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">HDD 부트 볼륨</th>
+                <td><code>st1</code>과 <code>sc1</code>은 <strong>부트 볼륨으로 쓸 수 없다</strong></td>
+                <td>비용 절감을 이유로 운영체제를 <code>sc1</code>에 두는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">인스턴스 쪽 IOPS 한계</th>
+                <td>Nitro 기반은 최대 256,000, 그 외는 최대 32,000 IOPS</td>
+                <td>볼륨만 보고 성능을 계산</td>
+              </tr>
+              <tr>
+                <th scope="row">인스턴스 스토어의 휘발성</th>
+                <td><strong>중지 · 최대 절전 · 종료 · 디스크 장애 시 소실.</strong> 재부팅은 유지</td>
+                <td>중지와 재부팅을 같은 것으로 취급</td>
+              </tr>
+              <tr>
+                <th scope="row">인스턴스 스토어와 AMI</th>
+                <td>인스턴스 스토어 데이터는 <strong>AMI에 보존되지 않는다</strong></td>
+                <td>AMI로 데이터까지 옮길 수 있다고 가정</td>
+              </tr>
+              <tr>
+                <th scope="row">증분 스냅샷</th>
+                <td>첫 스냅샷만 전체이고 이후는 변경 블록만. <strong>크기는 볼륨 크기가 아니라 데이터 크기</strong></td>
+                <td>스냅샷마다 볼륨 전체가 복사된다고 생각</td>
+              </tr>
+              <tr>
+                <th scope="row">스냅샷 삭제</th>
+                <td>그 스냅샷만 참조하던 블록만 제거된다</td>
+                <td>스냅샷 하나를 지우면 그 크기만큼 절약된다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">스냅샷 복원</th>
+                <td>백그라운드 로드 중에도 <strong>볼륨을 즉시 사용</strong>할 수 있다</td>
+                <td>복원 완료까지 기다려야 한다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">AMI의 정체</th>
+                <td><strong>스냅샷 + 블록 디바이스 매핑 + 시작 메타데이터</strong>. 리전 단위 리소스</td>
+                <td>AMI를 다른 리전에서 그대로 참조하려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">암호화 전파</th>
+                <td>암호화 볼륨의 <strong>스냅샷과 그 스냅샷에서 만든 볼륨은 모두 암호화</strong>된다</td>
+                <td>스냅샷을 거치면 암호화가 풀린다고 생각</td>
+              </tr>
+              <tr>
+                <th scope="row">기존 볼륨 암호화</th>
+                <td>제자리 변경 불가. <strong>스냅샷 → 암호화 복사 → 새 볼륨</strong></td>
+                <td>"볼륨 설정에서 암호화를 켠다"는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">기본 암호화</th>
+                <td>계정·리전 단위로 켜며 <strong>기존 볼륨에는 영향이 없다</strong></td>
+                <td>켜면 기존 볼륨도 암호화된다고 답함</td>
+              </tr>
+              <tr>
+                <th scope="row">암호화 성능</th>
+                <td>모든 볼륨 타입에서 지원되고 IOPS 성능은 사실상 동일하다</td>
+                <td>성능을 이유로 암호화를 끄는 선택지를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">멀티 어태치</th>
+                <td><code>io1</code>·<code>io2</code>만, <strong>같은 가용 영역</strong>의 Nitro 인스턴스 <strong>최대 16대</strong></td>
+                <td>다중 가용 영역 파일 공유 요구에 멀티 어태치를 고름</td>
+              </tr>
+              <tr>
+                <th scope="row">공유 파일 시스템</th>
+                <td>다중 가용 영역 공유는 <strong>Amazon EFS</strong>(또는 FSx)의 영역이다</td>
+                <td>EBS로 공유 스토리지를 만들려 함</td>
+              </tr>
+              <tr>
+                <th scope="row">볼륨 변경</th>
+                <td>크기·타입·IOPS를 대체로 무중단 변경. <strong>24시간 안에 최대 4회</strong>, 이후 파일 시스템 확장 필요</td>
+                <td>볼륨을 키우면 파일 시스템도 자동으로 커진다고 가정</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      <aside class="note note--exam" data-label="시험 포인트 · 비용 최적화 아키텍처 설계">
+        <p>
+          이 장의 비용 판단은 세 가지입니다.
+          <strong>(1) <code>gp2</code>를 <code>gp3</code>로 옮깁니다</strong> —
+          <code>gp2</code>는 성능이 크기에 묶여 있어 필요 없는 용량까지 사게 됩니다.
+          <strong>(2) 쓰지 않는 볼륨과 오래된 스냅샷을 정리합니다</strong> —
+          중지된 인스턴스의 볼륨과 연결되지 않은 볼륨도 계속 과금됩니다.
+          <strong>(3) 처리량 중심 워크로드에 SSD를 쓰지 않습니다</strong> —
+          순차 읽기가 지배적이면 <code>st1</code>이 더 저렴합니다.
+          이 사이트는 금액을 싣지 않으므로 판단은 언제나 <strong>상대 비교</strong>로 합니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="check-quiz">
+      <h2 id="check-quiz">확인 문제</h2>
+      <p>
+        이 장의 핵심을 확인하는 10문항입니다. 키보드만으로 완주할 수 있습니다 —
+        숫자키 <kbd>1</kbd>~<kbd>5</kbd>로 선택지를 고르고 <kbd>Enter</kbd>로 제출합니다.
+      </p>
+      <div class="quiz-embed" data-set="basics-ch06" data-count="10"></div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="ch05.html">
+          <span class="card__title">5장 · EC2와 컴퓨트</span>
+          <span class="card__desc">볼륨이 붙는 인스턴스 쪽 이야기입니다. 인스턴스 수명주기와 중지·재부팅의 차이를 여기서 확인합니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch09.html">
+          <span class="card__title">9장 · 파일 스토리지와 데이터 전송</span>
+          <span class="card__desc">여러 인스턴스가 동시에 쓰는 공유 스토리지는 EBS가 아니라 EFS와 FSx의 영역입니다.</span>
+          <span class="card__meta">기본개념</span>
+        </a></li>
+        <li><a class="card" href="ch16.html">
+          <span class="card__title">16장 · 보안·암호화·거버넌스</span>
+          <span class="card__desc">EBS 암호화가 기대는 AWS KMS의 키 종류, 키 정책, 봉투 암호화를 정면으로 다룹니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="ch18.html">
+          <span class="card__title">18장 · 비용 최적화·마이그레이션·재해 복구</span>
+          <span class="card__desc">스냅샷 복사와 AMI 복사가 재해 복구 전략에서 어떤 위치에 놓이는지 이어서 봅니다.</span>
+          <span class="card__meta">기본개념 · SAA 최우선</span>
+        </a></li>
+        <li><a class="card" href="../cheatsheet/limits.html">
+          <span class="card__title">한도와 기본값 빠른참조</span>
+          <span class="card__desc">볼륨 타입별 상한처럼 반드시 외워야 하는 숫자를 확인된 값만 모아 두었습니다.</span>
+          <span class="card__meta">빠른참조</span>
+        </a></li>
+        <li><a class="card" href="../saa/domain-performance.html">
+          <span class="card__title">고성능 아키텍처 설계 (24%)</span>
+          <span class="card__desc">스토리지 성능 선택은 이 도메인의 첫 번째 과제 진술에 해당합니다.</span>
+          <span class="card__meta">시험 대비</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <p>이 장의 수치 · 기본값 · 동작은 모두 아래 문서에서 확인했습니다.</p>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVolume.html">Amazon EC2 API 레퍼런스 — CreateVolume</a>
+          — 볼륨 타입별 크기 범위, <code>gp3</code> 3,000–80,000 IOPS와 125–2,000 MiB/s, <code>io1</code> 100–64,000 IOPS,
+          <code>io2</code> 100–256,000 IOPS, Nitro 기반 인스턴스의 256,000 IOPS 한계, 기본 타입 <code>gp2</code>,
+          <code>st1</code>·<code>sc1</code>의 부트 볼륨 사용 불가, 멀티 어태치 최대 16대</li>
+        <li><a href="https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html">Amazon EBS 사용 설명서 — 볼륨 유형</a>
+          — SSD와 HDD 분류, 각 타입의 대표 워크로드</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html">Amazon EC2 사용 설명서 — 인스턴스 스토어</a>
+          — 인스턴스 스토어 데이터가 디스크 장애 · 중지 · 최대 절전 · 종료 시 소실되고 재부팅에는 유지된다는 서술,
+          AMI에 보존되지 않는다는 점, 시작 시에만 지정할 수 있다는 제약</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html">Amazon EC2 사용 설명서 — EBS 스냅샷</a>
+          — 증분 백업의 정의, 첫 스냅샷이 전체이고 이후가 증분이라는 점, 크기가 데이터 크기로 결정된다는 점,
+          삭제 시 해당 스냅샷만 참조하는 데이터가 제거된다는 점, 복원 중에도 볼륨을 즉시 사용할 수 있다는 점, 다중 볼륨 스냅샷</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateSnapshot.html">Amazon EC2 API 레퍼런스 — CreateSnapshot</a>
+          — 사용 중인 볼륨의 스냅샷이 명령 시점까지 기록된 데이터만 담는다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CopySnapshot.html">Amazon EC2 API 레퍼런스 — CopySnapshot</a>
+          — 리전 간 스냅샷 복사와 복사 시 암호화 결과가 결정되는 방식</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateImage.html">Amazon EC2 API 레퍼런스 — CreateImage</a>
+          — AMI 생성 시 추가 볼륨의 블록 디바이스 매핑이 함께 담긴다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RegisterImage.html">Amazon EC2 API 레퍼런스 — RegisterImage</a>
+          — 루트 볼륨 스냅샷으로 AMI를 등록할 수 있고, 스냅샷이 암호화되어 있으면 인스턴스 루트 볼륨도 암호화된다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html">Amazon EC2 사용 설명서 — Amazon EBS 암호화</a>
+          — AES-256 데이터 키와 KMS 키의 관계, 저장 데이터·전송 데이터·스냅샷·파생 볼륨이 함께 암호화된다는 점,
+          모든 볼륨 타입에서 지원되며 성능 영향이 미미하다는 점</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_EnableEbsEncryptionByDefault.html">Amazon EC2 API 레퍼런스 — EnableEbsEncryptionByDefault</a>
+          — 계정·리전 단위 기본 암호화이며 기존 볼륨의 암호화 상태에는 영향이 없다는 서술</li>
+        <li><a href="https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes-multi.html">Amazon EBS 사용 설명서 — 멀티 어태치</a>
+          — <code>io1</code>·<code>io2</code> 한정, 같은 가용 영역의 Nitro 인스턴스 최대 16대, 부트 볼륨 불가,
+          일반 파일 시스템 사용 시 데이터 손상 위험, I/O 펜싱 미지원</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifyVolume.html">Amazon EC2 API 레퍼런스 — ModifyVolume</a>
+          — 크기·타입·IOPS의 무중단 변경, 24시간 이동 구간 안에서 최대 4회 제한, 변경 후 파일 시스템 확장 필요</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AttachVolume.html">Amazon EC2 API 레퍼런스 — AttachVolume</a>
+          — 인스턴스에 붙일 수 있는 볼륨 수가 인스턴스 타입에 따라 다르다는 서술</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

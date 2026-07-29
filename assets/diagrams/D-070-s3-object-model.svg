@@ -1,0 +1,85 @@
+<svg viewBox="0 0 720 430" role="img" aria-labelledby="d070-title d070-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d070-title">S3 객체 모델과 접근 경로 — 폴더가 아니라 접두사</title>
+  <desc id="d070-desc">Amazon S3 버킷 하나가 담고 있는 객체 목록은 계층 구조가 아니라 평평한 키 목록입니다.
+    왼쪽 버킷 안의 네 객체는 슬래시가 들어간 키를 갖지만 그 슬래시는 디렉터리 구분자가 아니라 키 문자열의 일부입니다.
+    가운데는 객체 하나의 구성으로, 키와 버전 ID와 사용자 메타데이터와 본문 데이터로 이루어집니다.
+    오른쪽 아래는 REST 엔드포인트의 형태이며 가상 호스팅 방식에서 버킷 이름이 호스트 앞에 오고 리전이 뒤따르며
+    경로 부분 전체가 하나의 키가 됩니다. 콘솔에서 폴더처럼 보이는 것은 ListObjectsV2 호출에 접두사와 구분자를 주었을 때
+    같은 접두사를 공유하는 키들을 묶어 보여 주는 표현일 뿐이며, S3 안에 디렉터리라는 실체는 존재하지 않습니다.</desc>
+
+  <defs>
+    <marker id="d070-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d070-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 버킷 -->
+  <rect class="dg-node dg-node--alt" x="20" y="46" width="330" height="180" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="70">버킷 — 평평한 키 목록</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="34" y="90">my-bucket</text>
+
+  <rect class="dg-node" x="34" y="100" width="302" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-mono" x="44" y="118">logs/2026/07/app.log</text>
+  <rect class="dg-node dg-node--accent" x="34" y="130" width="302" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-mono dg-bold" x="44" y="148">logs/2026/07/db.log</text>
+  <rect class="dg-node" x="34" y="160" width="302" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-mono" x="44" y="178">images/logo.png</text>
+  <rect class="dg-node" x="34" y="190" width="302" height="26" rx="4"/>
+  <text class="dg-fs-sm dg-mono" x="44" y="208">index.html</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="36">키는 중첩되지 않습니다 — 전부 같은 깊이입니다</text>
+
+  <!-- 객체 하나의 구성 -->
+  <path class="dg-edge dg-edge--accent" d="M340 143 L376 143" marker-end="url(#d070-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="382" y="46" width="318" height="180" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="396" y="70">객체 하나의 구성</text>
+
+  <text class="dg-fs-sm dg-bold" x="396" y="96">키 (Key)</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="490" y="96">logs/2026/07/db.log</text>
+  <path class="dg-grid" d="M396 104 L688 104"/>
+
+  <text class="dg-fs-sm dg-bold" x="396" y="126">버전 ID</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="490" y="126">3sL9…Qk (버전 관리 시)</text>
+  <path class="dg-grid" d="M396 134 L688 134"/>
+
+  <text class="dg-fs-sm dg-bold" x="396" y="156">메타데이터</text>
+  <text class="dg-fs-sm dg-mono dg-muted" x="490" y="156">Content-Type, x-amz-meta-*</text>
+  <path class="dg-grid" d="M396 164 L688 164"/>
+
+  <text class="dg-fs-sm dg-bold" x="396" y="186">본문 데이터</text>
+  <text class="dg-fs-sm dg-muted" x="490" y="186">0 바이트 ~ 5 TB</text>
+  <path class="dg-grid" d="M396 194 L688 194"/>
+
+  <text class="dg-fs-sm dg-bold" x="396" y="216">식별자</text>
+  <text class="dg-fs-sm dg-muted" x="490" y="216">버킷 + 키 + 버전 ID</text>
+
+  <!-- REST 엔드포인트 -->
+  <rect class="dg-node" x="20" y="252" width="680" height="88" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="276">REST 엔드포인트 (가상 호스팅 방식)</text>
+
+  <text class="dg-fs-md dg-mono" x="34" y="308">https://</text>
+  <text class="dg-fs-md dg-mono dg-bold" x="106" y="308">my-bucket</text>
+  <text class="dg-fs-md dg-mono" x="187" y="308">.s3.</text>
+  <text class="dg-fs-md dg-mono dg-bold" x="223" y="308">ap-northeast-2</text>
+  <text class="dg-fs-md dg-mono" x="349" y="308">.amazonaws.com/</text>
+  <text class="dg-fs-md dg-mono dg-bold" x="484" y="308">logs/2026/07/db.log</text>
+
+  <path class="dg-edge dg-edge--dotted" d="M146 314 L146 326"/>
+  <text class="dg-fs-sm dg-muted" x="146" y="337" text-anchor="middle">버킷</text>
+  <path class="dg-edge dg-edge--dotted" d="M286 314 L286 326"/>
+  <text class="dg-fs-sm dg-muted" x="286" y="337" text-anchor="middle">리전</text>
+  <path class="dg-edge dg-edge--accent" d="M570 314 L570 326"/>
+  <text class="dg-fs-sm dg-bold" x="570" y="337" text-anchor="middle">키 전체가 한 덩어리</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="352" width="680" height="62" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="376" text-anchor="middle">S3 에 폴더라는 실체는 없습니다 — 슬래시는 키 문자열의 일부일 뿐입니다</text>
+  <text class="dg-fs-sm" x="360" y="398" text-anchor="middle">콘솔의 폴더 모양은 ListObjectsV2 에 prefix 와 delimiter 를 주어 같은 접두사를 묶어 보여 준 결과입니다</text>
+</svg>

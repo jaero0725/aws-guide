@@ -1,0 +1,108 @@
+<svg viewBox="0 0 720 500" role="img" aria-labelledby="d064-title d064-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d064-title">다중 AZ 분산과 AZ 장애 시 트래픽 재분배</title>
+  <desc id="d064-desc">위쪽 왼편은 두 가용 영역에 대상이 고르게 등록된 정상 상태이고, 오른편은 가용 영역 a 가 장애를 겪은 상태입니다.
+    헬스체크가 연속으로 실패하면 로드 밸런서는 그 대상을 제외하고 남은 가용 영역의 정상 대상에만 요청을 보냅니다.
+    아래쪽은 교차 영역 로드 밸런싱의 기본값 차이가 트래픽 분포를 어떻게 바꾸는지 보여 줍니다.
+    가용 영역 a 에 대상 1개, 가용 영역 b 에 대상 3개가 있는 같은 상황에서,
+    교차 영역 로드 밸런싱이 켜져 있으면 가용 영역을 무시하고 대상 4개가 각각 25 퍼센트를 받습니다.
+    꺼져 있으면 트래픽이 먼저 가용 영역끼리 절반씩 나뉜 뒤 그 안에서 다시 나뉘므로
+    가용 영역 a 의 대상 하나가 50 퍼센트를, 가용 영역 b 의 대상 셋이 각각 약 16.7 퍼센트를 받습니다.
+    ALB 는 기본으로 켜져 있고 NLB 는 기본으로 꺼져 있다는 차이가 여기서 결과를 가릅니다.</desc>
+
+  <defs>
+    <marker id="d064-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d064-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 정상 -->
+  <text class="dg-fs-md dg-bold" x="185" y="28" text-anchor="middle">정상 상태</text>
+  <rect class="dg-panel" x="20" y="40" width="330" height="200" rx="4"/>
+  <rect class="dg-node" x="34" y="52" width="302" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="185" y="74" text-anchor="middle">로드 밸런서</text>
+  <path class="dg-edge" d="M120 86 L120 108" marker-end="url(#d064-ar)"/>
+  <path class="dg-edge" d="M252 86 L252 108" marker-end="url(#d064-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="128" y="102">50%</text>
+  <text class="dg-fs-sm dg-muted" x="260" y="102">50%</text>
+
+  <rect class="dg-node dg-node--alt" x="34" y="110" width="150" height="118" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="128">AZ a</text>
+  <rect class="dg-node dg-node--ok" x="44" y="136" width="130" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="109" y="160" text-anchor="middle">대상 1 · 정상</text>
+  <rect class="dg-node dg-node--ok" x="44" y="182" width="130" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="109" y="206" text-anchor="middle">대상 2 · 정상</text>
+
+  <rect class="dg-node dg-node--alt" x="190" y="110" width="146" height="118" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="200" y="128">AZ b</text>
+  <rect class="dg-node dg-node--ok" x="200" y="136" width="126" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="263" y="160" text-anchor="middle">대상 3 · 정상</text>
+  <rect class="dg-node dg-node--ok" x="200" y="182" width="126" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="263" y="206" text-anchor="middle">대상 4 · 정상</text>
+
+  <!-- 장애 -->
+  <text class="dg-fs-md dg-bold" x="535" y="28" text-anchor="middle">AZ a 장애</text>
+  <rect class="dg-panel" x="370" y="40" width="330" height="200" rx="4"/>
+  <rect class="dg-node" x="384" y="52" width="302" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="535" y="74" text-anchor="middle">로드 밸런서</text>
+  <path class="dg-edge dg-edge--danger dg-edge--dotted" d="M470 86 L470 108"/>
+  <path class="dg-edge dg-edge--accent" d="M602 86 L602 108" marker-end="url(#d064-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="478" y="102">0%</text>
+  <text class="dg-fs-sm dg-bold" x="610" y="102">100%</text>
+
+  <rect class="dg-node dg-node--alt" x="384" y="110" width="150" height="118" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="394" y="128">AZ a</text>
+  <rect class="dg-node dg-node--danger" x="394" y="136" width="130" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="459" y="160" text-anchor="middle">헬스체크 실패</text>
+  <rect class="dg-node dg-node--danger" x="394" y="182" width="130" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="459" y="206" text-anchor="middle">대상에서 제외</text>
+
+  <rect class="dg-node dg-node--alt" x="540" y="110" width="146" height="118" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="550" y="128">AZ b</text>
+  <rect class="dg-node dg-node--ok" x="550" y="136" width="126" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="613" y="160" text-anchor="middle">대상 3 · 정상</text>
+  <rect class="dg-node dg-node--ok" x="550" y="182" width="126" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="613" y="206" text-anchor="middle">대상 4 · 정상</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="258">연속 실패 횟수를 채워야 대상이 제외되므로 전환에는 헬스체크 간격만큼 시간이 걸립니다</text>
+
+  <path class="dg-grid" d="M20 274 L700 274"/>
+  <text class="dg-fs-md dg-bold" x="20" y="300">같은 구성(AZ a 대상 1개 · AZ b 대상 3개)에서 기본값이 결과를 가릅니다</text>
+
+  <!-- 교차 영역 켜짐 -->
+  <rect class="dg-node dg-node--accent" x="20" y="312" width="330" height="164" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="336">교차 영역 켜짐 — ALB 기본값</text>
+  <text class="dg-fs-sm" x="34" y="358">AZ 를 무시하고 전체 대상에 균등 분배</text>
+  <rect class="dg-node" x="34" y="372" width="66" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="67" y="392" text-anchor="middle">25%</text>
+  <rect class="dg-node" x="106" y="372" width="66" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="139" y="392" text-anchor="middle">25%</text>
+  <rect class="dg-node" x="178" y="372" width="66" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="211" y="392" text-anchor="middle">25%</text>
+  <rect class="dg-node" x="250" y="372" width="66" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="283" y="392" text-anchor="middle">25%</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="420">AZ a 대상 1개 · AZ b 대상 3개</text>
+  <text class="dg-fs-sm" x="34" y="444">대상 수가 기울어도 대상별 부하는 같습니다</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="466">ALB 는 기본으로 켜져 있습니다</text>
+
+  <!-- 교차 영역 꺼짐 -->
+  <rect class="dg-node dg-node--warn" x="370" y="312" width="330" height="164" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="384" y="336">교차 영역 꺼짐 — NLB 기본값</text>
+  <text class="dg-fs-sm" x="384" y="358">먼저 AZ 끼리 나눈 뒤 그 안에서 분배</text>
+  <rect class="dg-node" x="384" y="372" width="100" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="434" y="392" text-anchor="middle">50%</text>
+  <rect class="dg-node" x="490" y="372" width="66" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="523" y="392" text-anchor="middle">16.7%</text>
+  <rect class="dg-node" x="562" y="372" width="66" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="595" y="392" text-anchor="middle">16.7%</text>
+  <rect class="dg-node" x="634" y="372" width="52" height="30" rx="3"/>
+  <text class="dg-fs-sm dg-bold" x="660" y="392" text-anchor="middle">16.7%</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="420">AZ a 대상 1개 · AZ b 대상 3개</text>
+  <text class="dg-fs-sm" x="384" y="444">대상 하나에 부하가 세 배로 쏠립니다</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="466">NLB 는 기본으로 꺼져 있습니다</text>
+</svg>

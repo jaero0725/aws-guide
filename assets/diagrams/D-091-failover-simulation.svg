@@ -1,0 +1,121 @@
+<svg viewBox="0 0 720 520" role="img" aria-labelledby="d091-title d091-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d091-title">같은 프라이머리 장애를 Multi-AZ와 읽기 전용 복제본에 각각 넣었을 때</title>
+  <desc id="d091-desc">위아래 두 구성에 똑같이 프라이머리 인스턴스 장애를 주입한 뒤의 상태입니다.
+    위쪽 Multi-AZ 구성에서는 RDS 가 자동으로 장애 조치를 수행해 대기 인스턴스를 새 프라이머리로 승격하고
+    엔드포인트 DNS 이름이 가리키는 대상만 바뀝니다. 애플리케이션이 쓰는 엔드포인트 문자열은 그대로이므로
+    연결을 다시 맺기만 하면 쓰기가 재개됩니다.
+    아래쪽 읽기 전용 복제본 구성에서는 자동 승격이 일어나지 않습니다. 복제본은 읽기 요청을 계속 처리하지만
+    쓰기 엔드포인트는 죽은 프라이머리를 계속 가리키고 있어 쓰기가 계속 실패합니다.
+    복구하려면 운영자가 복제본을 수동으로 승격해야 하고 승격된 인스턴스는 새 엔드포인트를 갖기 때문에
+    애플리케이션 설정도 함께 바꿔야 합니다.
+    가용성 문제와 읽기 확장 문제는 서로 다른 문제이며 읽기 전용 복제본은 가용성 대책이 아닙니다.</desc>
+
+  <defs>
+    <marker id="d091-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d091-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d091-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d091-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d091-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="28">같은 장애를 두 구성에 넣습니다</text>
+  <rect data-dg="state-chip" class="dg-node dg-node--danger" x="520" y="10" width="180" height="26" rx="4"/>
+  <text data-dg="state-label" class="dg-fs-sm dg-bold" x="610" y="28" text-anchor="middle">프라이머리 장애 주입됨</text>
+
+  <!-- ===== 위: Multi-AZ ===== -->
+  <rect class="dg-panel" x="14" y="44" width="692" height="168" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="24" y="64">Multi-AZ 배포</text>
+
+  <rect class="dg-node" x="20" y="112" width="100" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="70" y="132" text-anchor="middle">애플리</text>
+  <text class="dg-fs-sm dg-bold" x="70" y="150" text-anchor="middle">케이션</text>
+
+  <path class="dg-edge dg-edge--accent" d="M120 136 L132 136" marker-end="url(#d091-ar-accent)"/>
+
+  <rect data-dg="maz-endpoint" class="dg-node dg-node--accent" x="138" y="112" width="160" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="218" y="132" text-anchor="middle">엔드포인트 문자열</text>
+  <text class="dg-fs-sm dg-bold" x="218" y="150" text-anchor="middle">그대로입니다</text>
+
+  <!-- DNS 전환 -->
+  <path data-dg="maz-dns-old" class="dg-edge dg-edge--muted dg-edge--dotted"
+        d="M298 128 L316 128 L316 99 L330 99" marker-end="url(#d091-ar-muted)"/>
+  <path data-dg="maz-dns-new" class="dg-edge dg-edge--accent"
+        d="M298 146 L316 146 L316 173 L330 173" marker-end="url(#d091-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="272" y="196" text-anchor="middle">DNS 전환</text>
+
+  <rect data-dg="maz-primary" class="dg-node dg-node--danger" x="336" y="72" width="156" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="414" y="94" text-anchor="middle">프라이머리 (AZ-a)</text>
+  <text class="dg-fs-sm dg-bold" x="414" y="114" text-anchor="middle">장애</text>
+  <path data-dg="maz-x" class="dg-x" d="M462 102 L478 118 M478 102 L462 118"/>
+
+  <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M414 126 L414 144"/>
+  <text class="dg-fs-sm dg-muted" x="500" y="140">동기 복제로 이미 최신</text>
+
+  <rect data-dg="maz-standby" class="dg-node dg-node--ok" x="336" y="146" width="156" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="414" y="168" text-anchor="middle">대기 인스턴스 (AZ-b)</text>
+  <text class="dg-fs-sm dg-bold" x="414" y="188" text-anchor="middle">승격 — 새 프라이머리</text>
+
+  <rect data-dg="maz-result" class="dg-node dg-node--ok" x="512" y="52" width="188" height="52" rx="4"/>
+  <text data-dg="maz-verdict" class="dg-fs-sm dg-bold" x="606" y="74" text-anchor="middle">쓰기 재개</text>
+  <text class="dg-fs-sm" x="606" y="94" text-anchor="middle">애플리케이션 설정 변경 없음</text>
+
+  <!-- ===== 아래: 읽기 전용 복제본 ===== -->
+  <rect class="dg-panel" x="14" y="236" width="692" height="200" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="24" y="256">읽기 전용 복제본 구성</text>
+
+  <rect class="dg-node" x="20" y="320" width="100" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="70" y="340" text-anchor="middle">애플리</text>
+  <text class="dg-fs-sm dg-bold" x="70" y="358" text-anchor="middle">케이션</text>
+
+  <path class="dg-edge dg-edge--danger" d="M120 332 L132 306" marker-end="url(#d091-ar-danger)"/>
+  <path class="dg-edge dg-edge--ok" d="M120 356 L132 384" marker-end="url(#d091-ar-ok)"/>
+
+  <rect data-dg="rr-write-ep" class="dg-node dg-node--danger" x="138" y="282" width="160" height="40" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="218" y="307" text-anchor="middle">쓰기 엔드포인트</text>
+
+  <rect data-dg="rr-read-ep" class="dg-node dg-node--ok" x="138" y="366" width="160" height="40" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="218" y="391" text-anchor="middle">읽기 엔드포인트</text>
+
+  <path data-dg="rr-write-path" class="dg-edge dg-edge--danger" d="M298 302 L330 296" marker-end="url(#d091-ar-danger)"/>
+  <path class="dg-edge dg-edge--ok" d="M298 388 L330 392" marker-end="url(#d091-ar-ok)"/>
+
+  <rect data-dg="rr-primary" class="dg-node dg-node--danger" x="336" y="268" width="156" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="414" y="290" text-anchor="middle">프라이머리</text>
+  <text class="dg-fs-sm dg-bold" x="414" y="310" text-anchor="middle">장애</text>
+  <path data-dg="rr-x" class="dg-x" d="M462 281 L478 297 M478 281 L462 297"/>
+
+  <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M414 322 L414 364"/>
+  <text class="dg-fs-sm dg-muted" x="428" y="348">복제 중단</text>
+
+  <rect data-dg="rr-replica" class="dg-node dg-node--ok" x="336" y="366" width="156" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="414" y="388" text-anchor="middle">읽기 전용 복제본</text>
+  <text class="dg-fs-sm dg-bold" x="414" y="408" text-anchor="middle">자동 승격 없음</text>
+
+  <rect data-dg="rr-result" class="dg-node dg-node--danger" x="512" y="284" width="188" height="122" rx="4"/>
+  <text data-dg="rr-verdict" class="dg-fs-sm dg-bold" x="606" y="308" text-anchor="middle">쓰기는 계속 실패합니다</text>
+  <text class="dg-fs-sm" x="606" y="332" text-anchor="middle">읽기만 복제본에서</text>
+  <text class="dg-fs-sm" x="606" y="350" text-anchor="middle">처리됩니다</text>
+  <text class="dg-fs-sm dg-muted" x="606" y="374" text-anchor="middle">수동 승격이 필요하고</text>
+  <text class="dg-fs-sm dg-muted" x="606" y="392" text-anchor="middle">엔드포인트도 바뀝니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="452" width="680" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="476" text-anchor="middle">가용성과 읽기 확장은 다른 문제입니다</text>
+  <text class="dg-fs-sm" x="360" y="498" text-anchor="middle">읽기 전용 복제본을 아무리 늘려도 프라이머리가 죽으면 쓰기는 돌아오지 않습니다</text>
+</svg>

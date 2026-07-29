@@ -1,0 +1,68 @@
+<svg viewBox="0 0 720 440" role="img" aria-labelledby="d004-title d004-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d004-title">Well-Architected 6기둥과 SAA 4개 도메인의 대응</title>
+  <desc id="d004-desc">왼쪽은 AWS Well-Architected Framework 의 여섯 기둥이고 오른쪽은 SAA-C03 시험의 네 개 도메인입니다.
+    보안 기둥은 도메인 1 보안 아키텍처 설계에, 안정성 기둥은 도메인 2 복원력 있는 아키텍처 설계에,
+    성능 효율성 기둥은 도메인 3 고성능 아키텍처 설계에, 비용 최적화 기둥은 도메인 4 비용 최적화 아키텍처 설계에
+    각각 그대로 대응합니다.
+    운영 우수성과 지속 가능성 두 기둥은 시험 도메인에 대응하지 않으므로 개념만 이해하고 넘어갑니다.
+    도메인 가중치가 30, 26, 24, 20 퍼센트 순이므로 학습 시간도 그 순서로 배분합니다.</desc>
+
+  <defs>
+    <marker id="d004-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d004-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="165" y="34" text-anchor="middle">Well-Architected 6기둥</text>
+  <text class="dg-fs-md dg-bold" x="555" y="34" text-anchor="middle">SAA-C03 4개 도메인</text>
+
+  <rect class="dg-node dg-node--muted" x="40" y="56" width="250" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="52" y="83">1. 운영 우수성</text>
+  <text class="dg-fs-sm dg-muted" x="300" y="83">대응 도메인 없음</text>
+
+  <rect class="dg-node" x="40" y="112" width="250" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="52" y="139">2. 보안 (Security)</text>
+
+  <rect class="dg-node" x="40" y="168" width="250" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="52" y="195">3. 안정성 (Reliability)</text>
+
+  <rect class="dg-node" x="40" y="224" width="250" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="52" y="251">4. 성능 효율성</text>
+
+  <rect class="dg-node" x="40" y="280" width="250" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="52" y="307">5. 비용 최적화</text>
+
+  <rect class="dg-node dg-node--muted" x="40" y="336" width="250" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="52" y="363">6. 지속 가능성</text>
+  <text class="dg-fs-sm dg-muted" x="300" y="363">대응 도메인 없음</text>
+
+  <rect class="dg-node dg-node--accent" x="430" y="106" width="250" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="444" y="130">도메인 1 · 30%</text>
+  <text class="dg-fs-sm" x="444" y="151">보안 아키텍처 설계</text>
+
+  <rect class="dg-node" x="430" y="174" width="250" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="444" y="198">도메인 2 · 26%</text>
+  <text class="dg-fs-sm" x="444" y="219">복원력 있는 아키텍처 설계</text>
+
+  <rect class="dg-node" x="430" y="242" width="250" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="444" y="266">도메인 3 · 24%</text>
+  <text class="dg-fs-sm" x="444" y="287">고성능 아키텍처 설계</text>
+
+  <rect class="dg-node" x="430" y="310" width="250" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="444" y="334">도메인 4 · 20%</text>
+  <text class="dg-fs-sm" x="444" y="355">비용 최적화 아키텍처 설계</text>
+
+  <path class="dg-edge dg-edge--accent" d="M290 134 L426 134" marker-end="url(#d004-ar-accent)"/>
+  <path class="dg-edge" d="M290 190 L426 202" marker-end="url(#d004-ar)"/>
+  <path class="dg-edge" d="M290 246 L426 270" marker-end="url(#d004-ar)"/>
+  <path class="dg-edge" d="M290 302 L426 338" marker-end="url(#d004-ar)"/>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="404">운영 우수성과 지속 가능성은 시험 도메인에 대응하지 않습니다 — 개념만 이해하고 넘어갑니다</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="428">학습 시간은 도메인 가중치 순서(30 · 26 · 24 · 20)로 배분합니다</text>
+</svg>

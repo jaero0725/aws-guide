@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 10 · VPC 엔드포인트로 S3 비공개 접근 — AWS SAA Guide</title>
+  <meta name="description" content="게이트웨이 엔드포인트로 S3 트래픽을 NAT 밖으로 빼고, 인터페이스 엔드포인트로 다른 AWS 서비스에 프라이빗 경로를 만듭니다. 라우팅 테이블 변화, 엔드포인트 정책, 프라이빗 DNS를 AWS CLI로 구성하고 검증합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab10"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab10">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 10 · VPC 엔드포인트로 S3 비공개 접근</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 10</p>
+      <h1>VPC 엔드포인트로 S3 비공개 접근</h1>
+      <p class="page__lead">
+        프라이빗 서브넷에서 Amazon S3를 호출하면 기본적으로
+        <strong>NAT 게이트웨이를 지나 인터넷 경로</strong>로 나갑니다.
+        VPC 엔드포인트를 만들면 그 트래픽이 VPC 안에서 처리되고,
+        <strong>보안 요구와 비용 요구를 동시에</strong> 만족시킵니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-secure.html">보안 아키텍처 설계(30%)</a> ·
+        <a href="../saa/domain-cost.html">비용 최적화 아키텍처 설계(20%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>게이트웨이 엔드포인트와 인터페이스 엔드포인트의 구현 위치 차이를 설명할 수 있습니다.</li>
+        <li>게이트웨이 엔드포인트가 라우팅 테이블을 어떻게 바꾸는지 확인할 수 있습니다.</li>
+        <li>엔드포인트 정책으로 접근 가능한 리소스를 제한할 수 있습니다.</li>
+        <li>인터페이스 엔드포인트의 프라이빗 DNS가 무엇을 바꾸는지 설명할 수 있습니다.</li>
+        <li>버킷 정책으로 특정 VPC 엔드포인트 경유만 허용할 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        <a href="lab01.html">실습 1</a>의 네트워크에서 프라이빗 서브넷의 워크로드가
+        Amazon S3와 AWS Systems Manager를 호출합니다. 요구는 이렇습니다.
+      </p>
+      <ul>
+        <li>이 트래픽이 <strong>인터넷을 경유하면 안 됩니다.</strong></li>
+        <li>NAT 게이트웨이를 지나는 데이터양을 줄여야 합니다.</li>
+        <li>지정된 버킷 외에는 접근할 수 없어야 합니다.</li>
+        <li>애플리케이션 코드는 <strong>바꾸지 않습니다.</strong></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table">
+          <caption>게이트웨이 엔드포인트와 인터페이스 엔드포인트 비교</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">게이트웨이 엔드포인트</th>
+              <th scope="col">인터페이스 엔드포인트(PrivateLink)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">구현 위치</th>
+              <td><strong>라우팅 테이블의 경로</strong></td>
+              <td><strong>서브넷 안의 네트워크 인터페이스</strong></td>
+            </tr>
+            <tr>
+              <th scope="row">대상 서비스</th>
+              <td>Amazon S3, Amazon DynamoDB</td>
+              <td>대부분의 AWS 서비스와 PrivateLink 서비스</td>
+            </tr>
+            <tr>
+              <th scope="row">보안 그룹</th>
+              <td><span class="mark-no">연결하지 않는다</span></td>
+              <td><span class="mark-ok">연결한다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">DNS</th>
+              <td>공용 이름 그대로, 경로만 바뀐다</td>
+              <td>프라이빗 DNS로 공용 이름을 가로챌 수 있다</td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스에서 사용</th>
+              <td><span class="mark-no">직접 불가</span></td>
+              <td><span class="mark-ok">가능</span></td>
+            </tr>
+            <tr>
+              <th scope="row">접근 제어</th>
+              <td>엔드포인트 정책</td>
+              <td>엔드포인트 정책 + 보안 그룹</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        요구를 나누면 이렇게 배정됩니다 —
+        <strong>Amazon S3는 게이트웨이 엔드포인트</strong>,
+        <strong>Systems Manager는 인터페이스 엔드포인트</strong>입니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-discover">1 · 사용 가능한 엔드포인트 서비스 확인</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">list-services.sh</span> — 리전에서 제공되는 엔드포인트 서비스와 유형</figcaption>
+        <pre><code class="lang-bash">aws ec2 describe-vpc-endpoint-services \
+  --query 'ServiceDetails[?ServiceType[0].ServiceType==`Gateway`].ServiceName' \
+  --output table
+
+aws ec2 describe-vpc-endpoint-services \
+  --query 'ServiceDetails[?contains(ServiceName, `ssm`)].[ServiceName, ServiceType[0].ServiceType, PrivateDnsName]' \
+  --output table</code></pre>
+      </figure>
+
+      <p>
+        서비스 이름은 <code>com.amazonaws.&lt;리전&gt;.&lt;서비스&gt;</code> 형태입니다.
+        <strong>게이트웨이 유형으로 제공되는 것은 Amazon S3와 Amazon DynamoDB뿐</strong>이라는 사실을
+        위 첫 번째 명령의 출력으로 직접 확인할 수 있습니다.
+      </p>
+
+      <h3 id="step-gateway">2 · S3 게이트웨이 엔드포인트</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-gateway-endpoint.sh</span> — 프라이빗 라우팅 테이블에 경로 추가 (ID와 리전은 예시입니다)</figcaption>
+        <pre><code class="lang-bash">VPC_ID=vpc-0123456789abcdef0
+REGION=ap-northeast-2
+
+# 경로를 추가할 프라이빗 라우팅 테이블을 확인합니다.
+aws ec2 describe-route-tables \
+  --filters Name=vpc-id,Values="$VPC_ID" \
+  --query 'RouteTables[].[RouteTableId,Tags[?Key==`Name`].Value|[0]]' \
+  --output table
+
+ENDPOINT_ID=$(aws ec2 create-vpc-endpoint \
+  --vpc-id "$VPC_ID" \
+  --vpc-endpoint-type Gateway \
+  --service-name "com.amazonaws.$REGION.s3" \
+  --route-table-ids rtb-0private0000000a rtb-0private0000000b \
+  --query 'VpcEndpoint.VpcEndpointId' --output text)
+
+echo "$ENDPOINT_ID"</code></pre>
+      </figure>
+
+      <h3 id="step-policy">3 · 엔드포인트 정책으로 범위 제한</h3>
+      <p>
+        엔드포인트 정책은 <strong>이 엔드포인트를 통해 무엇을 할 수 있는지</strong>를 정합니다.
+        기본값은 전체 허용이므로, 요구 3(지정 버킷만)을 만족시키려면 좁혀야 합니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">endpoint-policy.json</span> — 지정한 버킷에만 접근 허용 (버킷 이름은 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowSpecificBucketsOnly",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::example-lab10-data",
+        "arn:aws:s3:::example-lab10-data/*"
+      ]
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <figure class="code">
+        <figcaption><span class="code__name">apply-endpoint-policy.sh</span> — 정책 적용</figcaption>
+        <pre><code class="lang-bash">aws ec2 modify-vpc-endpoint \
+  --vpc-endpoint-id "$ENDPOINT_ID" \
+  --policy-document file://endpoint-policy.json</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          엔드포인트 정책은 <strong>권한을 부여하지 않습니다.</strong>
+          IAM 정책과 버킷 정책이 이미 허용한 것 중에서 <strong>이 경로로 지나갈 수 있는 범위</strong>를
+          한 번 더 좁히는 상한입니다.
+          IAM에서 허용하지 않은 동작이 엔드포인트 정책만으로 가능해지지는 않습니다.
+        </p>
+      </aside>
+
+      <h3 id="step-bucket-policy">4 · 버킷 쪽에서 경로를 강제</h3>
+      <p>
+        반대 방향의 통제도 가능합니다.
+        버킷 정책에 <strong>특정 엔드포인트를 지나지 않은 요청은 거부</strong>하는 조건을 넣으면,
+        인터넷 경유 접근 자체가 막힙니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">bucket-policy.json</span> — 지정 엔드포인트 경유만 허용 (ID는 예시입니다)</figcaption>
+        <pre><code class="lang-json">{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyUnlessThroughVpcEndpoint",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::example-lab10-data",
+        "arn:aws:s3:::example-lab10-data/*"
+      ],
+      "Condition": {
+        "StringNotEquals": {
+          "aws:SourceVpce": "vpce-0123456789abcdef0"
+        }
+      }
+    }
+  ]
+}</code></pre>
+      </figure>
+
+      <aside class="note note--danger" data-label="함정">
+        <p>
+          이 정책은 <strong>강력한 만큼 위험합니다.</strong>
+          콘솔이나 사무실에서의 접근까지 전부 막히므로,
+          운영 도구가 이 버킷에 접근해야 한다면 함께 예외를 두어야 합니다.
+          적용 전에 <strong>누가 이 버킷에 접근하는지 목록을 먼저 만드세요.</strong>
+        </p>
+      </aside>
+
+      <h3 id="step-interface">5 · 인터페이스 엔드포인트</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-interface-endpoint.sh</span> — Systems Manager용 인터페이스 엔드포인트</figcaption>
+        <pre><code class="lang-bash">aws ec2 create-vpc-endpoint \
+  --vpc-id "$VPC_ID" \
+  --vpc-endpoint-type Interface \
+  --service-name "com.amazonaws.$REGION.ssm" \
+  --subnet-ids subnet-0prv00000000000a subnet-0prv00000000000b \
+  --security-group-ids sg-0vpce00000000000 \
+  --private-dns-enabled \
+  --query 'VpcEndpoint.[VpcEndpointId,State]' --output table</code></pre>
+      </figure>
+
+      <p>
+        <code>--private-dns-enabled</code>가 요구 4(코드 무변경)의 핵심입니다.
+        이 옵션을 켜면 <strong>공용 서비스 이름이 VPC 안에서 엔드포인트의 사설 IP로 해석</strong>되므로,
+        애플리케이션은 평소와 같은 엔드포인트를 호출하면 됩니다.
+      </p>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          프라이빗 DNS가 동작하려면 VPC의 <strong>DNS 확인과 DNS 호스트 이름</strong>이 켜져 있어야 합니다.
+          그리고 인터페이스 엔드포인트에는 <strong>보안 그룹이 붙으므로</strong>,
+          워크로드에서 이 엔드포인트로 향하는 HTTPS를 허용해야 합니다.
+          "엔드포인트를 만들었는데 연결이 안 된다"의 가장 흔한 원인입니다.
+        </p>
+        <p>
+          Systems Manager로 세션 접속까지 하려면 관련 엔드포인트가 여러 개 필요합니다.
+          어떤 조합이 필요한지는 문서에서 확인하고 만듭니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <h3 id="verify-route">라우팅 테이블이 실제로 바뀌었는가</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify-routes.sh</span> — 접두사 목록 경로가 추가되었는지 확인</figcaption>
+        <pre><code class="lang-bash">aws ec2 describe-route-tables \
+  --route-table-ids rtb-0private0000000a \
+  --query 'RouteTables[0].Routes[].[DestinationCidrBlock,DestinationPrefixListId,GatewayId,NatGatewayId]' \
+  --output table</code></pre>
+      </figure>
+
+      <p>
+        게이트웨이 엔드포인트를 만들면 <code>DestinationPrefixListId</code>가 채워진 경로가
+        새로 나타나고 대상이 <code>vpce-</code>로 시작합니다.
+        <strong>이것이 게이트웨이 엔드포인트가 "라우팅 테이블에 구현된다"는 말의 실체</strong>입니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify-endpoints.sh</span> — 엔드포인트 상태와 인터페이스 확인</figcaption>
+        <pre><code class="lang-bash">aws ec2 describe-vpc-endpoints \
+  --filters Name=vpc-id,Values="$VPC_ID" \
+  --query 'VpcEndpoints[].[VpcEndpointId,VpcEndpointType,ServiceName,State,PrivateDnsEnabled]' \
+  --output table
+
+# 인터페이스 엔드포인트가 만든 네트워크 인터페이스를 확인합니다.
+aws ec2 describe-vpc-endpoints \
+  --vpc-endpoint-ids vpce-0interface00000 \
+  --query 'VpcEndpoints[0].[NetworkInterfaceIds, SubnetIds, DnsEntries[].DnsName]' \
+  --output json</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>검증 항목과 통과 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">통과 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">라우팅 테이블</th>
+              <td>접두사 목록 경로의 대상이 <code>vpce-</code>다</td>
+            </tr>
+            <tr>
+              <th scope="row">인터페이스 엔드포인트</th>
+              <td>서브넷마다 네트워크 인터페이스가 생겼다</td>
+            </tr>
+            <tr>
+              <th scope="row">S3 접근</th>
+              <td>프라이빗 서브넷 인스턴스에서 지정 버킷 접근이 성공한다</td>
+            </tr>
+            <tr>
+              <th scope="row">범위 제한</th>
+              <td>정책에 없는 다른 버킷 접근이 거부된다</td>
+            </tr>
+            <tr>
+              <th scope="row">NAT 처리량</th>
+              <td>S3 트래픽이 NAT 지표에서 사라진다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="code">
+        <figcaption><span class="code__name">test-from-instance.sh</span> — 프라이빗 서브넷 인스턴스 안에서 실행</figcaption>
+        <pre><code class="lang-bash"># 허용된 버킷 — 성공해야 합니다.
+aws s3 ls s3://example-lab10-data/
+
+# 정책 범위 밖 버킷 — 거부되어야 합니다.
+aws s3 ls s3://example-other-bucket/</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>엔드포인트 도입이 바꾸는 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">변화</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">NAT 게이트웨이 처리량</th>
+              <td><span class="mark-ok">줄어든다 — S3 트래픽이 더 이상 지나지 않는다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">게이트웨이 엔드포인트</th>
+              <td>라우팅 경로로 동작한다. 별도의 가동 자원이 생기지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">인터페이스 엔드포인트</th>
+              <td><span class="mark-no">가용 영역마다 인터페이스와 처리량이 항목이 된다</span></td>
+            </tr>
+            <tr>
+              <th scope="row">가용 영역 간 전송</th>
+              <td>엔드포인트를 가용 영역마다 두면 경계를 넘는 트래픽이 줄어든다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        판단 기준은 단순합니다.
+        <strong>S3와 DynamoDB는 게이트웨이 엔드포인트를 거의 항상 만드는 편이 낫습니다.</strong>
+        인터페이스 엔드포인트는 <strong>그 서비스로 가는 트래픽이 충분히 클 때</strong> 유리하며,
+        트래픽이 적으면 엔드포인트 항목이 NAT 절감분보다 클 수 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>인터페이스 엔드포인트를 가용 영역마다 둡니다.</strong>
+          한 가용 영역에만 두면 그 가용 영역 장애 시 호출이 끊기고,
+          평상시에도 가용 영역을 넘는 전송이 생깁니다.</li>
+        <li><strong>엔드포인트 정책을 기본 전체 허용으로 두지 않습니다.</strong>
+          경로를 좁힌 만큼 권한도 좁히는 것이 일관됩니다.</li>
+        <li><strong>버킷 정책의 <code>aws:SourceVpce</code> 조건은 신중하게.</strong>
+          적용 범위를 잘못 잡으면 배포 파이프라인이나 운영 도구가 함께 막힙니다.</li>
+        <li><strong>온프레미스에서 접근해야 하면</strong> 게이트웨이 엔드포인트로는 안 됩니다.
+          전용 회선이나 VPN과 <strong>인터페이스 엔드포인트</strong>를 조합합니다.</li>
+        <li><strong>엔드포인트에도 흐름 로그가 유용합니다.</strong>
+          인터페이스 엔드포인트의 네트워크 인터페이스에서 트래픽을 관측할 수 있습니다.</li>
+        <li><strong>서비스별로 필요한 엔드포인트 목록을 정리해 둡니다.</strong>
+          컨테이너 워크로드라면 ECR·로그·S3 조합이 함께 필요합니다(<a href="lab09.html">실습 9</a>).</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 엔드포인트 삭제와 경로 원복 확인</figcaption>
+        <pre><code class="lang-bash">aws ec2 delete-vpc-endpoints \
+  --vpc-endpoint-ids vpce-0gateway000000 vpce-0interface00000
+
+# 게이트웨이 엔드포인트를 지우면 라우팅 테이블의 접두사 목록 경로도 사라집니다.
+aws ec2 describe-route-tables \
+  --route-table-ids rtb-0private0000000a \
+  --query 'RouteTables[0].Routes[].[DestinationCidrBlock,DestinationPrefixListId,GatewayId]' \
+  --output table
+
+# 버킷 정책에 엔드포인트 조건을 넣었다면 함께 제거합니다.
+aws s3api delete-bucket-policy --bucket example-lab10-data</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          버킷 정책에 <code>aws:SourceVpce</code> 조건을 남긴 채 엔드포인트를 지우면
+          <strong>그 버킷에 아무도 접근할 수 없게 됩니다.</strong>
+          엔드포인트를 지우기 전에 버킷 정책을 먼저 되돌리세요.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">게이트웨이 엔드포인트를 만들고 라우팅 테이블을 지정하지 않음</th>
+              <td>경로가 추가되지 않아 여전히 NAT로 나간다</td>
+              <td><code>--route-table-ids</code>에 프라이빗 라우팅 테이블을 전부 넣는다</td>
+            </tr>
+            <tr>
+              <th scope="row">인터페이스 엔드포인트에 보안 그룹 허용 없음</th>
+              <td>호출이 시간 초과된다</td>
+              <td>워크로드에서 엔드포인트로 향하는 HTTPS를 허용한다</td>
+            </tr>
+            <tr>
+              <th scope="row">VPC의 DNS 설정이 꺼져 있음</th>
+              <td>프라이빗 DNS가 동작하지 않는다</td>
+              <td>DNS 확인과 DNS 호스트 이름을 켠다</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트 정책을 기본값으로 방치</th>
+              <td>이 경로로 모든 버킷에 접근할 수 있다</td>
+              <td>필요한 리소스로 정책을 좁힌다</td>
+            </tr>
+            <tr>
+              <th scope="row">버킷 정책 조건을 범위 확인 없이 적용</th>
+              <td>콘솔과 운영 도구까지 막힌다</td>
+              <td>접근 주체 목록을 먼저 만들고 예외를 함께 넣는다</td>
+            </tr>
+            <tr>
+              <th scope="row">온프레미스에서 게이트웨이 엔드포인트 사용 시도</th>
+              <td>경로가 성립하지 않는다</td>
+              <td>인터페이스 엔드포인트를 쓴다</td>
+            </tr>
+            <tr>
+              <th scope="row">엔드포인트를 한 가용 영역에만</th>
+              <td>가용 영역 장애 시 호출이 끊긴다</td>
+              <td>가용 영역마다 서브넷을 지정한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch04.html">
+          <span class="card__title">4장 · VPC 연결과 하이브리드</span>
+          <span class="card__desc">엔드포인트와 PrivateLink, 피어링과 Transit Gateway, 하이브리드 연결을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 1·3</span>
+        </a></li>
+        <li><a class="card" href="lab01.html">
+          <span class="card__title">실습 1 · 3계층 VPC 직접 구성</span>
+          <span class="card__desc">이 실습이 전제하는 프라이빗 서브넷과 라우팅 테이블을 만듭니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case06.html">
+          <span class="card__title">케이스 6 · 데이터 전송 요금이 예산을 넘겼다</span>
+          <span class="card__desc">엔드포인트가 NAT 처리량을 줄이는 구조를 비용 관점에서 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cases/case04.html">
+          <span class="card__title">케이스 4 · 퍼블릭 서브넷에 데이터베이스를 뒀다</span>
+          <span class="card__desc">인터넷 경로를 없애는 설계가 보안 관점에서 왜 강한지 다룹니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="lab09.html">
+          <span class="card__title">실습 9 · ECS Fargate 서비스 배포</span>
+          <span class="card__desc">프라이빗 서브넷 태스크가 이미지와 로그 경로를 확보하는 데 이 구성이 쓰입니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpcEndpoint.html">Amazon EC2 API 레퍼런스 — CreateVpcEndpoint</a>
+          — 엔드포인트 유형(<code>Gateway</code>·<code>Interface</code>), 라우팅 테이블·서브넷·보안 그룹 지정,
+          프라이빗 DNS 옵션</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifyVpcEndpoint.html">Amazon EC2 API 레퍼런스 — ModifyVpcEndpoint</a>
+          — 엔드포인트 정책 변경과 라우팅 테이블 추가·제거</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeVpcEndpointServices.html">Amazon EC2 API 레퍼런스 — DescribeVpcEndpointServices</a>
+          — 리전에서 제공되는 서비스와 유형, 프라이빗 DNS 이름 확인</li>
+        <li><a href="https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeRouteTables.html">Amazon EC2 API 레퍼런스 — DescribeRouteTables</a>
+          — 접두사 목록 대상 경로의 표현</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketPolicy.html">Amazon S3 API 레퍼런스 — PutBucketPolicy</a>
+          — 조건 키를 사용한 접근 제한</li>
+        <li><a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html">Amazon VPC 사용 설명서 — NAT 게이트웨이</a>
+          — 프라이빗 서브넷의 기본 아웃바운드 경로</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

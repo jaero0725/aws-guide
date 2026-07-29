@@ -1,0 +1,93 @@
+<svg viewBox="0 0 720 434" role="img" aria-labelledby="d112-title d112-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d112-title">VPC에 연결한 Lambda 함수의 네트워크 경로</title>
+  <desc id="d112-desc">Lambda 함수 자체는 AWS 가 관리하는 계정에서 실행되고, VPC 설정을 붙이면
+    고객 VPC 의 프라이빗 서브넷에 네트워크 인터페이스가 만들어져 그 인터페이스를 통해 트래픽이 나갑니다.
+    같은 프라이빗 서브넷 안의 RDS 나 ElastiCache 같은 리소스에는 이 인터페이스만으로 바로 닿습니다.
+    그러나 인터넷의 외부 API 로 나가려면 퍼블릭 서브넷의 NAT 게이트웨이를 거쳐야 하고,
+    S3 나 DynamoDB 같은 퍼블릭 AWS 엔드포인트로 가려면 NAT 게이트웨이나 VPC 엔드포인트가 필요합니다.
+    함수에 퍼블릭 IP 를 붙이는 선택지는 없기 때문에 이 두 가지 중 하나가 없으면 아웃바운드 호출은
+    오류가 아니라 타임아웃으로 끝납니다. VPC 에 연결한 순간부터 외부 API 호출이 멈췄다는 사고의 원인이 정확히 이것입니다.</desc>
+
+  <defs>
+    <marker id="d112-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d112-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d112-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">VPC 에 붙이면 안쪽은 열리고 바깥쪽은 닫힙니다</text>
+
+  <!-- Lambda 서비스 계정 -->
+  <rect class="dg-node dg-node--alt" x="20" y="180" width="120" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="80" y="204" text-anchor="middle">Lambda 함수</text>
+  <text class="dg-fs-sm dg-muted" x="80" y="224" text-anchor="middle">AWS 관리 계정</text>
+  <text class="dg-fs-sm dg-muted" x="80" y="258" text-anchor="middle">퍼블릭 IP 를</text>
+  <text class="dg-fs-sm dg-muted" x="80" y="276" text-anchor="middle">붙일 수 없습니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M140 210 L168 210" marker-end="url(#d112-ar-accent)"/>
+
+  <!-- VPC -->
+  <rect class="dg-panel" x="150" y="58" width="334" height="304" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="160" y="78">고객 VPC</text>
+
+  <rect class="dg-node dg-node--empty" x="162" y="88" width="160" height="256" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="172" y="108">프라이빗 서브넷</text>
+
+  <rect class="dg-node dg-node--accent" x="174" y="180" width="136" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="242" y="204" text-anchor="middle">ENI</text>
+  <text class="dg-fs-sm dg-muted" x="242" y="224" text-anchor="middle">네트워크 인터페이스</text>
+
+  <path class="dg-edge dg-edge--ok" d="M242 240 L242 262" marker-end="url(#d112-ar-ok)"/>
+
+  <rect class="dg-node dg-node--ok" x="174" y="268" width="136" height="66" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="242" y="290" text-anchor="middle">RDS · ElastiCache</text>
+  <text class="dg-fs-sm" x="242" y="310" text-anchor="middle">추가 구성 없이</text>
+  <text class="dg-fs-sm" x="242" y="326" text-anchor="middle">바로 닿습니다</text>
+
+  <!-- 퍼블릭 서브넷 + NAT -->
+  <rect class="dg-node dg-node--empty" x="334" y="120" width="140" height="130" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="344" y="140">퍼블릭 서브넷</text>
+
+  <path class="dg-edge" d="M310 210 L332 214" marker-end="url(#d112-ar)"/>
+
+  <rect class="dg-node dg-node--warn" x="342" y="152" width="124" height="86" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="404" y="180" text-anchor="middle">NAT</text>
+  <text class="dg-fs-sm dg-bold" x="404" y="198" text-anchor="middle">게이트웨이</text>
+  <text class="dg-fs-sm" x="404" y="222" text-anchor="middle">따로 만들어야</text>
+  <text class="dg-fs-sm" x="404" y="238" text-anchor="middle">합니다</text>
+
+  <!-- VPC 엔드포인트 -->
+  <path class="dg-edge" d="M310 232 L328 232 L328 302 L336 302" marker-end="url(#d112-ar)"/>
+
+  <rect class="dg-node dg-node--warn" x="342" y="270" width="124" height="66" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="404" y="292" text-anchor="middle">VPC 엔드포인트</text>
+  <text class="dg-fs-sm" x="404" y="312" text-anchor="middle">게이트웨이 또는</text>
+  <text class="dg-fs-sm" x="404" y="328" text-anchor="middle">인터페이스</text>
+
+  <!-- VPC 밖 -->
+  <path class="dg-edge" d="M466 195 L498 195" marker-end="url(#d112-ar)"/>
+  <rect class="dg-node" x="504" y="160" width="196" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="602" y="186" text-anchor="middle">인터넷 · 외부 API</text>
+  <text class="dg-fs-sm dg-muted" x="602" y="210" text-anchor="middle">NAT 를 거쳐야만 닿습니다</text>
+
+  <path class="dg-edge" d="M466 303 L498 303" marker-end="url(#d112-ar)"/>
+  <rect class="dg-node" x="504" y="270" width="196" height="70" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="602" y="296" text-anchor="middle">S3 · DynamoDB</text>
+  <text class="dg-fs-sm dg-muted" x="602" y="320" text-anchor="middle">퍼블릭 AWS 엔드포인트</text>
+
+  <text class="dg-fs-sm dg-muted" x="504" y="130">VPC 바깥</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--danger" x="20" y="374" width="680" height="52" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="396" text-anchor="middle">둘 중 하나도 없으면 아웃바운드는 오류가 아니라 타임아웃으로 끝납니다</text>
+  <text class="dg-fs-sm" x="360" y="416" text-anchor="middle">"VPC 에 연결한 뒤부터 외부 API 호출이 멈췄다"는 사고의 원인이 이것입니다</text>
+</svg>

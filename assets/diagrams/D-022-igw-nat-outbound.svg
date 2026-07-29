@@ -1,0 +1,84 @@
+<svg viewBox="0 0 720 500" role="img" aria-labelledby="d022-title d022-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d022-title">인터넷 게이트웨이와 NAT 게이트웨이의 아웃바운드 경로</title>
+  <desc id="d022-desc">퍼블릭 IP 를 가진 인스턴스는 퍼블릭 서브넷에서 곧바로 인터넷 게이트웨이를 거쳐 나가고,
+    퍼블릭 IP 가 없는 프라이빗 서브넷 인스턴스는 NAT 게이트웨이를 한 번 거친 뒤 인터넷 게이트웨이로 나갑니다.
+    NAT 게이트웨이는 자신이 놓인 서브넷의 가용 영역 안에서만 동작합니다.
+    그림에서 점선 위험 경로는 가용 영역 b 의 프라이빗 인스턴스가 가용 영역 a 에 있는 하나뿐인 NAT 게이트웨이를
+    쓰려고 AZ 경계를 넘는 상황입니다. 이 구성은 가용 영역 a 가 장애를 겪으면 가용 영역 b 의 프라이빗 서브넷까지
+    인터넷을 잃게 만들고, 평상시에도 AZ 간 데이터 전송을 발생시킵니다.
+    해법은 NAT 게이트웨이를 가용 영역마다 하나씩 두고 각 AZ 의 프라이빗 라우팅 테이블이 같은 AZ 의 NAT 를 가리키게 하는 것입니다.</desc>
+
+  <defs>
+    <marker id="d022-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d022-ar-plain" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d022-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node dg-node--alt" x="290" y="14" width="140" height="34" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="37" text-anchor="middle">인터넷</text>
+
+  <rect class="dg-panel" x="20" y="64" width="680" height="336" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="84">VPC</text>
+
+  <rect class="dg-node dg-node--accent" x="305" y="96" width="110" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="118" text-anchor="middle">인터넷</text>
+  <text class="dg-fs-sm dg-bold" x="360" y="136" text-anchor="middle">게이트웨이</text>
+  <path class="dg-edge dg-edge--accent" d="M360 96 L360 52" marker-end="url(#d022-ar)"/>
+
+  <!-- AZ a -->
+  <rect class="dg-panel" x="34" y="96" width="252" height="290" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="115">가용 영역 a</text>
+  <rect class="dg-node dg-node--alt" x="46" y="124" width="228" height="100" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="56" y="142">퍼블릭 서브넷</text>
+  <rect class="dg-node dg-node--accent" x="56" y="150" width="208" height="62" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="160" y="174" text-anchor="middle">NAT 게이트웨이</text>
+  <text class="dg-fs-sm" x="160" y="194" text-anchor="middle">이 AZ 안에서만 동작</text>
+
+  <rect class="dg-node dg-node--alt" x="46" y="240" width="228" height="132" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="56" y="258">프라이빗 서브넷</text>
+  <rect class="dg-node" x="56" y="266" width="208" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="160" y="288" text-anchor="middle">앱 인스턴스 A</text>
+  <text class="dg-fs-sm dg-muted" x="160" y="308" text-anchor="middle">퍼블릭 IP 없음</text>
+
+  <!-- AZ b -->
+  <rect class="dg-panel" x="434" y="96" width="252" height="290" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="444" y="115">가용 영역 b</text>
+  <rect class="dg-node dg-node--alt" x="446" y="124" width="228" height="100" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="456" y="142">퍼블릭 서브넷</text>
+  <rect class="dg-node" x="456" y="150" width="208" height="62" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="560" y="174" text-anchor="middle">웹 인스턴스</text>
+  <text class="dg-fs-sm dg-muted" x="560" y="194" text-anchor="middle">퍼블릭 IP 있음 → IGW 직접</text>
+
+  <rect class="dg-node dg-node--alt" x="446" y="240" width="228" height="132" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="456" y="258">프라이빗 서브넷</text>
+  <rect class="dg-node" x="456" y="266" width="208" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="560" y="288" text-anchor="middle">앱 인스턴스 B</text>
+  <text class="dg-fs-sm dg-muted" x="560" y="308" text-anchor="middle">퍼블릭 IP 없음</text>
+
+  <!-- 경로 1: NAT → IGW (강조) -->
+  <path class="dg-edge dg-edge--accent" d="M264 181 L320 181 L320 148" marker-end="url(#d022-ar)"/>
+  <!-- 경로 1 앞단: 프라이빗 A → NAT (같은 AZ) -->
+  <path class="dg-edge dg-edge--accent" d="M160 266 L160 216" marker-end="url(#d022-ar)"/>
+  <text class="dg-fs-sm" x="170" y="232">같은 AZ 의 NAT</text>
+
+  <!-- 경로 2: 퍼블릭 인스턴스 → IGW (일반) -->
+  <path class="dg-edge" d="M456 181 L400 181 L400 148" marker-end="url(#d022-ar-plain)"/>
+  
+  <!-- 경로 3: AZ 를 넘는 위험 경로 -->
+  <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M456 294 L300 294 L300 196 L268 196" marker-end="url(#d022-ar-danger)"/>
+  <text class="dg-fs-sm dg-bold" x="370" y="286" text-anchor="middle">AZ 경계를 넘는 경로</text>
+
+  <rect class="dg-node dg-node--danger" x="20" y="418" width="680" height="66" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="442" text-anchor="middle">NAT 게이트웨이 하나 + 다중 AZ 는 두 가지 문제를 동시에 만듭니다</text>
+  <text class="dg-fs-sm" x="360" y="464" text-anchor="middle">AZ a 가 장애를 겪으면 AZ b 의 프라이빗 서브넷도 인터넷을 잃고, 평상시에도 AZ 간 전송이 발생합니다</text>
+</svg>

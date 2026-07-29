@@ -1,0 +1,146 @@
+{
+  "generatedAt": "2026-07-29",
+  "examCode": "SAA-C03",
+  "totalQuestions": 390,
+  "sets": [
+    {
+      "setId": "basics-ch01",
+      "file": "basics-ch01.json",
+      "title": "1장 · AWS 글로벌 인프라와 계정 기초 — 확인 문제",
+      "exam": "BASICS",
+      "domain": "AWS 글로벌 인프라와 계정 기초",
+      "chapter": "ch01",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch02",
+      "file": "basics-ch02.json",
+      "title": "IAM과 자격 증명 확인 문제",
+      "exam": "BASICS",
+      "domain": "IAM과 자격 증명",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch03",
+      "file": "basics-ch03.json",
+      "title": "VPC 네트워킹 기초 확인 문제",
+      "exam": "BASICS",
+      "domain": "VPC 네트워킹 기초",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch08",
+      "file": "basics-ch08.json",
+      "title": "S3와 오브젝트 스토리지 확인 문제",
+      "exam": "BASICS",
+      "domain": "S3와 오브젝트 스토리지",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch16",
+      "file": "basics-ch16.json",
+      "title": "보안 · 암호화 · 거버넌스 확인 문제",
+      "exam": "BASICS",
+      "domain": "보안 · 암호화 · 거버넌스",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-cost",
+      "file": "saa-cost.json",
+      "title": "SAA — 비용 최적화 아키텍처 설계 (20%) 도메인 연습",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "count": 68,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-performance",
+      "file": "saa-performance.json",
+      "title": "SAA — 고성능 아키텍처 설계 (24%) 도메인 연습",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "count": 82,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-resilient",
+      "file": "saa-resilient.json",
+      "title": "SAA — 복원력 있는 아키텍처 설계 (26%) 도메인 연습",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "count": 88,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-secure",
+      "file": "saa-secure.json",
+      "title": "SAA — 보안 아키텍처 설계 (30%) 도메인 연습",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "count": 102,
+      "mock": false,
+      "diagnostic": false
+    }
+  ],
+  "exams": {
+    "SAA": {
+      "label": "AWS Certified Solutions Architect – Associate",
+      "examCode": "SAA-C03",
+      "durationMin": 130,
+      "mockQuestionCount": 65,
+      "passingScore": 720,
+      "scoreScale": "100-1000",
+      "scoringModel": "compensatory",
+      "weightNote": "도메인 가중치는 SAA-C03 공식 시험 가이드 기준입니다. 합격 점수 720은 100-1000 범위의 스케일 점수이며 정답률 백분율과 1:1로 대응하지 않습니다. 실제 시험 65문항 중 15문항은 채점되지 않지만 응시자는 구분할 수 없으므로, 이 사이트의 모의고사는 65문항을 전부 채점합니다.",
+      "domains": [
+        {
+          "name": "Design Secure Architectures",
+          "label": "보안 아키텍처 설계",
+          "weight": 30
+        },
+        {
+          "name": "Design Resilient Architectures",
+          "label": "복원력 있는 아키텍처 설계",
+          "weight": 26
+        },
+        {
+          "name": "Design High-Performing Architectures",
+          "label": "고성능 아키텍처 설계",
+          "weight": 24
+        },
+        {
+          "name": "Design Cost-Optimized Architectures",
+          "label": "비용 최적화 아키텍처 설계",
+          "weight": 20
+        }
+      ]
+    },
+    "BASICS": {
+      "label": "기본개념 — 챕터 확인 문제",
+      "examCode": "SAA-C03",
+      "durationMin": null,
+      "mockQuestionCount": null,
+      "weightNote": "자격증 도메인이 아니라 기본개념 챕터별 확인 문제입니다. 가중치 개념이 없으며, 연결형과 순서 배열 유형은 이 세트들에서만 학습용으로 사용합니다. 두 유형은 SAA-C03 실제 시험에 출제되지 않습니다.",
+      "domains": [
+        {
+          "name": "AWS 글로벌 인프라와 계정 기초",
+          "chapter": "ch01",
+          "weight": null
+        }
+      ]
+    }
+  }
+}

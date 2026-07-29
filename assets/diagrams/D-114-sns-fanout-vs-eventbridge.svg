@@ -1,0 +1,106 @@
+<svg viewBox="0 0 720 442" role="img" aria-labelledby="d114-title d114-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d114-title">SNS 팬아웃과 EventBridge 라우팅의 구조 차이</title>
+  <desc id="d114-desc">왼쪽은 Amazon SNS 의 팬아웃입니다. 게시자가 주제에 메시지를 한 번 올리면
+    그 주제를 구독한 모든 대상에게 같은 메시지가 그대로 밀려 갑니다.
+    구독마다 붙일 수 있는 필터 정책은 받을지 말지를 정할 뿐이고 대상마다 다른 내용을 보내지는 못합니다.
+    구독자 중 하나를 SQS 큐로 두면 팬아웃과 동시에 완충 효과를 얻습니다.
+    소비자가 잠시 느려지거나 죽어도 메시지가 큐에 남아 있기 때문입니다.
+    오른쪽은 Amazon EventBridge 의 라우팅입니다. 이벤트가 버스에 들어오면 규칙들이 이벤트 본문을
+    이벤트 패턴으로 검사하고, 패턴이 맞는 규칙에 연결된 대상에게만 이벤트가 전달됩니다.
+    즉 SNS 는 같은 것을 여러 곳에 뿌리는 구조이고 EventBridge 는 내용을 보고 갈 곳을 고르는 구조입니다.</desc>
+
+  <defs>
+    <marker id="d114-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d114-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d114-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d114-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="30">같은 것을 여럿에게 vs 내용을 보고 갈 곳을 고르기</text>
+
+  <!-- SNS -->
+  <rect class="dg-panel" x="20" y="44" width="330" height="316" rx="4"/>
+
+  <rect class="dg-node" x="130" y="60" width="110" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="185" y="82" text-anchor="middle">게시자</text>
+  <path class="dg-edge dg-edge--accent" d="M185 94 L185 102" marker-end="url(#d114-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="96" y="106" width="178" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="185" y="128" text-anchor="middle">SNS 주제</text>
+  <text class="dg-fs-sm" x="185" y="146" text-anchor="middle">구독자 전원에게 같은 메시지</text>
+
+  <path class="dg-edge dg-edge--ok" d="M140 150 L88 182" marker-end="url(#d114-ar-ok)"/>
+  <path class="dg-edge" d="M185 150 L200 182" marker-end="url(#d114-ar)"/>
+  <path class="dg-edge" d="M230 150 L292 182" marker-end="url(#d114-ar)"/>
+
+  <rect class="dg-node dg-node--ok" x="34" y="186" width="108" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="88" y="210" text-anchor="middle">SQS 큐</text>
+  <text class="dg-fs-sm" x="88" y="230" text-anchor="middle">구독</text>
+
+  <rect class="dg-node" x="150" y="186" width="100" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="200" y="210" text-anchor="middle">Lambda</text>
+  <text class="dg-fs-sm" x="200" y="230" text-anchor="middle">구독</text>
+
+  <rect class="dg-node" x="258" y="186" width="78" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="297" y="210" text-anchor="middle">HTTPS</text>
+  <text class="dg-fs-sm" x="297" y="230" text-anchor="middle">구독</text>
+
+  <text class="dg-fs-sm dg-bold" x="34" y="270">큐를 끼우면 완충까지 얻습니다</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="288">소비자가 느려져도 메시지가 큐에 남습니다</text>
+
+  <text class="dg-fs-sm" x="34" y="316">구독한 대상 전원에게 밀어 줍니다</text>
+  <text class="dg-fs-sm" x="34" y="334">필터 정책은 받을지 말지만 정합니다</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="352">대상마다 다른 내용을 보낼 수는 없습니다</text>
+
+  <!-- EventBridge -->
+  <rect class="dg-panel" x="370" y="44" width="330" height="316" rx="4"/>
+
+  <rect class="dg-node" x="480" y="60" width="110" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="535" y="82" text-anchor="middle">이벤트 소스</text>
+  <path class="dg-edge dg-edge--accent" d="M535 94 L535 102" marker-end="url(#d114-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="446" y="106" width="178" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="535" y="128" text-anchor="middle">이벤트 버스</text>
+  <text class="dg-fs-sm" x="535" y="146" text-anchor="middle">규칙이 본문을 검사합니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M490 150 L456 182" marker-end="url(#d114-ar-accent)"/>
+  <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M580 150 L614 182" marker-end="url(#d114-ar-muted)"/>
+
+  <rect class="dg-node dg-node--accent" x="384" y="186" width="144" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="456" y="210" text-anchor="middle">규칙 A</text>
+  <text class="dg-fs-sm dg-mono" x="456" y="230" text-anchor="middle">detail-type = 주문</text>
+
+  <rect class="dg-node dg-node--muted" x="542" y="186" width="144" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="614" y="210" text-anchor="middle">규칙 B</text>
+  <text class="dg-fs-sm dg-mono" x="614" y="230" text-anchor="middle">detail-type = 환불</text>
+
+  <path class="dg-edge dg-edge--accent" d="M456 246 L456 262" marker-end="url(#d114-ar-accent)"/>
+  <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M614 246 L614 262" marker-end="url(#d114-ar-muted)"/>
+
+  <rect class="dg-node dg-node--accent" x="384" y="266" width="144" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="456" y="293" text-anchor="middle">대상 — 주문 처리</text>
+
+  <rect class="dg-node dg-node--muted" x="542" y="266" width="144" height="44" rx="4"/>
+  <text class="dg-fs-sm" x="614" y="293" text-anchor="middle">대상 — 환불 처리</text>
+
+  <text class="dg-fs-sm" x="384" y="334">패턴이 맞는 규칙의 대상에만 갑니다</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="352">주문 이벤트 하나는 규칙 A 쪽으로만 흘러갑니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="374" width="680" height="58" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="398" text-anchor="middle">브로드캐스트가 필요하면 SNS, 내용으로 갈 곳을 갈라야 하면 EventBridge</text>
+  <text class="dg-fs-sm" x="360" y="420" text-anchor="middle">SNS 주제에 SQS 큐를 구독시키면 팬아웃과 완충을 한 번에 얻습니다</text>
+</svg>

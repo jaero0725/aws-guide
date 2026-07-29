@@ -1,0 +1,70 @@
+<svg viewBox="0 0 720 430" role="img" aria-labelledby="d032-title d032-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d032-title">프라이빗 서브넷에서 Amazon S3에 닿는 세 경로</title>
+  <desc id="d032-desc">프라이빗 서브넷의 인스턴스가 Amazon S3 에 닿는 세 가지 경로를 한 화면에 놓고 비교합니다.
+    경로 A 는 NAT 게이트웨이와 인터넷 게이트웨이를 지나 공용 인터넷을 경유합니다.
+    경로 B 는 라우팅 테이블에 붙은 게이트웨이 엔드포인트를 지나 AWS 네트워크 안에서만 이동합니다.
+    경로 C 는 서브넷 안 ENI 로 만들어진 인터페이스 엔드포인트를 지나 역시 AWS 네트워크 안에서만 이동합니다.
+    기본으로 강조된 경로는 B 입니다.
+    문항에 트래픽이 인터넷을 거쳐서는 안 된다는 한정어가 붙으면 경로 A 는 즉시 탈락하고 답은 B 또는 C 로 좁혀집니다.</desc>
+
+  <defs>
+    <marker id="d032-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d032-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node" x="20" y="140" width="130" height="100" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="85" y="180" text-anchor="middle">EC2 인스턴스</text>
+  <text class="dg-fs-sm dg-muted" x="85" y="200" text-anchor="middle">프라이빗 서브넷</text>
+  <text class="dg-fs-sm dg-muted" x="85" y="220" text-anchor="middle">퍼블릭 IP 없음</text>
+
+  <rect class="dg-node" x="590" y="140" width="110" height="100" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="645" y="186" text-anchor="middle">Amazon S3</text>
+  <text class="dg-fs-sm dg-muted" x="645" y="206" text-anchor="middle">리전 서비스</text>
+
+  <!-- 경로 A -->
+  <g data-dg="path-nat">
+    <text class="dg-fs-sm dg-bold" x="330" y="42">경로 A — NAT 게이트웨이 + 인터넷 게이트웨이</text>
+    <rect class="dg-node" x="180" y="56" width="110" height="46" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="235" y="84" text-anchor="middle">NAT 게이트웨이</text>
+    <rect class="dg-node" x="320" y="56" width="110" height="46" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="375" y="84" text-anchor="middle">인터넷 GW</text>
+    <rect class="dg-node dg-node--danger" x="460" y="56" width="110" height="46" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="515" y="84" text-anchor="middle">공용 인터넷</text>
+    <path class="dg-edge" d="M150 160 L165 160 L165 79 L176 79" marker-end="url(#d032-ar)"/>
+    <path class="dg-edge" d="M290 79 L316 79" marker-end="url(#d032-ar)"/>
+    <path class="dg-edge" d="M430 79 L456 79" marker-end="url(#d032-ar)"/>
+    <path class="dg-edge" d="M570 79 L580 79 L580 156 L586 156" marker-end="url(#d032-ar)"/>
+    <text class="dg-fs-sm dg-bold" x="235" y="122">인터넷을 경유합니다</text>
+  </g>
+
+  <!-- 경로 B -->
+  <g data-dg="path-gateway" data-state="active">
+    <text class="dg-fs-sm dg-bold" x="300" y="152">경로 B — 게이트웨이 엔드포인트</text>
+    <rect class="dg-node" x="300" y="166" width="180" height="46" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="390" y="194" text-anchor="middle">게이트웨이 엔드포인트</text>
+    <path class="dg-edge" d="M150 190 L296 190" marker-end="url(#d032-ar-accent)"/>
+    <path class="dg-edge" d="M480 190 L586 190" marker-end="url(#d032-ar-accent)"/>
+    <text class="dg-fs-sm dg-bold" x="300" y="232">AWS 네트워크 안에서만 이동합니다</text>
+  </g>
+
+  <!-- 경로 C -->
+  <g data-dg="path-interface">
+    <text class="dg-fs-sm dg-bold" x="300" y="272">경로 C — 인터페이스 엔드포인트 (PrivateLink)</text>
+    <rect class="dg-node" x="300" y="286" width="180" height="46" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="390" y="314" text-anchor="middle">서브넷 안의 ENI</text>
+    <path class="dg-edge" d="M150 220 L165 220 L165 309 L296 309" marker-end="url(#d032-ar)"/>
+    <path class="dg-edge" d="M480 309 L580 309 L580 224 L586 224" marker-end="url(#d032-ar)"/>
+    <text class="dg-fs-sm dg-bold" x="300" y="352">AWS 네트워크 안에서만 이동합니다</text>
+  </g>
+
+  <rect class="dg-node dg-node--accent" x="20" y="366" width="680" height="56" rx="4"/>
+  <text data-dg="verdict" class="dg-fs-md dg-bold" x="360" y="390" text-anchor="middle">현재 경로: 게이트웨이 엔드포인트 — 인터넷을 경유하지 않습니다</text>
+  <text class="dg-fs-sm" x="360" y="412" text-anchor="middle">"트래픽이 인터넷을 거쳐서는 안 된다"는 한정어가 보이면 경로 A 는 즉시 탈락합니다</text>
+</svg>

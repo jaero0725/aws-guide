@@ -1,0 +1,60 @@
+<svg viewBox="0 0 720 420" role="img" aria-labelledby="d015-title d015-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d015-title">SCP · 권한 경계 · 세션 정책의 상한 관계</title>
+  <desc id="d015-desc">세 겹 벤 다이어그램으로 실효 권한이 세 상한의 교집합이라는 것을 보입니다.
+    왼쪽 위 원은 Organizations SCP, 오른쪽 위 원은 권한 경계, 아래 원은 세션 정책이며
+    세 원이 모두 겹치는 가운데 영역만이 실제로 사용할 수 있는 권한입니다.
+    세 정책 모두 권한을 부여하지 않고 상한만 정하므로, 이 교집합 안이라도 자격 증명 기반 정책이나
+    리소스 기반 정책이 명시적으로 허용해야 요청이 통과합니다.
+    SCP 는 멤버 계정의 루트 사용자에게도 적용되고, 권한 경계는 자격 증명 기반 정책과 교집합으로 작동하며,
+    세션 정책은 AssumeRole 호출 시 전달되어 그 세션에만 적용됩니다.
+    또한 어느 정책에든 명시적 거부가 하나라도 있으면 교집합과 무관하게 즉시 거부됩니다.</desc>
+
+  <!-- 세 상한 -->
+  <circle cx="168" cy="158" r="88"
+          fill="var(--dg-fill-alt)" fill-opacity="0.5"
+          stroke="var(--dg-stroke)" stroke-width="var(--dg-sw-1)"/>
+  <circle cx="256" cy="158" r="88"
+          fill="var(--dg-fill-alt)" fill-opacity="0.5"
+          stroke="var(--dg-stroke)" stroke-width="var(--dg-sw-1)"
+          stroke-dasharray="var(--dg-dash-1)"/>
+  <circle cx="212" cy="234" r="88"
+          fill="var(--dg-fill-alt)" fill-opacity="0.5"
+          stroke="var(--dg-stroke)" stroke-width="var(--dg-sw-1)"
+          stroke-dasharray="var(--dg-dash-3)"/>
+
+  <text class="dg-fs-md dg-bold" x="130" y="112" text-anchor="middle">SCP</text>
+  <text class="dg-fs-sm dg-muted" x="130" y="130" text-anchor="middle">조직 상한</text>
+  <text class="dg-fs-md dg-bold" x="286" y="112" text-anchor="middle">권한 경계</text>
+  <text class="dg-fs-sm dg-muted" x="286" y="130" text-anchor="middle">주체 상한</text>
+  <text class="dg-fs-md dg-bold" x="212" y="290" text-anchor="middle">세션 정책</text>
+  <text class="dg-fs-sm dg-muted" x="212" y="308" text-anchor="middle">세션 상한</text>
+
+  <circle cx="212" cy="183" r="34"
+          fill="var(--dg-accent-soft)" stroke="var(--dg-accent)" stroke-width="var(--dg-sw-2)"/>
+  <text class="dg-fs-sm dg-bold" x="212" y="188" text-anchor="middle">실효 권한</text>
+
+  <text class="dg-fs-sm dg-muted" x="212" y="356" text-anchor="middle">가운데 교집합 안에서만 권한이 생깁니다</text>
+  <text class="dg-fs-sm dg-muted" x="212" y="376" text-anchor="middle">여기에 명시적 Allow 까지 있어야 통과합니다</text>
+
+  <!-- 설명 카드 -->
+  <rect class="dg-node" x="420" y="56" width="280" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="434" y="80">SCP — 조직 차원의 상한</text>
+  <text class="dg-fs-sm dg-muted" x="434" y="100">권한을 부여하지 않습니다</text>
+  <text class="dg-fs-sm dg-muted" x="434" y="120">멤버 계정 루트 사용자에도 적용</text>
+
+  <rect class="dg-node" x="420" y="144" width="280" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="434" y="168">권한 경계 — 주체의 상한</text>
+  <text class="dg-fs-sm dg-muted" x="434" y="188">자격 증명 기반 정책과 교집합</text>
+  <text class="dg-fs-sm dg-muted" x="434" y="208">경계만으로는 권한이 생기지 않음</text>
+
+  <rect class="dg-node" x="420" y="232" width="280" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="434" y="256">세션 정책 — 세션의 상한</text>
+  <text class="dg-fs-sm dg-muted" x="434" y="276">AssumeRole 호출 시 전달</text>
+  <text class="dg-fs-sm dg-muted" x="434" y="296">역할의 권한을 더 좁힙니다</text>
+
+  <rect class="dg-node dg-node--danger" x="420" y="320" width="280" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="434" y="344">명시적 Deny 는 교집합을 무시</text>
+  <text class="dg-fs-sm" x="434" y="364">어느 정책에든 Deny 가 하나라도</text>
+  <text class="dg-fs-sm" x="434" y="384">있으면 그 즉시 거부됩니다</text>
+</svg>
