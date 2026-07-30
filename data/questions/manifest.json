@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-07-30",
   "examCode": "SAA-C03",
-  "totalQuestions": 650,
+  "totalQuestions": 780,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -208,6 +208,26 @@
       "setId": "saa-mock-2",
       "file": "saa-mock-2.json",
       "title": "SAA-C03 모의고사 2회 — 65문항 혼합",
+      "exam": "SAA",
+      "domain": "Mixed",
+      "count": 65,
+      "mock": true,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-mock-3",
+      "file": "saa-mock-3.json",
+      "title": "모의고사 3",
+      "exam": "SAA",
+      "domain": "Mixed",
+      "count": 65,
+      "mock": true,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-mock-4",
+      "file": "saa-mock-4.json",
+      "title": "모의고사 4",
       "exam": "SAA",
       "domain": "Mixed",
       "count": 65,

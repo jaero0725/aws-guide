@@ -1,0 +1,228 @@
+{
+  "deckId": "saa-service-picker",
+  "title": "SAA — 상황별 서비스 고르기",
+  "exam": "SAA",
+  "examCode": "SAA-C03",
+  "cards": [
+    {
+      "id": "fc-svc-001",
+      "deck": "saa-service-picker",
+      "front": "즉시 접근이 필요 없고 몇 시간 검색을 기다릴 수 있는 장기 아카이브, 최소 저장 기간 90일을 감수할 수 있다면?",
+      "back": "**S3 Glacier Flexible Retrieval** — 신속 검색 1~5분, 대량 검색은 무료 5~12시간.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-svc-002",
+      "deck": "saa-service-picker",
+      "front": "법규상 7년 보관하지만 조회가 거의 없고 12시간 검색을 감수할 수 있는 데이터는?",
+      "back": "**S3 Glacier Deep Archive** — 최소 저장 기간 180일, 기본 검색 시간 12시간.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-svc-003",
+      "deck": "saa-service-picker",
+      "front": "재생성 가능한 데이터를 즉시 접근 가능하면서 가장 저렴하게 저장하려면?",
+      "back": "**S3 One Zone-IA** — 단일 AZ 저장이라 저렴하지만, 유실되어도 다시 만들 수 있는 데이터에만 적합.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-svc-004",
+      "deck": "saa-service-picker",
+      "front": "접근 패턴을 예측할 수 없어 수명 주기 규칙을 직접 정의하기 어려운 데이터는?",
+      "back": "**S3 Intelligent-Tiering** — 접근 패턴을 모니터링해 계층을 자동으로 이동.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-svc-005",
+      "deck": "saa-service-picker",
+      "front": "AZ 장애 시 자동 장애 조치가 필요하지만 애플리케이션 코드는 바꾸고 싶지 않은 RDS 요구는?",
+      "back": "**Multi-AZ 배포** — 동기 복제된 대기 인스턴스로 자동 전환, 엔드포인트 유지.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch10"
+    },
+    {
+      "id": "fc-svc-006",
+      "deck": "saa-service-picker",
+      "front": "같은 RDS 데이터베이스에서 보고서용 읽기 부하만 분리하고 싶다면?",
+      "back": "**읽기 전용 복제본(Read Replica)** — 별도 엔드포인트로 비동기 복제, 읽기 확장 전용.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch10"
+    },
+    {
+      "id": "fc-svc-007",
+      "deck": "saa-service-picker",
+      "front": "운영 중인 테이블에 다른 파티션 키로 조회할 인덱스를 나중에 추가해야 한다면?",
+      "back": "**GSI(글로벌 보조 인덱스)** — 테이블 생성 후에도 추가·삭제 가능, LSI는 생성 시에만 가능.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch11"
+    },
+    {
+      "id": "fc-svc-008",
+      "deck": "saa-service-picker",
+      "front": "DynamoDB 항목을 마이크로초 단위로 반복 조회해야 한다면?",
+      "back": "**DAX** — DynamoDB 전용 인메모리 캐시, API 호환.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch11"
+    },
+    {
+      "id": "fc-svc-009",
+      "deck": "saa-service-picker",
+      "front": "여러 EC2 인스턴스가 Linux에서 NFS로 동시에 마운트해야 하는 공유 파일 시스템은?",
+      "back": "**Amazon EFS** — 여러 AZ에 걸친 마운트 타깃으로 동시 접근 지원.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch09"
+    },
+    {
+      "id": "fc-svc-010",
+      "deck": "saa-service-picker",
+      "front": "Windows 애플리케이션이 SMB와 NTFS ACL로 공유해야 하는 파일 시스템은?",
+      "back": "**FSx for Windows File Server** — SMB 네이티브 지원, Multi-AZ 배포 가능.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch09"
+    },
+    {
+      "id": "fc-svc-011",
+      "deck": "saa-service-picker",
+      "front": "HPC나 ML 학습에서 S3 데이터를 고처리량 병렬 파일 시스템으로 접근하려면?",
+      "back": "**FSx for Lustre** — S3를 데이터 리포지토리로 연결해 파일처럼 접근.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch09"
+    },
+    {
+      "id": "fc-svc-012",
+      "deck": "saa-service-picker",
+      "front": "HTTP 요청을 경로·호스트 기준으로 라우팅해야 하는 L7 로드 밸런서는?",
+      "back": "**ALB(Application Load Balancer)** — HTTP/HTTPS, 경로·호스트 기반 라우팅.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch07"
+    },
+    {
+      "id": "fc-svc-013",
+      "deck": "saa-service-picker",
+      "front": "TCP·UDP를 고정 IP로 매우 낮은 지연에 처리해야 하는 L4 로드 밸런서는?",
+      "back": "**NLB(Network Load Balancer)** — 고정 IP, 초고성능 L4 처리.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch07"
+    },
+    {
+      "id": "fc-svc-014",
+      "deck": "saa-service-picker",
+      "front": "서드파티 방화벽·IDS 어플라이언스로 트래픽을 투명하게 통과시켜야 한다면?",
+      "back": "**GWLB(Gateway Load Balancer)** — GENEVE 프로토콜로 인라인 검사 어플라이언스에 트래픽 전달.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch07"
+    },
+    {
+      "id": "fc-svc-015",
+      "deck": "saa-service-picker",
+      "front": "규제상 데이터를 특정 국가로 갈라 응답해야 하는 DNS 라우팅은?",
+      "back": "**Route 53 지리적 위치 라우팅** — 쿼리 발생 위치(대륙·국가) 기준으로 응답을 분기.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch14"
+    },
+    {
+      "id": "fc-svc-016",
+      "deck": "saa-service-picker",
+      "front": "측정된 지연 시간이 가장 낮은 리전으로 트래픽을 보내야 한다면?",
+      "back": "**Route 53 지연 시간 기반 라우팅** — 실제 측정된 리전 간 지연을 기준으로 응답.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch14"
+    },
+    {
+      "id": "fc-svc-017",
+      "deck": "saa-service-picker",
+      "front": "게임처럼 비HTTP UDP 트래픽을 고정 애니캐스트 IP로 전 세계에서 가장 가까운 엔드포인트로 보내려면?",
+      "back": "**AWS Global Accelerator** — TCP/UDP 지원, AWS 백본으로 경로 최적화, 고정 IP 제공.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch14"
+    },
+    {
+      "id": "fc-svc-018",
+      "deck": "saa-service-picker",
+      "front": "S3나 DynamoDB로 향하는 트래픽만 NAT 게이트웨이 없이 AWS 네트워크 안에서 처리하려면?",
+      "back": "**게이트웨이 VPC 엔드포인트** — S3·DynamoDB 전용, 라우팅 테이블 경로로 동작, 추가 요금 없음.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch04"
+    },
+    {
+      "id": "fc-svc-019",
+      "deck": "saa-service-picker",
+      "front": "S3·DynamoDB 외의 서비스에 프라이빗하게 연결하려면 어떤 VPC 엔드포인트를 쓰는가?",
+      "back": "**인터페이스 VPC 엔드포인트(AWS PrivateLink)** — 서브넷에 ENI를 만들어 연결.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch04"
+    },
+    {
+      "id": "fc-svc-020",
+      "deck": "saa-service-picker",
+      "front": "애플리케이션이 EC2에서 S3에 접근할 때 장기 액세스 키 대신 써야 하는 것은?",
+      "back": "**IAM 역할(인스턴스 프로필)** — 자동 교체되는 임시 자격 증명을 인스턴스 메타데이터로 발급.",
+      "tags": [
+        "svc",
+        "saa"
+      ],
+      "chapter": "ch02"
+    }
+  ]
+}

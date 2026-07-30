@@ -1,0 +1,250 @@
+{
+  "deckId": "saa-numbers",
+  "title": "SAA — 확인된 한도 · 기본값 암기",
+  "exam": "SAA",
+  "examCode": "SAA-C03",
+  "cards": [
+    {
+      "id": "fc-num-001",
+      "deck": "saa-numbers",
+      "front": "S3 단일 객체의 최대 크기는? (2025-12 상향)",
+      "back": "**50 TB** — 이전에는 5 TB였다. GovCloud(US) 제외 전 리전 적용.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-num-002",
+      "deck": "saa-numbers",
+      "front": "S3 단일 PUT 업로드 및 CopyObject 단일 호출의 최대 크기는?",
+      "back": "**5 GB** — 그 이상은 멀티파트 업로드(복사)를 써야 한다.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-num-003",
+      "deck": "saa-numbers",
+      "front": "S3 멀티파트 업로드 파트의 최소 크기는?",
+      "back": "**5 MB** — 마지막 파트는 예외.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-num-004",
+      "deck": "saa-numbers",
+      "front": "S3 Standard-IA / One Zone-IA의 최소 저장 기간과 최소 청구 크기는?",
+      "back": "**최소 저장 기간 30일, 최소 청구 크기 128 KB** — 둘 다 동일.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-num-005",
+      "deck": "saa-numbers",
+      "front": "S3 Glacier Flexible Retrieval의 최소 저장 기간과 최소 청구 크기는?",
+      "back": "**최소 저장 기간 90일, 최소 청구 크기 40 KB**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-num-006",
+      "deck": "saa-numbers",
+      "front": "S3 Glacier Deep Archive의 최소 저장 기간과 기본 검색 시간은?",
+      "back": "**최소 저장 기간 180일, 기본 검색 시간 12시간**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-num-007",
+      "deck": "saa-numbers",
+      "front": "gp3 EBS 볼륨의 기본 IOPS·처리량과 2025-09 상향 후 최대값은?",
+      "back": "기본 **3,000 IOPS / 125 MiB/s**, 최대 **80,000 IOPS / 2,000 MiB/s** (구 16,000 IOPS / 1,000 MiB/s에서 상향).",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch06"
+    },
+    {
+      "id": "fc-num-008",
+      "deck": "saa-numbers",
+      "front": "io2 Block Express의 최대 IOPS는?",
+      "back": "**256,000 IOPS** (Nitro 시스템 인스턴스 기준). io1은 최대 64,000 IOPS.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch06"
+    },
+    {
+      "id": "fc-num-009",
+      "deck": "saa-numbers",
+      "front": "gp3·io2의 최대 볼륨 크기는?",
+      "back": "**64 TiB(65,536 GiB)** — gp2는 16 TiB(16,384 GiB)까지만.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch06"
+    },
+    {
+      "id": "fc-num-010",
+      "deck": "saa-numbers",
+      "front": "Lambda 함수의 기본 실행 시간과 최대 실행 시간은?",
+      "back": "기본 **3초**, 최대 **900초(15분)**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-num-011",
+      "deck": "saa-numbers",
+      "front": "Lambda 함수의 기본 메모리와 최대 메모리는?",
+      "back": "기본 **128 MB**, 최대 **10,240 MB(10 GB)**, 1 MB 단위 증가. 메모리를 늘리면 CPU 할당도 함께 증가.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-num-012",
+      "deck": "saa-numbers",
+      "front": "Lambda 동기 호출의 페이로드 크기 상한은?",
+      "back": "**6 MB**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-num-013",
+      "deck": "saa-numbers",
+      "front": "Lambda `/tmp` 임시 스토리지의 크기 범위는?",
+      "back": "**512 MB ~ 10,240 MB**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-num-014",
+      "deck": "saa-numbers",
+      "front": "SQS 메시지의 기본 가시성 제한 시간과 최대값은?",
+      "back": "기본 **30초**, 최소 0초, 최대 **12시간**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-num-015",
+      "deck": "saa-numbers",
+      "front": "SQS 메시지 보존 기간의 기본값과 최대값은?",
+      "back": "기본 **4일(345,600초)**, 최대 **14일**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-num-016",
+      "deck": "saa-numbers",
+      "front": "SQS 메시지 최대 크기는?",
+      "back": "**1 MiB(1,048,576 바이트)**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-num-017",
+      "deck": "saa-numbers",
+      "front": "SQS FIFO 큐의 기본 처리량은?",
+      "back": "배치 없이 **초당 300개**, 배치 사용 시 **초당 3,000개** (고처리량 모드로 추가 확장 가능).",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-num-018",
+      "deck": "saa-numbers",
+      "front": "DynamoDB에서 테이블당 최대 LSI 개수와 GSI 개수는?",
+      "back": "**LSI 최대 5개, GSI 최대 20개**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch11"
+    },
+    {
+      "id": "fc-num-019",
+      "deck": "saa-numbers",
+      "front": "DynamoDB LSI의 파티션 키 값당 크기 제한은?",
+      "back": "**10 GB** — GSI에는 이런 제한이 없다.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch11"
+    },
+    {
+      "id": "fc-num-020",
+      "deck": "saa-numbers",
+      "front": "Route 53 라우팅 정책은 총 몇 가지인가?",
+      "back": "**8가지** — 단순, 가중치, 지연 시간, 장애 조치, 지리적 위치, 지리 근접, 다중값 응답, IP 기반.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch14"
+    },
+    {
+      "id": "fc-num-021",
+      "deck": "saa-numbers",
+      "front": "ALB와 NLB의 교차 영역 로드 밸런싱 기본값은?",
+      "back": "**ALB는 항상 켜짐(변경 불가)**, **NLB·GWLB는 기본 꺼짐(변경 가능)**.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch07"
+    },
+    {
+      "id": "fc-num-022",
+      "deck": "saa-numbers",
+      "front": "KMS 고객 관리형 키 자동 교체의 기본 주기는?",
+      "back": "**약 365일**, `RotationPeriodInDays`로 조정 가능. 대칭 암호화 키만 지원.",
+      "tags": [
+        "num",
+        "saa"
+      ],
+      "chapter": "ch16"
+    }
+  ]
+}
