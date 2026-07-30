@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-07-30",
   "examCode": "SAA-C03",
-  "totalQuestions": 780,
+  "totalQuestions": 820,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -193,6 +193,16 @@
       "count": 68,
       "mock": false,
       "diagnostic": false
+    },
+    {
+      "setId": "saa-diagnostic",
+      "file": "saa-diagnostic.json",
+      "title": "SAA-C03 진단 테스트 — 학습 우선순위 파악",
+      "exam": "SAA",
+      "domain": "Mixed",
+      "count": 40,
+      "mock": false,
+      "diagnostic": true
     },
     {
       "setId": "saa-mock-1",
