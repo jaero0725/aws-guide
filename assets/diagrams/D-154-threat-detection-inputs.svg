@@ -1,0 +1,83 @@
+<svg viewBox="0 0 720 406" role="img" aria-labelledby="d154-title d154-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d154-title">위협 탐지 서비스 네 가지의 입력 데이터 구분</title>
+  <desc id="d154-desc">왼쪽에 입력 데이터, 가운데에 그 데이터를 읽는 서비스, 오른쪽에 집계 서비스를 놓은 좌우 흐름입니다.
+    Amazon GuardDuty 는 CloudTrail 이벤트, VPC Flow Logs, Route 53 DNS 쿼리 로그 같은 로그와 네트워크 신호를 읽어 위협 활동을 탐지합니다.
+    Amazon Inspector 는 EC2 인스턴스와 컨테이너 이미지, Lambda 함수에 설치된 소프트웨어 구성을 읽어 알려진 취약점을 평가합니다.
+    Amazon Macie 는 Amazon S3 버킷 안 객체의 내용을 읽어 개인 식별 정보 같은 민감 데이터를 찾아냅니다.
+    AWS Security Hub 는 데이터를 직접 읽지 않습니다. 앞의 세 서비스와 파트너 제품이 만든 결과를 모아 보안 표준에 대조하고 우선순위를 매겨 돌려줍니다.
+    그래서 시나리오에서 서비스를 고르는 유일한 기준은 문제문이 어떤 입력 데이터를 말하고 있는가입니다.</desc>
+
+  <defs>
+    <marker id="d154-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d154-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="44">무엇을 입력으로 읽는가</text>
+  <text class="dg-fs-sm dg-bold" x="294" y="44">읽는 서비스</text>
+  <text class="dg-fs-sm dg-bold" x="520" y="44">결과를 모으는 곳</text>
+
+  <!-- 입력 1 -->
+  <rect class="dg-node dg-node--alt" x="20" y="58" width="250" height="88" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="80">로그 · 네트워크 신호</text>
+  <text class="dg-fs-sm" x="34" y="102">CloudTrail 이벤트</text>
+  <text class="dg-fs-sm" x="34" y="120">VPC Flow Logs</text>
+  <text class="dg-fs-sm" x="34" y="138">Route 53 DNS 쿼리 로그</text>
+  <path class="dg-edge" d="M274 102 L290 102" marker-end="url(#d154-ar)"/>
+
+  <rect class="dg-node" x="294" y="76" width="180" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="98" text-anchor="middle">Amazon GuardDuty</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="118" text-anchor="middle">위협 활동 탐지</text>
+
+  <!-- 입력 2 -->
+  <rect class="dg-node dg-node--alt" x="20" y="166" width="250" height="68" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="188">워크로드의 소프트웨어 구성</text>
+  <text class="dg-fs-sm" x="34" y="208">EC2 · 컨테이너 이미지 · Lambda</text>
+  <text class="dg-fs-sm" x="34" y="226">설치된 패키지 목록</text>
+  <path class="dg-edge" d="M274 200 L290 200" marker-end="url(#d154-ar)"/>
+
+  <rect class="dg-node" x="294" y="174" width="180" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="196" text-anchor="middle">Amazon Inspector</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="216" text-anchor="middle">취약점 평가</text>
+
+  <!-- 입력 3 -->
+  <rect class="dg-node dg-node--alt" x="20" y="254" width="250" height="68" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="276">Amazon S3 의 객체 내용</text>
+  <text class="dg-fs-sm" x="34" y="296">버킷 안에 실제로 담긴 데이터</text>
+  <text class="dg-fs-sm" x="34" y="314">개인 식별 정보 · 자격 증명</text>
+  <path class="dg-edge" d="M274 288 L290 288" marker-end="url(#d154-ar)"/>
+
+  <rect class="dg-node" x="294" y="262" width="180" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="284" text-anchor="middle">Amazon Macie</text>
+  <text class="dg-fs-sm dg-muted" x="384" y="304" text-anchor="middle">민감 데이터 탐지</text>
+
+  <!-- 집계 -->
+  <path class="dg-edge dg-edge--accent" d="M478 102 L516 102" marker-end="url(#d154-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M478 200 L516 200" marker-end="url(#d154-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M478 288 L516 288" marker-end="url(#d154-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="520" y="58" width="180" height="264" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="534" y="82">AWS Security Hub</text>
+  <text class="dg-fs-sm" x="534" y="106">원본 데이터를 직접</text>
+  <text class="dg-fs-sm" x="534" y="124">읽지 않습니다</text>
+  <path class="dg-grid" d="M534 140 L686 140"/>
+  <text class="dg-fs-sm dg-muted" x="534" y="162">입력</text>
+  <text class="dg-fs-sm" x="534" y="182">GuardDuty · Inspector</text>
+  <text class="dg-fs-sm" x="534" y="200">Macie · 파트너 제품</text>
+  <path class="dg-grid" d="M534 216 L686 216"/>
+  <text class="dg-fs-sm dg-muted" x="534" y="238">출력</text>
+  <text class="dg-fs-sm" x="534" y="258">보안 표준 대조 결과</text>
+  <text class="dg-fs-sm" x="534" y="276">우선순위가 매겨진</text>
+  <text class="dg-fs-sm" x="534" y="294">통합 조사 결과</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--ok" x="20" y="340" width="680" height="56" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="366">서비스를 고르는 기준은 문제문이 말하는 입력 데이터입니다</text>
+  <text class="dg-fs-sm" x="34" y="388">로그와 네트워크는 GuardDuty · 설치된 소프트웨어는 Inspector · S3 객체 내용은 Macie</text>
+</svg>

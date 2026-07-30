@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-07-29",
+  "generatedAt": "2026-07-30",
   "examCode": "SAA-C03",
-  "totalQuestions": 457,
+  "totalQuestions": 618,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -35,6 +35,36 @@
       "diagnostic": false
     },
     {
+      "setId": "basics-ch04",
+      "file": "basics-ch04.json",
+      "title": "VPC 연결과 하이브리드 확인 문제",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch05",
+      "file": "basics-ch05.json",
+      "title": "EC2와 컴퓨트 확인 문제",
+      "exam": "BASICS",
+      "domain": "EC2와 컴퓨트",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch06",
+      "file": "basics-ch06.json",
+      "title": "EBS와 블록 스토리지 확인 문제",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
       "setId": "basics-ch07",
       "file": "basics-ch07.json",
       "title": "로드 밸런싱과 오토스케일링 확인 문제",
@@ -55,11 +85,31 @@
       "diagnostic": false
     },
     {
+      "setId": "basics-ch09",
+      "file": "basics-ch09.json",
+      "title": "파일 스토리지와 데이터 전송 확인 문제",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
       "setId": "basics-ch10",
       "file": "basics-ch10.json",
       "title": "RDS와 관계형 데이터베이스 확인 문제",
       "exam": "BASICS",
       "domain": "RDS와 관계형 데이터베이스",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch11",
+      "file": "basics-ch11.json",
+      "title": "NoSQL · 캐시 · 분석 DB 확인 문제",
+      "exam": "BASICS",
+      "domain": "NoSQL · 캐시 · 분석 DB",
       "count": 10,
       "mock": false,
       "diagnostic": false
@@ -75,11 +125,41 @@
       "diagnostic": false
     },
     {
+      "setId": "basics-ch13",
+      "file": "basics-ch13.json",
+      "title": "컨테이너 확인 문제",
+      "exam": "BASICS",
+      "domain": "컨테이너",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch14",
+      "file": "basics-ch14.json",
+      "title": "엣지와 DNS 확인 문제",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
       "setId": "basics-ch16",
       "file": "basics-ch16.json",
       "title": "보안 · 암호화 · 거버넌스 확인 문제",
       "exam": "BASICS",
       "domain": "보안 · 암호화 · 거버넌스",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch18",
+      "file": "basics-ch18.json",
+      "title": "비용 최적화 · 마이그레이션 · DR 확인 문제",
+      "exam": "BASICS",
+      "domain": "비용 최적화 · 마이그레이션 · DR",
       "count": 10,
       "mock": false,
       "diagnostic": false
@@ -100,7 +180,17 @@
       "title": "SAA-C03 모의고사 1회 — 65문항 혼합",
       "exam": "SAA",
       "domain": "Mixed",
-      "count": 37,
+      "count": 65,
+      "mock": true,
+      "diagnostic": false
+    },
+    {
+      "setId": "saa-mock-2",
+      "file": "saa-mock-2.json",
+      "title": "SAA-C03 모의고사 2회 — 65문항 혼합",
+      "exam": "SAA",
+      "domain": "Mixed",
+      "count": 53,
       "mock": true,
       "diagnostic": false
     },

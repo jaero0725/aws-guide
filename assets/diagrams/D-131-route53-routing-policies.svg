@@ -1,0 +1,102 @@
+<svg viewBox="0 0 720 614" role="img" aria-labelledby="d131-title d131-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d131-title">Route 53 라우팅 정책 8종이 같은 질의에 응답하는 방식</title>
+  <desc id="d131-desc">위쪽에 같은 DNS 질의 하나를 놓고, 그 아래 여덟 줄에 라우팅 정책 8종을 나란히 세워
+    각 정책의 레코드 식별 멤버, 상태 확인 연동 여부, 그리고 같은 질의에 무엇을 응답하는지를 비교합니다.
+    단순 라우팅은 식별 멤버가 없는 유일한 정책이며 레코드를 그대로 하나 돌려줍니다.
+    가중치 기반은 Weight 로 비율을 정해 그중 하나를 고릅니다. 지연 시간 기반은 Region 을 보고 가장 빠른 리전을 돌려줍니다.
+    장애 조치는 Failover 값과 HealthCheckId 가 함께 필요하며 상태 확인이 필수인 유일한 정책입니다.
+    지리적 위치는 GeoLocation 으로 질의가 어디서 왔는지를 보고, 지리 근접은 GeoProximityLocation 과 편향값으로 리소스가 어디에 있는지를 봅니다.
+    다중값 응답은 MultiValueAnswer 로 정상인 대상 여러 개를 함께 돌려주고, IP 기반은 CidrRoutingConfig 로 클라이언트 IP 대역별 대상을 돌려줍니다.
+    지금은 단순 라우팅이 선택된 상태입니다. 아래 안내 상자가 선택된 정책의 쓰임을 설명합니다.
+    맨 아래 주의 문구가 밝히듯, 지리 근접과 IP 기반이 빠진 6종이나 7종 목록은 옛 자료입니다.</desc>
+
+  <defs>
+    <marker id="d131-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">같은 질의에 정책마다 무엇을 응답하는가</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="36" width="680" height="38" rx="4"/>
+  <text class="dg-fs-sm dg-bold dg-mono" x="360" y="60" text-anchor="middle">app.example.com  ·  A 레코드 질의</text>
+  <path class="dg-edge dg-edge--accent" d="M360 76 L360 94" marker-end="url(#d131-ar-accent)"/>
+
+  <text class="dg-fs-sm dg-muted" x="34" y="118">라우팅 정책</text>
+  <text class="dg-fs-sm dg-muted" x="226" y="118">레코드의 식별 멤버</text>
+  <text class="dg-fs-sm dg-muted" x="442" y="118">상태 확인</text>
+  <text class="dg-fs-sm dg-muted" x="532" y="118">이 질의에 대한 응답</text>
+
+  <g data-dg="policy-simple" data-state="on">
+    <rect class="dg-node" x="20" y="126" width="680" height="42" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="34" y="153">단순 (Simple)</text>
+    <text class="dg-fs-sm" x="226" y="153">없음 — 유일한 예외</text>
+    <text class="dg-fs-sm" x="442" y="153">연동 없음</text>
+    <text class="dg-fs-sm" x="532" y="153">레코드 하나 그대로</text>
+  </g>
+
+  <g data-dg="policy-weighted">
+    <rect class="dg-node" x="20" y="172" width="680" height="42" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="34" y="199">가중치 (Weighted)</text>
+    <text class="dg-fs-sm dg-mono" x="226" y="199">Weight</text>
+    <text class="dg-fs-sm" x="442" y="199">선택</text>
+    <text class="dg-fs-sm" x="532" y="199">비율대로 고른 하나</text>
+  </g>
+
+  <g data-dg="policy-latency">
+    <rect class="dg-node" x="20" y="218" width="680" height="42" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="34" y="245">지연 시간 (Latency)</text>
+    <text class="dg-fs-sm dg-mono" x="226" y="245">Region</text>
+    <text class="dg-fs-sm" x="442" y="245">선택</text>
+    <text class="dg-fs-sm" x="532" y="245">가장 빠른 리전</text>
+  </g>
+
+  <g data-dg="policy-failover">
+    <rect class="dg-node" x="20" y="264" width="680" height="42" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="34" y="291">장애 조치 (Failover)</text>
+    <text class="dg-fs-sm dg-mono" x="226" y="291">Failover + HealthCheckId</text>
+    <text class="dg-fs-sm dg-bold" x="442" y="291">필수</text>
+    <text class="dg-fs-sm" x="532" y="291">정상인 쪽 하나</text>
+  </g>
+
+  <g data-dg="policy-geolocation">
+    <rect class="dg-node" x="20" y="310" width="680" height="42" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="34" y="337">지리 위치 (Geolocation)</text>
+    <text class="dg-fs-sm dg-mono" x="226" y="337">GeoLocation</text>
+    <text class="dg-fs-sm" x="442" y="337">선택</text>
+    <text class="dg-fs-sm" x="532" y="337">질의 출발지 기준</text>
+  </g>
+
+  <g data-dg="policy-geoproximity">
+    <rect class="dg-node" x="20" y="356" width="680" height="42" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="34" y="383">지리 근접 (Geoproximity)</text>
+    <text class="dg-fs-sm dg-mono" x="226" y="383">GeoProximityLocation</text>
+    <text class="dg-fs-sm" x="442" y="383">선택</text>
+    <text class="dg-fs-sm" x="532" y="383">리소스 위치 기준</text>
+  </g>
+
+  <g data-dg="policy-multivalue">
+    <rect class="dg-node" x="20" y="402" width="680" height="42" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="34" y="429">다중값 (Multivalue)</text>
+    <text class="dg-fs-sm dg-mono" x="226" y="429">MultiValueAnswer</text>
+    <text class="dg-fs-sm" x="442" y="429">권장</text>
+    <text class="dg-fs-sm" x="532" y="429">정상인 것 여러 개</text>
+  </g>
+
+  <g data-dg="policy-ipbased">
+    <rect class="dg-node" x="20" y="448" width="680" height="42" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="34" y="475">IP 기반 (IP-based)</text>
+    <text class="dg-fs-sm dg-mono" x="226" y="475">CidrRoutingConfig</text>
+    <text class="dg-fs-sm" x="442" y="475">선택</text>
+    <text class="dg-fs-sm" x="532" y="475">IP 대역별 대상</text>
+  </g>
+
+  <rect class="dg-node dg-node--accent" x="20" y="502" width="680" height="52" rx="4"/>
+  <text data-dg="detail-title" class="dg-fs-sm dg-bold" x="34" y="526">선택: 단순 (Simple) — 대상이 하나뿐이고 조건 분기가 없을 때 쓰는 기본값입니다</text>
+  <text data-dg="detail-note" class="dg-fs-sm" x="34" y="546">단순 라우팅을 제외한 7종은 모두 SetIdentifier 가 필수입니다</text>
+
+  <rect class="dg-node dg-node--warn" x="20" y="564" width="680" height="38" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="588">지리 근접과 IP 기반이 빠진 6종 · 7종 목록은 옛 자료입니다 — 정책은 8종입니다</text>
+</svg>

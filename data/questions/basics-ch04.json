@@ -1,0 +1,295 @@
+{
+  "setId": "basics-ch04",
+  "title": "4장 · VPC 연결과 하이브리드 — 확인 문제",
+  "exam": "BASICS",
+  "domain": "VPC 연결과 하이브리드",
+  "examCode": "SAA-C03",
+  "questions": [
+    {
+      "id": "basics-ch04-001",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "VPC A와 B가 피어링되어 있고 B와 C도 피어링되어 있습니다. 라우팅 테이블에 경로를 넣었는데도 A의 인스턴스가 C의 인스턴스와 통신하지 못합니다. 원인과 해결로 옳은 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "B의 라우팅 테이블에 A와 C로 가는 경로를 추가하면 B가 중계해 줍니다." },
+        { "id": "B", "text": "피어링은 전이되지 않으므로 A와 C 사이에 피어링을 직접 만들어야 합니다." },
+        { "id": "C", "text": "B에 NAT 게이트웨이를 두고 A의 트래픽을 그쪽으로 보내면 C에 도달합니다." },
+        { "id": "D", "text": "세 VPC의 CIDR 블록을 같은 대역으로 맞추면 통신이 가능해집니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "VPC 피어링은 두 VPC를 일대일로 잇는 관계이며 전이성을 지원하지 않습니다. 즉 A는 직접 피어링을 맺은 상대와만 통신할 수 있고, 중간에 있는 VPC를 경유해 그 너머로 나갈 수 없습니다. 라우팅 테이블에 경로를 넣어도 이 제약은 우회되지 않으므로, 세 VPC가 서로 통신해야 하면 세 개의 피어링이 필요합니다. VPC 수가 늘어나면 필요한 연결 수가 급격히 늘어나기 때문에, 규모가 커지는 순간 허브 앤 스포크 구조인 Transit Gateway로 방향을 바꿉니다.",
+      "distractorNotes": {
+        "A": "중계 라우팅이 성립하지 않는 것이 전이성 미지원의 의미입니다. 경로를 아무리 정교하게 넣어도 패킷은 넘어가지 않습니다.",
+        "C": "NAT 게이트웨이는 인터넷으로 나가기 위한 장치이며 VPC 사이를 중계하는 장치가 아닙니다. 게다가 피어 VPC의 NAT를 함께 쓸 수도 없습니다.",
+        "D": "CIDR이 겹치면 피어링 자체를 만들 수 없습니다. 같게 맞추라는 것은 정반대 방향의 조언입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html", "title": "Amazon VPC 피어링 안내서 — 피어링 기본" },
+        { "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-peering.html", "title": "Amazon VPC 사용 설명서 — VPC 피어링으로 VPC 연결" }
+      ],
+      "tags": ["vpc-peering", "transit-gateway", "routing"]
+    },
+    {
+      "id": "basics-ch04-002",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "감사 팀이 프라이빗 서브넷 인스턴스의 Amazon S3 접근 트래픽이 인터넷을 경유해서는 안 된다고 요구했습니다. 어떻게 구성해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "NAT 게이트웨이를 통해 나가게 하고 버킷 정책에서 출발지 IP를 제한합니다." },
+        { "id": "B", "text": "S3용 게이트웨이 엔드포인트를 만들고 서브넷 라우팅 테이블에 연결합니다." },
+        { "id": "C", "text": "인스턴스에 탄력적 IP를 붙이고 인터넷 게이트웨이로 직접 내보냅니다." },
+        { "id": "D", "text": "VPC 피어링 연결을 만들어 Amazon S3와 직접 연결합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "인터넷을 경유하지 않아야 한다는 한정어가 붙으면 후보는 VPC 엔드포인트와 PrivateLink, 그리고 Direct Connect로 좁혀집니다. NAT 게이트웨이는 프라이빗 서브넷의 리소스를 인터넷으로 내보내기 위한 장치이므로 이 요구와 정면으로 어긋납니다. S3와 DynamoDB는 게이트웨이 엔드포인트를 지원하며, 엔드포인트를 만들면 라우팅 테이블에 그 서비스의 접두사 목록을 향하는 경로가 추가되어 트래픽이 AWS 네트워크 안에서 처리됩니다. 사용에 추가 요금이 없다는 점 때문에 비용 문항에서도 같은 구성이 정답으로 나옵니다.",
+      "distractorNotes": {
+        "A": "출발지 IP를 제한해도 트래픽은 여전히 인터넷을 지나갑니다. 접근 통제와 경로는 다른 문제입니다.",
+        "C": "가장 노골적으로 인터넷을 경유하는 구성이며 프라이빗 서브넷을 쓰는 이유도 사라집니다.",
+        "D": "VPC 피어링은 VPC끼리 연결하는 기능입니다. S3 같은 AWS 서비스에 피어링을 맺는 개념은 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html", "title": "AWS PrivateLink — Amazon S3용 게이트웨이 엔드포인트" },
+        { "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html", "title": "AWS PrivateLink — 게이트웨이 엔드포인트" }
+      ],
+      "tags": ["vpc-endpoint", "s3", "privatelink", "security"]
+    },
+    {
+      "id": "basics-ch04-003",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "회사가 스무 개가 넘는 VPC와 온프레미스 데이터센터를 운영하며, 이들이 서로 통신할 수 있어야 하고 앞으로 VPC가 계속 늘어납니다. 어떤 연결 구조가 적절합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "모든 VPC 쌍을 VPC 피어링으로 연결해 완전 연결 구조를 만듭니다." },
+        { "id": "B", "text": "Transit Gateway를 만들고 각 VPC와 온프레미스 연결을 여기에 붙입니다." },
+        { "id": "C", "text": "중앙 VPC 하나를 두고 나머지를 그 VPC와 피어링해 경유하게 합니다." },
+        { "id": "D", "text": "각 VPC에 인터넷 게이트웨이를 두고 퍼블릭 주소로 서로 통신하게 합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "연결 방식은 규모가 정합니다. 피어링은 일대일 관계라 모두가 서로 통신하려면 연결 수가 VPC 수의 제곱에 비례해 늘어나고, 하나가 추가될 때마다 기존 모든 VPC에 연결과 경로를 더해야 합니다. Transit Gateway는 중앙 허브에 각 네트워크를 한 번씩만 붙이면 되므로 연결 수가 VPC 수에 비례하고, 전이 라우팅을 지원해 스포크끼리도 통신합니다. 온프레미스 연결도 같은 허브에 붙일 수 있어 하이브리드 구성을 한곳에서 관리하게 됩니다. 라우팅 테이블을 여러 개 만들어 어떤 네트워크끼리 통신할지 세그먼트를 나눌 수도 있습니다.",
+      "distractorNotes": {
+        "A": "연결과 경로의 수가 감당하기 어려울 정도로 불어나고, VPC를 하나 추가할 때마다 전체를 손봐야 합니다.",
+        "C": "피어링은 전이되지 않으므로 중앙 VPC를 경유하는 통신이 애초에 성립하지 않습니다.",
+        "D": "내부 통신을 퍼블릭 주소로 처리하면 보안이 무너지고 인터넷 송신 요금까지 발생합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/tgw/how-transit-gateways-work.html", "title": "AWS Transit Gateway — 동작 방식" },
+        { "url": "https://docs.aws.amazon.com/vpc/latest/tgw/tgw-route-tables.html", "title": "AWS Transit Gateway — 라우팅 테이블" }
+      ],
+      "tags": ["transit-gateway", "vpc-peering", "hybrid", "scalability"]
+    },
+    {
+      "id": "basics-ch04-004",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "AWS Direct Connect로 연결된 온프레미스 서버가 Amazon S3에 접근해야 합니다. 트래픽이 퍼블릭 인터넷을 거치지 않아야 하고 애플리케이션의 엔드포인트 설정은 바꾸지 않으려 합니다. 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "VPC에 S3 게이트웨이 엔드포인트를 만들고 온프레미스 트래픽을 그쪽으로 라우팅합니다." },
+        { "id": "B", "text": "VPC에 S3 인터페이스 엔드포인트를 만들고 프라이빗 DNS를 활성화합니다." },
+        { "id": "C", "text": "온프레미스에서 퍼블릭 인터넷으로 접속하고 TLS 암호화로 보호합니다." },
+        { "id": "D", "text": "온프레미스 네트워크와 S3 사이에 VPC 피어링 연결을 만듭니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "두 엔드포인트 유형은 구현 방식이 달라 사용할 수 있는 범위도 달라집니다. 게이트웨이 엔드포인트는 라우팅 테이블에 경로를 넣는 방식이라 그 VPC 안에서만 효력이 있고, 온프레미스나 다른 리전에서 오는 트래픽에는 쓸 수 없습니다. 인터페이스 엔드포인트는 서브넷 안에 프라이빗 IP를 가진 네트워크 인터페이스를 만들기 때문에, 하이브리드 연결을 통해 들어온 트래픽도 그 주소로 도달할 수 있습니다. 여기에 프라이빗 DNS를 켜면 서비스의 기본 퍼블릭 DNS 이름이 엔드포인트의 프라이빗 IP로 해석되어 애플리케이션 설정을 바꾸지 않아도 됩니다.",
+      "distractorNotes": {
+        "A": "게이트웨이 엔드포인트는 온프레미스에서 오는 접근에 쓸 수 없습니다. 하이브리드 시나리오에서 가장 흔한 오답입니다.",
+        "C": "암호화는 내용은 보호하지만 경로를 바꾸지 못합니다. 인터넷을 거치지 않아야 한다는 조건을 위반합니다.",
+        "D": "피어링은 VPC 사이의 기능이며 온프레미스 네트워크나 AWS 서비스에는 적용되지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html", "title": "AWS PrivateLink — 인터페이스 VPC 엔드포인트로 AWS 서비스 접근" },
+        { "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html", "title": "AWS PrivateLink — 인터페이스 엔드포인트 구성" }
+      ],
+      "tags": ["privatelink", "interface-endpoint", "hybrid", "direct-connect"]
+    },
+    {
+      "id": "basics-ch04-005",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "규정이 온프레미스와 AWS 사이의 모든 트래픽을 전송 중 암호화하라고 요구합니다. 현재 연결은 AWS Direct Connect 전용 회선입니다. 어떤 조치가 필요합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "전용 회선은 기본적으로 암호화되므로 추가 조치가 필요하지 않습니다." },
+        { "id": "B", "text": "MACsec을 적용하거나 Direct Connect 위에 Site-to-Site VPN을 함께 구성합니다." },
+        { "id": "C", "text": "프라이빗 가상 인터페이스를 퍼블릭 가상 인터페이스로 바꾸면 암호화됩니다." },
+        { "id": "D", "text": "Direct Connect 게이트웨이를 추가로 만들면 암호화가 활성화됩니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "전용 회선이라는 말은 물리적으로 분리된 경로를 쓴다는 뜻이지 암호화된다는 뜻이 아닙니다. Direct Connect는 기본적으로 트래픽을 암호화하지 않으므로 규정 요구가 있으면 별도의 수단을 얹어야 합니다. 링크 계층에서 암호화하는 MACsec을 지원하는 구성으로 가거나, 회선 위에 Site-to-Site VPN을 얹어 IPsec으로 감싸는 방식을 씁니다. 후자는 VPN을 백업 경로로도 쓸 수 있어 이중화와 암호화를 함께 얻는 조합으로 자주 등장합니다.",
+      "distractorNotes": {
+        "A": "전용성과 기밀성은 다른 성질입니다. 이 오해가 규정 준수 문항에서 그대로 오답이 됩니다.",
+        "C": "가상 인터페이스의 종류는 무엇에 도달할지를 정하는 설정입니다. 프라이빗은 VPC, 퍼블릭은 AWS 퍼블릭 서비스로 향하며 암호화와는 무관합니다.",
+        "D": "Direct Connect 게이트웨이는 여러 리전과 계정의 VPC에 도달하기 위한 전역 리소스입니다. 암호화 기능을 제공하지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/MACSec.html", "title": "AWS Direct Connect 사용 설명서 — MACsec" },
+        { "url": "https://docs.aws.amazon.com/vpn/latest/s2svpn/VPC_VPN.html", "title": "AWS Site-to-Site VPN 사용 설명서 — 개요" }
+      ],
+      "tags": ["direct-connect", "encryption", "vpn", "compliance"]
+    },
+    {
+      "id": "basics-ch04-006",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "온프레미스에서 세 개 리전에 흩어진 VPC들에 접근해야 하고, 전용 회선에 장애가 나도 연결이 유지되어야 합니다. 어떤 설계가 적절합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "리전마다 Direct Connect 전용 회선을 각각 구축해 개별적으로 연결합니다." },
+        { "id": "B", "text": "Direct Connect 게이트웨이로 여러 리전에 도달하게 하고 VPN을 백업으로 둡니다." },
+        { "id": "C", "text": "각 리전의 VPC를 피어링으로 엮고 회선 하나로 그 사슬을 경유합니다." },
+        { "id": "D", "text": "Transit Gateway 피어링에 BGP 동적 라우팅을 설정해 회선을 이중화합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "이 문항은 도달 범위와 이중화라는 두 요구를 각각 어떤 구성요소가 담당하는지 묻습니다. Direct Connect 게이트웨이는 전역 리소스여서 하나의 회선으로 여러 리전과 여러 계정의 VPC에 도달할 수 있게 해 주므로, 리전마다 회선을 새로 끌 필요가 없습니다. 이중화는 별개의 문제이며, 물리 회선 하나로는 회선 장애를 견딜 수 없습니다. 그래서 표준 조합이 Direct Connect를 주 경로로 두고 Site-to-Site VPN을 백업으로 붙이는 것입니다. 대역폭과 지연은 주 경로가 책임지고, 백업은 최악의 상황에서 연결이 끊기지 않게 하는 역할을 맡습니다.",
+      "distractorNotes": {
+        "A": "회선을 리전마다 구축하면 비용과 구축 기간이 크게 늘어나고, 그래도 각 회선의 단일 장애점은 그대로 남습니다.",
+        "C": "피어링은 전이되지 않으므로 사슬을 경유하는 라우팅이 성립하지 않습니다.",
+        "D": "Transit Gateway 사이의 피어링은 정적 경로만 지원합니다. BGP로 자동 전파된다고 가정하면 설계가 어긋납니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/whitepapers/latest/aws-vpc-connectivity-options/aws-direct-connect.html", "title": "Amazon VPC 연결 옵션 백서 — AWS Direct Connect" },
+        { "url": "https://docs.aws.amazon.com/directconnect/latest/UserGuide/WorkingWithVirtualInterfaces.html", "title": "AWS Direct Connect 사용 설명서 — 가상 인터페이스" }
+      ],
+      "tags": ["direct-connect", "vpn", "high-availability", "hybrid"]
+    },
+    {
+      "id": "basics-ch04-007",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "VPC 피어링에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "CIDR 블록이 겹치는 VPC끼리는 피어링 연결을 만들 수 없습니다." },
+        { "id": "B", "text": "다른 계정이나 다른 리전에 있는 VPC와도 피어링할 수 있습니다." },
+        { "id": "C", "text": "피어링된 VPC를 경유해 그 너머의 VPC와도 통신할 수 있습니다." },
+        { "id": "D", "text": "피어 VPC에 있는 NAT 게이트웨이를 함께 사용해 인터넷으로 나갈 수 있습니다." },
+        { "id": "E", "text": "피어링 트래픽은 퍼블릭 인터넷을 거쳐 상대 VPC에 도달합니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "피어링은 두 VPC의 주소 공간을 이어 붙이는 관계이므로 주소가 겹치면 어디로 보낼지 결정할 수 없어 연결 자체가 만들어지지 않습니다. 그래서 여러 VPC를 연결할 계획이 있다면 CIDR 설계 단계에서 겹치지 않게 잡아 두어야 합니다. 범위는 넓어서 계정과 리전을 넘어 맺을 수 있고, 트래픽은 AWS 네트워크 안에 머물러 퍼블릭 인터넷을 지나지 않습니다. 반면 상대 VPC의 인터넷 게이트웨이나 NAT 게이트웨이 같은 장치를 빌려 쓰는 것은 허용되지 않으며, 이 제약이 공유 NAT 설계를 불가능하게 만듭니다.",
+      "distractorNotes": {
+        "C": "전이 라우팅은 지원되지 않습니다. 각 쌍마다 직접 피어링을 맺어야 합니다.",
+        "D": "피어 VPC의 인터넷 게이트웨이, NAT 게이트웨이, VPN, 게이트웨이 엔드포인트는 사용할 수 없습니다. 이 제약을 모르면 비용 절감을 노린 공유 설계가 동작하지 않습니다.",
+        "E": "피어링 트래픽은 AWS 네트워크 안에서 처리됩니다. 인터넷을 경유한다고 보면 보안 검토가 잘못된 방향으로 갑니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html", "title": "Amazon VPC 피어링 안내서 — 피어링 기본" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpcPeeringConnection.html", "title": "Amazon EC2 API 레퍼런스 — CreateVpcPeeringConnection" }
+      ],
+      "tags": ["vpc-peering", "cidr", "routing", "networking"]
+    },
+    {
+      "id": "basics-ch04-008",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "VPC 엔드포인트의 두 유형에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "게이트웨이 엔드포인트가 지원하는 서비스는 Amazon S3와 Amazon DynamoDB뿐입니다." },
+        { "id": "B", "text": "인터페이스 엔드포인트는 서브넷에 네트워크 인터페이스를 만들고 보안 그룹을 연결할 수 있습니다." },
+        { "id": "C", "text": "게이트웨이 엔드포인트에도 보안 그룹을 붙여 접근 주체를 제한할 수 있습니다." },
+        { "id": "D", "text": "인터페이스 엔드포인트는 라우팅 테이블에 경로가 자동 추가되는 방식으로 동작합니다." },
+        { "id": "E", "text": "엔드포인트를 만들면 별도 정책 없이도 접근이 최소 권한으로 자동으로 좁아집니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "두 유형은 구현 계층이 다릅니다. 게이트웨이 엔드포인트는 라우팅으로 동작해 서브넷이나 보안 그룹을 지정하지 않고, 지원 대상이 두 서비스로 한정되는 대신 사용에 추가 요금이 없습니다. 인터페이스 엔드포인트는 PrivateLink 기반으로 서브넷 안에 프라이빗 IP를 가진 인터페이스를 만들기 때문에 보안 그룹으로 통제할 수 있고, 온프레미스에서 오는 접근에도 쓸 수 있습니다. 대신 시간 요금과 처리 데이터 요금이 발생하므로 엔드포인트를 쓰면 무조건 저렴해진다는 일반화는 성립하지 않습니다.",
+      "distractorNotes": {
+        "C": "게이트웨이 엔드포인트에는 보안 그룹이라는 개념이 없습니다. 통제는 엔드포인트 정책과 리소스 정책으로 합니다.",
+        "D": "라우팅 테이블에 경로가 추가되는 것은 게이트웨이 엔드포인트입니다. 두 유형의 동작을 뒤바꾼 서술입니다.",
+        "E": "엔드포인트 정책을 지정하지 않으면 전체 접근을 허용하는 기본 정책이 붙습니다. 좁히려면 명시적으로 정책을 써야 합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html", "title": "AWS PrivateLink — 게이트웨이 엔드포인트" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVpcEndpoint.html", "title": "Amazon EC2 API 레퍼런스 — CreateVpcEndpoint" }
+      ],
+      "tags": ["vpc-endpoint", "privatelink", "security-group", "cost-optimization"]
+    },
+    {
+      "id": "basics-ch04-009",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "matching",
+      "question": "각 연결 요구사항에 가장 알맞은 수단을 연결하세요. 목록에는 정답이 아닌 미끼 값이 섞여 있습니다.",
+      "code": null,
+      "pairs": [
+        { "id": "p1", "left": "VPC 두 개만 서로 통신하면 되고 두 VPC의 CIDR은 겹치지 않는다", "right": "VPC 피어링" },
+        { "id": "p2", "left": "수십 개의 VPC와 온프레미스를 하나의 허브로 묶고 전이 라우팅이 필요하다", "right": "Transit Gateway" },
+        { "id": "p3", "left": "프라이빗 서브넷에서 Amazon S3에 추가 요금 없이 프라이빗하게 접근해야 한다", "right": "게이트웨이 엔드포인트" },
+        { "id": "p4", "left": "온프레미스에서 AWS 서비스에 프라이빗 IP로 접근하고 보안 그룹으로 통제해야 한다", "right": "인터페이스 엔드포인트" },
+        { "id": "p5", "left": "온프레미스와 AWS 사이에 안정적인 전용 대역폭이 지속적으로 필요하다", "right": "Direct Connect" }
+      ],
+      "extraRights": ["NAT 게이트웨이", "AWS Outposts"],
+      "explanation": "연결 수단은 규모와 방향이라는 두 축으로 정리됩니다. 규모가 작고 관계가 일대일이면 피어링, 관계가 많아지고 전이 통신이 필요하면 허브 구조로 갑니다. 방향 쪽에서는 인터넷으로 나가는 트래픽과 AWS 서비스로 향하는 트래픽을 구분해야 하며, 후자는 엔드포인트로 처리해 인터넷을 아예 거치지 않게 만듭니다. 두 엔드포인트 유형은 대상 서비스와 온프레미스 접근 가능 여부로 갈립니다. 미끼로 넣은 NAT 게이트웨이는 인터넷으로 나가기 위한 장치이므로 인터넷 비경유 요구의 답이 될 수 없고, Outposts는 AWS 인프라를 고객 시설에 두는 방식이라 단순 연결 요구에는 과한 선택입니다.",
+      "distractorNotes": {
+        "p1": "규모가 커지면 같은 답이 유지되지 않습니다. VPC 수가 늘어난다는 조건이 붙는 순간 허브 구조로 옮겨야 합니다.",
+        "p2": "전이 라우팅이 필요하다는 표현이 결정적입니다. 피어링은 이 조건을 구조적으로 충족할 수 없습니다.",
+        "p3": "추가 요금이 없다는 조건과 대상이 S3라는 점이 함께 이 유형을 가리킵니다.",
+        "p4": "온프레미스에서의 접근과 보안 그룹 통제라는 두 조건이 모두 이 유형에서만 성립합니다.",
+        "p5": "지속적이고 안정적인 대역폭이라는 조건이 전용 회선을 부릅니다. 일회성 대량 전송이라면 답이 달라집니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/tgw/how-transit-gateways-work.html", "title": "AWS Transit Gateway — 동작 방식" },
+        { "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html", "title": "AWS PrivateLink — 인터페이스 엔드포인트 구성" }
+      ],
+      "tags": ["vpc-peering", "transit-gateway", "vpc-endpoint", "direct-connect"]
+    },
+    {
+      "id": "basics-ch04-010",
+      "exam": "BASICS",
+      "domain": "VPC 연결과 하이브리드",
+      "chapter": "ch04",
+      "difficulty": "hard",
+      "type": "ordering",
+      "question": "온프레미스 네트워크와 VPC를 AWS Site-to-Site VPN으로 연결하는 구성 단계를 순서대로 배열하세요.",
+      "code": null,
+      "items": [
+        { "id": "i4", "text": "VPC 서브넷의 라우팅 테이블에 온프레미스 CIDR 경로를 추가하거나 경로 전파를 활성화한다" },
+        { "id": "i2", "text": "두 게이트웨이를 지정해 VPN 연결을 만들고 터널 두 개를 받는다" },
+        { "id": "i5", "text": "보안 그룹과 네트워크 ACL에서 온프레미스 대역의 트래픽을 허용한다" },
+        { "id": "i1", "text": "VPC에 가상 프라이빗 게이트웨이를 붙이고 온프레미스 라우터 정보로 고객 게이트웨이를 등록한다" },
+        { "id": "i3", "text": "AWS가 제공하는 구성 파일을 내려받아 온프레미스 장비에 적용한다" }
+      ],
+      "answer": ["i1", "i2", "i3", "i4", "i5"],
+      "explanation": "VPN 구성은 양쪽 끝점을 먼저 정의하고 그 둘을 잇는 순서로 진행됩니다. AWS 쪽 끝점이 가상 프라이빗 게이트웨이이고 온프레미스 쪽 끝점을 표현한 객체가 고객 게이트웨이이므로, 둘이 있어야 비로소 연결을 만들 수 있습니다. 연결을 만들면 터널이 두 개 생기는데, 이는 이중화를 위해 처음부터 그렇게 설계된 것이라 별도로 이중화를 구성할 필요가 없습니다. 그다음 온프레미스 장비에 설정을 적용해 터널을 올리고, 마지막으로 라우팅과 보안 규칙을 열어야 실제 통신이 성립합니다. 연결이 붙었는데도 통신이 안 된다는 상황은 대개 이 마지막 두 단계가 빠진 경우입니다.",
+      "distractorNotes": {
+        "i2": "연결을 먼저 만들려고 하면 지정할 게이트웨이가 없습니다. 양쪽 끝점 정의가 선행 조건입니다.",
+        "i4": "터널이 올라오면 통신이 될 것으로 기대하기 쉽지만, 경로가 없으면 패킷이 그 터널로 향하지 않습니다.",
+        "i5": "라우팅까지 끝냈는데 실패한다면 보안 그룹과 네트워크 ACL을 봅니다. 네트워크 ACL은 상태 비저장이라 응답 방향도 열어야 합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpn/latest/s2svpn/VPC_VPN.html", "title": "AWS Site-to-Site VPN 사용 설명서 — 개요" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateCustomerGateway.html", "title": "Amazon EC2 API 레퍼런스 — CreateCustomerGateway" }
+      ],
+      "tags": ["vpn", "hybrid", "routing", "vpc"]
+    }
+  ]
+}

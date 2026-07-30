@@ -1,0 +1,85 @@
+<svg viewBox="0 0 720 566" role="img" aria-labelledby="d155-title d155-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d155-title">Amazon Cognito 사용자 풀과 자격 증명 풀의 2단 구조</title>
+  <desc id="d155-desc">위에서 아래로 내려가는 두 단계 흐름입니다.
+    1단계는 인증입니다. 최종 사용자가 Amazon Cognito 사용자 풀에 로그인하면 사용자 풀이 사용자 디렉터리 역할을 하며
+    MFA 와 소셜 로그인, SAML 연동을 처리하고, 인증에 성공하면 ID 토큰과 액세스 토큰을 발급합니다.
+    앱이 자기 백엔드 API 만 호출한다면 여기서 흐름이 끝납니다. 오른쪽으로 갈라진 가지가 그 경우입니다.
+    2단계는 자격 증명 교환입니다. 앱이 AWS API 를 직접 호출해야 할 때만 필요합니다.
+    1단계에서 받은 토큰을 Amazon Cognito 자격 증명 풀에 넘기면 자격 증명 풀이 토큰을 검증하고 IAM 역할에 매핑해
+    AWS Security Token Service 의 임시 AWS 자격 증명을 돌려줍니다. 그 자격 증명으로 비로소 Amazon S3 나 DynamoDB 를 직접 호출할 수 있습니다.
+    결론은 사용자 풀이 인증을 담당하고 자격 증명 풀이 AWS 자격 증명 교환을 담당하는 서로 다른 역할이라는 점입니다.</desc>
+
+  <defs>
+    <marker id="d155-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d155-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d155-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 단계 라벨 -->
+  <text class="dg-fs-md dg-bold" x="20" y="118">1단계</text>
+  <text class="dg-fs-sm" x="20" y="140">사용자를 인증하고</text>
+  <text class="dg-fs-sm" x="20" y="158">토큰을 발급합니다</text>
+
+  <text class="dg-fs-md dg-bold" x="20" y="306">2단계</text>
+  <text class="dg-fs-sm" x="20" y="328">토큰을 임시 AWS</text>
+  <text class="dg-fs-sm" x="20" y="346">자격 증명으로 바꿉니다</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="370">AWS API 를 직접</text>
+  <text class="dg-fs-sm dg-muted" x="20" y="388">호출할 때만 필요</text>
+
+  <!-- 1 사용자 -->
+  <rect class="dg-node" x="210" y="46" width="300" height="44" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="74" text-anchor="middle">최종 사용자 · 클라이언트 앱</text>
+  <path class="dg-edge dg-edge--accent" d="M360 90 L360 106" marker-end="url(#d155-ar-accent)"/>
+
+  <!-- 2 사용자 풀 -->
+  <rect class="dg-node dg-node--accent" x="180" y="110" width="360" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="136" text-anchor="middle">Amazon Cognito 사용자 풀</text>
+  <text class="dg-fs-sm" x="360" y="158" text-anchor="middle">사용자 디렉터리 · 로그인 · MFA</text>
+  <text class="dg-fs-sm" x="360" y="176" text-anchor="middle">소셜 로그인 · SAML · OIDC 연동</text>
+  <path class="dg-edge dg-edge--accent" d="M360 186 L360 198" marker-end="url(#d155-ar-accent)"/>
+
+  <!-- 3 토큰 -->
+  <rect class="dg-node dg-node--ok" x="210" y="202" width="300" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="224" text-anchor="middle">ID 토큰 · 액세스 토큰</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="244" text-anchor="middle">JWT — 아직 AWS 자격 증명이 아닙니다</text>
+
+  <!-- 오른쪽 가지 -->
+  <path class="dg-edge dg-edge--muted dg-edge--dashed" d="M514 228 L556 228" marker-end="url(#d155-ar-muted)"/>
+  <rect class="dg-node dg-node--muted" x="560" y="202" width="140" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="630" y="224" text-anchor="middle">앱 자체 API</text>
+  <text class="dg-fs-sm" x="630" y="244" text-anchor="middle">여기서 끝납니다</text>
+
+  <path class="dg-edge dg-edge--accent" d="M360 254 L360 286" marker-end="url(#d155-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="372" y="274">AWS API 를 직접 호출해야 할 때만</text>
+
+  <!-- 4 자격 증명 풀 -->
+  <rect class="dg-node dg-node--accent" x="180" y="290" width="360" height="76" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="316" text-anchor="middle">Amazon Cognito 자격 증명 풀</text>
+  <text class="dg-fs-sm" x="360" y="338" text-anchor="middle">토큰 검증 후 IAM 역할에 매핑</text>
+  <text class="dg-fs-sm" x="360" y="356" text-anchor="middle">인증됨 · 인증 안 됨 두 역할</text>
+  <path class="dg-edge dg-edge--accent" d="M360 366 L360 378" marker-end="url(#d155-ar-accent)"/>
+
+  <!-- 5 STS -->
+  <rect class="dg-node dg-node--ok" x="210" y="382" width="300" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="404" text-anchor="middle">AWS STS 임시 자격 증명</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="424" text-anchor="middle">만료 시각이 있는 액세스 키 · 세션 토큰</text>
+  <path class="dg-edge dg-edge--accent" d="M360 434 L360 450" marker-end="url(#d155-ar-accent)"/>
+
+  <!-- 6 AWS 서비스 -->
+  <rect class="dg-node" x="180" y="454" width="360" height="44" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="482" text-anchor="middle">Amazon S3 · DynamoDB 직접 호출</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="514" width="680" height="44" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="542" text-anchor="middle">사용자 풀은 인증하고, 자격 증명 풀은 AWS 자격 증명으로 바꿉니다</text>
+</svg>

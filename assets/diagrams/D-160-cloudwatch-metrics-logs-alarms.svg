@@ -1,0 +1,79 @@
+<svg viewBox="0 0 720 460" role="img" aria-labelledby="d160-title d160-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d160-title">CloudWatch 지표 · 로그 · 알람의 연결 경로</title>
+  <desc id="d160-desc">위쪽 줄은 지표 경로입니다. AWS 리소스가 지표를 내보내고, 알람이 그 지표를 감시하다가 조건을 만족하면
+    Amazon SNS 알림, Auto Scaling 조정, EC2 중지나 종료 같은 동작을 일으킵니다.
+    아래쪽 줄은 로그 경로이며 두 갈래로 갈립니다. 첫째 갈래는 지표 필터입니다. 로그 그룹에 들어온 로그에서 패턴을 뽑아 지표로 바꾸면
+    그 지표를 알람이 감시할 수 있습니다. 화살표가 위쪽 알람으로 올라가는 것이 그 경로입니다.
+    둘째 갈래는 구독 필터입니다. 로그를 AWS Lambda 나 Kinesis Data Firehose 로 실시간 전달해 별도 처리 파이프라인에 넘깁니다.
+    아래 주의 상자는 시험이 노리는 지점입니다. 메모리 사용률과 디스크 사용률은 하이퍼바이저가 볼 수 없는 게스트 OS 안의 값이라
+    EC2 기본 지표에 들어 있지 않습니다. CloudWatch 에이전트를 설치해 사용자 지정 지표로 올려야 알람을 걸 수 있습니다.</desc>
+
+  <defs>
+    <marker id="d160-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d160-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="34">지표 경로</text>
+
+  <rect class="dg-node" x="20" y="64" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="85" y="90" text-anchor="middle">AWS 리소스</text>
+  <text class="dg-fs-sm dg-muted" x="85" y="110" text-anchor="middle">EC2 · RDS · ALB</text>
+  <path class="dg-edge" d="M154 94 L186 94" marker-end="url(#d160-ar)"/>
+
+  <rect class="dg-node" x="190" y="54" width="150" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="265" y="82" text-anchor="middle">지표 (Metrics)</text>
+  <text class="dg-fs-sm dg-muted" x="265" y="104" text-anchor="middle">기본 지표 +</text>
+  <text class="dg-fs-sm dg-muted" x="265" y="122" text-anchor="middle">사용자 지정 지표</text>
+  <path class="dg-edge dg-edge--accent" d="M344 94 L376 94" marker-end="url(#d160-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="380" y="64" width="140" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="450" y="90" text-anchor="middle">알람 (Alarm)</text>
+  <text class="dg-fs-sm" x="450" y="110" text-anchor="middle">평가 기간 동안 판정</text>
+  <path class="dg-edge dg-edge--accent" d="M524 94 L556 94" marker-end="url(#d160-ar-accent)"/>
+
+  <rect class="dg-panel" x="560" y="44" width="140" height="100" rx="4"/>
+  <rect class="dg-node dg-node--ok" x="568" y="52" width="124" height="26" rx="4"/>
+  <text class="dg-fs-sm" x="630" y="70" text-anchor="middle">Amazon SNS</text>
+  <rect class="dg-node dg-node--ok" x="568" y="82" width="124" height="26" rx="4"/>
+  <text class="dg-fs-sm" x="630" y="100" text-anchor="middle">Auto Scaling</text>
+  <rect class="dg-node dg-node--ok" x="568" y="112" width="124" height="26" rx="4"/>
+  <text class="dg-fs-sm" x="630" y="130" text-anchor="middle">EC2 중지 · 종료</text>
+
+  <text class="dg-fs-md dg-bold" x="20" y="176">로그 경로 — 두 갈래로 갑니다</text>
+
+  <rect class="dg-node" x="20" y="210" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="85" y="236" text-anchor="middle">로그 그룹</text>
+  <text class="dg-fs-sm dg-muted" x="85" y="256" text-anchor="middle">CloudWatch Logs</text>
+
+  <path class="dg-edge" d="M154 228 L186 218" marker-end="url(#d160-ar)"/>
+  <path class="dg-edge" d="M154 252 L186 278" marker-end="url(#d160-ar)"/>
+
+  <rect class="dg-node" x="190" y="192" width="150" height="50" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="265" y="212" text-anchor="middle">지표 필터</text>
+  <text class="dg-fs-sm dg-muted" x="265" y="232" text-anchor="middle">패턴을 지표로</text>
+  <path class="dg-edge dg-edge--accent dg-edge--dashed" d="M344 217 L410 217 L410 130" marker-end="url(#d160-ar-accent)"/>
+  <text class="dg-fs-sm" x="420" y="180">지표가 되어 알람으로</text>
+
+  <rect class="dg-node" x="190" y="256" width="150" height="50" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="265" y="276" text-anchor="middle">구독 필터</text>
+  <text class="dg-fs-sm dg-muted" x="265" y="296" text-anchor="middle">실시간 스트림</text>
+  <path class="dg-edge" d="M344 281 L376 281" marker-end="url(#d160-ar)"/>
+
+  <rect class="dg-node" x="380" y="251" width="200" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="480" y="277" text-anchor="middle">AWS Lambda</text>
+  <text class="dg-fs-sm dg-bold" x="480" y="297" text-anchor="middle">Kinesis Data Firehose</text>
+
+  <rect class="dg-node dg-node--warn" x="20" y="340" width="680" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="364">메모리 사용률과 디스크 사용률은 EC2 기본 지표가 아닙니다</text>
+  <text class="dg-fs-sm" x="34" y="382">게스트 OS 안의 값이므로 CloudWatch 에이전트를 설치해 사용자 지정 지표로 올려야 알람을 걸 수 있습니다</text>
+
+  <rect class="dg-node dg-node--empty" x="20" y="404" width="680" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="432" text-anchor="middle">알람은 지표에만 걸립니다 — 로그로 알람을 걸려면 먼저 지표 필터로 지표를 만듭니다</text>
+</svg>

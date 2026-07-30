@@ -1,0 +1,1511 @@
+{
+  "setId": "saa-mock-2",
+  "title": "SAA-C03 모의고사 2회 — 65문항 혼합",
+  "exam": "SAA",
+  "domain": "Mixed",
+  "examCode": "SAA-C03",
+  "mock": true,
+  "questions": [
+    {
+      "id": "saa-mock-2-001",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "규정 검토에서 애플리케이션과 Amazon RDS for MySQL 사이의 트래픽이 평문으로 오갈 수 있다는 점이 지적되었습니다. 데이터베이스는 프라이빗 서브넷에 있고 애플리케이션 코드의 연결 문자열은 수정할 수 있습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "데이터베이스 보안 그룹을 애플리케이션 보안 그룹만 허용하도록 좁혀 도청 가능성을 없앤다." },
+        { "id": "B", "text": "저장 데이터 암호화를 활성화해 데이터베이스에 저장되는 내용을 보호한다." },
+        { "id": "C", "text": "파라미터 그룹에서 암호화된 연결을 강제하고 클라이언트가 TLS로 접속하도록 구성한다." },
+        { "id": "D", "text": "데이터베이스를 다른 VPC로 옮기고 VPC 피어링으로만 접근하도록 한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "지적된 위험은 전송 구간의 평문 노출이므로 대응도 전송 계층에서 이루어져야 합니다. RDS는 TLS 연결을 지원하며 파라미터 그룹 설정으로 암호화되지 않은 연결을 거부하도록 강제할 수 있고, 클라이언트는 제공되는 인증서로 서버를 검증하며 접속합니다. 이렇게 하면 설정 누락으로 평문 연결이 남는 상황 자체가 사라집니다. 저장 데이터 암호화나 네트워크 접근 제한은 각각 다른 위험을 다루는 통제라 이 지적을 해소하지 못합니다.",
+      "distractorNotes": {
+        "A": "접근 주체를 좁히는 것은 중요한 통제이지만 허용된 경로 안에서 오가는 데이터는 여전히 평문입니다. 지적 사항이 그대로 남습니다.",
+        "B": "저장 데이터 암호화는 디스크에 기록된 내용을 보호합니다. 네트워크를 지나는 구간과는 다른 문제입니다.",
+        "D": "VPC를 나눠도 두 지점 사이의 트래픽이 암호화되지는 않습니다. 구성만 복잡해지고 위험은 남습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Encryption.html", "title": "Amazon RDS 리소스 암호화" },
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html", "title": "Amazon RDS CreateDBInstance" }
+      ],
+      "tags": ["tls-termination", "rds", "encryption", "vpc"]
+    },
+    {
+      "id": "saa-mock-2-002",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 기업이 AWS Organizations로 60개 계정을 운영하며 모든 계정에서 위협 탐지를 켜고 결과를 한곳에서 보려 합니다. 앞으로 만들어지는 계정도 자동으로 포함되어야 하고, 계정마다 사람이 설정하는 일은 없어야 합니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Amazon GuardDuty의 위임 관리자 계정을 지정하고 조직 계정을 자동 등록하도록 구성한다." },
+        { "id": "B", "text": "각 계정에서 GuardDuty를 켜고 결과를 주기적으로 내보내 하나의 버킷에 모은다." },
+        { "id": "C", "text": "관리 계정에서만 GuardDuty를 켜면 조직 전체의 활동이 함께 분석된다." },
+        { "id": "D", "text": "모든 계정에 EC2 에이전트를 배포해 로그를 수집하고 자체 분석 파이프라인을 만든다." }
+      ],
+      "answer": ["A"],
+      "explanation": "조직 단위로 보안 서비스를 운영할 때의 표준 패턴은 위임 관리자 계정을 두는 것입니다. 위임 관리자를 지정하면 그 계정에서 조직의 모든 멤버 계정에 대해 서비스를 켜고 결과를 통합해 볼 수 있으며, 자동 등록을 켜면 새로 만들어지는 계정도 사람 개입 없이 포함됩니다. 관리 계정에 보안 운영 권한을 몰아두지 않고 보안 계정에 위임한다는 점에서 권한 분리에도 유리합니다. 계정별로 따로 켜고 결과를 모으는 방식은 누락과 관리 부담을 계속 만듭니다.",
+      "distractorNotes": {
+        "B": "동작하지만 계정마다 설정과 내보내기를 유지해야 하고 새 계정에서 누락이 발생합니다. 사람 개입을 없애라는 조건과 어긋납니다.",
+        "C": "탐지는 계정 단위로 활성화되며 관리 계정만 켠다고 다른 계정의 활동이 분석되지는 않습니다. 대부분의 계정이 보호되지 않은 채 남습니다.",
+        "D": "관리형 위협 탐지를 두고 자체 파이프라인을 만드는 것은 운영 부담이 가장 큽니다. 탐지 규칙 유지까지 팀 몫이 됩니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html", "title": "Amazon GuardDuty란 무엇입니까?" },
+        { "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_getting-started_concepts.html", "title": "AWS Organizations 용어 및 개념" }
+      ],
+      "tags": ["security-service-choice", "guardduty", "organizations", "threat-detection"]
+    },
+    {
+      "id": "saa-mock-2-003",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "감사팀이 특정 Amazon S3 버킷에 대한 모든 요청은 암호화된 연결로만 이루어져야 한다고 요구했습니다. 버킷에는 여러 계정의 애플리케이션이 접근하며 각 애플리케이션의 코드를 일일이 확인할 수는 없습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "버킷의 기본 암호화를 SSE-KMS로 바꿔 저장되는 객체가 모두 암호화되게 한다." },
+        { "id": "B", "text": "버킷 앞에 Amazon CloudFront를 두고 HTTPS만 허용하는 뷰어 프로토콜 정책을 적용한다." },
+        { "id": "C", "text": "각 애플리케이션 팀에 HTTPS 엔드포인트를 사용하라는 지침을 전달하고 준수 여부를 조사한다." },
+        { "id": "D", "text": "버킷 정책에 보안 전송이 아닌 요청을 거부하는 명시적 거부문을 추가한다." }
+      ],
+      "answer": ["D"],
+      "explanation": "요청이 어떤 경로로 오든 예외 없이 적용해야 하는 조건은 리소스 자신의 정책에 명시적 거부로 넣는 것이 가장 확실합니다. 버킷 정책에 보안 전송 여부를 검사하는 조건과 거부문을 두면 암호화되지 않은 연결로 온 요청은 자격 증명이 유효해도 거부됩니다. 명시적 거부는 어떤 허용보다 우선하므로 다른 계정의 정책 설정과 무관하게 통제가 관철됩니다. 애플리케이션 코드를 확인할 수 없다는 조건이 바로 이 방식을 부르는 신호입니다.",
+      "distractorNotes": {
+        "A": "기본 암호화는 저장되는 객체를 보호합니다. 요청이 오가는 구간의 암호화 여부와는 다른 문제입니다.",
+        "B": "CloudFront를 거치는 요청만 통제할 수 있고 버킷 엔드포인트로 직접 오는 요청은 그대로 남습니다. 구성도 무거워집니다.",
+        "C": "지침과 조사는 사람에게 의존하는 사후 확인입니다. 예외 없는 적용을 보장하지 못합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html", "title": "IAM JSON 정책 요소 참조" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html", "title": "서버 측 암호화를 사용한 데이터 보호" }
+      ],
+      "tags": ["s3", "identity-vs-resource-policy", "encryption", "compliance"]
+    },
+    {
+      "id": "saa-mock-2-004",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "전 세계 사용자가 접속하는 웹 애플리케이션이 Amazon CloudFront와 Application Load Balancer를 거쳐 EC2 오리진에 도달합니다. 애플리케이션 계층 공격을 규칙으로 차단하되 악성 요청이 오리진 인프라에 도달하지 않게 하려 합니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "오리진 인스턴스에 방화벽 소프트웨어를 설치하고 요청을 검사하도록 한다." },
+        { "id": "B", "text": "AWS WAF 웹 ACL을 CloudFront 배포에 연결해 엣지에서 요청을 검사하고 차단한다." },
+        { "id": "C", "text": "네트워크 ACL에 알려진 공격 발신지 대역을 거부 규칙으로 추가한다." },
+        { "id": "D", "text": "Application Load Balancer의 대상 그룹 헬스체크를 강화해 비정상 요청을 걸러 낸다." }
+      ],
+      "answer": ["B"],
+      "explanation": "웹 방화벽은 트래픽이 지나는 여러 지점 중 어디에도 붙일 수 있지만, 가능한 한 사용자와 가까운 지점에서 차단하는 것이 원칙입니다. 웹 ACL을 CloudFront 배포에 연결하면 검사가 엣지에서 이루어져 악성 요청이 리전과 오리진까지 오지 않으므로 인프라 부하와 노출이 함께 줄어듭니다. 로드 밸런서에 연결하는 구성도 유효하지만 그 경우 요청이 이미 리전 안까지 들어온 뒤에 걸러집니다. 오리진 보호가 요구에 명시되어 있으면 엣지 연결을 고르는 것이 맞습니다.",
+      "distractorNotes": {
+        "A": "인스턴스에서 검사하면 악성 요청이 이미 오리진에 도달한 뒤입니다. 인스턴스마다 규칙을 유지하는 부담도 큽니다.",
+        "C": "네트워크 계층의 주소 기반 차단은 요청 내용을 보지 못합니다. 발신지가 계속 바뀌는 애플리케이션 계층 공격에는 대응하기 어렵습니다.",
+        "D": "헬스체크는 대상 인스턴스의 상태를 확인하는 기능입니다. 요청 내용을 검사하거나 차단하지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/waf/latest/APIReference/API_AssociateWebACL.html", "title": "AWS WAF AssociateWebACL" },
+        { "url": "https://docs.aws.amazon.com/waf/latest/developerguide/shield-chapter.html", "title": "AWS Shield" }
+      ],
+      "tags": ["waf-vs-shield", "waf", "cloudfront", "elb"]
+    },
+    {
+      "id": "saa-mock-2-005",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "한 계정에서 사용자마다 인라인 정책을 붙여 권한을 관리하다 보니 같은 역할을 하는 사람끼리 권한이 미묘하게 달라지고 감사에서 지적을 받았습니다. 권한 관리를 정돈하려면 어떤 조치를 취해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "직무별로 IAM 그룹을 만들고 사용자를 그룹에 넣어 권한을 그룹 단위로 부여한다." },
+        { "id": "B", "text": "직무마다 재사용 가능한 관리형 정책을 만들어 그룹에 연결하고 변경은 그 정책만 수정한다." },
+        { "id": "C", "text": "모든 사용자에게 관리자 권한을 부여하고 위험한 작업만 개별적으로 거부한다." },
+        { "id": "D", "text": "사용자마다 인라인 정책을 유지하되 정책 내용을 문서로 정리해 분기마다 대조한다." },
+        { "id": "E", "text": "권한이 필요한 사람에게만 루트 사용자 자격 증명을 임시로 공유한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "권한이 사람마다 흩어지면 일관성과 감사 가능성이 함께 무너집니다. 직무를 단위로 그룹을 만들고 권한을 그룹에 부여하면 같은 직무의 구성원이 항상 같은 권한을 갖고, 인원 변동은 그룹 소속만 바꾸면 됩니다. 정책 자체를 관리형으로 만들어 재사용하면 권한을 바꿀 때 한 곳만 수정해 모든 대상에 반영되므로 표류가 생기지 않습니다. 두 조치는 최소 권한을 유지하면서 관리 지점을 줄이는 표준 구성입니다.",
+      "distractorNotes": {
+        "C": "넓게 허용하고 예외를 빼는 방식은 빠뜨린 위험 작업이 그대로 노출됩니다. 최소 권한 원칙과 정반대입니다.",
+        "D": "문서 대조는 사람의 주의력에 의존하며 변경 즉시 반영되지 않습니다. 지적받은 표류 문제가 반복됩니다.",
+        "E": "루트 사용자 자격 증명은 어떤 경우에도 공유하지 않습니다. 일상 작업에 사용하는 자격 증명이 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups.html", "title": "IAM 사용자 그룹" },
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html", "title": "IAM 보안 모범 사례" }
+      ],
+      "tags": ["iam", "least-privilege", "iam-policy-evaluation"]
+    },
+    {
+      "id": "saa-mock-2-006",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "한 기업이 여러 계정에 동일한 구성 기준을 적용하려 합니다. 기준 위반을 지속적으로 찾아내야 하고, 일부 항목은 발견 즉시 자동으로 원래 상태로 되돌려야 합니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "AWS Config 규칙을 묶은 준수 팩을 조직 계정에 배포해 동일한 기준을 적용한다." },
+        { "id": "B", "text": "위반이 발견된 리소스에 대해 자동 교정 작업을 연결해 지정한 조치가 실행되게 한다." },
+        { "id": "C", "text": "각 계정 담당자가 매주 콘솔을 확인해 위반 항목을 수동으로 고친다." },
+        { "id": "D", "text": "AWS CloudTrail 추적을 활성화해 위반 리소스를 자동으로 되돌린다." },
+        { "id": "E", "text": "Amazon CloudWatch 대시보드를 만들어 리소스 구성 항목을 시각화한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "구성이 기준에 맞는지 계속 평가하는 일은 리소스 구성을 기록하고 규칙으로 판정하는 서비스가 담당합니다. 규칙을 개별로 관리하는 대신 준수 팩으로 묶으면 여러 계정과 리전에 같은 기준을 한 번에 배포하고 갱신할 수 있습니다. 여기에 교정 작업을 연결하면 위반이 감지될 때 지정한 자동 조치가 실행되어 사람이 개입하지 않고도 상태가 복구됩니다. 탐지와 교정을 한 흐름으로 묶는 것이 이 요구의 핵심 구조입니다.",
+      "distractorNotes": {
+        "C": "수동 점검은 주기 사이의 위반을 놓치고 계정이 늘수록 감당하기 어렵습니다. 자동 복구 요구도 충족하지 못합니다.",
+        "D": "CloudTrail은 API 호출을 기록하는 서비스이며 구성을 평가하거나 되돌리지 않습니다. 역할을 혼동한 선택지입니다.",
+        "E": "대시보드는 관측 수단일 뿐 규칙 판정과 자동 교정을 제공하지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/config/latest/APIReference/API_PutConformancePack.html", "title": "AWS Config PutConformancePack" },
+        { "url": "https://docs.aws.amazon.com/config/latest/APIReference/API_PutRemediationConfigurations.html", "title": "AWS Config PutRemediationConfigurations" }
+      ],
+      "tags": ["cloudtrail-vs-config", "config", "compliance", "organizations"]
+    },
+    {
+      "id": "saa-mock-2-007",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "데이터 계정의 Amazon S3 버킷을 조직 안의 여러 계정이 읽어야 합니다. 계정은 앞으로도 계속 늘어나며, 조직 밖의 어떤 주체도 접근할 수 없어야 합니다. 계정이 추가될 때마다 정책을 고치지 않으려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "버킷을 퍼블릭으로 열되 객체 이름을 추측하기 어렵게 만들어 사실상 접근을 제한한다." },
+        { "id": "B", "text": "계정이 추가될 때마다 버킷 정책의 주체 목록에 계정 ID를 자동으로 덧붙이는 스크립트를 운영한다." },
+        { "id": "C", "text": "각 계정에 읽기 전용 IAM 사용자를 만들고 액세스 키를 배포해 접근하게 한다." },
+        { "id": "D", "text": "버킷 정책에서 요청 주체가 우리 조직에 속하는지를 검사하는 조건을 사용해 허용한다." }
+      ],
+      "answer": ["D"],
+      "explanation": "조직 소속 여부를 검사하는 조건 키를 쓰면 주체를 계정 하나하나로 나열하지 않고도 조직 전체를 대상으로 허용할 수 있습니다. 새 계정이 조직에 들어오면 그 순간부터 조건을 만족하므로 정책을 고칠 필요가 없고, 조직을 떠나면 자동으로 접근이 끊깁니다. 목록을 유지하는 방식은 계정 추가와 삭제를 따라가지 못해 결국 과잉 권한이나 누락을 만듭니다. 조직 경계를 정책 조건으로 표현하는 것이 이런 요구의 표준 해법입니다.",
+      "distractorNotes": {
+        "A": "이름을 추측하기 어렵게 만드는 것은 통제가 아닙니다. 한 번 유출된 주소는 누구나 사용할 수 있어 조직 밖 차단 요구를 정면으로 위반합니다.",
+        "B": "동작할 수 있지만 스크립트와 정책 크기를 계속 관리해야 하고 반영 시점에 공백이 생깁니다. 조건 키로 한 번에 해결되는 문제입니다.",
+        "C": "계정마다 장기 액세스 키가 늘어나며 배포와 회수를 사람이 챙겨야 합니다. 최소 권한과 운영 효율 모두에서 불리합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html", "title": "IAM JSON 정책 요소 참조" },
+        { "url": "https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html", "title": "AWS Organizations란 무엇입니까?" }
+      ],
+      "tags": ["identity-vs-resource-policy", "organizations", "s3", "cross-account"]
+    },
+    {
+      "id": "saa-mock-2-008",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "EC2에서 실행되는 애플리케이션이 Amazon RDS for PostgreSQL에 접속하며 데이터베이스 비밀번호를 설정 파일에 두고 있습니다. 보안팀은 애플리케이션이 저장된 비밀번호 없이 데이터베이스에 접속하기를 원합니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "비밀번호를 환경 변수로 옮기고 인스턴스 접근 권한을 소유자로 제한한다." },
+        { "id": "B", "text": "비밀번호를 매우 길게 만들고 90일마다 사람이 교체하는 절차를 운영한다." },
+        { "id": "C", "text": "IAM 데이터베이스 인증을 활성화하고 인스턴스 역할로 발급받은 인증 토큰으로 접속하게 한다." },
+        { "id": "D", "text": "데이터베이스 보안 그룹을 애플리케이션 보안 그룹만 허용하도록 좁히고 비밀번호는 그대로 둔다." }
+      ],
+      "answer": ["C"],
+      "explanation": "저장된 비밀번호 자체를 없애려면 인증 수단을 IAM 쪽으로 옮겨야 합니다. IAM 데이터베이스 인증을 켜면 애플리케이션이 인스턴스 역할의 임시 자격 증명으로 짧은 수명의 인증 토큰을 발급받아 접속하므로 디스크에 남는 장기 비밀이 사라집니다. 접근 권한은 IAM 정책으로 관리되어 회수와 감사도 일관되게 처리됩니다. 저장 위치를 옮기거나 교체 주기를 줄이는 방식은 비밀이 존재한다는 사실 자체를 바꾸지 못합니다.",
+      "distractorNotes": {
+        "A": "환경 변수도 인스턴스가 침해되면 그대로 읽힙니다. 저장된 비밀번호를 없애라는 요구를 충족하지 못합니다.",
+        "B": "길이와 주기는 노출 위험을 줄일 뿐이며 비밀이 남아 있다는 근본 문제는 그대로입니다. 사람이 개입하는 절차도 계속됩니다.",
+        "D": "네트워크 통제는 중요하지만 인증 수단과는 별개입니다. 비밀번호가 유출되면 허용된 네트워크 안에서 그대로 사용됩니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html", "title": "Amazon RDS CreateDBInstance" },
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html", "title": "IAM의 임시 보안 자격 증명" }
+      ],
+      "tags": ["iam-role-vs-access-key", "rds", "iam", "secrets-vs-parameter-store"]
+    },
+    {
+      "id": "saa-mock-2-009",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch04",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "사내 전용 API를 Amazon API Gateway로 제공하려 합니다. 이 API는 회사 VPC 안에서 출발한 요청만 호출할 수 있어야 하며 인터넷에서는 엔드포인트 자체가 보이지 않아야 합니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "프라이빗 API로 만들고 인터페이스 VPC 엔드포인트를 통해서만 호출되도록 리소스 정책으로 제한한다." },
+        { "id": "B", "text": "퍼블릭 API로 만들고 리소스 정책에 회사 사무실의 공인 IP 대역만 허용하는 조건을 넣는다." },
+        { "id": "C", "text": "퍼블릭 API로 만들고 API 키를 발급해 키를 가진 클라이언트만 호출하게 한다." },
+        { "id": "D", "text": "API 앞에 Application Load Balancer를 두고 내부 서브넷에만 노출한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "엔드포인트가 인터넷에 존재하지 않아야 한다는 요구는 접근 제어가 아니라 노출 형태에 관한 것입니다. 프라이빗 API로 만들면 호출 경로가 인터페이스 VPC 엔드포인트로 한정되어 사설 네트워크 안에서만 도달할 수 있고, 리소스 정책으로 허용할 엔드포인트를 지정해 범위를 더 좁힐 수 있습니다. 퍼블릭 엔드포인트에 조건을 거는 방식은 엔드포인트 자체는 여전히 인터넷에 존재하므로 요구를 만족하지 못합니다. 노출을 없앨 것인가 접근을 제한할 것인가를 구분하는 것이 이 문항의 판단 지점입니다.",
+      "distractorNotes": {
+        "B": "IP 조건은 접근을 제한하지만 엔드포인트는 인터넷에 그대로 공개됩니다. 사무실 주소가 바뀌면 관리 부담도 생깁니다.",
+        "C": "API 키는 사용량 식별과 제한에 쓰이는 수단이며 인증 수단으로 삼기에 약합니다. 엔드포인트 노출도 그대로입니다.",
+        "D": "로드 밸런서를 앞에 두는 구성은 API Gateway의 노출 형태를 바꾸지 않습니다. 계층만 늘어납니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/privatelink/interface-endpoints.html", "title": "인터페이스 VPC 엔드포인트" },
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html", "title": "IAM JSON 정책 요소 참조" }
+      ],
+      "tags": ["vpc-endpoint-choice", "api-gateway", "privatelink", "identity-vs-resource-policy"]
+    },
+    {
+      "id": "saa-mock-2-010",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 아래 명령문을 운영자 역할의 IAM 정책에 추가했습니다. 이 역할에는 별도로 모든 Amazon S3 작업을 허용하는 명령문도 함께 붙어 있습니다. 이 구성이 만들어 내는 실제 효과로 가장 정확한 것은 무엇입니까?",
+      "code": {
+        "lang": "json",
+        "body": "{\n  \"Effect\": \"Deny\",\n  \"Action\": \"s3:DeleteObject\",\n  \"Resource\": \"*\",\n  \"Condition\": {\n    \"BoolIfExists\": { \"aws:MultiFactorAuthPresent\": \"false\" }\n  }\n}",
+        "caption": "운영자 역할에 추가된 명령문"
+      },
+      "choices": [
+        { "id": "A", "text": "이 역할은 다중 인증 여부와 무관하게 객체를 삭제할 수 있다. 허용문이 거부문보다 우선하기 때문이다." },
+        { "id": "B", "text": "다중 인증을 거친 세션에서만 객체를 삭제할 수 있고, 그 밖의 S3 작업은 영향을 받지 않는다." },
+        { "id": "C", "text": "다중 인증을 거치더라도 객체 삭제는 불가능하며 나머지 S3 작업만 허용된다." },
+        { "id": "D", "text": "이 역할의 모든 S3 작업이 다중 인증을 거친 세션에서만 가능해진다." }
+      ],
+      "answer": ["B"],
+      "explanation": "명시적 거부는 어떤 허용보다 우선하지만 조건이 붙어 있으면 그 조건을 만족할 때만 거부가 성립합니다. 여기서는 다중 인증이 없는 세션에서만 조건이 참이 되므로 그 경우에 한해 객체 삭제가 막히고, 다중 인증을 거친 세션에서는 거부가 적용되지 않아 허용문이 그대로 살아납니다. 거부 대상 작업이 삭제 하나로 한정되어 있으므로 조회나 업로드 같은 다른 작업은 조건과 무관하게 허용됩니다. 위험한 작업만 골라 추가 인증을 요구하는 전형적인 패턴입니다.",
+      "distractorNotes": {
+        "A": "평가 순서에서 명시적 거부가 허용을 이깁니다. 조건이 참인 상황에서는 삭제가 실제로 차단됩니다.",
+        "C": "조건이 다중 인증이 없는 경우로 한정되어 있어 인증을 거친 세션에서는 거부가 적용되지 않습니다.",
+        "D": "거부문의 대상 작업이 객체 삭제 하나로 지정되어 있습니다. 다른 S3 작업까지 확장되지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html", "title": "정책 평가 로직" },
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements.html", "title": "IAM JSON 정책 요소 참조" }
+      ],
+      "tags": ["iam-policy-evaluation", "mfa", "iam", "s3"]
+    },
+    {
+      "id": "saa-mock-2-011",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 기업이 조직의 모든 계정에서 발생하는 API 호출 기록을 별도의 로그 전용 계정에 모으려 합니다. 각 계정의 관리자가 자기 계정의 기록을 지우거나 수정할 수 없어야 하며, 새 계정도 자동으로 포함되어야 합니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "각 계정에서 추적을 만들고 같은 계정의 버킷에 저장한 뒤 주기적으로 로그 계정으로 복사한다." },
+        { "id": "B", "text": "각 계정의 담당자가 콘솔에서 이벤트 기록을 내려받아 로그 계정 버킷에 올리게 한다." },
+        { "id": "C", "text": "관리 계정에서 조직 추적을 만들고 로그 계정의 버킷을 대상으로 지정한다." },
+        { "id": "D", "text": "로그 계정에서 추적을 하나 만들면 조직의 모든 계정 활동이 자동으로 기록된다." }
+      ],
+      "answer": ["C"],
+      "explanation": "조직 추적은 관리 계정에서 한 번 구성하면 조직의 모든 멤버 계정에 적용되고 이후 추가되는 계정까지 자동으로 포함합니다. 저장 대상을 로그 전용 계정의 버킷으로 지정하면 기록이 만들어지는 계정과 보관하는 계정의 권한이 분리되어, 침해된 계정의 관리자가 자기 흔적을 지울 수 없게 됩니다. 멤버 계정에서는 이 추적을 수정하거나 끌 수 없다는 점이 무결성 요구를 충족하는 근거입니다. 여기에 로그 파일 무결성 검증을 함께 켜면 변조 여부까지 확인할 수 있습니다.",
+      "distractorNotes": {
+        "A": "복사되기 전 원본이 같은 계정에 있으므로 그 계정의 관리자가 지울 수 있습니다. 복사 작업도 계속 유지해야 합니다.",
+        "B": "사람이 내려받아 올리는 방식은 누락과 조작 가능성이 모두 큽니다. 감사 기록의 신뢰성을 확보할 수 없습니다.",
+        "D": "추적은 만든 계정의 활동을 기록하며 다른 계정의 활동을 자동으로 포함하지 않습니다. 조직 추적은 관리 계정에서 구성해야 합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/cloudtrail/latest/APIReference/API_CreateTrail.html", "title": "AWS CloudTrail CreateTrail" },
+        { "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-intro.html", "title": "CloudTrail 로그 파일 무결성 검증" }
+      ],
+      "tags": ["cloudtrail-vs-config", "cloudtrail", "organizations", "audit"]
+    },
+    {
+      "id": "saa-mock-2-012",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch16",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 더 이상 쓰지 않는 고객 관리형 KMS 키를 정리하려 합니다. 보안팀은 아직 그 키로 암호화된 데이터가 남아 있을 가능성을 걱정하며 되돌릴 수 있는 절차를 요구합니다. 이 상황에 대한 설명으로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "키 삭제는 대기 기간을 두고 예약되며 그 기간에는 취소할 수 있으므로 확인 시간을 확보할 수 있다." },
+        { "id": "B", "text": "키는 요청 즉시 삭제되므로 삭제 전에 모든 데이터를 다른 키로 다시 암호화해야만 한다." },
+        { "id": "C", "text": "키를 삭제해도 이미 암호화된 데이터는 계속 복호화할 수 있으므로 위험이 없다." },
+        { "id": "D", "text": "키를 비활성화하면 곧바로 삭제된 것과 같아 별도의 삭제 절차가 필요 없다." }
+      ],
+      "answer": ["A"],
+      "explanation": "KMS는 키 삭제를 즉시 수행하지 않고 대기 기간을 둔 예약 방식으로 처리합니다. 대기 기간 동안 키는 사용할 수 없는 상태가 되어 실제 영향이 드러나고, 문제가 발견되면 삭제를 취소해 원래 상태로 되돌릴 수 있습니다. 이 설계 자체가 되돌릴 수 있는 절차를 요구하는 상황에 맞는 답이 됩니다. 삭제가 완료되면 그 키로 암호화된 데이터는 복호화할 수 없으므로, 대기 기간에 사용 여부를 반드시 확인해야 합니다.",
+      "distractorNotes": {
+        "B": "즉시 삭제되지 않습니다. 대기 기간이 있어 사전 확인과 취소가 가능합니다.",
+        "C": "삭제가 완료되면 그 키에 의존하는 암호문은 복호화할 수 없습니다. 위험이 없다는 서술은 사실과 반대입니다.",
+        "D": "비활성화는 사용을 막을 뿐 키를 없애지 않으며 언제든 다시 활성화할 수 있습니다. 삭제와 다른 조작입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kms/latest/APIReference/API_ScheduleKeyDeletion.html", "title": "AWS KMS ScheduleKeyDeletion" },
+        { "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html", "title": "AWS KMS 개요" }
+      ],
+      "tags": ["kms-envelope", "kms", "encryption", "data-protection"]
+    },
+    {
+      "id": "saa-mock-2-013",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 서브넷의 네트워크 ACL에 100번으로 특정 대역을 허용하고 200번으로 같은 대역을 거부하는 규칙을 넣었습니다. 그런데 의도와 달리 해당 대역의 트래픽이 통과합니다. 가장 정확한 설명은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "네트워크 ACL은 허용 규칙만 지원하므로 거부 규칙이 무시된 것이다." },
+        { "id": "B", "text": "거부 규칙은 인바운드에만 적용되고 아웃바운드에는 적용되지 않기 때문이다." },
+        { "id": "C", "text": "규칙은 번호가 낮은 것부터 평가되며 먼저 일치한 허용 규칙에서 판정이 끝나기 때문이다." },
+        { "id": "D", "text": "네트워크 ACL은 상태 저장이라 이미 맺어진 연결에는 규칙이 적용되지 않기 때문이다." }
+      ],
+      "answer": ["C"],
+      "explanation": "네트워크 ACL은 규칙 번호가 낮은 것부터 차례로 평가하고 처음 일치하는 규칙에서 판정을 확정합니다. 그래서 같은 대역에 대해 낮은 번호의 허용 규칙이 먼저 걸리면 뒤에 있는 거부 규칙은 평가되지 않습니다. 의도한 차단을 적용하려면 거부 규칙에 더 낮은 번호를 주어 허용 규칙보다 먼저 평가되게 해야 합니다. 모든 규칙을 함께 평가하고 허용의 합집합으로 결정하는 보안 그룹과 동작이 다르다는 점이 시험의 판단 지점입니다.",
+      "distractorNotes": {
+        "A": "네트워크 ACL은 허용과 거부 규칙을 모두 지원합니다. 허용만 지원하는 것은 보안 그룹입니다.",
+        "B": "거부 규칙은 인바운드와 아웃바운드 양쪽에 지정할 수 있습니다. 방향 때문에 무시되는 것이 아닙니다.",
+        "D": "네트워크 ACL은 상태 비저장이라 반환 트래픽도 규칙으로 명시해야 합니다. 상태 저장인 것은 보안 그룹입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html", "title": "네트워크 ACL로 서브넷 트래픽 제어" },
+        { "url": "https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Security.html", "title": "Amazon VPC의 보안" }
+      ],
+      "tags": ["sg-vs-nacl", "network-acl", "vpc", "security-group"]
+    },
+    {
+      "id": "saa-mock-2-014",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 개발자가 새 AWS Lambda 함수에 기존 IAM 역할을 지정하려 했지만 그 역할을 선택할 수 없고, 직접 지정하면 함수 생성이 실패합니다. 역할에는 필요한 권한 정책이 모두 연결되어 있습니다. 가장 가능성이 높은 원인은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "역할의 권한 정책에 함수 자신을 호출하는 권한이 빠져 있다." },
+        { "id": "B", "text": "역할의 신뢰 정책이 Lambda 서비스가 역할을 맡는 것을 허용하지 않는다." },
+        { "id": "C", "text": "역할에 연결된 관리형 정책 수가 한도를 넘어 새 서비스에 연결할 수 없다." },
+        { "id": "D", "text": "역할이 다른 리전에서 만들어져 이 리전의 함수에 사용할 수 없다." }
+      ],
+      "answer": ["B"],
+      "explanation": "IAM 역할은 무엇을 할 수 있는지를 정하는 권한 정책과 누가 맡을 수 있는지를 정하는 신뢰 정책 두 부분으로 이루어집니다. 서비스가 역할을 사용하려면 그 서비스가 신뢰 정책에 주체로 들어 있어야 하며, 빠져 있으면 권한이 아무리 충분해도 역할을 맡을 수 없습니다. 그래서 증상이 권한 부족이 아니라 역할 선택 불가나 생성 실패로 나타납니다. 서비스 역할을 다룰 때 신뢰 정책을 먼저 확인하는 습관이 이런 문제를 빠르게 해결합니다.",
+      "distractorNotes": {
+        "A": "실행 역할은 함수가 다른 서비스를 호출할 때 쓰입니다. 자기 자신을 호출하는 권한은 이 상황과 무관합니다.",
+        "C": "정책 연결 한도에 걸리면 정책을 추가할 때 오류가 납니다. 역할 자체를 선택할 수 없는 증상과 맞지 않습니다.",
+        "D": "IAM 역할은 리전에 종속되지 않는 전역 리소스입니다. 리전 때문에 사용할 수 없는 일은 발생하지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html", "title": "IAM 역할 용어 및 개념" },
+        { "url": "https://docs.aws.amazon.com/lambda/latest/dg/intro-permission-model.html", "title": "AWS Lambda 권한" }
+      ],
+      "tags": ["sts-assume-role", "iam-role", "lambda", "iam"]
+    },
+    {
+      "id": "saa-mock-2-015",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch17",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "보안팀이 위협 탐지 결과 중 심각도가 높은 항목에 대해 사람이 콘솔을 보고 있지 않아도 즉시 알림이 가고 표준화된 초기 조치가 실행되기를 원합니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "탐지 결과를 Amazon EventBridge 규칙으로 받아 심각도 조건에 맞는 이벤트만 걸러 낸다." },
+        { "id": "B", "text": "규칙의 대상으로 알림 주제와 초기 조치를 수행하는 함수를 지정해 자동 실행되게 한다." },
+        { "id": "C", "text": "탐지 결과를 매시간 조회해 심각도가 높은 항목이 있으면 담당자가 대응하도록 절차를 만든다." },
+        { "id": "D", "text": "탐지 결과를 Amazon S3로 내보내고 분석 도구로 주간 보고서를 만든다." },
+        { "id": "E", "text": "탐지 서비스의 심각도 임계값을 높여 낮은 심각도 결과가 생성되지 않게 한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "탐지에서 대응으로 이어지는 자동화는 이벤트 버스를 축으로 구성하는 것이 표준입니다. 탐지 서비스가 만들어 내는 결과는 이벤트로 발행되므로 규칙에서 심각도 같은 필드로 필터링해 필요한 것만 골라낼 수 있습니다. 그 규칙의 대상으로 알림 주제와 조치 함수를 함께 지정하면 사람이 지켜보지 않아도 통보와 초기 조치가 동시에 일어납니다. 사람이 주기적으로 조회하는 방식은 대응 지연을 구조적으로 남겨 둡니다.",
+      "distractorNotes": {
+        "C": "주기적 조회는 조회 사이의 시간만큼 대응이 늦어집니다. 즉시 알림이라는 요구를 충족하지 못합니다.",
+        "D": "보고서는 사후 분석에 유용하지만 실시간 대응 흐름이 아닙니다. 요구된 초기 조치도 실행되지 않습니다.",
+        "E": "임계값을 올려 결과를 줄이는 것은 위험을 감추는 방향입니다. 탐지된 항목에 대한 대응 속도 문제도 해결되지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutTargets.html", "title": "Amazon EventBridge PutTargets" },
+        { "url": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html", "title": "Amazon GuardDuty란 무엇입니까?" }
+      ],
+      "tags": ["security-service-choice", "guardduty", "incident-response", "eventbridge"]
+    },
+    {
+      "id": "saa-mock-2-016",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "고객 개인정보가 담긴 Amazon S3 버킷이 실수로 외부에 공개되는 일을 구조적으로 막으려 합니다. 데이터는 조직 안의 몇몇 계정만 접근해야 하고, 개별 팀이 버킷 설정을 바꾸더라도 노출이 발생해서는 안 됩니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "계정 수준에서 퍼블릭 액세스 차단을 적용해 버킷 단위 설정으로 뚫리지 않게 한다." },
+        { "id": "B", "text": "버킷 정책에서 요청 주체가 조직에 속할 때만 접근을 허용하도록 조건을 건다." },
+        { "id": "C", "text": "버킷의 객체마다 읽기 권한을 없애는 ACL을 적용해 개별 객체를 보호한다." },
+        { "id": "D", "text": "버킷 이름을 추측하기 어렵게 바꾸고 외부에 공유하지 않는다." },
+        { "id": "E", "text": "객체를 모두 압축해 하나의 파일로 만들고 비밀번호를 걸어 둔다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "노출을 구조적으로 막으려면 개별 팀의 설정보다 상위에서 작동하는 통제와 리소스 정책의 명시적 조건을 함께 두어야 합니다. 계정 수준 퍼블릭 액세스 차단은 버킷별 설정을 덮어써 공개 구성이 적용되지 않게 하고, 조직 소속을 검사하는 버킷 정책 조건은 유효한 자격 증명이 있어도 조직 밖 주체를 걸러 냅니다. 두 통제는 서로 다른 실수 경로를 막기 때문에 함께 쓸 때 방어가 완성됩니다. 현재 신규 버킷은 퍼블릭 액세스 차단이 켜진 상태로 만들어지지만, 계정 수준 적용은 이후 변경까지 봉쇄한다는 점에서 의미가 다릅니다.",
+      "distractorNotes": {
+        "C": "현재 신규 버킷은 ACL이 비활성화된 상태로 만들어지며 접근 제어는 정책으로 하는 것이 권장됩니다. 객체별 ACL 관리는 실수를 늘립니다.",
+        "D": "이름을 감추는 것은 통제가 아닙니다. 한 번 알려지면 아무 방어도 남지 않습니다.",
+        "E": "압축과 비밀번호는 데이터 사용성을 크게 해치고 키 관리 문제를 새로 만듭니다. 접근 통제의 대체물이 될 수 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketOwnershipControls.html", "title": "Amazon S3 PutBucketOwnershipControls" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html", "title": "Amazon S3 CreateBucket" }
+      ],
+      "tags": ["s3-secure-defaults", "s3", "organizations", "least-privilege"]
+    },
+    {
+      "id": "saa-mock-2-017",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch03",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "여러 사업부의 VPC가 전송 게이트웨이로 연결되어 있습니다. 각 사업부 VPC는 공유 서비스 VPC와는 통신해야 하지만 서로 다른 사업부의 VPC와는 통신할 수 없어야 합니다. 가장 적절한 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "각 사업부 VPC의 보안 그룹에 다른 사업부 대역을 거부하는 규칙을 추가한다." },
+        { "id": "B", "text": "전송 게이트웨이를 사업부마다 하나씩 만들고 공유 서비스 VPC를 모두에 연결한다." },
+        { "id": "C", "text": "사업부 연결과 공유 서비스 연결에 서로 다른 라우팅 테이블을 연결해 경로를 분리한다." },
+        { "id": "D", "text": "사업부 VPC 사이에만 VPC 피어링을 추가로 맺어 트래픽 경로를 명시적으로 관리한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "전송 게이트웨이는 여러 라우팅 테이블을 가질 수 있고 각 연결이 어떤 테이블을 참조할지 지정할 수 있습니다. 사업부 연결들이 공유 서비스로 가는 경로만 담은 테이블을 사용하게 하면 서로의 대역으로 가는 경로가 없어 통신이 성립하지 않습니다. 경로 자체를 없애는 방식이라 인스턴스 수준 설정 실수로 격리가 깨지지 않는다는 점이 장점입니다. 허브를 하나 두고 라우팅 도메인을 나누는 이 구성이 대규모 네트워크 격리의 표준 패턴입니다.",
+      "distractorNotes": {
+        "A": "보안 그룹은 거부 규칙을 지원하지 않으며 인스턴스마다 관리해야 합니다. 격리를 보장하는 수단이 될 수 없습니다.",
+        "B": "게이트웨이를 여러 개 만들면 공유 서비스 연결과 관리 지점이 사업부 수만큼 늘어납니다. 하나의 게이트웨이에서 라우팅으로 해결할 수 있는 문제입니다.",
+        "D": "피어링을 추가하면 오히려 사업부 사이에 통신 경로가 생깁니다. 요구와 정반대 방향입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/vpc/latest/tgw/tgw-route-tables.html", "title": "전송 게이트웨이 라우팅 테이블" },
+        { "url": "https://docs.aws.amazon.com/vpc/latest/tgw/how-transit-gateways-work.html", "title": "전송 게이트웨이 작동 방식" }
+      ],
+      "tags": ["transit-gateway", "vpc", "hybrid-connectivity", "network-isolation"]
+    },
+    {
+      "id": "saa-mock-2-018",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch02",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 개발자의 IAM 역할에는 모든 Amazon S3 작업과 모든 Amazon EC2 작업을 허용하는 정책이 연결되어 있습니다. 동시에 이 역할에는 Amazon S3 작업만 허용하는 권한 경계가 설정되어 있습니다. 이 역할이 실제로 수행할 수 있는 작업은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "권한 경계가 우선하므로 어떤 작업도 수행할 수 없고 별도 허용문이 다시 필요하다." },
+        { "id": "B", "text": "두 정책의 합집합이 적용되어 S3와 EC2 작업을 모두 수행할 수 있다." },
+        { "id": "C", "text": "S3 작업만 수행할 수 있고 EC2 작업은 허용문이 있어도 수행할 수 없다." },
+        { "id": "D", "text": "권한 경계는 알림 용도이므로 실제 권한에는 영향을 주지 않는다." }
+      ],
+      "answer": ["C"],
+      "explanation": "권한 경계는 권한을 부여하지 않고 그 주체가 가질 수 있는 최대 권한의 범위를 정합니다. 최종 권한은 자격 증명 기반 정책과 권한 경계의 교집합이므로, 두 곳에서 모두 허용된 작업만 실제로 수행할 수 있습니다. 이 사례에서는 S3가 양쪽에 있어 살아남고 EC2는 경계 밖이라 허용문이 있어도 거부됩니다. 개발자에게 역할 생성 권한을 위임하면서 권한 상승을 막을 때 이 성질을 이용합니다.",
+      "distractorNotes": {
+        "A": "경계 안에 있는 작업은 허용문이 있으면 그대로 수행됩니다. 모든 작업이 막히는 것은 아닙니다.",
+        "B": "합집합으로 결합되는 것은 같은 계정의 자격 증명 기반 정책과 리소스 기반 정책입니다. 권한 경계는 교집합으로 좁힙니다.",
+        "D": "권한 경계는 실제 평가에 참여해 권한을 제한합니다. 알림이나 참고 표시가 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html", "title": "IAM 엔터티에 대한 권한 경계" },
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html", "title": "정책 평가 로직" }
+      ],
+      "tags": ["permissions-boundary", "iam-policy-evaluation", "iam", "least-privilege"]
+    },
+    {
+      "id": "saa-mock-2-019",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch08",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 애플리케이션이 EC2 인스턴스 역할로 서명한 사전 서명 URL을 발급해 사용자가 비공개 Amazon S3 객체를 내려받게 합니다. 보안팀이 인스턴스 역할에서 해당 버킷 읽기 권한을 제거했더니 아직 만료되지 않은 URL도 동작하지 않았습니다. 가장 정확한 설명은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "사전 서명 URL의 권한은 서명한 주체의 권한에 종속되므로 그 권한이 사라지면 URL도 실패한다." },
+        { "id": "B", "text": "사전 서명 URL은 발급 시점에 권한이 복사되므로 만료 전까지는 항상 동작해야 하며 이는 오류이다." },
+        { "id": "C", "text": "사전 서명 URL은 버킷 정책만 평가하므로 역할 권한 변경과는 무관하다." },
+        { "id": "D", "text": "사전 서명 URL은 객체를 공개로 바꾸므로 권한 변경의 영향을 받지 않는다." }
+      ],
+      "answer": ["A"],
+      "explanation": "사전 서명 URL은 서명한 주체의 자격 증명으로 요청에 서명해 둔 것이며, 요청이 도착하면 그 주체의 권한이 그대로 평가됩니다. 따라서 서명자가 권한을 잃거나 서명에 쓰인 임시 자격 증명이 만료되면 URL의 남은 유효 시간과 관계없이 요청이 실패합니다. 이 성질은 접근을 빠르게 회수할 수 있다는 장점이자, 짧은 수명의 자격 증명으로 서명한 URL은 예상보다 일찍 무효가 될 수 있다는 주의점이기도 합니다. URL이 객체를 공개로 바꾸는 것이 아니라 특정 요청에 한해 권한을 빌려 주는 것이라는 이해가 핵심입니다.",
+      "distractorNotes": {
+        "B": "권한이 복사되어 고정되는 방식이 아닙니다. 요청 시점에 서명자의 권한이 평가되므로 관측된 동작이 정상입니다.",
+        "C": "버킷 정책과 서명자의 자격 증명 기반 정책이 함께 평가됩니다. 역할 권한 변경은 직접적인 영향을 줍니다.",
+        "D": "사전 서명 URL은 객체의 공개 여부를 바꾸지 않습니다. 버킷은 비공개 상태 그대로입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html", "title": "사전 서명된 URL 사용" },
+        { "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html", "title": "IAM의 임시 보안 자격 증명" }
+      ],
+      "tags": ["s3", "presigned-url", "iam-role", "iam-policy-evaluation"]
+    },
+    {
+      "id": "saa-mock-2-020",
+      "exam": "SAA",
+      "domain": "Design Secure Architectures",
+      "chapter": "ch14",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "유료 회원만 볼 수 있는 이미지 갤러리를 Amazon CloudFront로 제공합니다. 원본 Amazon S3 버킷은 인터넷에서 직접 접근할 수 없어야 하고, 한 번 로그인한 회원이 갤러리의 수많은 이미지에 개별 서명 없이 접근할 수 있어야 합니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "배포에 오리진 액세스 제어를 설정하고 버킷 정책이 그 배포의 요청만 허용하게 한다." },
+        { "id": "B", "text": "로그인한 회원에게 서명된 쿠키를 발급해 정책에 해당하는 여러 객체에 접근하게 한다." },
+        { "id": "C", "text": "이미지마다 사전 서명 URL을 만들어 페이지에 삽입하고 짧은 만료 시간을 준다." },
+        { "id": "D", "text": "버킷을 정적 웹사이트 호스팅으로 공개하고 CloudFront를 앞에 두어 캐시만 사용한다." },
+        { "id": "E", "text": "회원 여부를 확인하는 로직을 클라이언트 자바스크립트에 넣어 비회원 요청을 막는다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "요구가 두 가지이므로 오리진 보호와 뷰어 인증을 각각 담당하는 기능을 골라야 합니다. 오리진 액세스 제어는 배포만 버킷을 읽을 수 있게 만들어 사용자가 버킷 주소로 우회하는 경로를 차단합니다. 뷰어 쪽에서는 여러 파일에 한 번에 접근을 허용해야 하므로 개별 객체마다 서명이 필요한 방식보다 정책 기반의 서명된 쿠키가 적합합니다. 파일 하나를 특정해 짧게 공유하는 상황이라면 반대로 서명된 URL이 더 알맞은 선택이 됩니다.",
+      "distractorNotes": {
+        "C": "동작하지만 이미지 수만큼 서명이 필요해 페이지 생성 비용이 커지고 만료 관리도 복잡해집니다. 여러 파일에 한 번에 접근하는 요구에는 맞지 않습니다.",
+        "D": "버킷을 공개하면 사용자가 배포를 우회해 직접 접근할 수 있습니다. 오리진 보호 요구를 정면으로 위반합니다.",
+        "E": "클라이언트 코드는 사용자가 바꿀 수 있어 접근 통제 수단이 될 수 없습니다. 실제 파일 요청은 그대로 성공합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_OriginAccessControlConfig.html", "title": "CloudFront OriginAccessControlConfig" },
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-choosing-signed-urls-cookies.html", "title": "서명된 URL과 서명된 쿠키 중 선택" }
+      ],
+      "tags": ["cloudfront", "s3", "signed-cookies", "origin-access-control"]
+    },
+    {
+      "id": "saa-mock-2-021",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch07",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 Application Load Balancer를 만들려는데 서브넷을 하나만 지정하자 생성이 거부되었습니다. 팀은 인스턴스가 한 가용 영역에만 있어 서브넷도 하나면 충분하다고 생각했습니다. 이 제약에 대한 설명으로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "로드 밸런서는 서로 다른 가용 영역의 서브넷을 두 개 이상 요구하며, 이는 자체 가용성을 확보하기 위한 것이다." },
+        { "id": "B", "text": "서브넷을 두 개 이상 지정해야 하는 이유는 대상 인스턴스를 반드시 두 영역에 나눠야 하기 때문이다." },
+        { "id": "C", "text": "퍼블릭 로드 밸런서에만 해당하는 제약이며 내부 로드 밸런서는 서브넷 하나로 만들 수 있다." },
+        { "id": "D", "text": "서브넷 수 제한은 없으며 지정한 서브넷의 IP 주소가 부족해 생성이 실패한 것이다." }
+      ],
+      "answer": ["A"],
+      "explanation": "로드 밸런서 자체도 여러 노드로 이루어진 분산 구성 요소이며, 한 가용 영역에만 존재하면 그 영역 장애가 곧 전체 진입점 장애가 됩니다. 그래서 생성 시점부터 서로 다른 가용 영역의 서브넷을 두 개 이상 요구해 진입점의 이중화를 강제합니다. 대상 인스턴스를 반드시 두 영역에 두어야 하는 것은 아니지만, 실제로 가용성을 얻으려면 대상도 함께 분산하는 것이 맞습니다. 이 제약은 퍼블릭과 내부 로드 밸런서 모두에 동일하게 적용됩니다.",
+      "distractorNotes": {
+        "B": "대상 등록 위치는 별도의 선택입니다. 제약의 이유는 로드 밸런서 노드 자체를 여러 영역에 두기 위한 것입니다.",
+        "C": "내부 로드 밸런서에도 같은 요구가 적용됩니다. 노출 방식과 무관한 제약입니다.",
+        "D": "주소 부족은 다른 오류로 나타납니다. 이 경우는 서브넷 개수 요구를 충족하지 못한 것입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_CreateLoadBalancer.html", "title": "Elastic Load Balancing CreateLoadBalancer" },
+        { "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html", "title": "Application Load Balancer란 무엇입니까?" }
+      ],
+      "tags": ["elb", "asg-multi-az", "high-availability", "vpc"]
+    },
+    {
+      "id": "saa-mock-2-022",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch11",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "장바구니 정보를 담는 Amazon ElastiCache 클러스터가 노드 한 대로 운영됩니다. 최근 노드 장애로 모든 사용자의 장바구니가 사라지고 데이터베이스로 요청이 몰려 서비스가 느려졌습니다. 가장 가용성이 높은(MOST highly available) 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "노드 크기를 더 큰 것으로 바꿔 메모리를 늘리고 캐시 만료 시간을 길게 잡는다." },
+        { "id": "B", "text": "다른 가용 영역에 복제본을 둔 복제 그룹을 구성하고 자동 장애 조치를 활성화한다." },
+        { "id": "C", "text": "같은 가용 영역에 노드를 하나 더 만들어 애플리케이션이 두 곳에 함께 쓰게 한다." },
+        { "id": "D", "text": "캐시를 제거하고 데이터베이스 읽기 전용 복제본을 추가해 조회를 처리한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "단일 노드 캐시는 그 노드가 사라지는 순간 데이터와 처리 능력을 함께 잃고, 그 부하가 그대로 원본 데이터베이스로 흘러갑니다. 복제 그룹을 만들어 다른 가용 영역에 복제본을 두고 자동 장애 조치를 켜면 기본 노드에 장애가 나도 복제본이 승격되어 서비스가 이어집니다. 가용 영역을 나누는 것이 중요한 이유는 영역 단위 장애까지 견디기 위해서입니다. 캐시가 사라졌을 때 데이터베이스가 감당할 수 있는지도 함께 설계해 두면 더 안전합니다.",
+      "distractorNotes": {
+        "A": "노드를 키워도 그 노드가 사라지면 결과는 같습니다. 만료 시간을 늘리는 것은 장애 대비와 관련이 없습니다.",
+        "C": "같은 영역에 두면 영역 장애에 함께 사라집니다. 애플리케이션이 이중 쓰기를 직접 관리하는 부담도 생깁니다.",
+        "D": "캐시를 없애면 조회 지연이 커지고 데이터베이스 비용이 늘어납니다. 캐시 계층의 가용성 문제를 회피할 뿐 해결하지 못합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_CreateReplicationGroup.html", "title": "Amazon ElastiCache CreateReplicationGroup" },
+        { "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_CreateSnapshot.html", "title": "Amazon ElastiCache CreateSnapshot" }
+      ],
+      "tags": ["elasticache", "caching-choice", "high-availability", "single-point-of-failure"]
+    },
+    {
+      "id": "saa-mock-2-023",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch10",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "운영자가 Amazon RDS 데이터베이스를 30분 전 상태로 되돌리려 했지만 시점 복구를 사용할 수 없었습니다. 확인해 보니 비용을 아끼려고 자동 백업 보존 기간이 0으로 설정되어 있었습니다. 앞으로 같은 상황을 막으려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "수동 스냅샷을 매시간 만들도록 일정을 등록하고 오래된 스냅샷을 정리한다." },
+        { "id": "B", "text": "Multi-AZ 배포를 활성화해 대기 인스턴스에서 과거 시점을 복원할 수 있게 한다." },
+        { "id": "C", "text": "자동 백업 보존 기간을 1일 이상으로 설정해 시점 복구가 가능하게 한다." },
+        { "id": "D", "text": "읽기 전용 복제본을 만들어 과거 데이터를 조회할 수 있게 한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "RDS의 시점 복구는 자동 백업 기능이 켜져 있을 때만 사용할 수 있으며, 보존 기간을 0으로 두면 자동 백업 자체가 비활성화됩니다. 보존 기간을 1일 이상으로 설정하면 백업과 트랜잭션 로그가 함께 보관되어 보존 범위 안의 임의 시점으로 복원할 수 있습니다. 수동 스냅샷은 만든 순간의 상태만 담기 때문에 분 단위 복구 요구를 충족하지 못합니다. 가용성 기능과 백업 기능은 목적이 다르므로 서로를 대체할 수 없다는 점도 함께 기억해야 합니다.",
+      "distractorNotes": {
+        "A": "매시간 스냅샷을 만들어도 스냅샷 사이의 변경은 되돌릴 수 없고 관리 작업이 늘어납니다. 30분 전 임의 시점 요구에 미치지 못합니다.",
+        "B": "Multi-AZ 대기 인스턴스는 현재 상태를 동기적으로 유지하는 사본입니다. 과거 시점을 보관하지 않습니다.",
+        "D": "읽기 전용 복제본도 최신 상태를 따라가는 사본이라 과거 데이터를 제공하지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html", "title": "자동 백업 작업" },
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIT.html", "title": "특정 시점으로 DB 인스턴스 복원" }
+      ],
+      "tags": ["rds", "backup", "rto-rpo-tradeoff", "point-in-time-recovery"]
+    },
+    {
+      "id": "saa-mock-2-024",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "한 팀이 Amazon Route 53으로 두 리전의 스택을 감시하려 합니다. 하나는 공개 엔드포인트의 응답을 직접 확인해야 하고, 다른 하나는 인터넷에 노출되지 않아 내부 지표로만 상태를 알 수 있습니다. 어떤 상태 확인을 구성해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "공개 엔드포인트는 지정한 경로로 요청을 보내 응답을 확인하는 엔드포인트 상태 확인을 만든다." },
+        { "id": "B", "text": "노출되지 않은 스택은 Amazon CloudWatch 경보의 상태를 감시하는 상태 확인을 만든다." },
+        { "id": "C", "text": "노출되지 않은 스택을 위해 인터넷 게이트웨이를 추가해 공개 엔드포인트를 만든다." },
+        { "id": "D", "text": "두 스택 모두 레코드의 TTL을 길게 설정해 상태 변화를 완만하게 반영한다." },
+        { "id": "E", "text": "상태 확인 없이 장애 조치 라우팅만 구성하면 Route 53이 자동으로 상태를 판정한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "Route 53의 상태 확인은 한 가지 방식만 있는 것이 아닙니다. 공개된 엔드포인트는 지정한 경로로 직접 요청을 보내 응답 코드와 내용으로 판정할 수 있고, 외부에서 접근할 수 없는 대상은 CloudWatch 경보의 상태를 참조하는 방식으로 감시할 수 있습니다. 여러 상태 확인을 묶어 종합 판정하는 계산된 상태 확인까지 조합하면 복잡한 조건도 표현할 수 있습니다. 상태를 어떻게 관측할 수 있는지에 따라 확인 유형을 고르는 것이 설계의 출발점입니다.",
+      "distractorNotes": {
+        "C": "감시를 위해 노출 범위를 넓히는 것은 보안 측면에서 나쁜 선택입니다. 내부 지표를 활용하는 방법이 이미 존재합니다.",
+        "D": "TTL을 길게 하면 장애 조치 반영이 늦어집니다. 상태 확인 구성과도 직접적인 관련이 없습니다.",
+        "E": "장애 조치 라우팅은 상태 확인 결과를 근거로 동작합니다. 상태 확인이 없으면 전환 판단의 근거가 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_HealthCheckConfig.html", "title": "Route 53 HealthCheckConfig" },
+        { "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html", "title": "Amazon CloudWatch PutMetricAlarm" }
+      ],
+      "tags": ["route53-failover", "route53", "health-check", "multi-region"]
+    },
+    {
+      "id": "saa-mock-2-025",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch10",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "Amazon Aurora 클러스터에 성능이 다른 리더 인스턴스 세 대가 있습니다. 라이터 장애 시 반드시 가장 큰 리더가 승격되어야 하는데, 실제 훈련에서는 작은 리더가 승격되어 처리 능력이 부족했습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "작은 리더들을 모두 삭제하고 큰 리더 한 대만 남긴다." },
+        { "id": "B", "text": "클러스터 엔드포인트 대신 인스턴스 엔드포인트로 접속하도록 애플리케이션을 바꾼다." },
+        { "id": "C", "text": "모든 리더를 같은 가용 영역으로 옮겨 승격 순서를 예측할 수 있게 한다." },
+        { "id": "D", "text": "인스턴스마다 장애 조치 우선순위 계층을 지정해 큰 리더가 먼저 승격되게 한다." }
+      ],
+      "answer": ["D"],
+      "explanation": "Aurora는 라이터에 장애가 나면 리더 중 하나를 승격시키며, 어떤 리더를 먼저 고를지는 인스턴스마다 지정하는 우선순위 계층으로 통제할 수 있습니다. 큰 인스턴스에 더 높은 우선순위를 주면 장애 조치 후에도 처리 능력이 유지됩니다. 애플리케이션은 클러스터 엔드포인트로 접속하고 있으므로 승격 후 연결 대상은 자동으로 바뀝니다. 리더 구성을 줄이거나 배치를 바꾸는 방식은 가용성과 읽기 확장을 함께 잃게 됩니다.",
+      "distractorNotes": {
+        "A": "리더를 줄이면 읽기 확장이 사라지고 승격 후보도 줄어 가용성이 낮아집니다. 원인은 개수가 아니라 우선순위 설정입니다.",
+        "B": "인스턴스 엔드포인트로 고정하면 장애 조치가 일어나도 사라진 인스턴스를 계속 가리키게 됩니다. 상황이 더 나빠집니다.",
+        "C": "같은 가용 영역에 모으면 영역 장애 시 전부 함께 사라집니다. 승격 순서도 배치로 결정되지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Replication.html", "title": "Aurora 복제" },
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.Endpoints.html", "title": "Amazon Aurora 연결 관리" }
+      ],
+      "tags": ["aurora-replication", "aurora", "failover", "high-availability"]
+    },
+    {
+      "id": "saa-mock-2-026",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch12",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "Amazon SNS 주제가 외부 파트너의 HTTPS 엔드포인트를 구독합니다. 파트너 시스템이 점검으로 응답하지 않는 동안 전달된 알림이 사라져 정산 누락이 발생했습니다. 다른 구독자들은 정상이며 파트너 연동 방식은 바꿀 수 없습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "그 구독에 배달 못 한 편지 큐를 지정해 전달에 실패한 메시지가 보관되게 한다." },
+        { "id": "B", "text": "주제의 모든 구독자에게 메시지를 두 번씩 발행해 유실 가능성을 줄인다." },
+        { "id": "C", "text": "파트너 엔드포인트에 문제가 있을 때 주제 발행을 중단하도록 발행자를 수정한다." },
+        { "id": "D", "text": "주제를 FIFO 유형으로 바꿔 순서와 전달을 보장하게 한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "SNS는 구독자에게 전달을 시도하고 재시도 정책에 따라 반복하지만, 정해진 재시도가 모두 실패하면 그 메시지는 폐기됩니다. 구독 단위로 배달 못 한 편지 큐를 지정해 두면 실패한 메시지가 그 큐에 보관되어 나중에 확인하고 다시 처리할 수 있습니다. 구독마다 따로 설정할 수 있으므로 문제가 되는 파트너 구독에만 적용해 다른 구독자에게는 영향을 주지 않습니다. 파트너 연동 방식을 바꿀 수 없다는 조건이 발행자 수정이나 프로토콜 변경을 배제합니다.",
+      "distractorNotes": {
+        "B": "중복 발행은 정상 구독자에게 같은 메시지를 두 번 보내고, 파트너가 계속 응답하지 않으면 두 번 모두 실패합니다.",
+        "C": "발행을 멈추면 다른 구독자들의 정상 처리까지 중단됩니다. 문제를 한 구독에서 전체로 확대하는 방향입니다.",
+        "D": "주제 유형을 바꾸는 것은 순서와 중복에 관한 선택이며 전달 실패 메시지를 보관해 주지 않습니다. 기존 구독 구성도 다시 만들어야 합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/sns/latest/dg/sns-create-topic.html", "title": "Amazon SNS 주제 생성" },
+        { "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html", "title": "Amazon SQS 배달 못 한 편지 큐" }
+      ],
+      "tags": ["sns-vs-eventbridge", "sns", "error-handling", "decoupling"]
+    },
+    {
+      "id": "saa-mock-2-027",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch07",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "두 가용 영역에 각각 인스턴스 네 대를 두고 평상시 사용률을 90%로 유지하던 서비스가, 한 영역 장애 때 남은 네 대로 전체 부하를 감당하지 못해 확장이 끝날 때까지 오류를 냈습니다. 이 문제를 구조적으로 해결하는 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "장애 감지 임계값을 낮춰 더 빨리 확장 동작이 시작되게 한다." },
+        { "id": "B", "text": "각 영역이 장애 시 나머지 부하를 감당할 수 있도록 평상시 여유 용량을 확보한 채 운영한다." },
+        { "id": "C", "text": "인스턴스를 한 영역에 모아 관리 지점을 줄이고 그 영역을 집중적으로 보강한다." },
+        { "id": "D", "text": "장애 시 사용자에게 재시도를 안내하는 오류 페이지를 준비한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "장애 순간에 새 자원을 만들어 대응하려는 설계는 그 자원이 준비되는 동안 반드시 공백을 남기고, 대규모 장애 때는 자원 확보 자체가 지연될 수 있습니다. 정적 안정성은 남아 있는 자원만으로 정상 서비스가 가능하도록 평상시부터 여유를 두는 접근이며, 두 영역 구성이라면 각 영역이 필요한 용량 전체를 감당할 수 있게 잡는 것이 원칙입니다. 여유 용량에는 비용이 들지만 그것이 가용성 목표의 대가입니다. 영역 수를 늘리면 필요한 여유 비율이 줄어들어 비용 효율이 좋아집니다.",
+      "distractorNotes": {
+        "A": "감지를 빠르게 해도 인스턴스가 준비되는 시간은 그대로 남습니다. 공백을 줄일 뿐 없애지 못합니다.",
+        "C": "한 영역에 모으면 그 영역 장애가 전면 중단이 됩니다. 가용성을 크게 떨어뜨리는 방향입니다.",
+        "D": "오류 페이지는 사용자 경험을 다듬는 조치이며 서비스 중단 자체를 막지 못합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/wellarchitected/latest/userguide/intro.html", "title": "AWS Well-Architected Tool 사용 설명서" },
+        { "url": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html", "title": "Amazon EC2 Auto Scaling이란 무엇입니까?" }
+      ],
+      "tags": ["asg-multi-az", "high-availability", "auto-scaling", "fault-tolerance"]
+    },
+    {
+      "id": "saa-mock-2-028",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch18",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "한 기업이 재해 복구 문서를 갖추고 백업도 매일 만들고 있지만, 실제 사고에서 복구가 문서보다 훨씬 오래 걸렸습니다. 원인은 절차의 여러 단계가 사람 기억에 의존하고 백업 복원이 검증된 적이 없다는 것이었습니다. 어떤 조치를 취해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "정기적으로 복구 훈련을 실시해 실제 복구 시간을 측정하고 목표와 비교한다." },
+        { "id": "B", "text": "인프라 구성과 복구 절차를 템플릿과 자동화 문서로 만들어 사람 기억에 의존하지 않게 한다." },
+        { "id": "C", "text": "백업 주기를 하루 두 번으로 늘려 복구 시점 목표를 개선한다." },
+        { "id": "D", "text": "재해 복구 문서를 더 자세히 작성하고 담당자 수를 늘린다." },
+        { "id": "E", "text": "백업 보존 기간을 늘려 더 오래된 시점으로도 복원할 수 있게 한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "지적된 문제는 백업의 양이 아니라 복구 능력의 신뢰성입니다. 훈련을 통해 실제 복구 시간을 측정해야 목표와의 격차가 드러나고, 검증되지 않은 백업이 실제로 복원되는지도 확인할 수 있습니다. 절차를 템플릿과 자동화된 실행 문서로 옮기면 담당자가 바뀌어도 같은 결과가 재현되고 단계 누락이 사라집니다. 복구 시점 목표를 개선하는 조치들은 유용하지만 이번에 드러난 복구 시간 문제와는 다른 축을 다룹니다.",
+      "distractorNotes": {
+        "C": "백업 주기는 얼마나 최근 데이터로 복구하는지를 개선합니다. 복구에 걸리는 시간이 길다는 문제는 해결되지 않습니다.",
+        "D": "문서를 늘려도 사람의 실행에 의존한다는 구조는 그대로입니다. 검증되지 않았다는 점도 남습니다.",
+        "E": "보존 기간은 되돌릴 수 있는 범위를 넓힐 뿐입니다. 복구 시간과 직접적인 관련이 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html", "title": "클라우드의 재해 복구 옵션" },
+        { "url": "https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateChangeSet.html", "title": "AWS CloudFormation CreateChangeSet" }
+      ],
+      "tags": ["dr-strategies", "rto-rpo-tradeoff", "disaster-recovery", "aws-backup"]
+    },
+    {
+      "id": "saa-mock-2-029",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch07",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "세 가용 영역에 걸친 Auto Scaling 그룹이 축소될 때마다 특정 영역의 인스턴스가 거의 사라져 영역별 대수가 크게 기울었습니다. 팀은 축소 후에도 영역 간 균형이 유지되기를 원합니다. 가장 정확한 이해는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "축소 시에는 영역 균형이 고려되지 않으므로 사람이 매번 수동으로 재배치해야 한다." },
+        { "id": "B", "text": "영역 균형을 유지하려면 영역마다 별도의 Auto Scaling 그룹을 만들어야 한다." },
+        { "id": "C", "text": "그룹은 인스턴스가 가장 많은 영역에서 먼저 종료해 균형을 유지하며, 종료 정책으로 그 안의 선택 기준을 조정할 수 있다." },
+        { "id": "D", "text": "영역 균형은 로드 밸런서의 교차 영역 설정으로만 결정되며 그룹 구성과 무관하다." }
+      ],
+      "answer": ["C"],
+      "explanation": "Auto Scaling 그룹은 축소할 때 영역별 인스턴스 수를 고려해 가장 많은 영역에서 대상을 고르므로, 정상적인 상황에서는 균형이 스스로 유지됩니다. 그 영역 안에서 어떤 인스턴스를 종료할지는 종료 정책으로 조정할 수 있어 오래된 시작 구성이나 특정 조건의 인스턴스를 먼저 정리할 수 있습니다. 기울어짐이 관측된다면 영역별 서브넷 구성이나 용량 확보 실패 같은 다른 원인을 함께 살펴야 합니다. 영역마다 그룹을 나누는 방식은 관리 지점만 늘리고 균형 유지를 오히려 어렵게 만듭니다.",
+      "distractorNotes": {
+        "A": "축소 시 영역 균형은 자동으로 고려됩니다. 수동 재배치는 불필요하고 지속 가능하지도 않습니다.",
+        "B": "그룹을 나누면 확장과 축소를 각각 관리해야 하고 전체 용량 통제가 어려워집니다. 권장되는 구성이 아닙니다.",
+        "D": "교차 영역 설정은 로드 밸런서가 대상에 트래픽을 어떻게 나누는지를 정합니다. 인스턴스 개수의 균형과는 다른 문제입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_CreateAutoScalingGroup.html", "title": "Auto Scaling CreateAutoScalingGroup" },
+        { "url": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html", "title": "Amazon EC2 Auto Scaling이란 무엇입니까?" }
+      ],
+      "tags": ["asg-multi-az", "auto-scaling", "high-availability", "elasticity"]
+    },
+    {
+      "id": "saa-mock-2-030",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch11",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "재고 차감을 처리하는 서비스가 Amazon DynamoDB에서 수량을 읽어 계산한 뒤 다시 씁니다. 동시 요청이 몰리면 두 요청이 같은 값을 읽고 각각 저장해 재고가 실제보다 많이 남는 문제가 발생합니다. 애플리케이션 계층을 크게 바꾸지 않는 해법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "테이블의 읽기를 강력한 일관성 모드로 바꿔 항상 최신 값을 읽게 한다." },
+        { "id": "B", "text": "프로비저닝된 쓰기 용량을 늘려 요청이 순서대로 처리되게 한다." },
+        { "id": "C", "text": "요청을 큐에 넣고 단일 소비자가 하나씩 처리하도록 전체 흐름을 바꾼다." },
+        { "id": "D", "text": "쓰기에 조건식을 붙여 읽은 값이 그대로일 때만 갱신되게 하고 실패하면 재시도한다." }
+      ],
+      "answer": ["D"],
+      "explanation": "여러 요청이 같은 항목을 동시에 갱신할 때 생기는 덮어쓰기 문제는 조건부 쓰기로 해결합니다. 갱신 요청에 이전 값이 그대로일 때만 쓰라는 조건을 붙이면, 그 사이에 다른 요청이 값을 바꾼 경우 조건이 실패해 잘못된 저장이 일어나지 않습니다. 애플리케이션은 조건 실패를 감지해 다시 읽고 재시도하면 되므로 구조를 크게 바꾸지 않아도 됩니다. 강력한 일관성 읽기는 최신 값을 읽게 해 주지만 읽은 뒤 쓰기까지의 경합을 막아 주지는 않는다는 점이 이 문항의 함정입니다.",
+      "distractorNotes": {
+        "A": "강력한 일관성은 읽는 시점의 최신성을 보장할 뿐입니다. 읽은 뒤 다른 요청이 값을 바꾸는 경합은 그대로 남습니다.",
+        "B": "용량은 처리량 한도를 정할 뿐 요청 사이의 순서나 원자성을 보장하지 않습니다.",
+        "C": "단일 소비자 직렬화는 문제를 해결하지만 처리량이 급감하고 전체 흐름을 다시 만들어야 합니다. 요구된 최소 변경과 거리가 멉니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html", "title": "Amazon DynamoDB UpdateTable" },
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html", "title": "Amazon DynamoDB Query" }
+      ],
+      "tags": ["dynamodb", "consistency", "idempotency", "error-handling"]
+    },
+    {
+      "id": "saa-mock-2-031",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch13",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 Amazon EKS 클러스터의 워커 노드를 직접 만든 EC2 인스턴스 세 대로 운영하며, 노드가 죽으면 사람이 새로 만들어 클러스터에 등록합니다. 노드 수도 수동으로 조절합니다. 운영 부담이 가장 적은(LEAST operational overhead) 개선은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "여러 가용 영역에 걸친 관리형 노드 그룹을 만들어 노드 프로비저닝과 교체를 맡긴다." },
+        { "id": "B", "text": "노드를 더 큰 인스턴스로 바꿔 개수를 줄이고 장애 확률을 낮춘다." },
+        { "id": "C", "text": "노드 상태를 확인해 죽은 노드를 다시 만드는 스크립트를 작성해 주기적으로 실행한다." },
+        { "id": "D", "text": "클러스터를 두 개 만들어 하나가 문제가 생기면 다른 쪽으로 전환한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "직접 만든 인스턴스를 노드로 쓰면 생성, 등록, 교체, 업데이트가 모두 사람 몫이 됩니다. 관리형 노드 그룹은 노드의 수명 주기를 서비스가 관리해 비정상 노드를 자동으로 교체하고 원하는 개수를 유지하며, 여러 가용 영역에 걸쳐 구성하면 영역 장애에도 남은 노드로 워크로드가 이어집니다. 노드 수 조절도 그룹 설정으로 처리되어 운영 개입이 크게 줄어듭니다. 노드 운영 자체를 아예 없애고 싶다면 서버리스 컴퓨팅 옵션을 함께 검토할 수 있습니다.",
+      "distractorNotes": {
+        "B": "노드가 커지면 한 대가 죽었을 때 잃는 용량이 오히려 커집니다. 교체가 여전히 수동이라는 점도 그대로입니다.",
+        "C": "스크립트는 동작할 수 있지만 그 스크립트 자체를 유지하고 실패에 대비해야 합니다. 관리형 기능을 두고 부담을 자초합니다.",
+        "D": "클러스터를 두 배로 만들면 비용과 운영이 함께 늘어납니다. 노드 관리가 수동이라는 원인은 해결되지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html", "title": "Amazon EKS 관리형 노드 그룹" },
+        { "url": "https://docs.aws.amazon.com/eks/latest/userguide/capabilities.html", "title": "Amazon EKS 기능" }
+      ],
+      "tags": ["container-choice", "eks", "high-availability", "asg-multi-az"]
+    },
+    {
+      "id": "saa-mock-2-032",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch09",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "연구팀이 Amazon FSx for Lustre 파일 시스템을 임시 유형으로 만들어 몇 주에 걸친 시뮬레이션의 중간 결과를 저장했습니다. 파일 서버 장애가 발생하자 일부 데이터가 복구되지 않았습니다. 앞으로 같은 손실을 막으려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "같은 유형의 파일 시스템을 하나 더 만들어 애플리케이션이 양쪽에 동시에 쓰게 한다." },
+        { "id": "B", "text": "데이터 복제로 내구성을 제공하는 영구 유형 파일 시스템을 사용하고 결과를 Amazon S3에도 남긴다." },
+        { "id": "C", "text": "파일 시스템 용량을 늘려 장애 시에도 여유 공간에서 복구되게 한다." },
+        { "id": "D", "text": "시뮬레이션 노드 수를 줄여 파일 시스템에 가해지는 부하를 낮춘다." }
+      ],
+      "answer": ["B"],
+      "explanation": "고성능 파일 시스템에는 목적이 다른 유형이 있으며, 임시 유형은 짧은 기간의 처리 성능을 위해 데이터 복제를 하지 않습니다. 그래서 몇 주에 걸쳐 유지해야 하는 중간 결과를 두면 서버 장애가 곧 데이터 손실로 이어집니다. 데이터를 복제해 내구성을 제공하는 영구 유형을 쓰고, 결과를 객체 스토리지에 함께 남기면 파일 시스템 수명과 무관하게 데이터가 보존됩니다. 유형 선택은 성능만이 아니라 데이터의 수명과 재생성 가능 여부로 판단해야 합니다.",
+      "distractorNotes": {
+        "A": "이중 쓰기는 애플리케이션이 정합성과 실패 처리를 직접 관리해야 하고 비용도 두 배가 됩니다. 유형 선택으로 해결되는 문제입니다.",
+        "C": "용량은 저장할 수 있는 양을 정할 뿐 내구성과 무관합니다. 복제되지 않는다는 성질은 그대로입니다.",
+        "D": "부하를 줄여도 서버 장애 자체를 막지 못합니다. 손실 위험의 원인은 부하가 아니라 복제 부재입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/fsx/latest/APIReference/API_DescribeFileSystems.html", "title": "Amazon FSx DescribeFileSystems" },
+        { "url": "https://docs.aws.amazon.com/fsx/latest/LustreGuide/create-dra-linked-data-repo.html", "title": "FSx for Lustre 데이터 리포지토리 연결" }
+      ],
+      "tags": ["efs-vs-fsx", "fsx", "storage", "data-protection"]
+    },
+    {
+      "id": "saa-mock-2-033",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch12",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "Amazon EventBridge 규칙이 주문 이벤트를 외부 시스템의 API로 보내는 대상을 호출합니다. 외부 시스템이 일시적으로 응답하지 않을 때 재시도가 모두 실패하면 이벤트가 사라져 주문이 누락됩니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "규칙을 여러 개 만들어 같은 이벤트를 여러 번 보내 성공 확률을 높인다." },
+        { "id": "B", "text": "이벤트 패턴을 넓혀 더 많은 이벤트가 규칙에 매칭되게 한다." },
+        { "id": "C", "text": "규칙 대상에 배달 못 한 편지 큐를 지정해 전달에 실패한 이벤트가 보관되게 한다." },
+        { "id": "D", "text": "이벤트를 발행하는 애플리케이션이 외부 시스템 상태를 먼저 확인하고 발행하게 한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "이벤트 버스는 대상 호출에 실패하면 정해진 정책에 따라 재시도하고, 그마저 실패하면 이벤트를 버립니다. 대상에 배달 못 한 편지 큐를 지정해 두면 실패한 이벤트가 큐에 남아 원인을 조사하고 나중에 다시 처리할 수 있습니다. 이 설정은 대상 단위로 적용되므로 문제가 되는 연동에만 붙일 수 있습니다. 비동기 연동에서는 성공 경로뿐 아니라 실패한 메시지가 어디에 남는지를 항상 설계에 포함해야 합니다.",
+      "distractorNotes": {
+        "A": "중복 발송은 외부 시스템이 계속 응답하지 않으면 모두 실패하고, 정상 상황에서는 중복 처리를 유발합니다.",
+        "B": "패턴을 넓히면 관련 없는 이벤트까지 전달되어 부하와 오류가 늘어납니다. 유실 문제와 무관합니다.",
+        "D": "발행 시점에 확인해도 전달 시점에 상태가 달라질 수 있습니다. 발행자가 다운스트림 상태에 의존하게 되어 결합이 강해집니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/eventbridge/latest/APIReference/API_PutTargets.html", "title": "Amazon EventBridge PutTargets" },
+        { "url": "https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-create-event-bus.html", "title": "Amazon EventBridge 이벤트 버스 생성" }
+      ],
+      "tags": ["sns-vs-eventbridge", "eventbridge", "error-handling", "decoupling"]
+    },
+    {
+      "id": "saa-mock-2-034",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch11",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "한 팀이 Amazon DynamoDB 글로벌 테이블을 세 리전에 구성해 각 리전에서 읽고 쓰려 합니다. 설계 검토에서 동작 방식을 정리하고 있습니다. 옳은 설명은 무엇입니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "각 리전의 복제본은 쓰기를 받을 수 있고 변경은 다른 리전 복제본으로 전파된다." },
+        { "id": "B", "text": "서로 다른 리전에서 같은 항목이 거의 동시에 갱신되면 마지막 쓰기가 남는 방식으로 정리된다." },
+        { "id": "C", "text": "쓰기는 최초로 만든 리전에서만 가능하고 나머지 리전은 읽기 전용이다." },
+        { "id": "D", "text": "복제는 동기식이므로 모든 리전이 항상 같은 값을 반환한다." },
+        { "id": "E", "text": "복제본이 추가되면 원본 리전의 테이블은 자동으로 읽기 전용으로 전환된다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "글로벌 테이블은 여러 리전에 복제본을 두고 각 복제본이 읽기와 쓰기를 모두 처리하는 구조입니다. 변경은 리전 사이로 전파되며 전파에는 시간이 걸리므로 잠시 동안은 리전마다 값이 다를 수 있습니다. 서로 다른 리전에서 같은 항목이 거의 동시에 수정되면 충돌을 자동으로 정리하는 규칙이 적용되어 마지막 쓰기가 살아남습니다. 그래서 리전별로 갱신 대상이 겹치지 않도록 데이터를 나누는 설계가 함께 필요합니다.",
+      "distractorNotes": {
+        "C": "모든 복제본이 쓰기를 받을 수 있습니다. 단방향 복제가 아닙니다.",
+        "D": "리전 간 복제는 비동기로 이루어져 전파 지연이 존재합니다. 항상 같은 값을 반환한다는 서술은 틀렸습니다.",
+        "E": "복제본을 추가해도 기존 테이블은 계속 읽기와 쓰기를 처리합니다. 역할이 바뀌지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateGlobalTable.html", "title": "Amazon DynamoDB CreateGlobalTable" },
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html", "title": "Amazon DynamoDB CreateTable" }
+      ],
+      "tags": ["dynamodb", "global-tables", "multi-region", "consistency"]
+    },
+    {
+      "id": "saa-mock-2-035",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch07",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "대규모 이벤트 중 Auto Scaling 그룹이 확장을 시도했지만 일부 요청이 용량 부족으로 실패해 목표 대수를 채우지 못했습니다. 그룹은 세 가용 영역을 사용하며 시작 템플릿에는 인스턴스 유형이 하나만 지정되어 있습니다. 가장 적절한 개선은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "최대 용량을 두 배로 올려 실패한 만큼 추가로 요청되게 한다." },
+        { "id": "B", "text": "확장 정책의 쿨다운을 늘려 요청이 몰리지 않도록 간격을 둔다." },
+        { "id": "C", "text": "가용 영역을 하나로 줄여 요청이 한 영역에 집중되게 한다." },
+        { "id": "D", "text": "혼합 인스턴스 정책으로 여러 인스턴스 유형을 허용해 용량 확보 후보를 넓힌다." }
+      ],
+      "answer": ["D"],
+      "explanation": "특정 인스턴스 유형의 용량은 영역별로 유한하므로, 하나의 유형만 지정하면 수요가 몰릴 때 확보에 실패할 수 있습니다. 여러 인스턴스 유형을 허용하면 요청이 가능한 후보 풀이 넓어져 하나가 부족해도 다른 유형으로 채워집니다. 여러 가용 영역을 함께 쓰는 것과 여러 유형을 함께 쓰는 것은 서로 다른 축의 분산이며, 이번 사례에서 부족한 것은 유형 쪽 다양성입니다. 스팟을 섞어 쓸 때도 같은 이유로 유형을 여러 개 지정하는 것이 권장됩니다.",
+      "distractorNotes": {
+        "A": "요청 수를 늘려도 같은 유형의 용량이 없으면 실패가 반복됩니다. 확보 가능성 자체가 달라지지 않습니다.",
+        "B": "간격을 늘리면 확장이 더 느려져 이벤트 중 대응이 늦어집니다. 용량 부족의 원인과도 무관합니다.",
+        "C": "영역을 줄이면 후보 풀이 좁아져 실패 가능성이 오히려 커지고 가용성도 낮아집니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_CreateAutoScalingGroup.html", "title": "Auto Scaling CreateAutoScalingGroup" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html", "title": "Amazon EC2 인스턴스 유형" }
+      ],
+      "tags": ["auto-scaling", "asg-multi-az", "elasticity", "ec2"]
+    },
+    {
+      "id": "saa-mock-2-036",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch18",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 팀이 리전 장애 상황에서도 데이터 손실이 전혀 없어야 한다는 요구를 받고, 다른 리전에 데이터베이스 사본을 두면 손실이 0이 된다고 보고했습니다. 이 보고에 대한 평가로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "리전 간 복제는 일반적으로 비동기이므로 전파되지 않은 변경만큼 손실이 발생할 수 있고, 목표를 현실적인 값으로 다시 정해야 한다." },
+        { "id": "B", "text": "리전 간 복제도 동기식으로 동작하므로 손실이 없다는 보고는 정확하다." },
+        { "id": "C", "text": "복제 대신 스냅샷을 자주 복사하면 손실을 완전히 없앨 수 있다." },
+        { "id": "D", "text": "손실을 없애려면 두 리전의 데이터베이스를 하나의 인스턴스로 합쳐야 한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "동기 복제는 쓰기를 확정하기 전에 사본까지 기록을 마쳐야 하므로 거리가 늘어날수록 지연이 커져 리전 사이에 적용하기 어렵습니다. 그래서 리전 간 복제는 대체로 비동기로 이루어지고, 장애 순간에 아직 전파되지 않은 변경은 손실됩니다. 손실이 정확히 0이라는 목표는 물리적으로 달성하기 어렵기 때문에, 현실적인 목표는 초 단위의 매우 작은 손실을 허용하는 값으로 정하는 것입니다. 같은 리전 안의 동기 복제와 리전 간 비동기 복제의 차이를 구분하는 것이 이 판단의 핵심입니다.",
+      "distractorNotes": {
+        "B": "리전 간 거리로 인한 왕복 지연 때문에 동기 복제를 적용하면 쓰기 성능이 크게 나빠집니다. 일반적인 리전 간 복제는 비동기입니다.",
+        "C": "스냅샷은 만든 시점의 상태만 담으므로 그 사이의 변경이 손실됩니다. 복제보다 손실 범위가 더 큽니다.",
+        "D": "하나의 인스턴스로 합치면 그 리전이 사용 불가일 때 전체가 함께 사라집니다. 요구와 정반대 방향입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-options-in-the-cloud.html", "title": "클라우드의 재해 복구 옵션" },
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-global-database.html", "title": "Amazon Aurora 글로벌 데이터베이스" }
+      ],
+      "tags": ["rto-rpo-tradeoff", "dr-strategies", "multi-region", "disaster-recovery"]
+    },
+    {
+      "id": "saa-mock-2-037",
+      "exam": "SAA",
+      "domain": "Design Resilient Architectures",
+      "chapter": "ch15",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "Amazon Kinesis Data Streams를 소비하는 애플리케이션이 배포 실수로 6시간 동안 중단되었습니다. 팀은 그동안의 레코드를 잃지 않고, 앞으로 같은 일이 생겨도 이어서 처리할 수 있기를 원합니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "스트림의 데이터 보존 기간을 중단 가능성을 감당할 만큼 늘려 둔다." },
+        { "id": "B", "text": "소비자가 처리 위치를 지속적으로 기록해 재시작 시 마지막 지점부터 이어 읽게 한다." },
+        { "id": "C", "text": "소비자가 중단되면 생산자도 함께 멈추도록 연결해 레코드가 쌓이지 않게 한다." },
+        { "id": "D", "text": "샤드 수를 늘려 중단 기간의 레코드를 더 오래 보관하게 한다." },
+        { "id": "E", "text": "중단이 감지되면 스트림을 다시 만들어 새 레코드부터 처리하게 한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "스트림은 큐와 달리 읽어 간 레코드를 지우지 않고 보존 기간 동안 유지하므로, 소비자가 멈춰 있어도 그 기간 안이라면 데이터가 남아 있습니다. 따라서 첫 번째 대비는 감당해야 할 중단 시간보다 긴 보존 기간을 확보하는 것입니다. 두 번째는 소비자가 어디까지 처리했는지를 지속적으로 기록해 두는 것으로, 재시작 시 그 지점부터 이어 읽어 중복과 누락을 줄일 수 있습니다. 두 조치가 함께 있어야 중단을 견디고 복구까지 완성됩니다.",
+      "distractorNotes": {
+        "C": "생산자를 소비자 상태에 묶으면 원본 시스템까지 함께 멈춥니다. 결합을 끊으려고 스트림을 쓰는 목적과 반대입니다.",
+        "D": "샤드 수는 처리량을 결정하며 보존 기간과는 별개입니다. 보관 기간이 늘어나지 않습니다.",
+        "E": "스트림을 다시 만들면 그동안 쌓인 레코드를 모두 버리게 됩니다. 유실을 막으려는 요구와 정반대입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_IncreaseStreamRetentionPeriod.html", "title": "Kinesis IncreaseStreamRetentionPeriod" },
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_RegisterStreamConsumer.html", "title": "Kinesis RegisterStreamConsumer" }
+      ],
+      "tags": ["streaming-ingestion", "kinesis", "error-handling", "replay"]
+    },
+    {
+      "id": "saa-mock-2-038",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 회사 도메인의 최상위 이름을 Application Load Balancer로 연결하려 합니다. CNAME 레코드를 만들려 했지만 호스팅 영역 정점에는 만들 수 없다는 오류가 발생했습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "로드 밸런서의 현재 IP 주소를 조회해 A 레코드로 등록하고 변경될 때마다 갱신한다." },
+        { "id": "B", "text": "로드 밸런서를 가리키는 별칭 레코드를 만들어 정점 이름에 연결한다." },
+        { "id": "C", "text": "정점 대신 하위 이름을 사용하도록 서비스 주소 체계를 바꾼다." },
+        { "id": "D", "text": "도메인을 다른 등록 기관으로 옮겨 정점에 CNAME을 허용하게 한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "DNS 표준상 호스팅 영역의 정점에는 CNAME 레코드를 둘 수 없기 때문에 로드 밸런서처럼 이름으로만 제공되는 대상을 연결하기 어렵습니다. Route 53의 별칭 레코드는 이 제약을 우회해 정점에서도 AWS 리소스를 직접 가리킬 수 있게 해 주며, 대상의 주소가 바뀌어도 자동으로 따라갑니다. 별칭 레코드는 조회 시 대상의 주소를 반환하므로 클라이언트 입장에서는 일반 A 레코드처럼 동작합니다. IP를 직접 등록하는 방식은 로드 밸런서 주소가 변할 수 있어 유지되지 않습니다.",
+      "distractorNotes": {
+        "A": "로드 밸런서의 주소는 고정이 아니며 변경될 수 있습니다. 사람이 갱신하는 구조는 곧 장애로 이어집니다.",
+        "C": "동작하기는 하지만 사용자에게 노출되는 주소 체계를 제약 때문에 바꾸는 것입니다. 별칭 레코드로 해결되는 문제입니다.",
+        "D": "정점에 CNAME을 둘 수 없는 것은 DNS 표준의 제약이며 등록 기관과 무관합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html", "title": "Route 53 AliasTarget" },
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html", "title": "Route 53 ResourceRecordSet" }
+      ],
+      "tags": ["route53", "dns", "elb", "route53-routing-policy"]
+    },
+    {
+      "id": "saa-mock-2-039",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch05",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "머신 러닝 팀이 딥러닝 모델 학습을 범용 EC2 인스턴스에서 실행하는데 한 번 학습에 며칠이 걸립니다. 프레임워크는 병렬 연산 가속기를 지원하며 코드 수정 없이 활용할 수 있습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "범용 인스턴스를 더 많이 띄우고 학습 데이터를 나눠 처리한다." },
+        { "id": "B", "text": "인스턴스의 EBS 볼륨을 처리량이 높은 유형으로 바꿔 데이터 읽기를 빠르게 한다." },
+        { "id": "C", "text": "메모리 최적화 인스턴스로 바꿔 데이터셋 전체를 메모리에 올린다." },
+        { "id": "D", "text": "가속 컴퓨팅 인스턴스 패밀리로 바꿔 가속기를 활용하도록 한다." }
+      ],
+      "answer": ["D"],
+      "explanation": "인스턴스 선택의 출발점은 워크로드가 어떤 자원을 필요로 하는가입니다. 딥러닝 학습은 대규모 행렬 연산이 지배적이며 프레임워크가 가속기를 지원한다면 가속 컴퓨팅 패밀리에서 수십 배의 처리 속도를 얻을 수 있습니다. 같은 계산을 일반 CPU로 나눠 처리하는 방식은 노드 수를 늘려도 비용 대비 효율이 크게 떨어집니다. 스토리지나 메모리를 개선하는 조치는 그 부분이 병목일 때만 의미가 있습니다.",
+      "distractorNotes": {
+        "A": "노드를 늘리면 총 연산량은 나뉘지만 단위 연산 성능이 낮아 비용이 급격히 커집니다. 분산 학습 구현 부담도 새로 생깁니다.",
+        "B": "데이터 읽기가 병목이라는 근거가 없습니다. 연산 자체가 오래 걸리는 상황에서는 개선 폭이 작습니다.",
+        "C": "메모리 용량이 부족하다는 증상이 제시되지 않았습니다. 병목이 아닌 자원을 늘리는 선택입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html", "title": "Amazon EC2 인스턴스 유형" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html", "title": "Amazon EC2 RunInstances" }
+      ],
+      "tags": ["ec2", "instance-type", "scaling-direction", "performance"]
+    },
+    {
+      "id": "saa-mock-2-040",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch15",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "Amazon Data Firehose로 로그를 Amazon S3에 적재하는데 아주 작은 파일이 대량으로 만들어져 이후 분석 질의가 느립니다. 몇 분 정도의 적재 지연은 허용됩니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "전송 스트림의 버퍼링 조건을 조정해 더 큰 단위로 모아서 적재하게 한다." },
+        { "id": "B", "text": "전송 스트림을 여러 개로 나누어 각각 다른 접두사에 적재한다." },
+        { "id": "C", "text": "적재 대상을 Amazon S3에서 Amazon DynamoDB로 바꿔 항목 단위로 저장한다." },
+        { "id": "D", "text": "생산자가 로그를 보내는 빈도를 높여 스트림이 더 자주 비워지게 한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "전송 서비스는 크기 조건과 시간 조건 중 먼저 도달하는 쪽을 기준으로 데이터를 모아 목적지에 씁니다. 조건이 짧게 잡혀 있으면 작은 파일이 계속 만들어져 이후 분석에서 파일 하나하나를 여는 비용이 커집니다. 적재 지연이 허용된다면 버퍼링 조건을 늘려 더 큰 파일로 묶는 것이 질의 성능에 직접적인 개선을 줍니다. 반대로 지연을 최소화해야 한다면 작은 파일을 감수하고 나중에 압축 병합 과정을 두는 선택이 됩니다.",
+      "distractorNotes": {
+        "B": "스트림을 나누면 파일이 여러 위치로 흩어질 뿐 파일 하나의 크기는 그대로입니다. 문제가 개선되지 않습니다.",
+        "C": "저장소를 바꾸면 분석 방식 전체를 다시 설계해야 합니다. 대량 로그 분석에는 객체 스토리지가 더 적합합니다.",
+        "D": "생산 빈도를 높이면 더 자주 비워져 파일이 더 작아집니다. 문제를 악화시키는 방향입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/firehose/latest/APIReference/API_BufferingHints.html", "title": "Amazon Data Firehose BufferingHints" },
+        { "url": "https://docs.aws.amazon.com/firehose/latest/APIReference/API_CreateDeliveryStream.html", "title": "Amazon Data Firehose CreateDeliveryStream" }
+      ],
+      "tags": ["streaming-ingestion", "firehose", "s3-performance", "analytics-choice"]
+    },
+    {
+      "id": "saa-mock-2-041",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "Amazon CloudFront로 제공하는 이미지의 캐시 적중률이 매우 낮아 대부분의 요청이 오리진까지 갑니다. 확인해 보니 캐시 동작이 모든 쿼리 문자열과 쿠키를 캐시 키에 포함하고 있고, 응답에 캐시 유효 시간이 지정되어 있지 않습니다. 어떤 조치를 취해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "캐시 키에 실제로 응답을 다르게 만드는 값만 포함하도록 정책을 좁힌다." },
+        { "id": "B", "text": "이미지에 적절한 캐시 유효 시간을 지정해 엣지에서 재사용되게 한다." },
+        { "id": "C", "text": "오리진의 인스턴스 수를 늘려 오리진 요청을 더 빠르게 처리한다." },
+        { "id": "D", "text": "가격 등급을 낮춰 사용하는 엣지 로케이션 수를 줄인다." },
+        { "id": "E", "text": "모든 요청에 고유한 쿼리 문자열을 붙여 요청을 구분한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "캐시 적중은 같은 캐시 키로 이미 저장된 응답이 있을 때 일어납니다. 캐시 키에 응답과 무관한 값이 섞이면 사실상 요청마다 다른 키가 만들어져 캐시가 거의 동작하지 않습니다. 또한 유효 시간이 지정되지 않으면 엣지가 응답을 오래 보관할 근거가 없어 오리진 요청이 반복됩니다. 두 설정을 함께 정리하면 같은 이미지 요청이 엣지에서 처리되어 지연과 오리진 부하가 동시에 줄어듭니다.",
+      "distractorNotes": {
+        "C": "오리진을 키우면 요청을 더 잘 견딜 뿐 캐시가 동작하지 않는 원인은 그대로입니다. 비용만 늘어납니다.",
+        "D": "엣지 범위를 줄이는 것은 사용자 분포에 따른 비용 조정입니다. 적중률과는 관련이 없습니다.",
+        "E": "요청마다 다른 값을 붙이면 캐시 키가 모두 달라져 적중률이 0에 가까워집니다. 정반대 조치입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html", "title": "CloudFront DefaultCacheBehavior" },
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Expiration.html", "title": "콘텐츠가 캐시에 유지되는 기간 관리" }
+      ],
+      "tags": ["cloudfront", "cdn", "latency", "caching-choice"]
+    },
+    {
+      "id": "saa-mock-2-042",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch09",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "여러 인스턴스가 공유하는 Amazon EFS 파일 시스템에서, 저장된 데이터 양은 적은데 매일 정해진 시간에 대량 병렬 읽기가 몰리면서 처리량이 부족해 작업이 지연됩니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "파일 시스템에 더미 파일을 채워 저장 용량을 늘린다." },
+        { "id": "B", "text": "인스턴스마다 별도의 EFS 파일 시스템을 만들어 부하를 나눈다." },
+        { "id": "C", "text": "처리량을 저장 용량과 무관하게 지정할 수 있는 모드로 전환한다." },
+        { "id": "D", "text": "파일 시스템을 EBS 볼륨으로 교체하고 각 인스턴스에 연결한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "EFS는 처리량을 저장 용량에 연동해 제공하는 방식과 용량과 무관하게 필요한 만큼 지정하는 방식을 제공합니다. 데이터 양이 적은데 순간 처리량 요구가 크다면 용량 연동 방식에서는 필요한 성능을 얻지 못합니다. 처리량을 직접 지정하는 모드로 바꾸면 저장량과 관계없이 요구에 맞는 성능을 확보할 수 있습니다. 반대로 데이터가 충분히 크고 사용이 완만하다면 기본 방식이 더 경제적입니다.",
+      "distractorNotes": {
+        "A": "더미 데이터를 채워 성능을 얻는 방식은 저장 비용을 낭비하고 관리도 지저분해집니다. 설정으로 해결할 수 있는 문제입니다.",
+        "B": "파일 시스템을 나누면 공유라는 요구 자체가 깨집니다. 같은 데이터를 여러 곳에 동기화하는 부담도 생깁니다.",
+        "D": "EBS 볼륨은 여러 인스턴스가 일반 파일 시스템으로 동시에 공유하기에 적합하지 않습니다. 요구된 공유 접근이 성립하지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/performance.html#performancemodes.html", "title": "Amazon EFS 성능" },
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html", "title": "Amazon EFS 작동 방식" }
+      ],
+      "tags": ["efs", "efs-vs-fsx", "throughput", "storage"]
+    },
+    {
+      "id": "saa-mock-2-043",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "분석팀이 Amazon Redshift에 최근 3개월 데이터를 적재해 사용합니다. 가끔 5년치 이력과 함께 조인해야 하는데, 그 이력은 이미 Amazon S3에 있고 웨어하우스에 전부 적재하기에는 규모가 너무 큽니다. 가장 적절한 방법은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "5년치 이력을 모두 웨어하우스로 적재하고 클러스터 크기를 그만큼 늘린다." },
+        { "id": "B", "text": "웨어하우스의 외부 테이블 기능으로 S3의 이력을 직접 조회해 내부 테이블과 조인한다." },
+        { "id": "C", "text": "웨어하우스를 없애고 모든 조회를 S3 대상 서버리스 질의로만 처리한다." },
+        { "id": "D", "text": "이력을 요약 통계로 미리 집계해 두고 상세 조인은 포기한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "자주 쓰는 데이터는 웨어하우스 안에, 크고 가끔 쓰는 데이터는 객체 스토리지에 두는 것이 비용과 성능의 균형점입니다. 웨어하우스의 외부 테이블 기능을 쓰면 S3에 있는 데이터를 적재하지 않고도 SQL로 조회할 수 있고 내부 테이블과 조인도 가능합니다. 덕분에 클러스터 크기를 이력 규모에 맞춰 키우지 않아도 되고 적재 파이프라인도 단순해집니다. 조회 성능은 S3 쪽 데이터의 파티셔닝과 파일 형식에 크게 좌우되므로 그 부분을 함께 정리해야 합니다.",
+      "distractorNotes": {
+        "A": "가끔 쓰는 데이터를 위해 상시 클러스터를 키우는 것은 비용 효율이 매우 나쁩니다. 적재 시간과 관리 부담도 커집니다.",
+        "C": "서버리스 질의는 임시 분석에 좋지만 자주 실행되는 복잡한 조인에는 웨어하우스가 유리합니다. 기존 워크로드의 성능이 나빠집니다.",
+        "D": "상세 조인을 포기하면 요구사항 자체를 충족하지 못합니다. 기술적 해법이 있는 상황에서 요구를 낮추는 선택입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/redshift/latest/APIReference/API_CreateCluster.html", "title": "Amazon Redshift CreateCluster" },
+        { "url": "https://docs.aws.amazon.com/athena/latest/APIReference/Welcome.html", "title": "Amazon Athena API 참조" }
+      ],
+      "tags": ["analytics-choice", "redshift", "s3", "data-warehouse"]
+    },
+    {
+      "id": "saa-mock-2-044",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "여러 팀이 Amazon S3에 서로 다른 형식으로 데이터를 올리고, 각 팀이 Amazon Athena와 Amazon Redshift에서 같은 테이블 정의를 따로 만들어 관리하다 보니 정의가 어긋나는 일이 잦습니다. 운영 부담이 가장 적은(LEAST operational overhead) 개선은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "팀마다 테이블 정의 문서를 작성하고 변경 시 서로 공유하는 절차를 만든다." },
+        { "id": "B", "text": "AWS Glue 데이터 카탈로그를 공통 메타데이터 저장소로 두고 두 서비스가 같은 정의를 참조하게 한다." },
+        { "id": "C", "text": "모든 데이터를 하나의 형식으로 통일해 다시 저장하고 테이블 정의를 없앤다." },
+        { "id": "D", "text": "각 팀이 자기 데이터만 조회하도록 버킷을 분리해 정의 충돌을 피한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "같은 데이터에 대한 테이블 정의가 여러 곳에 복제되면 어긋남은 시간 문제입니다. Glue 데이터 카탈로그는 데이터베이스와 테이블 정의를 한 곳에 보관하고 여러 분석 서비스가 이를 공통으로 참조하도록 설계되어 있어, 정의를 한 번만 관리하면 됩니다. 크롤러를 함께 쓰면 새로 올라온 데이터의 스키마와 파티션을 자동으로 반영할 수 있어 유지 작업도 줄어듭니다. 형식 통일이나 버킷 분리는 유용할 수 있지만 정의가 흩어진다는 원인을 해결하지 못합니다.",
+      "distractorNotes": {
+        "A": "문서 공유는 사람이 챙기는 절차이며 반영 지연과 누락이 반복됩니다. 지금 겪는 문제의 연장선입니다.",
+        "C": "형식을 통일해도 테이블 정의는 여전히 필요합니다. 대규모 재저장 비용만 발생합니다.",
+        "D": "버킷을 나누면 팀 간 공동 분석이 어려워집니다. 충돌을 피하는 것이 아니라 협업을 포기하는 방향입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/glue/latest/webapi/API_Crawler.html", "title": "AWS Glue 크롤러 API" },
+        { "url": "https://docs.aws.amazon.com/glue/latest/webapi/API_CreateCrawler.html", "title": "AWS Glue CreateCrawler" }
+      ],
+      "tags": ["glue-etl", "analytics-choice", "athena", "data-catalog"]
+    },
+    {
+      "id": "saa-mock-2-045",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "네 개의 애플리케이션이 같은 Amazon Kinesis 데이터 스트림을 각자 읽습니다. 소비자를 추가할수록 모든 소비자의 읽기 지연이 함께 늘어나고 처리량 초과 오류가 발생합니다. 소비자 수를 줄일 수는 없습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "소비자마다 전용 읽기 처리량을 제공하는 향상된 팬아웃 방식으로 소비자를 등록한다." },
+        { "id": "B", "text": "스트림의 보존 기간을 늘려 소비자들이 여유 있게 읽도록 한다." },
+        { "id": "C", "text": "소비자 애플리케이션마다 별도의 스트림을 만들고 생산자가 네 곳에 모두 쓰게 한다." },
+        { "id": "D", "text": "레코드 크기를 줄여 같은 처리량으로 더 많은 레코드를 읽게 한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "기본 소비 방식에서는 여러 소비자가 샤드의 읽기 처리량을 나눠 쓰기 때문에 소비자가 늘어날수록 각자의 몫이 줄고 지연이 커집니다. 향상된 팬아웃으로 소비자를 등록하면 소비자마다 전용 읽기 처리량이 배정되어 서로 영향을 주지 않고, 레코드가 밀어 넣어지는 방식이라 지연도 짧아집니다. 소비자를 줄일 수 없다는 제약이 있으므로 소비 방식 자체를 바꾸는 것이 정답 방향입니다. 스트림을 복제하는 방식은 생산자와 비용, 정합성 부담을 모두 늘립니다.",
+      "distractorNotes": {
+        "B": "보존 기간은 레코드를 얼마나 오래 보관하는지를 정할 뿐 읽기 처리량을 늘리지 않습니다. 지연은 그대로입니다.",
+        "C": "생산자가 여러 스트림에 중복으로 써야 해 비용과 실패 처리 부담이 커집니다. 스트림 사이의 정합성도 보장하기 어렵습니다.",
+        "D": "처리량 한도는 데이터 크기와 초당 호출 수 양쪽으로 걸립니다. 레코드를 줄이면 호출 수가 늘어 다른 한도에 부딪힙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_RegisterStreamConsumer.html", "title": "Kinesis RegisterStreamConsumer" },
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_CreateStream.html", "title": "Amazon Kinesis CreateStream" }
+      ],
+      "tags": ["streaming-ingestion", "kinesis", "throughput", "latency"]
+    },
+    {
+      "id": "saa-mock-2-046",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch07",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "웹 계층 Auto Scaling 그룹이 평균 CPU 사용률로 확장하는데, 요청이 몰려도 CPU는 완만하게 오르고 응답 시간이 먼저 나빠집니다. 애플리케이션은 외부 API 호출을 기다리는 시간이 깁니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "대상당 요청 수처럼 부하를 직접 반영하는 지표를 기준으로 대상 추적 정책을 구성한다." },
+        { "id": "B", "text": "애플리케이션이 내보내는 대기 요청 수 같은 사용자 지정 지표를 게시해 확장 기준으로 사용한다." },
+        { "id": "C", "text": "평균 CPU 목표를 20%로 낮춰 조금만 올라도 확장되게 한다." },
+        { "id": "D", "text": "인스턴스 유형을 CPU가 더 강한 것으로 바꿔 사용률이 잘 오르게 한다." },
+        { "id": "E", "text": "확장 정책을 제거하고 최대 대수를 항상 유지한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "확장 지표는 사용자가 체감하는 부하와 상관관계가 높아야 제 역할을 합니다. 외부 호출을 기다리는 시간이 긴 애플리케이션은 요청이 쌓여도 CPU가 크게 오르지 않으므로 CPU 기준 확장은 항상 늦게 반응합니다. 대상당 요청 수처럼 트래픽을 직접 반영하는 지표나, 애플리케이션이 아는 대기 요청 수 같은 사용자 지정 지표를 쓰면 부하 증가와 확장 동작이 곧바로 연결됩니다. 지표를 잘못 고르면 어떤 정책을 써도 반응이 어긋난다는 것이 이 문항의 요지입니다.",
+      "distractorNotes": {
+        "C": "목표를 낮추면 평상시에도 과도하게 확장되어 비용이 늘고, 여전히 CPU가 부하를 대변하지 못한다는 문제는 남습니다.",
+        "D": "CPU를 더 강하게 만들면 사용률이 오히려 덜 오릅니다. 지표와 부하의 괴리가 커집니다.",
+        "E": "최대 대수를 상시 유지하면 지연은 줄지만 탄력성을 포기하고 비용이 크게 증가합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_PutScalingPolicy.html", "title": "Amazon EC2 Auto Scaling PutScalingPolicy" },
+        { "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricData.html", "title": "Amazon CloudWatch PutMetricData" }
+      ],
+      "tags": ["asg-scaling-policy", "auto-scaling", "elasticity", "monitoring"]
+    },
+    {
+      "id": "saa-mock-2-047",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "분석 워커가 Amazon S3에 있는 수십 기가바이트 파일에서 특정 구간만 반복해서 읽습니다. 지금은 파일 전체를 내려받은 뒤 필요한 부분을 잘라 쓰기 때문에 시작까지 오래 걸립니다. 가장 적절한 개선은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "파일을 EBS 볼륨에 복사해 두고 워커가 로컬 디스크에서 읽게 한다." },
+        { "id": "B", "text": "파일을 Amazon EFS로 옮겨 여러 워커가 동시에 마운트해 읽게 한다." },
+        { "id": "C", "text": "바이트 범위를 지정해 필요한 구간만 가져오고 여러 범위를 병렬로 요청한다." },
+        { "id": "D", "text": "파일을 S3 Glacier Instant Retrieval로 옮겨 조회 성능을 높인다." }
+      ],
+      "answer": ["C"],
+      "explanation": "객체 스토리지는 요청에 바이트 범위를 지정해 객체의 일부만 가져올 수 있습니다. 필요한 구간만 읽으면 전송량이 줄어 시작 지연이 사라지고, 여러 범위를 병렬로 요청하면 하나의 연결에 묶이지 않아 전체 처리량도 올라갑니다. 파일 전체를 다른 스토리지로 복사하는 방식은 복사 시간과 저장 비용을 새로 만들 뿐 접근 패턴 문제를 해결하지 못합니다. 대용량 객체를 다룰 때 업로드는 멀티파트로, 다운로드는 바이트 범위 병렬 요청으로 나누는 것이 표준 기법입니다.",
+      "distractorNotes": {
+        "A": "복사 자체에 전체 전송이 필요하므로 시작 지연이 그대로 발생합니다. 워커가 늘어나면 복사본도 늘어납니다.",
+        "B": "공유 파일 시스템으로 옮겨도 원본을 옮기는 비용이 들고 부분 읽기 문제는 접근 방식에 달려 있습니다. 요구에 비해 과한 변경입니다.",
+        "D": "아카이브 계열 클래스는 접근 빈도가 낮은 데이터를 위한 선택이며 성능을 높이는 수단이 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html", "title": "Amazon S3 성능 최적화" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html", "title": "멀티파트 업로드 개요" }
+      ],
+      "tags": ["s3-performance", "s3", "throughput", "latency"]
+    },
+    {
+      "id": "saa-mock-2-048",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch10",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "Amazon Aurora 클러스터의 읽기 부하가 시간대에 따라 크게 변합니다. 지금은 최대 부하에 맞춰 리더 인스턴스를 고정 대수로 유지하고 있어 한가한 시간에는 자원이 남습니다. 애플리케이션은 리더 엔드포인트로 접속합니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "리더 인스턴스를 한 대만 남기고 캐시 계층을 추가해 나머지 부하를 흡수한다." },
+        { "id": "B", "text": "읽기 부하 지표를 기준으로 리더 인스턴스를 자동으로 늘리고 줄이는 정책을 설정한다." },
+        { "id": "C", "text": "리더 인스턴스를 시간대별로 사람이 추가하고 제거하는 운영 절차를 만든다." },
+        { "id": "D", "text": "라이터 인스턴스의 크기를 키워 읽기 요청도 함께 처리하게 한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "리더 엔드포인트는 클러스터에 있는 리더 인스턴스들로 연결을 분산하므로, 리더 수가 바뀌어도 애플리케이션 설정을 고칠 필요가 없습니다. 여기에 읽기 부하 지표를 기준으로 리더를 자동으로 늘리고 줄이는 정책을 붙이면 부하가 높을 때만 자원을 쓰고 한가할 때는 반납할 수 있습니다. 결과적으로 성능 목표와 비용 효율을 동시에 만족하게 됩니다. 사람이 시간대별로 조작하는 방식은 예상 밖의 변동에 대응하지 못하고 운영 부담도 큽니다.",
+      "distractorNotes": {
+        "A": "캐시는 반복 조회에 효과가 있지만 조건이 매번 다른 읽기에는 도움이 제한적입니다. 최대 부하 대응 능력도 줄어듭니다.",
+        "C": "수동 조작은 야간이나 예상 밖 급증에 대응하지 못합니다. 자동화할 수 있는 작업을 사람에게 맡기는 선택입니다.",
+        "D": "라이터에 읽기를 몰면 쓰기 성능까지 함께 나빠지고 확장 한계도 빨리 옵니다. 읽기 확장의 방향이 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.Endpoints.html", "title": "Amazon Aurora 연결 관리" },
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Replication.html", "title": "Aurora 복제" }
+      ],
+      "tags": ["aurora-replication", "aurora", "elasticity", "read-replica"]
+    },
+    {
+      "id": "saa-mock-2-049",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch13",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "Amazon ECS에서 실행되는 주문 API가 점심 시간에만 트래픽이 급증합니다. 지금은 태스크 수와 클러스터 용량을 모두 고정해 두어 급증 시에는 느리고 평시에는 자원이 남습니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "서비스 오토스케일링을 구성해 부하 지표에 따라 실행 중인 태스크 수가 조정되게 한다." },
+        { "id": "B", "text": "용량 공급자를 사용해 태스크가 필요로 하는 만큼 클러스터 컴퓨팅 용량이 따라오게 한다." },
+        { "id": "C", "text": "태스크 하나에 할당하는 CPU와 메모리를 최대로 키워 급증을 견디게 한다." },
+        { "id": "D", "text": "점심 시간에 맞춰 운영자가 콘솔에서 태스크 수를 늘렸다가 줄인다." },
+        { "id": "E", "text": "API 앞에 큐를 두고 모든 주문 응답을 비동기로 바꾼다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "컨테이너 워크로드의 탄력성은 두 층에서 함께 이루어져야 합니다. 서비스 오토스케일링은 부하 지표에 따라 실행 중인 태스크 수를 조정하고, 용량 공급자는 그 태스크를 배치할 컴퓨팅 용량이 부족하지 않도록 클러스터 쪽을 함께 조절합니다. 태스크만 늘리려 해도 배치할 자리가 없으면 대기하게 되므로 두 조치가 짝을 이룹니다. 서버리스 실행 방식을 쓰면 두 번째 층의 관리가 서비스로 넘어가 구성이 더 단순해집니다.",
+      "distractorNotes": {
+        "C": "태스크를 크게 만들어도 개수가 고정이면 급증을 흡수하지 못하고 평시 낭비는 오히려 커집니다.",
+        "D": "수동 조작은 예측을 벗어난 변동에 대응하지 못하고 매일 사람이 개입해야 합니다. 자동화 가능한 작업입니다.",
+        "E": "동기 응답이 필요한 API를 비동기로 바꾸면 사용자 경험과 클라이언트 구현이 크게 달라집니다. 확장 문제의 해법으로는 과합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html", "title": "Amazon ECS 서비스 자동 조정" },
+        { "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html", "title": "AWS Fargate 용량 공급자" }
+      ],
+      "tags": ["container-choice", "ecs", "elasticity", "auto-scaling"]
+    },
+    {
+      "id": "saa-mock-2-050",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch11",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "세션과 순위 데이터를 담은 Amazon ElastiCache 복제 그룹의 쓰기 처리량과 메모리가 한계에 도달했습니다. 복제본을 계속 추가했지만 쓰기 성능은 그대로이고 데이터 크기도 한 노드가 감당하기 어렵습니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "복제본을 더 추가하고 애플리케이션이 복제본에도 쓰도록 변경한다." },
+        { "id": "B", "text": "캐시 만료 시간을 짧게 줄여 저장되는 데이터 양을 낮춘다." },
+        { "id": "C", "text": "스냅샷 주기를 늘려 백그라운드 작업이 성능에 주는 영향을 줄인다." },
+        { "id": "D", "text": "여러 샤드로 데이터를 나누는 클러스터 모드 구성으로 전환해 쓰기와 메모리를 분산한다." }
+      ],
+      "answer": ["D"],
+      "explanation": "복제본은 읽기를 나눠 받고 장애 조치 대상이 될 뿐 쓰기는 기본 노드가 처리하므로, 복제본을 아무리 늘려도 쓰기 처리량과 메모리 한계는 그대로입니다. 데이터를 여러 샤드로 나누는 구성으로 전환하면 각 샤드가 자기 몫의 키를 담당해 쓰기와 메모리가 함께 분산됩니다. 즉 읽기 확장은 복제로, 쓰기와 용량 확장은 분할로 해결한다는 원칙이 이 판단의 근거입니다. 전환 시에는 키 분포와 여러 키를 함께 다루는 연산의 제약을 함께 검토해야 합니다.",
+      "distractorNotes": {
+        "A": "복제본에 직접 쓰는 방식은 데이터 정합성을 깨뜨립니다. 복제본은 기본 노드의 사본이라는 전제가 무너집니다.",
+        "B": "만료를 줄이면 저장량은 줄지만 캐시 적중률이 떨어져 원본 데이터베이스 부하가 커집니다. 쓰기 처리량 한계도 그대로입니다.",
+        "C": "백업 주기 조정은 순간적인 부하를 줄일 수 있지만 근본적인 처리량과 용량 한계와는 무관합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_CreateReplicationGroup.html", "title": "Amazon ElastiCache CreateReplicationGroup" },
+        { "url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_CreateCacheCluster.html", "title": "Amazon ElastiCache CreateCacheCluster" }
+      ],
+      "tags": ["caching-choice", "elasticache", "scaling-direction", "throughput"]
+    },
+    {
+      "id": "saa-mock-2-051",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch10",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "보고서 조회를 Amazon RDS 읽기 전용 복제본으로 보냈는데, 야간 대량 적재가 시작되면 복제본의 데이터가 수십 분까지 뒤처져 보고서가 과거 값을 보여 줍니다. 복제본은 기본 인스턴스보다 작은 클래스입니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "복제본을 기본 인스턴스와 같은 수준의 클래스로 올려 변경 적용 속도를 따라가게 한다." },
+        { "id": "B", "text": "복제본을 하나 더 추가해 지연된 복제본의 부하를 나눈다." },
+        { "id": "C", "text": "보고서 조회를 기본 인스턴스로 되돌려 지연 문제를 없앤다." },
+        { "id": "D", "text": "복제본의 백업 보존 기간을 늘려 변경 기록을 더 오래 보관한다." }
+      ],
+      "answer": ["A"],
+      "explanation": "읽기 전용 복제본은 기본 인스턴스의 변경을 비동기로 받아 자기 쪽에 적용하는데, 복제본의 처리 능력이 부족하면 적용이 밀려 지연이 커집니다. 대량 적재처럼 변경량이 급증하는 구간에서는 이 격차가 특히 두드러지므로, 복제본을 기본 인스턴스와 비슷한 수준으로 맞추는 것이 직접적인 대응입니다. 복제본을 추가하는 것은 읽기 부하를 나눌 뿐 각 복제본이 변경을 적용하는 속도를 높이지 않습니다. 지연을 완전히 없앨 수는 없으므로 보고서가 어느 정도의 지연을 허용하는지도 함께 정해야 합니다.",
+      "distractorNotes": {
+        "B": "복제본이 늘어도 각각이 같은 변경을 모두 적용해야 하므로 지연은 개선되지 않습니다. 오히려 기본 인스턴스의 복제 부담이 늘어납니다.",
+        "C": "기본 인스턴스로 되돌리면 최신 데이터를 보지만 운영 트랜잭션과 보고서가 다시 경합합니다. 복제본을 도입한 이유가 사라집니다.",
+        "D": "백업 보존은 복구 가능 범위를 정하는 설정이며 복제 적용 속도와 무관합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html", "title": "읽기 전용 복제본 작업" },
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstanceReadReplica.html", "title": "Amazon RDS CreateDBInstanceReadReplica" }
+      ],
+      "tags": ["multi-az-vs-read-replica", "read-replica", "rds", "consistency"]
+    },
+    {
+      "id": "saa-mock-2-052",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch05",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "유체 해석 시뮬레이션을 수십 대의 EC2 인스턴스로 실행합니다. 노드들은 서로 매우 빈번하게 메시지를 주고받고, 동시에 수백 테라바이트 데이터셋을 매우 높은 처리량으로 함께 읽어야 합니다. 어떤 구성을 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "인스턴스를 클러스터 배치 그룹에 배치해 노드 간 네트워크 지연을 낮춘다." },
+        { "id": "B", "text": "데이터셋을 고성능 병렬 파일 시스템에 두고 모든 노드가 함께 읽게 한다." },
+        { "id": "C", "text": "인스턴스를 여러 가용 영역에 분산 배치해 노드 간 통신을 분산한다." },
+        { "id": "D", "text": "데이터셋을 각 노드의 EBS 볼륨에 복사해 두고 독립적으로 읽게 한다." },
+        { "id": "E", "text": "노드 사이 통신을 Amazon SQS 큐로 바꿔 결합을 느슨하게 만든다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "밀결합 고성능 컴퓨팅 워크로드는 노드 간 통신 지연과 공유 데이터 처리량이라는 두 가지 병목을 동시에 갖습니다. 클러스터 배치 그룹은 인스턴스를 물리적으로 가까이 배치해 노드 사이 지연을 낮추고 대역폭을 높여 첫 번째 병목을 다룹니다. 두 번째는 수백 대가 같은 데이터를 동시에 읽어야 하므로 병렬 접근에 최적화된 고성능 파일 시스템이 필요하며, 원본을 객체 스토리지에 두고 연동하면 결과 보관까지 자연스럽게 이어집니다. 이 구성은 가용 영역 하나에 집중되므로 장애 시 작업을 다시 실행한다는 전제를 함께 받아들여야 합니다.",
+      "distractorNotes": {
+        "C": "여러 영역에 흩으면 노드 간 지연이 커져 밀결합 통신 성능이 크게 나빠집니다. 이 워크로드의 핵심 요구와 충돌합니다.",
+        "D": "수백 테라바이트를 노드마다 복사하는 것은 시간과 비용 모두 감당하기 어렵습니다. 데이터 갱신 시 정합성도 깨집니다.",
+        "E": "큐는 비동기 작업을 분리할 때 쓰는 도구입니다. 마이크로초 단위 메시지 교환이 필요한 계산에는 지연이 너무 큽니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/placement-groups.html", "title": "Amazon EC2 배치 그룹" },
+        { "url": "https://docs.aws.amazon.com/fsx/latest/LustreGuide/create-dra-linked-data-repo.html", "title": "FSx for Lustre 데이터 리포지토리 연결" }
+      ],
+      "tags": ["placement-group", "hpc", "efs-vs-fsx", "ec2"]
+    },
+    {
+      "id": "saa-mock-2-053",
+      "exam": "SAA",
+      "domain": "Design High-Performing Architectures",
+      "chapter": "ch08",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 팀이 업로드 속도를 높이려고 Amazon S3 Transfer Acceleration을 활성화했지만 개선이 거의 없었습니다. 업로드는 대부분 같은 리전의 EC2 인스턴스가 수행하며 파일 크기는 수 기가바이트입니다. 가장 정확한 설명과 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "가속 기능은 버킷 버전 관리가 켜져 있어야 동작하므로 버전 관리를 활성화해야 한다." },
+        { "id": "B", "text": "가속 기능은 다운로드에만 적용되므로 업로드에는 다른 기능을 써야 한다." },
+        { "id": "C", "text": "가속 기능은 클라이언트와 버킷이 멀리 떨어져 있을 때 효과가 크며, 같은 리전 업로드에는 멀티파트 병렬 업로드가 더 적절하다." },
+        { "id": "D", "text": "가속 기능은 파일이 작을 때만 효과가 있으므로 파일을 잘게 나눠 올려야 한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "Transfer Acceleration은 사용자와 가까운 엣지 로케이션으로 데이터를 받아 AWS 네트워크를 통해 버킷까지 전달하는 방식이라, 클라이언트와 버킷 사이의 거리가 멀수록 이득이 큽니다. 업로드가 같은 리전 안에서 일어나면 이미 짧은 경로를 쓰고 있어 개선 여지가 거의 없습니다. 이런 상황에서 대용량 파일의 업로드 시간을 줄이려면 멀티파트 업로드로 파일을 나눠 병렬 전송하고 실패한 조각만 다시 보내는 방식이 효과적입니다. 기능의 이름이 아니라 그 기능이 무엇을 개선하는지를 보고 판단해야 한다는 사례입니다.",
+      "distractorNotes": {
+        "A": "가속 기능은 버전 관리를 요구하지 않습니다. 버전 관리를 켜도 전송 경로는 달라지지 않습니다.",
+        "B": "가속 기능은 업로드와 다운로드 양쪽에 적용됩니다. 효과가 없는 이유는 방향이 아니라 거리입니다.",
+        "D": "파일 크기가 작을수록 효과가 크다는 서술은 사실과 반대입니다. 작은 파일은 전송 시간 자체가 짧아 개선 폭이 작습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/transfer-acceleration.html", "title": "Amazon S3 Transfer Acceleration" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateMultipartUpload.html", "title": "Amazon S3 CreateMultipartUpload" }
+      ],
+      "tags": ["s3-performance", "s3", "multipart-upload", "throughput"]
+    }
+  ]
+}

@@ -1,0 +1,295 @@
+{
+  "setId": "basics-ch09",
+  "title": "9장 · 파일 스토리지와 데이터 전송 — 확인 문제",
+  "exam": "BASICS",
+  "domain": "파일 스토리지와 데이터 전송",
+  "examCode": "SAA-C03",
+  "questions": [
+    {
+      "id": "basics-ch09-001",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "여러 가용 영역의 리눅스 EC2 인스턴스들이 같은 디렉터리를 마운트해 파일을 공유해야 하며, 애플리케이션 코드는 기존 파일 경로를 그대로 써야 합니다. 무엇을 골라야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Amazon EFS 파일 시스템을 만들고 가용 영역마다 마운트 타깃을 둡니다." },
+        { "id": "B", "text": "Amazon S3 버킷을 만들고 애플리케이션을 객체 API로 고쳐 씁니다." },
+        { "id": "C", "text": "EBS 볼륨을 인스턴스마다 만들고 배치 작업으로 내용을 맞춥니다." },
+        { "id": "D", "text": "FSx for Windows File Server를 만들어 SMB로 공유합니다." }
+      ],
+      "answer": ["A"],
+      "explanation": "코드 변경 없이, 여러 서버가 같은 디렉터리, 기존 파일 경로 유지 같은 표현은 파일 시스템 계층을 그대로 유지하라는 신호입니다. 객체 스토리지로 옮기면 저장 비용은 유리해질 수 있어도 애플리케이션이 다루는 방식이 완전히 달라져 이 조건을 어깁니다. 리눅스 계열이 NFS로 마운트해 여러 가용 영역에서 동시에 쓰는 요구에는 Amazon EFS가 맞고, 각 가용 영역에 마운트 타깃을 두고 보안 그룹으로 접근을 통제합니다. 같은 요구가 Windows와 SMB로 서술되면 답은 FSx 계열로 바뀝니다.",
+      "distractorNotes": {
+        "B": "객체 스토리지는 파일 시스템 의미를 제공하지 않습니다. 코드 변경 금지 조건과 정면으로 어긋납니다.",
+        "C": "EBS는 가용 영역 안에서 인스턴스 하나에 붙는 블록 장치입니다. 동기화 방식은 동시 수정과 지연 문제를 해결하지 못합니다.",
+        "D": "FSx for Windows File Server는 SMB와 Active Directory 환경을 위한 서비스입니다. 리눅스 NFS 요구에는 맞지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html", "title": "Amazon EFS 사용 설명서 — 작동 방식" },
+        { "url": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html", "title": "Amazon FSx for Windows File Server — 다중 가용 영역 고가용성" }
+      ],
+      "tags": ["efs", "nfs", "shared-storage", "fsx"]
+    },
+    {
+      "id": "basics-ch09-002",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "외부 파트너사들이 오랫동안 SFTP로 파일을 주고받아 왔고 방식을 바꿀 수 없다고 합니다. 이 파일을 Amazon S3에 저장하려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "파트너사에 S3 API로 업로드하도록 통합 방식을 변경해 달라고 요청합니다." },
+        { "id": "B", "text": "AWS Transfer Family로 SFTP 서버를 만들고 저장소를 S3로 지정합니다." },
+        { "id": "C", "text": "EC2 인스턴스에 SFTP 데몬을 설치하고 직접 운영합니다." },
+        { "id": "D", "text": "AWS DataSync 작업을 만들어 파트너사 서버에서 주기적으로 가져옵니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "상대방이 프로토콜을 바꿀 수 없다는 조건이 명시되면 프로토콜 변경을 요구하는 선택지는 그 자체로 소거됩니다. AWS Transfer Family는 SFTP를 비롯한 표준 파일 전송 프로토콜을 관리형으로 제공하고 저장소를 S3나 EFS로 연결하므로, 파트너사는 하던 대로 접속하고 우리는 객체 스토리지의 이점을 그대로 얻습니다. 서버를 직접 세우는 안과 비교하면 가용성, 패치, 확장을 서비스가 맡는다는 점에서 운영 부담이 크게 줄어듭니다. 이 유형의 문항은 대개 운영 부담이 가장 적은 방식을 묻는 형태로 나옵니다.",
+      "distractorNotes": {
+        "A": "문제문이 이미 방식을 바꿀 수 없다고 못 박았습니다. 명시된 제약을 위반하는 선택지입니다.",
+        "C": "동작은 하지만 서버 이중화와 패치, 사용자 관리까지 직접 해야 합니다. 관리형 서비스가 있는데 운영 부담을 떠안는 안입니다.",
+        "D": "DataSync는 우리가 통제하는 스토리지 사이의 대량 전송과 동기화를 위한 도구입니다. 외부 파트너의 업로드 창구 역할을 하지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/transfer/latest/userguide/create-server-in-vpc.html", "title": "AWS Transfer Family 사용 설명서 — VPC에 서버 생성" },
+        { "url": "https://docs.aws.amazon.com/transfer/latest/APIReference/API_EndpointDetails.html", "title": "AWS Transfer Family API 레퍼런스 — EndpointDetails" }
+      ],
+      "tags": ["transfer-family", "sftp", "s3", "managed-service"]
+    },
+    {
+      "id": "basics-ch09-003",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "온프레미스 애플리케이션이 자주 쓰는 파일에는 저지연으로 접근해야 하지만, 전체 데이터의 원본은 AWS에 두어 백업 부담을 없애려 합니다. 파일 공유 방식은 유지해야 합니다. 무엇을 도입해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "AWS DataSync 작업을 만들어 온프레미스 파일을 S3로 계속 복사합니다." },
+        { "id": "B", "text": "AWS Storage Gateway의 파일 게이트웨이를 두고 NFS 또는 SMB 공유를 제공합니다." },
+        { "id": "C", "text": "물리 전송 장비로 전체 데이터를 옮기고 온프레미스 저장소를 폐기합니다." },
+        { "id": "D", "text": "AWS Direct Connect 회선을 신설해 S3에 직접 마운트합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "Storage Gateway는 온프레미스 스토리지를 대체하는 서비스가 아니라 AWS 쪽으로 연장하는 서비스입니다. 온프레미스에 캐시를 두어 자주 쓰는 데이터에는 로컬 수준의 지연을 유지하면서 원본은 AWS에 보관하므로, 저지연 접근과 클라우드 보관이라는 두 요구를 동시에 만족시킵니다. 파일 게이트웨이는 NFS와 SMB 공유를 제공하고 파일 하나가 S3 객체 하나로 매핑되어, 기존 애플리케이션은 계속 파일로 접근하면서 데이터는 객체 스토리지에 쌓입니다. 반면 한 번 옮기고 끝나는 일회성 이전이라면 DataSync나 물리 전송이 답이 됩니다.",
+      "distractorNotes": {
+        "A": "DataSync는 옮기고 동기화하는 도구이지 지속적인 접근 계층을 제공하지 않습니다. 온프레미스 저지연 접근 요구가 남습니다.",
+        "C": "일회성 이전 수단이며 온프레미스에서의 저지연 접근 요구를 없애 버립니다. 요구사항을 바꾸는 안입니다.",
+        "D": "전용 회선은 대역폭과 안정성을 제공할 뿐입니다. S3를 파일 시스템처럼 마운트해 주지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/storagegateway/latest/userguide/StorageGatewayConcepts.html", "title": "AWS Storage Gateway 사용 설명서 — 게이트웨이 개념" },
+        { "url": "https://docs.aws.amazon.com/filegateway/latest/files3/security-strategy.html", "title": "Amazon S3 File Gateway 사용 설명서" }
+      ],
+      "tags": ["storage-gateway", "file-gateway", "hybrid", "s3"]
+    },
+    {
+      "id": "basics-ch09-004",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "S3에 저장된 대용량 데이터셋으로 기계 학습 학습 작업을 돌리려 합니다. 수백 대의 계산 노드가 매우 높은 처리량으로 같은 데이터를 읽어야 합니다. 어떤 파일 시스템을 써야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Amazon EFS를 만들고 처리량 모드를 프로비저닝으로 설정합니다." },
+        { "id": "B", "text": "Amazon FSx for Lustre를 만들고 S3 데이터 리포지토리를 연결합니다." },
+        { "id": "C", "text": "Amazon FSx for Windows File Server를 만들고 SMB로 마운트합니다." },
+        { "id": "D", "text": "노드마다 `gp3` 볼륨을 붙이고 시작 시 데이터를 내려받게 합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "고성능 컴퓨팅과 기계 학습처럼 다수의 노드가 동시에 매우 높은 처리량으로 읽는 워크로드에는 병렬 파일 시스템이 쓰입니다. FSx for Lustre가 그 역할을 하며, S3 버킷을 데이터 리포지토리로 연결하면 객체를 파일처럼 다루면서 학습 결과를 다시 S3로 되돌릴 수 있습니다. 배포 유형도 함께 봐야 하는데, 임시로 처리하고 끝나는 작업에는 스크래치가, 장기 보관과 지속적인 처리량이 필요하면 지속형이 맞습니다. 범용 공유 파일 시스템으로도 동작은 하지만 이 규모의 처리량 요구를 감당하도록 설계된 서비스는 아닙니다.",
+      "distractorNotes": {
+        "A": "EFS는 범용 공유 파일 시스템입니다. 처리량을 프로비저닝해도 병렬 파일 시스템 수준의 성능 특성을 얻기 어렵습니다.",
+        "C": "SMB와 Active Directory 환경을 위한 서비스이며 리눅스 기반 고성능 컴퓨팅 워크로드의 선택지가 아닙니다.",
+        "D": "노드마다 데이터를 복사하면 시작 시간이 길어지고 저장 비용이 노드 수만큼 늘어납니다. 데이터셋이 갱신될 때마다 전부 다시 받아야 합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/fsx/latest/LustreGuide/create-dra-linked-data-repo.html", "title": "Amazon FSx for Lustre — 데이터 리포지토리 연결" },
+        { "url": "https://docs.aws.amazon.com/fsx/latest/APIReference/API_DescribeFileSystems.html", "title": "Amazon FSx API 레퍼런스 — DescribeFileSystems" }
+      ],
+      "tags": ["fsx-lustre", "hpc", "s3", "performance"]
+    },
+    {
+      "id": "basics-ch09-005",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "온프레미스 NFS 서버의 데이터를 Amazon S3로 매일 밤 동기화해야 합니다. 회선 여유는 있지만 업무 시간대에는 대역폭을 쓰면 안 됩니다. 어떤 방식이 적절합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "AWS DataSync 작업을 만들고 일정과 대역폭 제한을 설정합니다." },
+        { "id": "B", "text": "물리 전송 장비를 매일 주문해 데이터를 실어 보냅니다." },
+        { "id": "C", "text": "볼륨 게이트웨이 저장형을 도입해 스냅샷으로 백업합니다." },
+        { "id": "D", "text": "AWS Transfer Family로 SFTP 서버를 만들고 스크립트로 올립니다." }
+      ],
+      "answer": ["A"],
+      "explanation": "반복적으로 일어나는 온라인 동기화에는 DataSync가 표준 답입니다. NFS와 SMB를 비롯한 여러 원본에서 S3, EFS, FSx로 전송할 수 있고 변경분만 옮기므로 매일 반복해도 효율이 유지됩니다. 실행 일정을 지정할 수 있어 야간에만 돌게 만들 수 있고, 대역폭 제한을 걸어 업무 시간대의 회선 사용을 통제할 수도 있습니다. 물리 전송은 회선으로 감당할 수 없을 때의 일회성 수단이므로 반복 동기화 요구와는 성격이 다릅니다.",
+      "distractorNotes": {
+        "B": "물리 전송은 회선으로 기한을 못 맞출 때 쓰는 일회성 수단입니다. 매일 반복하는 운영 방식이 될 수 없습니다.",
+        "C": "볼륨 게이트웨이는 블록 볼륨을 다루는 방식이며 파일 단위 동기화 요구와 맞지 않습니다.",
+        "D": "Transfer Family는 외부 사용자가 표준 프로토콜로 접속하는 창구를 제공하는 서비스입니다. 내부 대량 동기화용 도구가 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/datasync/latest/userguide/task-scheduling.html", "title": "AWS DataSync 사용 설명서 — 작업 일정" },
+        { "url": "https://docs.aws.amazon.com/datasync/latest/userguide/create-s3-location.html", "title": "AWS DataSync 사용 설명서 — S3 위치 생성" }
+      ],
+      "tags": ["datasync", "s3", "migration", "bandwidth"]
+    },
+    {
+      "id": "basics-ch09-006",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "리눅스 서버는 NFS로, Windows 서버는 SMB로 같은 데이터 집합에 접근해야 하고 파일 시스템은 하나로 유지하려 합니다. 어떤 서비스를 골라야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Amazon EFS와 FSx for Windows File Server를 각각 만들어 데이터를 동기화합니다." },
+        { "id": "B", "text": "Amazon FSx for NetApp ONTAP 파일 시스템을 만들어 두 프로토콜로 제공합니다." },
+        { "id": "C", "text": "Amazon FSx for OpenZFS 파일 시스템을 만들어 두 계열에서 마운트합니다." },
+        { "id": "D", "text": "S3 버킷 하나를 만들고 양쪽에서 객체 API로 접근하게 합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "이 문항의 결정적 조건은 두 프로토콜을 하나의 파일 시스템에서 제공해야 한다는 점입니다. FSx for NetApp ONTAP은 NFS와 SMB, iSCSI를 함께 지원하므로 리눅스와 Windows가 같은 데이터를 각자의 방식으로 볼 수 있습니다. 파일 시스템을 두 개 두고 동기화하는 안은 데이터가 두 벌이 되어 정합성과 비용 문제가 함께 생깁니다. 비슷한 위치에 있는 FSx for OpenZFS는 리눅스 NFS 워크로드에 초점이 있으므로, 다중 프로토콜 요구가 명시되지 않았다면 그쪽이 더 단순한 선택이 됩니다.",
+      "distractorNotes": {
+        "A": "데이터가 두 벌로 나뉘고 동기화 지연과 충돌이 생깁니다. 하나의 파일 시스템을 유지하라는 조건도 어깁니다.",
+        "C": "OpenZFS는 리눅스 NFS 워크로드를 위한 선택지입니다. 다중 프로토콜 요구를 담지 못합니다.",
+        "D": "객체 스토리지는 파일 시스템 의미를 제공하지 않으므로 기존 서버들이 마운트해 쓰던 방식을 유지할 수 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/fsx/latest/APIReference/API_DescribeFileSystems.html", "title": "Amazon FSx API 레퍼런스 — DescribeFileSystems" },
+        { "url": "https://docs.aws.amazon.com/fsx/latest/WindowsGuide/high-availability-multiAZ.html", "title": "Amazon FSx for Windows File Server — 다중 가용 영역 고가용성" }
+      ],
+      "tags": ["fsx-ontap", "nfs", "smb", "multi-protocol"]
+    },
+    {
+      "id": "basics-ch09-007",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "Amazon EFS의 구성에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "가용 영역마다 마운트 타깃을 만들고 보안 그룹으로 접근을 통제합니다." },
+        { "id": "B", "text": "성능 모드는 파일 시스템을 만들 때 정하며 나중에 바꿀 수 없습니다." },
+        { "id": "C", "text": "기본 성능 모드는 `maxIO` 이며 대부분의 워크로드에 권장됩니다." },
+        { "id": "D", "text": "One Zone 저장 클래스는 가용 영역 장애에도 데이터 접근을 보장합니다." },
+        { "id": "E", "text": "EFS는 Windows 서버가 SMB로 마운트하는 용도로 설계되었습니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "EFS는 가용 영역마다 마운트 타깃이라는 접근 지점을 만들고 그 앞에 보안 그룹을 두어 어떤 인스턴스가 접속할 수 있는지 통제합니다. 마운트가 되지 않는다는 문제의 상당수가 마운트 타깃이 없거나 보안 그룹이 막고 있는 경우입니다. 성능 모드는 생성 시점에 결정되고 이후 변경할 수 없으므로 설계 단계에서 정해야 하며, 기본값이자 대부분의 워크로드에 권장되는 것은 범용 모드입니다. 저장 클래스 선택도 함께 보아야 하는데, One Zone은 단일 가용 영역에 저장해 더 저렴한 대신 그 영역이 영향을 받으면 접근할 수 없습니다.",
+      "distractorNotes": {
+        "C": "기본이자 권장은 범용 모드입니다. 기본값을 반대로 기억하면 불필요한 지연을 감수하게 됩니다.",
+        "D": "One Zone은 이름 그대로 하나의 가용 영역에 저장합니다. 가용 영역 장애 내성이 요구되면 고를 수 없습니다.",
+        "E": "EFS는 NFS 기반이며 리눅스 계열 워크로드를 위한 서비스입니다. SMB 요구는 FSx 계열로 갑니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html", "title": "Amazon EFS 사용 설명서 — 작동 방식" },
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/performance.html#performancemodes.html", "title": "Amazon EFS 사용 설명서 — 성능 모드" }
+      ],
+      "tags": ["efs", "mount-target", "performance-mode", "one-zone"]
+    },
+    {
+      "id": "basics-ch09-008",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "AWS Storage Gateway의 유형에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "파일 게이트웨이는 NFS와 SMB 공유를 제공하며 파일 하나가 S3 객체 하나가 됩니다." },
+        { "id": "B", "text": "볼륨 게이트웨이 저장형은 전체 데이터를 온프레미스에 두고 스냅샷을 AWS로 보냅니다." },
+        { "id": "C", "text": "볼륨 게이트웨이 캐시형은 전체 데이터를 온프레미스에 보관합니다." },
+        { "id": "D", "text": "테이프 게이트웨이를 쓰려면 기존 백업 소프트웨어를 교체해야 합니다." },
+        { "id": "E", "text": "Storage Gateway는 일회성 대량 이전에 가장 적합한 도구입니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "Storage Gateway는 유형마다 데이터의 주 보관 위치가 어디인지를 기준으로 나뉩니다. 파일 게이트웨이는 파일 공유를 제공하면서 실제 데이터를 S3 객체로 저장해, 기존 애플리케이션은 파일로 접근하고 데이터는 객체 스토리지의 수명 주기 관리를 받게 합니다. 볼륨 게이트웨이는 두 방식이 정반대라 자주 혼동됩니다. 저장형은 주 데이터가 온프레미스에 있고 스냅샷이 AWS로 넘어가며, 캐시형은 주 데이터가 AWS에 있고 자주 쓰는 부분만 로컬에 캐시됩니다. 어느 쪽이든 게이트웨이의 목적은 이전이 아니라 연장이라는 점이 판단의 출발점입니다.",
+      "distractorNotes": {
+        "C": "캐시형과 저장형의 설명이 뒤바뀌었습니다. 캐시형의 주 데이터는 AWS에 있습니다.",
+        "D": "테이프 게이트웨이는 가상 테이프 라이브러리를 제공해 기존 백업 소프트웨어를 그대로 쓰게 하는 것이 목적입니다. 교체를 전제하면 존재 이유가 사라집니다.",
+        "E": "게이트웨이는 지속적인 하이브리드 접근을 위한 서비스입니다. 한 번 옮기고 끝나는 이전에는 다른 도구가 맞습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/storagegateway/latest/userguide/StorageGatewayConcepts.html", "title": "AWS Storage Gateway 사용 설명서 — 게이트웨이 개념" },
+        { "url": "https://docs.aws.amazon.com/storagegateway/latest/APIReference/Welcome.html", "title": "AWS Storage Gateway API 레퍼런스" }
+      ],
+      "tags": ["storage-gateway", "file-gateway", "volume-gateway", "hybrid"]
+    },
+    {
+      "id": "basics-ch09-009",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "medium",
+      "type": "matching",
+      "question": "각 요구사항에 알맞은 스토리지·전송 서비스를 연결하세요. 목록에는 정답이 아닌 미끼 값이 섞여 있습니다.",
+      "code": null,
+      "pairs": [
+        { "id": "p1", "left": "여러 가용 영역의 리눅스 서버가 NFS로 같은 디렉터리를 마운트해야 한다", "right": "Amazon EFS" },
+        { "id": "p2", "left": "Windows 서버들이 SMB와 Active Directory 인증으로 파일 공유를 써야 한다", "right": "FSx for Windows File Server" },
+        { "id": "p3", "left": "수백 노드가 S3 데이터셋을 매우 높은 처리량으로 읽는 기계 학습 학습 작업을 돌린다", "right": "FSx for Lustre" },
+        { "id": "p4", "left": "온프레미스 NFS 서버의 변경분을 매일 밤 S3로 반복 동기화해야 한다", "right": "AWS DataSync" },
+        { "id": "p5", "left": "외부 파트너가 기존 SFTP 방식을 유지한 채 파일을 올리게 해야 한다", "right": "AWS Transfer Family" }
+      ],
+      "extraRights": ["AWS Storage Gateway", "Amazon S3"],
+      "explanation": "이 장의 선택은 프로토콜과 목적으로 정리됩니다. NFS면 EFS, SMB와 Active Directory면 FSx for Windows, 병렬 고성능이면 FSx for Lustre입니다. 전송 쪽은 누가 주도하는지가 기준입니다. 우리가 주기적으로 옮기는 것이면 DataSync, 외부 사용자가 표준 프로토콜로 올려 주는 창구가 필요하면 Transfer Family입니다. 미끼로 넣은 Storage Gateway는 온프레미스에서의 지속적인 접근을 유지해야 할 때 고르는 연장 수단이고, S3는 파일 시스템 의미가 필요 없을 때의 저장소입니다.",
+      "distractorNotes": {
+        "p1": "여러 가용 영역과 NFS라는 두 단어가 함께 나오면 선택이 고정됩니다. 블록 스토리지로 풀려는 시도는 여기서 막힙니다.",
+        "p2": "Active Directory 인증이 조건에 들어가면 리눅스용 파일 시스템으로는 충족할 수 없습니다.",
+        "p3": "처리량 요구의 규모가 범용 공유 파일 시스템과 병렬 파일 시스템을 가릅니다. S3 연동이 필요하다는 조건도 같은 방향을 가리킵니다.",
+        "p4": "반복과 변경분이라는 단어가 물리 전송이 아니라 온라인 동기화 도구를 부릅니다.",
+        "p5": "상대가 프로토콜을 바꿀 수 없다는 조건이 관리형 전송 서버를 부릅니다. 직접 서버를 세우는 안보다 운영 부담이 낮습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/efs/latest/ug/how-it-works.html", "title": "Amazon EFS 사용 설명서 — 작동 방식" },
+        { "url": "https://docs.aws.amazon.com/datasync/latest/userguide/create-s3-location.html", "title": "AWS DataSync 사용 설명서 — S3 위치 생성" }
+      ],
+      "tags": ["efs", "fsx", "datasync", "transfer-family"]
+    },
+    {
+      "id": "basics-ch09-010",
+      "exam": "BASICS",
+      "domain": "파일 스토리지와 데이터 전송",
+      "chapter": "ch09",
+      "difficulty": "hard",
+      "type": "ordering",
+      "question": "온프레미스 데이터를 AWS로 옮기는 수단을 정할 때 밟아야 하는 판단 순서를 배열하세요.",
+      "code": null,
+      "items": [
+        { "id": "i3", "text": "전송량을 가용 대역폭으로 나눠 예상 소요 기간을 계산한다" },
+        { "id": "i1", "text": "한 번 옮기고 끝나는 이전인지 계속 반복되는 동기화인지 구분한다" },
+        { "id": "i5", "text": "이전 후에도 온프레미스에서 저지연 접근이 필요한지 확인해 연장 수단을 검토한다" },
+        { "id": "i4", "text": "계산한 기간을 허용 기한과 비교해 온라인 전송과 물리 전송 중 하나를 고른다" },
+        { "id": "i2", "text": "업무 시간대를 포함해 실제로 쓸 수 있는 회선 대역폭을 파악한다" }
+      ],
+      "answer": ["i1", "i2", "i3", "i4", "i5"],
+      "explanation": "전송 수단 선택은 장비 이름을 외워서 푸는 문제가 아니라 성격과 산수로 좁혀 가는 문제입니다. 먼저 일회성인지 반복인지에 따라 후보군 자체가 갈리는데, 반복 동기화라면 물리 전송은 애초에 후보가 아닙니다. 그다음 실제로 쓸 수 있는 대역폭을 파악해야 하며, 회선 속도가 아니라 업무 트래픽을 뺀 여유가 기준입니다. 전송량을 그 값으로 나누면 걸리는 기간이 나오고, 허용 기한과 비교하는 순간 온라인과 물리 중 하나가 정해집니다. 마지막으로 옮긴 뒤에도 온프레미스에서 빠른 접근이 필요하다면 이전만으로 끝나지 않고 연장 수단을 함께 설계해야 합니다.",
+      "distractorNotes": {
+        "i1": "성격 구분을 건너뛰고 계산부터 하면 반복 동기화 요구에 일회성 수단을 고르게 됩니다. 후보군을 먼저 좁힙니다.",
+        "i2": "회선의 공칭 속도를 그대로 넣으면 계산이 낙관적으로 나옵니다. 실제로 쓸 수 있는 여유가 기준입니다.",
+        "i5": "이전이 끝나면 과제가 끝난다고 보기 쉽지만, 온프레미스 접근 요구가 남아 있으면 별도의 설계가 필요합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/datasync/latest/userguide/task-scheduling.html", "title": "AWS DataSync 사용 설명서 — 작업 일정" },
+        { "url": "https://docs.aws.amazon.com/storagegateway/latest/userguide/StorageGatewayConcepts.html", "title": "AWS Storage Gateway 사용 설명서 — 게이트웨이 개념" }
+      ],
+      "tags": ["migration", "datasync", "storage-gateway", "bandwidth"]
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+<svg viewBox="0 0 720 474" role="img" aria-labelledby="d141-title d141-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d141-title">Kinesis Data Streams 와 Amazon Data Firehose 의 데이터 흐름 대비</title>
+  <desc id="d141-desc">위쪽 레인은 Kinesis Data Streams 입니다. 생산자가 보낸 레코드가 샤드에 들어가고 샤드 안에서는 순서가 보장됩니다.
+    레코드는 보존 기간 동안 샤드에 남아 있으므로 여러 소비자가 같은 데이터를 각자의 속도로 읽을 수 있고,
+    필요하면 되감아 다시 처리할 수도 있습니다. 실시간 경고를 보내는 소비자, 집계해 저장하는 소비자, 재처리하는 소비자가 동시에 붙는 그림입니다.
+    아래쪽 레인은 Amazon Data Firehose 입니다. 생산자가 보낸 데이터는 버퍼에 모이고, 버퍼 크기나 대기 시간 조건이 차면 목적지로 전송됩니다.
+    가는 길에 Lambda 함수로 변환할 수 있지만 이는 선택 사항입니다. 목적지는 Amazon S3, Amazon Redshift, Amazon OpenSearch Service 같은 적재 대상이며
+    배달이 끝나면 소비자가 직접 읽을 스트림이 남지 않습니다. 버퍼링 때문에 구조적으로 약간의 지연이 생깁니다.
+    그래서 실시간이라는 조건이나 여러 소비자가 각자 읽어야 한다는 조건은 Data Firehose 가 아니라 Data Streams 를 지목합니다.</desc>
+
+  <defs>
+    <marker id="d141-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d141-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 레인 A -->
+  <text class="dg-fs-md dg-bold" x="20" y="26">Kinesis Data Streams — 샤드에 담아 두고 여러 소비자가 각자 읽습니다</text>
+  <rect class="dg-panel" x="20" y="34" width="680" height="180" rx="4"/>
+
+  <rect class="dg-node" x="34" y="100" width="110" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="89" y="124" text-anchor="middle">생산자</text>
+  <text class="dg-fs-sm dg-muted" x="89" y="144" text-anchor="middle">PutRecord</text>
+  <path class="dg-edge dg-edge--accent" d="M148 128 L176 128" marker-end="url(#d141-ar-accent)"/>
+
+  <rect class="dg-node dg-node--accent" x="180" y="64" width="200" height="136" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="280" y="86" text-anchor="middle">샤드 (Shard)</text>
+  <rect class="dg-node" x="192" y="96" width="176" height="26" rx="4"/>
+  <text class="dg-fs-sm" x="204" y="114">샤드 1 — 순서 보장</text>
+  <rect class="dg-node" x="192" y="128" width="176" height="26" rx="4"/>
+  <text class="dg-fs-sm" x="204" y="146">샤드 2 — 순서 보장</text>
+  <rect class="dg-node" x="192" y="160" width="176" height="26" rx="4"/>
+  <text class="dg-fs-sm" x="204" y="178">보존 기간 동안 남음</text>
+
+  <path class="dg-edge dg-edge--accent" d="M384 122 L426 86" marker-end="url(#d141-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M384 132 L426 132" marker-end="url(#d141-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M384 142 L426 178" marker-end="url(#d141-ar-accent)"/>
+
+  <rect class="dg-node" x="430" y="66" width="256" height="40" rx="4"/>
+  <text class="dg-fs-sm" x="442" y="91">소비자 A — 실시간 경고</text>
+  <rect class="dg-node" x="430" y="112" width="256" height="40" rx="4"/>
+  <text class="dg-fs-sm" x="442" y="137">소비자 B — 집계 후 저장</text>
+  <rect class="dg-node" x="430" y="158" width="256" height="40" rx="4"/>
+  <text class="dg-fs-sm" x="442" y="183">소비자 C — 되감아 재처리</text>
+
+  <!-- 레인 B -->
+  <text class="dg-fs-md dg-bold" x="20" y="232">Amazon Data Firehose — 버퍼에 모았다가 목적지로 배달하고 끝냅니다</text>
+  <rect class="dg-panel" x="20" y="240" width="680" height="160" rx="4"/>
+
+  <rect class="dg-node" x="34" y="292" width="110" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="89" y="316" text-anchor="middle">생산자</text>
+  <text class="dg-fs-sm dg-muted" x="89" y="336" text-anchor="middle">PutRecord</text>
+  <path class="dg-edge" d="M148 320 L176 320" marker-end="url(#d141-ar)"/>
+
+  <rect class="dg-node dg-node--warn" x="180" y="282" width="170" height="76" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="265" y="306" text-anchor="middle">버퍼</text>
+  <text class="dg-fs-sm" x="265" y="326" text-anchor="middle">크기 또는 대기 시간</text>
+  <text class="dg-fs-sm" x="265" y="346" text-anchor="middle">조건이 차면 전송</text>
+  <path class="dg-edge" d="M354 320 L376 320" marker-end="url(#d141-ar)"/>
+
+  <rect class="dg-node dg-node--muted" x="380" y="292" width="140" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="450" y="316" text-anchor="middle">Lambda 변환</text>
+  <text class="dg-fs-sm" x="450" y="336" text-anchor="middle">선택 사항</text>
+  <path class="dg-edge" d="M524 320 L546 320" marker-end="url(#d141-ar)"/>
+
+  <rect class="dg-node" x="550" y="266" width="136" height="112" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="618" y="288" text-anchor="middle">목적지에 적재</text>
+  <text class="dg-fs-sm" x="618" y="312" text-anchor="middle">Amazon S3</text>
+  <text class="dg-fs-sm" x="618" y="334" text-anchor="middle">Amazon Redshift</text>
+  <text class="dg-fs-sm" x="618" y="356" text-anchor="middle">OpenSearch Service</text>
+
+  <text class="dg-fs-sm dg-bold" x="34" y="384">소비자가 직접 읽을 스트림이 남지 않고, 버퍼링 때문에 구조적으로 지연이 생깁니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="414" width="680" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="436">real-time 이나 여러 소비자가 각자 읽는다는 조건은 Data Streams 를 지목합니다</text>
+  <text class="dg-fs-sm" x="34" y="454">S3 나 Redshift 로 적재만 하고 관리 부담을 줄이려면 Data Firehose 입니다</text>
+</svg>

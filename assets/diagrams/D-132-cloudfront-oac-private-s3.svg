@@ -1,0 +1,68 @@
+<svg viewBox="0 0 720 462" role="img" aria-labelledby="d132-title d132-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d132-title">OAC 로 S3 오리진을 비공개로 유지하는 구성</title>
+  <desc id="d132-desc">같은 뷰어에서 출발한 두 경로를 위아래로 나란히 그렸습니다.
+    위쪽 경로는 CloudFront 를 거칩니다. 원본 액세스 제어인 OAC 가 오리진 요청에 SigV4 서명을 붙여 보내므로 버킷 정책이 이 요청을 허용합니다.
+    아래쪽 경로는 뷰어가 S3 엔드포인트로 직접 요청을 보내는 경우입니다. 서명이 없으므로 버킷 정책이 거부하고, 그 지점을 가위표로 표시했습니다.
+    오른쪽 버킷은 퍼블릭 액세스 차단이 켜져 있고 ACL 은 비활성이므로 버킷 정책이 유일한 관문입니다.
+    아래 상자는 그 버킷 정책의 핵심입니다. Principal 을 cloudfront.amazonaws.com 서비스 주체로 한정하고,
+    Condition 의 AWS:SourceArn 으로 특정 배포 ARN 에서 온 요청만 허용합니다. 이 조건 덕분에 다른 배포나 다른 계정은 같은 버킷을 쓸 수 없습니다.
+    결론은 버킷을 퍼블릭으로 열어 두고 앞에 CloudFront 를 세우는 구성이 오답이라는 것입니다.
+    그렇게 하면 S3 엔드포인트로 직접 오는 요청이 CloudFront 를 우회해 그대로 통과하기 때문입니다.</desc>
+
+  <defs>
+    <marker id="d132-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d132-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 뷰어 -->
+  <rect class="dg-node" x="20" y="90" width="110" height="120" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="75" y="142" text-anchor="middle">뷰어</text>
+  <text class="dg-fs-sm dg-muted" x="75" y="164" text-anchor="middle">브라우저</text>
+
+  <!-- 허용 경로 -->
+  <path class="dg-edge dg-edge--accent" d="M134 110 L176 110" marker-end="url(#d132-ar-accent)"/>
+  <rect class="dg-node dg-node--accent" x="180" y="80" width="190" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="275" y="104" text-anchor="middle">Amazon CloudFront</text>
+  <text class="dg-fs-sm" x="275" y="126" text-anchor="middle">배포 (Distribution)</text>
+
+  <rect class="dg-node dg-node--ok" x="180" y="146" width="190" height="32" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="275" y="167" text-anchor="middle">OAC — SigV4 서명 추가</text>
+
+  <path class="dg-edge dg-edge--accent" d="M374 110 L494 110" marker-end="url(#d132-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="434" y="100" text-anchor="middle">서명된 요청</text>
+
+  <!-- 차단 경로 -->
+  <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M134 196 L310 196"/>
+  <path class="dg-x" d="M322 188 L338 204 M338 188 L322 204"/>
+  <path class="dg-edge dg-edge--danger dg-edge--dotted" d="M350 196 L494 196" marker-end="url(#d132-ar-danger)"/>
+  <text class="dg-fs-sm dg-bold" x="140" y="188">S3 엔드포인트로 직접 요청 — 서명 없음</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="216">버킷 정책이 거부합니다</text>
+
+  <!-- S3 -->
+  <rect class="dg-node" x="498" y="80" width="202" height="130" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="599" y="106" text-anchor="middle">Amazon S3 버킷</text>
+  <text class="dg-fs-sm" x="599" y="132" text-anchor="middle">퍼블릭 액세스 차단 ON</text>
+  <text class="dg-fs-sm" x="599" y="154" text-anchor="middle">ACL 비활성</text>
+  <text class="dg-fs-sm dg-bold" x="599" y="180" text-anchor="middle">버킷 정책이 유일한 관문</text>
+
+  <!-- 버킷 정책 -->
+  <rect class="dg-node dg-node--alt" x="20" y="250" width="680" height="140" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="274">버킷 정책 — CloudFront 서비스 주체만, 그것도 이 배포에서만</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="300">"Principal": { "Service": "cloudfront.amazonaws.com" }</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="320">"Action": "s3:GetObject"</text>
+  <text class="dg-fs-sm dg-mono" x="34" y="340">"Resource": "arn:aws:s3:::my-bucket/*"</text>
+  <text class="dg-fs-sm dg-mono dg-bold" x="34" y="360">"Condition": { "StringEquals": { "AWS:SourceArn": "배포 ARN" } }</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="380">SourceArn 조건이 있어야 다른 배포나 다른 계정이 같은 버킷을 쓰지 못합니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--danger" x="20" y="402" width="680" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="424">버킷을 퍼블릭으로 열고 앞에 CloudFront 를 세우는 구성은 오답입니다</text>
+  <text class="dg-fs-sm" x="34" y="442">S3 엔드포인트로 직접 오는 요청이 CloudFront 를 우회해 그대로 통과하기 때문입니다</text>
+</svg>
