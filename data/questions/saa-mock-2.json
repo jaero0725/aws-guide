@@ -1506,6 +1506,340 @@
         { "url": "https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateMultipartUpload.html", "title": "Amazon S3 CreateMultipartUpload" }
       ],
       "tags": ["s3-performance", "s3", "multipart-upload", "throughput"]
+    },
+    {
+      "id": "saa-mock-2-054",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch18",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 회사가 Amazon EC2, AWS Fargate, AWS Lambda를 함께 운영하며 팀마다 사용하는 인스턴스 패밀리와 리전을 자주 바꿉니다. 1년 약정으로 할인을 받으면서도 앞으로 워크로드 구성이 바뀌어도 그대로 적용되는 유연성을 원합니다. 가장 적합한 구매 옵션은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Compute Savings Plans — 인스턴스 패밀리·크기·OS·리전과 무관하게 EC2·Fargate·Lambda 사용량 전체에 약정한 시간당 금액만큼 할인을 적용받는다." },
+        { "id": "B", "text": "EC2 Instance Savings Plans — 약정한 인스턴스 패밀리와 리전 안에서 크기만 자유롭게 바꿀 수 있다." },
+        { "id": "C", "text": "표준 예약 인스턴스 — 특정 인스턴스 유형과 가용 영역을 지정해 구매하며 세부 사항을 바꾸는 데 제약이 있다." },
+        { "id": "D", "text": "전환형 예약 인스턴스 — 다른 예약 인스턴스로 교환할 수 있지만 Fargate와 Lambda 사용량에는 적용되지 않는다." }
+      ],
+      "answer": ["A"],
+      "explanation": "약정 할인은 범위가 좁을수록 할인율이 크고 범위가 넓을수록 유연성이 커지는 트레이드오프를 가집니다. Compute Savings Plans는 인스턴스 패밀리·크기·OS·리전을 가리지 않고 EC2·Fargate·Lambda 사용량 전체에 걸쳐 적용되므로, 워크로드 구성이 계속 바뀌는 이 상황에 가장 잘 맞습니다. EC2 Instance Savings Plans와 표준 예약 인스턴스는 특정 패밀리나 리전에 묶여 있어 구성이 바뀌면 할인이 그대로 적용되지 않을 위험이 있습니다. 전환형 예약 인스턴스는 EC2 안에서는 유연하지만 애초에 Fargate와 Lambda 사용량을 포함하지 않아 요구 범위를 충족하지 못합니다.",
+      "distractorNotes": {
+        "B": "EC2 Instance Savings Plans는 약정한 패밀리와 리전 범위 안에서만 크기 변경이 자유롭습니다. 팀마다 패밀리와 리전을 자주 바꾼다는 조건과는 맞지 않습니다.",
+        "C": "표준 예약 인스턴스는 인스턴스 유형과 가용 영역까지 고정되는 가장 좁은 범위의 약정입니다. 구성이 자주 바뀌는 환경에서는 활용도가 떨어집니다.",
+        "D": "전환형 예약 인스턴스는 EC2 인스턴스 사이의 교환만 지원하며 Fargate와 Lambda는 대상이 아닙니다. 세 서비스를 함께 쓰는 이 시나리오의 요구를 절반만 만족시킵니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/savingsplans/latest/userguide/what-is-savings-plans.html", "title": "Savings Plans란 무엇입니까?" },
+        { "url": "https://docs.aws.amazon.com/savingsplans/latest/APIReference/API_CreateSavingsPlan.html", "title": "AWS Savings Plans API 레퍼런스 — CreateSavingsPlan" }
+      ],
+      "tags": ["savings-plans", "ec2-purchase-options", "fargate", "cost-visibility"]
+    },
+    {
+      "id": "saa-mock-2-055",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch06",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 몇 년 전에 만든 gp2 볼륨을 다수 운영하고 있습니다. 성능 요구는 크지 않지만 스토리지 비용을 낮추고 싶고, 어떤 경우에도 서비스가 중단되어서는 안 됩니다. 가장 적절한 조치는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "인스턴스를 중지하고 볼륨을 새 gp3 볼륨으로 교체한 뒤 데이터를 복사한다." },
+        { "id": "B", "text": "실행 중인 볼륨의 유형을 gp3로 수정해 다운타임 없이 전환한다." },
+        { "id": "C", "text": "볼륨의 스냅샷을 만들고 그 스냅샷으로 새 gp3 볼륨을 만들어 다시 연결한다." },
+        { "id": "D", "text": "gp2 볼륨은 그대로 두고 인스턴스 유형만 더 작은 것으로 바꾼다." }
+      ],
+      "answer": ["B"],
+      "explanation": "EBS는 실행 중인 볼륨의 유형·크기·성능 설정을 인스턴스를 중지하거나 분리하지 않고도 바꿀 수 있는 탄력적 볼륨 수정을 지원합니다. gp2에서 gp3로 유형을 바꾸는 작업도 이 기능으로 처리되며 변경은 백그라운드에서 진행되어 볼륨은 계속 연결된 채 사용할 수 있습니다. 인스턴스를 중지하거나 스냅샷으로 볼륨을 다시 만드는 방식은 모두 어떤 형태로든 중단이나 재연결이 필요해 이 시나리오의 제약을 위반합니다. 인스턴스 크기를 줄이는 것은 스토리지 비용과 무관한 조치라 원래 목표를 달성하지 못합니다.",
+      "distractorNotes": {
+        "A": "인스턴스를 중지하는 것 자체가 서비스 중단입니다. 어떤 경우에도 중단이 없어야 한다는 조건을 위반합니다.",
+        "C": "스냅샷으로 새 볼륨을 만들고 다시 연결하는 과정에는 볼륨 교체 시점의 중단이 필요합니다. 탄력적 볼륨 수정보다 번거롭고 위험합니다.",
+        "D": "인스턴스 유형 변경은 컴퓨팅 자원을 조정할 뿐 볼륨 자체의 스토리지 비용에는 영향을 주지 않습니다. 요구한 목표와 방향이 다릅니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html", "title": "Amazon EBS 볼륨 유형" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifyVolume.html", "title": "Amazon EC2 API 레퍼런스 — ModifyVolume" }
+      ],
+      "tags": ["ebs", "gp3", "rightsizing", "ec2"]
+    },
+    {
+      "id": "saa-mock-2-056",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch17",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 애플리케이션 성능을 세밀하게 보려고 수백 개의 사용자 지정 지표를 1초 단위 고해상도로 CloudWatch에 전송하도록 구성했습니다. 이후 청구서에서 지표 관련 비용이 크게 늘었습니다. 꼭 필요한 지표는 유지하면서 비용을 낮추려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "지표 이름과 차원(dimension) 조합을 더 세분화해 지표 개수를 늘린다." },
+        { "id": "B", "text": "모든 지표의 보존 기간을 늘려 장기 추세를 함께 분석한다." },
+        { "id": "C", "text": "초 단위 판단이 실제로 필요한 지표만 고해상도로 남기고 나머지는 표준 해상도로 낮춘다." },
+        { "id": "D", "text": "세부 모니터링을 꺼서 EC2 기본 지표 전송을 중단한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "사용자 지정 지표는 지표 개수와 해상도에 따라 과금되므로, 비용을 낮추려면 실제로 초 단위 판단이 필요한 지표만 고해상도로 남기고 나머지는 기본 해상도로 되돌리는 것이 가장 직접적인 대응입니다. 지표 이름이나 차원 조합을 더 잘게 나누면 오히려 지표 개수가 늘어나 비용이 커지는 반대 방향의 조치가 됩니다. 보존 기간은 데이터를 얼마나 오래 조회할 수 있는지에 관한 설정이라 지표 전송 자체의 비용과는 다른 항목입니다. 세부 모니터링은 EC2가 자동으로 보내는 기본 지표의 주기를 다루는 별개의 기능이라 이미 전송 중인 사용자 지정 지표 비용에는 영향이 없습니다.",
+      "distractorNotes": {
+        "A": "차원 조합을 세분화하면 고유한 지표의 수가 늘어나며, 지표 수가 곧 사용자 지정 지표 비용의 기준입니다. 목표와 반대 방향입니다.",
+        "B": "보존 기간을 늘리는 것은 조회 가능한 기간을 늘릴 뿐 지표를 전송하는 빈도나 개수를 줄이지 않습니다. 비용 상승의 원인을 건드리지 않습니다.",
+        "D": "세부 모니터링은 AWS가 자동으로 제공하는 EC2 기본 지표의 수집 주기를 5분과 1분 사이에서 정하는 설정입니다. 팀이 직접 전송하는 사용자 지정 지표와는 별개입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricData.html", "title": "Amazon CloudWatch API 레퍼런스 — PutMetricData" }
+      ],
+      "tags": ["cloudwatch", "custom-metric", "cost-visibility", "rightsizing"]
+    },
+    {
+      "id": "saa-mock-2-057",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch08",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 팀이 로그 파일을 업로드 직후 곧바로 S3 Glacier Deep Archive로 전환하는 수명 주기 규칙을 적용했습니다. 이후 감사 대응으로 규칙 적용 며칠 만에 그 로그 중 일부를 삭제해야 했고, 예상보다 큰 요금이 청구되었습니다. 이 현상에 대한 설명으로 가장 정확한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "Glacier Deep Archive는 삭제 시점과 무관하게 항상 추가 요금이 없으므로 다른 원인을 찾아야 한다." },
+        { "id": "B", "text": "수명 주기 규칙 자체에 실행 비용이 있어 규칙을 자주 적용할수록 요금이 늘어난다." },
+        { "id": "C", "text": "S3는 어떤 스토리지 클래스에서도 삭제 요청 자체에 항상 별도 요금을 부과하므로 정상적인 비용이다." },
+        { "id": "D", "text": "Glacier Deep Archive는 최소 저장 기간(180일)이 있어, 그 기간을 채우기 전에 삭제하면 남은 기간에 대한 요금이 청구된다." }
+      ],
+      "answer": ["D"],
+      "explanation": "S3 Glacier Deep Archive는 다른 스토리지 클래스와 달리 최소 저장 기간이 정해져 있어, 객체가 그 기간을 채우기 전에 삭제되면 남은 기간만큼의 저장 요금이 함께 청구됩니다. 감사 대응으로 며칠 만에 삭제한 로그는 이 최소 저장 기간을 크게 밑돌았을 것이므로 예상보다 큰 요금이 나온 원인이 여기에 있습니다. 이런 상황을 피하려면 삭제 가능성이 있는 데이터를 곧바로 가장 깊은 아카이브 클래스로 보내기보다, 접근 패턴이 안정된 뒤에 전환하거나 삭제 요구가 있을 만한 기간에는 더 얕은 클래스에 머물게 하는 편이 안전합니다. 수명 주기 규칙 실행 자체나 일반적인 삭제 요청에는 이런 성격의 요금이 없으므로 원인을 최소 저장 기간에서 찾아야 합니다.",
+      "distractorNotes": {
+        "A": "Glacier Deep Archive는 최소 저장 기간을 채우지 못하고 삭제하면 남은 기간에 대한 요금이 부과됩니다. 항상 추가 요금이 없다는 서술은 사실과 반대입니다.",
+        "B": "수명 주기 규칙은 조건에 따라 객체를 전환하거나 만료시키는 설정이며 규칙 실행 자체에 별도의 요금 체계가 있지는 않습니다. 원인을 잘못 짚은 설명입니다.",
+        "C": "S3 Standard 같은 클래스에서는 삭제 자체에 이런 성격의 추가 요금이 붙지 않습니다. 최소 저장 기간이 있는 IA·Glacier 계열의 클래스에서만 나타나는 현상입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html", "title": "S3 스토리지 클래스 이해" },
+        { "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-transition-general-considerations.html", "title": "수명 주기 전환 시 고려사항" }
+      ],
+      "tags": ["s3-storage-class", "s3-lifecycle", "s3", "cost-visibility"]
+    },
+    {
+      "id": "saa-mock-2-058",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch11",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 서비스의 DynamoDB 테이블은 요일별 트래픽 패턴이 뚜렷하게 반복되며 지난 6개월간 예측 오차가 크지 않았습니다. 현재 온디맨드 용량 모드로 운영 중인데 사용량이 늘면서 청구 금액이 계속 증가하고 있습니다. 가장 비용 효율적인(MOST cost-effective) 변경은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "프로비저닝 모드로 전환하고 Application Auto Scaling으로 읽기·쓰기 용량을 예측 패턴에 맞게 자동 조정한다." },
+        { "id": "B", "text": "온디맨드 모드를 유지하고 파티션 키 설계만 다시 검토한다." },
+        { "id": "C", "text": "글로벌 테이블을 추가해 여러 리전에 트래픽을 분산시켜 단일 테이블의 부하를 낮춘다." },
+        { "id": "D", "text": "DynamoDB Accelerator(DAX)를 추가해 읽기 요청을 캐시로 우회시킨다." }
+      ],
+      "answer": ["A"],
+      "explanation": "온디맨드 용량 모드는 트래픽을 예측하기 어려운 워크로드에 맞춰 여유 용량을 자동으로 확보해 주는 대신 그만큼 단가가 높게 책정됩니다. 이 시나리오처럼 패턴이 반복되고 예측 오차가 크지 않다면, 프로비저닝 모드로 전환하고 Application Auto Scaling으로 용량을 그 패턴에 맞춰 미리 조정하는 쪽이 같은 처리량을 더 낮은 단가로 제공합니다. 파티션 키 설계를 다시 보는 것은 핫 파티션 같은 별개의 문제를 다루는 조치이며 온디맨드 모드의 단가 자체를 바꾸지 않습니다. 글로벌 테이블과 DAX는 각각 다중 리전 복제와 읽기 캐시를 위한 기능이라 이 요구가 말하는 용량 모드 비용 문제를 직접 해결하지 못하고, 오히려 별도의 비용을 추가합니다.",
+      "distractorNotes": {
+        "B": "파티션 키 설계는 처리량이 특정 파티션에 몰리는 문제를 다룹니다. 이 시나리오가 지적하는 것은 용량 모드의 단가 문제이므로 근본 원인이 다릅니다.",
+        "C": "글로벌 테이블은 여러 리전에 걸친 지연 시간과 가용성을 위한 기능이며 리전마다 쓰기 비용이 함께 발생합니다. 단일 테이블의 비용을 낮추는 목적과 맞지 않습니다.",
+        "D": "DAX는 읽기 지연을 줄이는 캐시 계층으로 자체 클러스터 비용이 추가됩니다. 온디맨드 모드의 근본적인 단가 문제는 그대로 남습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_CreateTable.html", "title": "Amazon DynamoDB API 레퍼런스 — CreateTable" }
+      ],
+      "tags": ["dynamodb-capacity-mode", "dynamodb", "cost-visibility", "rightsizing"]
+    },
+    {
+      "id": "saa-mock-2-059",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch10",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 팀이 Amazon RDS for MySQL을 운영하며 향후 데이터 증가에 대비해 스토리지를 여유 있게 미리 크게 프로비저닝해 두었습니다. 실제 사용량은 프로비저닝한 용량의 일부에 그쳐 미사용 스토리지 비용이 계속 발생합니다. 데이터베이스 엔진을 바꿀 여지가 있다면, 미리 크게 잡아 둘 필요 없이 사용한 만큼만 과금되게 하려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "같은 RDS for MySQL에서 프로비저닝된 스토리지 크기만 더 작게 다시 설정한다." },
+        { "id": "B", "text": "Amazon Aurora로 마이그레이션한다 — 스토리지가 사용량에 따라 자동으로 늘어나고 그만큼만 과금된다." },
+        { "id": "C", "text": "읽기 전용 복제본을 추가해 스토리지 부담을 여러 인스턴스로 나눈다." },
+        { "id": "D", "text": "Multi-AZ 배포로 전환해 대기 인스턴스가 여유 용량을 흡수하게 한다." }
+      ],
+      "answer": ["B"],
+      "explanation": "표준 RDS 스토리지는 미리 크기를 정해 프로비저닝하는 방식이라 여유를 넉넉히 잡아 둘수록 사용하지 않는 용량에도 비용이 나갑니다. Aurora는 스토리지 계층이 별도로 관리되어 데이터가 쓰인 만큼 자동으로 늘어나고 그만큼만 과금되므로, 미리 크게 잡아 둘 필요 자체가 없어집니다. 같은 RDS for MySQL 안에서 크기를 줄이는 것은 여전히 미리 프로비저닝하는 모델을 유지하므로 근본적인 해결이 아닙니다. 읽기 전용 복제본과 Multi-AZ 대기 인스턴스는 각각 읽기 확장과 고가용성을 위한 기능이며, 둘 다 자기 몫의 스토리지를 별도로 프로비저닝해야 하므로 오히려 총 스토리지 비용을 늘립니다.",
+      "distractorNotes": {
+        "A": "크기를 줄여도 여전히 미리 정한 용량만큼 프로비저닝하고 과금되는 모델은 그대로입니다. 데이터가 늘면 다시 여유분을 잡아야 하는 문제가 반복됩니다.",
+        "C": "읽기 전용 복제본은 읽기 처리량을 늘리기 위한 별도의 인스턴스이며 각자 자신의 스토리지를 프로비저닝해야 합니다. 총 스토리지 비용은 오히려 늘어납니다.",
+        "D": "Multi-AZ의 대기 인스턴스는 장애 조치를 위한 별도의 인스턴스로, 기본 인스턴스와 같은 크기의 스토리지를 따로 프로비저닝합니다. 여유 용량을 흡수한다는 설명은 사실이 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.StorageReliability.html", "title": "Amazon Aurora 스토리지와 안정성" }
+      ],
+      "tags": ["aurora", "rds", "cost-visibility", "rightsizing"]
+    },
+    {
+      "id": "saa-mock-2-060",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch18",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "여러 팀이 각자 EC2 EBS 볼륨과 RDS 인스턴스에 서로 다른 스냅샷 일정과 보존 기간을 손으로 설정해 두었습니다. 감사 결과 같은 데이터에 대해 팀마다 중복된 스냅샷이 쌓여 있고 오래된 스냅샷도 정리되지 않은 채 남아 있었습니다. 백업 비용을 구조적으로 낮추려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "각 팀에 스냅샷 정리 담당자를 지정하고 분기마다 수동으로 점검하게 한다." },
+        { "id": "B", "text": "모든 리소스의 스냅샷 생성 빈도를 늘려 실수로 인한 손실 위험을 낮춘다." },
+        { "id": "C", "text": "AWS Backup으로 중앙 백업 계획을 만들어 보존 기간과 일정을 한 곳에서 관리하고 만료된 백업이 자동으로 정리되게 한다." },
+        { "id": "D", "text": "각 팀의 계정을 하나로 합쳐 스냅샷을 공유하게 한다." }
+      ],
+      "answer": ["C"],
+      "explanation": "팀마다 흩어진 백업 설정이 문제의 근원이므로, 해법도 설정을 한 곳으로 모으는 방향이어야 합니다. AWS Backup으로 중앙 백업 계획을 만들면 보존 기간과 생성 일정을 하나의 정책으로 정의해 여러 리소스와 계정에 일관되게 적용할 수 있고, 정책이 만료된 복구 지점을 자동으로 정리해 오래된 스냅샷이 쌓이는 문제도 함께 해소됩니다. 담당자를 지정해 수동으로 점검하는 방식은 사람의 주의력에 계속 의존해 감사에서 지적된 문제가 되풀이됩니다. 생성 빈도를 늘리는 것은 오히려 비용을 키우는 방향이고, 계정을 합치는 것은 이 문제와 무관하게 다른 위험을 새로 만듭니다.",
+      "distractorNotes": {
+        "A": "수동 점검은 사람의 주의력에 의존하며 지금 감사에서 드러난 중복과 방치 문제를 구조적으로 막지 못합니다. 같은 일이 반복될 가능성이 큽니다.",
+        "B": "생성 빈도를 늘리면 스냅샷 수와 저장 비용이 오히려 늘어납니다. 감사가 지적한 중복 문제를 악화시키는 방향입니다.",
+        "D": "계정 통합은 백업 정책과 무관한 큰 변화이며 권한 경계와 격리 같은 다른 문제를 새로 만듭니다. 스냅샷 정책을 정리하는 목적에는 맞지 않는 조치입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/aws-backup/latest/devguide/whatisbackup.html", "title": "AWS Backup이란 무엇입니까?" },
+        { "url": "https://docs.aws.amazon.com/aws-backup/latest/devguide/API_CreateBackupPlan.html", "title": "AWS Backup API 레퍼런스 — CreateBackupPlan" }
+      ],
+      "tags": ["aws-backup", "ebs", "cost-visibility", "rightsizing"]
+    },
+    {
+      "id": "saa-mock-2-061",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch18",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "수백 개의 EC2 인스턴스와 Lambda 함수, EBS 볼륨이 있고 팀마다 사용 패턴이 달라 어떤 리소스가 과다 프로비저닝되었는지 파악하기 어렵습니다. 실제 사용률 데이터를 기반으로 인스턴스 유형과 크기 변경을 추천받고 싶습니다. 가장 적절한 도구는 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "AWS Trusted Advisor 비용 최적화 점검 — 사용률이 낮은 인스턴스를 규칙 기반 기준으로 나열한다." },
+        { "id": "B", "text": "AWS Cost Explorer 사용량 보고서 — 서비스별 지출 추이를 그래프로 보여 준다." },
+        { "id": "C", "text": "AWS Budgets — 예산을 초과하면 알림을 보낸다." },
+        { "id": "D", "text": "AWS Compute Optimizer — 사용률 데이터를 분석해 EC2·Lambda·EBS의 구체적인 유형과 크기 변경을 추천한다." }
+      ],
+      "answer": ["D"],
+      "explanation": "리소스별로 실제 사용률을 분석해 구체적인 유형과 크기를 추천받으려면 그 목적에 맞게 만들어진 도구가 필요합니다. Compute Optimizer는 EC2, EBS, Lambda 같은 리소스의 사용률 지표를 분석해 과다·과소 프로비저닝 여부와 함께 대안이 되는 구체적인 유형·크기를 추천합니다. Trusted Advisor는 정해진 규칙과 임계값으로 낮은 사용률을 나열하는 수준이라 세밀한 대안 추천까지는 제공하지 않습니다. Cost Explorer와 Budgets는 각각 지출 추이 시각화와 예산 알림 도구로, 리소스 하나하나의 사용률을 분석해 크기를 추천하는 목적과는 다릅니다.",
+      "distractorNotes": {
+        "A": "Trusted Advisor는 규칙 기반 점검으로 낮은 사용률 인스턴스를 나열하는 데는 유용하지만, 사용률 데이터를 분석해 구체적인 대안 유형과 크기를 추천하는 기능은 Compute Optimizer가 담당합니다.",
+        "B": "Cost Explorer는 지출이 얼마나, 어디서 발생했는지를 보여 주는 도구입니다. 개별 리소스의 사용률을 분석해 크기 변경을 추천하지는 않습니다.",
+        "C": "Budgets는 정해 둔 예산을 초과할 때 알리는 도구입니다. 리소스의 사용률을 분석하거나 크기를 추천하는 기능이 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/compute-optimizer/latest/ug/what-is-compute-optimizer.html", "title": "AWS Compute Optimizer란 무엇입니까?" },
+        { "url": "https://docs.aws.amazon.com/compute-optimizer/latest/APIReference/API_InstanceRecommendation.html", "title": "AWS Compute Optimizer API 레퍼런스 — InstanceRecommendation" }
+      ],
+      "tags": ["compute-optimizer", "rightsizing", "cost-visibility", "ec2"]
+    },
+    {
+      "id": "saa-mock-2-062",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "분석팀 여러 명이 같은 Amazon Athena 워크그룹에서 자유롭게 쿼리를 실행합니다. 가끔 파티션을 지정하지 않은 채 테이블 전체를 스캔하는 쿼리가 실행되어 예상치 못한 비용이 발생합니다. 쿼리 작성 방식을 일일이 검토하지 않고 비용 폭주를 구조적으로 막으려면 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "테이블을 더 잘게 나눠 여러 개의 작은 테이블로 분리한다." },
+        { "id": "B", "text": "분석팀 전원에게 파티션 프루닝을 적용하는 쿼리 작성 가이드를 배포한다." },
+        { "id": "C", "text": "Amazon Athena 대신 Amazon Redshift로 전환해 상시 클러스터에서 쿼리를 처리한다." },
+        { "id": "D", "text": "워크그룹에 쿼리당 스캔 가능한 데이터양의 상한을 설정해 초과하는 쿼리가 실행되지 않게 한다." }
+      ],
+      "answer": ["D"],
+      "explanation": "일일이 검토하지 않고 구조적으로 막아야 한다는 조건은 사람의 습관이 아니라 워크그룹 설정에서 답을 찾아야 한다는 신호입니다. 워크그룹에 쿼리당 스캔 데이터양의 상한을 걸어 두면 그 값을 넘는 쿼리는 실행되지 않거나 사전에 걸러지므로, 특정 개인이 실수로 전체 스캔을 돌려도 비용이 한 번의 사고 이상으로 커지지 않습니다. 테이블을 잘게 나누는 것은 스캔 범위를 줄이는 데 도움이 될 수 있지만 파티션을 지정하지 않은 전체 스캔 자체를 막지는 못합니다. 가이드 배포는 사람의 준수 여부에 의존하고, Redshift로 전환하는 것은 상시 가동 클러스터 비용을 새로 만들어 이 문제의 해결책이 되지 못합니다.",
+      "distractorNotes": {
+        "A": "테이블을 잘게 나눠도 파티션을 지정하지 않은 쿼리는 여전히 나뉜 테이블 전체를 스캔할 수 있습니다. 근본 원인인 무분별한 전체 스캔을 막지 못합니다.",
+        "B": "가이드는 사람이 지켜야 지켜지는 절차입니다. \"일일이 검토하지 않고\"라는 조건이 이미 이 방식의 한계를 지적하고 있습니다.",
+        "C": "Redshift는 상시 가동 클러스터를 요구해 조회 빈도가 낮을 때는 오히려 비용이 늘어납니다. 쿼리 하나의 스캔량을 제한하는 문제와도 직접 관련이 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/athena/latest/APIReference/Welcome.html", "title": "Amazon Athena API 레퍼런스" }
+      ],
+      "tags": ["athena", "cost-visibility", "analytics-choice", "serverless-cost"]
+    },
+    {
+      "id": "saa-mock-2-063",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch18",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "재무팀이 태그가 없는 리소스 때문에 비용을 팀별로 정확히 배분하지 못한다고 지적했습니다. 이미 있는 리소스도 지속적으로 검사해야 하고, 앞으로 조직에 추가되는 계정에도 같은 검사가 자동으로 적용되어야 합니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "필수 태그 키가 없는 리소스를 찾아내는 AWS Config 규칙을 만든다." },
+        { "id": "B", "text": "이 규칙을 적합성 팩으로 묶어 조직 단위에 배포해 계정이 늘어도 자동으로 적용되게 한다." },
+        { "id": "C", "text": "각 팀 리더에게 태그 규칙 문서를 배포하고 준수 여부를 스스로 보고하게 한다." },
+        { "id": "D", "text": "Amazon CloudWatch 대시보드를 만들어 계정별 리소스 개수를 표시한다." },
+        { "id": "E", "text": "모든 리소스에 하나의 공용 계정 ID 태그만 붙여 팀 구분 없이 통합 관리한다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "지속적인 검사와 조직 전체 자동 적용이라는 두 요구는 각각 규칙의 성격과 배포 범위에 관한 것이라 따로 다뤄야 합니다. 필수 태그 키의 존재 여부를 판정하는 Config 규칙을 만들면 기존 리소스와 새로 생기는 리소스를 계속 평가할 수 있고, 이 규칙을 적합성 팩으로 묶어 조직 단위에 배포하면 새 계정이 들어와도 같은 검사가 자동으로 적용됩니다. 사람에게 문서를 배포하고 자율 보고에 맡기는 방식은 확인 주기 사이의 공백과 보고 누락을 피할 수 없습니다. 대시보드는 현황을 보여 줄 뿐 태그 누락을 판정하지 않고, 공용 태그 하나로 통합하는 방식은 애초에 팀별로 비용을 나눠 보려는 목적 자체를 무너뜨립니다.",
+      "distractorNotes": {
+        "C": "문서 배포와 자율 보고는 사람의 주의력에 의존하며, 확인 주기 사이에 발생한 누락은 다음 보고 전까지 발견되지 않습니다.",
+        "D": "대시보드는 리소스 개수를 보여 줄 뿐 태그가 있는지 없는지를 판정하지 않습니다. 규칙에 의한 지속적 평가와는 다른 도구입니다.",
+        "E": "공용 태그 하나로 통합하면 모든 리소스가 같은 값을 가지게 되어 팀별 배분이라는 원래 목적을 달성할 수 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/config/latest/APIReference/API_PutConfigRule.html", "title": "AWS Config API 레퍼런스 — PutConfigRule" },
+        { "url": "https://docs.aws.amazon.com/config/latest/APIReference/API_PutConformancePack.html", "title": "AWS Config API 레퍼런스 — PutConformancePack" }
+      ],
+      "tags": ["cost-visibility", "cost-allocation-tags", "config", "organizations"]
+    },
+    {
+      "id": "saa-mock-2-064",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch13",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "이미지 썸네일을 생성하는 배치 작업이 Amazon ECS Fargate에서 실행되며, 작업은 중단되어도 다시 실행하면 되고 유지해야 할 세션 상태가 없습니다. 밀려드는 요청을 처리할 최소 용량은 항상 유지하면서 나머지는 최대한 저렴하게 처리하고 싶습니다. 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "용량 공급자 전략에서 기본 용량(base)을 FARGATE로 지정해 최소 용량을 표준 요금으로 보장한다." },
+        { "id": "B", "text": "같은 전략의 나머지 가중치(weight)를 FARGATE_SPOT으로 지정해 초과 용량을 스팟 가격으로 처리한다." },
+        { "id": "C", "text": "모든 태스크를 FARGATE_SPOT로만 실행해 기본 용량 없이 운영한다." },
+        { "id": "D", "text": "EC2 시작 유형으로 전환하고 예약 인스턴스를 구매해 클러스터를 직접 관리한다." },
+        { "id": "E", "text": "모든 태스크 정의의 CPU와 메모리 값을 최댓값으로 키워 처리 시간을 줄인다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "최소 용량 보장과 초과분의 저렴한 처리라는 두 요구는 용량 공급자 전략의 기본 용량과 가중치라는 서로 다른 설정이 각각 담당합니다. 기본 용량을 FARGATE로 지정하면 지정한 수량까지는 표준 요금으로 항상 확보되고, 나머지 가중치를 FARGATE_SPOT으로 지정하면 그 이상의 수요는 중단 가능성이 있는 대신 더 저렴한 스팟 가격으로 처리됩니다. 이 작업은 중단되어도 다시 실행하면 되는 상태 비저장 배치라 스팟의 중단 위험을 감수할 수 있는 조건과 맞습니다. 모든 태스크를 스팟으로만 돌리면 최소 용량을 보장할 수 없고, EC2로 전환하거나 리소스 값을 무작정 키우는 것은 이 요구의 핵심인 저렴한 초과 용량 처리와는 다른 방향입니다.",
+      "distractorNotes": {
+        "C": "기본 용량 없이 전부 스팟으로 돌리면 중단이 몰릴 때 최소 용량을 보장할 수 없습니다. \"최소 용량은 항상 유지\"라는 조건을 위반합니다.",
+        "D": "EC2로 전환하면 클러스터 관리 부담이 다시 생기고, 이 시나리오가 이미 전제한 Fargate 환경과 용량 공급자 전략의 이점을 포기하는 방향입니다.",
+        "E": "CPU와 메모리를 키우면 태스크당 비용이 늘어납니다. 처리 시간 단축이 요구 사항도 아니고, 비용을 낮추려는 목적과도 반대입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html", "title": "Amazon ECS 개발자 안내서 — Fargate 용량 공급자" }
+      ],
+      "tags": ["ecs", "fargate", "spot-vs-savings-plans", "container-choice"]
+    },
+    {
+      "id": "saa-mock-2-065",
+      "exam": "SAA",
+      "domain": "Design Cost-Optimized Architectures",
+      "chapter": "ch14",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "정적 이미지 자산을 Amazon CloudFront로 제공하는데 오리진 요청이 예상보다 많아 오리진 비용과 지연이 함께 늘고 있습니다. 캐시 적중률을 높여 오리진 요청을 줄이려면 어떤 조치를 조합해야 합니까? (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "캐시 동작의 최소·기본 TTL을 늘려 엣지에 객체가 더 오래 머물게 한다." },
+        { "id": "B", "text": "Origin Shield를 활성화해 여러 엣지 로케이션의 요청을 하나의 중간 캐시 계층에서 통합한다." },
+        { "id": "C", "text": "모든 요청 헤더와 쿠키를 오리진으로 전달하도록 캐시 동작을 구성한다." },
+        { "id": "D", "text": "오리진 서버의 인스턴스 유형을 더 큰 것으로 바꾼다." },
+        { "id": "E", "text": "배포의 가격 등급(price class)을 모든 엣지 로케이션을 포함하는 가장 비싼 등급으로 바꾼다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "캐시 적중률을 높이는 일은 객체가 엣지에 머무는 시간을 늘리는 것과 여러 엣지의 요청을 한곳에서 모아 오리진 부담을 줄이는 것, 두 방향에서 함께 다뤄야 효과가 큽니다. TTL을 늘리면 같은 객체를 다시 요청할 때 엣지 캐시에서 바로 응답할 확률이 올라가 오리진까지 가는 요청이 줄어듭니다. Origin Shield는 여러 엣지 로케이션의 캐시 미스를 하나의 중간 계층에 모아 그곳에서 한 번만 오리진에 요청하게 하므로 같은 객체에 대한 중복 오리진 요청을 크게 줄입니다. 헤더와 쿠키를 전부 전달하도록 설정하면 캐시 키가 다양해져 오히려 캐시 적중률이 떨어지고, 오리진 성능이나 배포 가격 등급은 캐시 적중률과는 다른 문제를 다룹니다.",
+      "distractorNotes": {
+        "C": "요청 헤더와 쿠키를 그대로 전달하면 같은 콘텐츠라도 캐시 키가 잘게 나뉘어 캐시가 자주 갈립니다. 오리진 요청을 줄이려는 목표와 반대 방향입니다.",
+        "D": "오리진 인스턴스를 키우는 것은 오리진이 처리하는 개별 요청의 속도를 높일 뿐, 애초에 오리진까지 도달하는 요청 수를 줄이지 못합니다.",
+        "E": "가격 등급은 콘텐츠를 배포하는 엣지 로케이션의 범위를 정하는 설정이며 캐시 적중률이나 오리진 요청 수와는 관계가 없고 비용만 늘립니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Expiration.html", "title": "Amazon CloudFront — 캐시 만료 시간 관리" },
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html", "title": "Amazon CloudFront — Origin Shield" }
+      ],
+      "tags": ["cloudfront-cost", "cloudfront", "data-transfer-cost", "cost-visibility"]
     }
   ]
 }

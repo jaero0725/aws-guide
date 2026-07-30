@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-07-30",
   "examCode": "SAA-C03",
-  "totalQuestions": 618,
+  "totalQuestions": 650,
   "sets": [
     {
       "setId": "basics-ch01",
@@ -145,11 +145,31 @@
       "diagnostic": false
     },
     {
+      "setId": "basics-ch15",
+      "file": "basics-ch15.json",
+      "title": "데이터 분석 파이프라인 확인 문제",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
       "setId": "basics-ch16",
       "file": "basics-ch16.json",
       "title": "보안 · 암호화 · 거버넌스 확인 문제",
       "exam": "BASICS",
       "domain": "보안 · 암호화 · 거버넌스",
+      "count": 10,
+      "mock": false,
+      "diagnostic": false
+    },
+    {
+      "setId": "basics-ch17",
+      "file": "basics-ch17.json",
+      "title": "모니터링 · 운영 · 계정 관리 확인 문제",
+      "exam": "BASICS",
+      "domain": "모니터링 · 운영 · 계정 관리",
       "count": 10,
       "mock": false,
       "diagnostic": false
@@ -190,7 +210,7 @@
       "title": "SAA-C03 모의고사 2회 — 65문항 혼합",
       "exam": "SAA",
       "domain": "Mixed",
-      "count": 53,
+      "count": 65,
       "mock": true,
       "diagnostic": false
     },
