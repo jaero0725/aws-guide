@@ -4138,8 +4138,8 @@
       },
       "refs": [
         {
-          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/MultiFactorAuthenticationDelete.html",
-          "title": "Amazon S3 — MFA 삭제 구성"
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html",
+          "title": "Amazon S3 사용 설명서 — 버전 관리"
         },
         {
           "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html",
