@@ -117,7 +117,80 @@
         </table>
       </div>
 
-      <figure class="diagram" data-diagram="D-161">
+      <figure class="diagram" data-diagram="D-161" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 412" role="img" aria-labelledby="d-161-1-d161-title d-161-1-d161-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-161-1-d161-title">CloudTrail · AWS Config · CloudWatch 에 질문을 하나씩 배정</title>
+            <desc id="d-161-1-d161-desc">세 서비스를 세 열로 놓고 각 열 맨 위에 그 서비스가 답하는 질문을 하나씩 붙였습니다.
+              첫째 열의 질문은 누가 무엇을 호출했는가입니다. 답하는 서비스는 AWS CloudTrail 이며 API 호출 이벤트를 남깁니다.
+              호출자 신원, 시각, 소스 IP, 요청과 응답 요소가 기록되므로 감사 추적과 누가 삭제했는지 조사하는 시나리오가 이 서비스를 지목합니다.
+              둘째 열의 질문은 리소스 구성이 규칙을 지키는가입니다. 답하는 서비스는 AWS Config 이며 리소스의 구성 항목 스냅샷과 변경 이력,
+              그리고 규칙 준수 여부를 남깁니다. 규정 준수 평가와 설정이 언제 어떻게 바뀌었는지를 묻는 시나리오가 이 서비스를 지목합니다.
+              셋째 열의 질문은 지금 얼마나 잘 동작하는가입니다. 답하는 서비스는 Amazon CloudWatch 이며 지표와 로그, 알람 상태, 대시보드를 다룹니다.
+              성능과 사용률 감시, 임계값을 넘으면 알림을 보내라는 시나리오가 이 서비스를 지목합니다.
+              감사와 규정 준수 시나리오에서 서비스를 고르는 유일한 기준은 문제문이 이 세 질문 가운데 어느 것을 하고 있는가입니다.</desc>
+
+            <defs>
+              <marker id="d-161-1-d161-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="30">질문이 서비스를 고릅니다</text>
+
+            <!-- 1 -->
+            <rect class="dg-panel" x="20" y="40" width="220" height="300" rx="4"/>
+            <rect class="dg-node dg-node--accent" x="32" y="52" width="196" height="64" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="130" y="80" text-anchor="middle">누가 무엇을</text>
+            <text class="dg-fs-md dg-bold" x="130" y="102" text-anchor="middle">호출했는가</text>
+            <path class="dg-edge" d="M130 116 L130 130" marker-end="url(#d-161-1-d161-ar)"/>
+            <rect class="dg-node" x="32" y="134" width="196" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="130" y="157" text-anchor="middle">AWS CloudTrail</text>
+            <text class="dg-fs-sm dg-muted" x="32" y="196">남기는 것</text>
+            <text class="dg-fs-sm" x="32" y="216">API 호출 이벤트</text>
+            <text class="dg-fs-sm" x="32" y="234">호출자 · 시각 · 소스 IP</text>
+            <text class="dg-fs-sm" x="32" y="252">요청과 응답 요소</text>
+            <text class="dg-fs-sm dg-muted" x="32" y="282">문제문의 신호</text>
+            <text class="dg-fs-sm dg-bold" x="32" y="302">감사 추적이 필요하다</text>
+            <text class="dg-fs-sm dg-bold" x="32" y="322">누가 지웠는지 조사</text>
+
+            <!-- 2 -->
+            <rect class="dg-panel" x="250" y="40" width="220" height="300" rx="4"/>
+            <rect class="dg-node dg-node--accent" x="262" y="52" width="196" height="64" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="80" text-anchor="middle">리소스 구성이</text>
+            <text class="dg-fs-md dg-bold" x="360" y="102" text-anchor="middle">규칙을 지키는가</text>
+            <path class="dg-edge" d="M360 116 L360 130" marker-end="url(#d-161-1-d161-ar)"/>
+            <rect class="dg-node" x="262" y="134" width="196" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="157" text-anchor="middle">AWS Config</text>
+            <text class="dg-fs-sm dg-muted" x="262" y="196">남기는 것</text>
+            <text class="dg-fs-sm" x="262" y="216">구성 항목 스냅샷</text>
+            <text class="dg-fs-sm" x="262" y="234">구성 변경 이력</text>
+            <text class="dg-fs-sm" x="262" y="252">규칙 준수 여부</text>
+            <text class="dg-fs-sm dg-muted" x="262" y="282">문제문의 신호</text>
+            <text class="dg-fs-sm dg-bold" x="262" y="302">규정 준수를 평가</text>
+            <text class="dg-fs-sm dg-bold" x="262" y="322">설정이 언제 바뀌었나</text>
+
+            <!-- 3 -->
+            <rect class="dg-panel" x="480" y="40" width="220" height="300" rx="4"/>
+            <rect class="dg-node dg-node--accent" x="492" y="52" width="196" height="64" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="590" y="80" text-anchor="middle">지금 얼마나</text>
+            <text class="dg-fs-md dg-bold" x="590" y="102" text-anchor="middle">잘 동작하는가</text>
+            <path class="dg-edge" d="M590 116 L590 130" marker-end="url(#d-161-1-d161-ar)"/>
+            <rect class="dg-node" x="492" y="134" width="196" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="590" y="157" text-anchor="middle">Amazon CloudWatch</text>
+            <text class="dg-fs-sm dg-muted" x="492" y="196">남기는 것</text>
+            <text class="dg-fs-sm" x="492" y="216">지표와 로그</text>
+            <text class="dg-fs-sm" x="492" y="234">알람 상태</text>
+            <text class="dg-fs-sm" x="492" y="252">대시보드</text>
+            <text class="dg-fs-sm dg-muted" x="492" y="282">문제문의 신호</text>
+            <text class="dg-fs-sm dg-bold" x="492" y="302">성능 · 사용률 감시</text>
+            <text class="dg-fs-sm dg-bold" x="492" y="322">임계값을 넘으면 알림</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="356" width="680" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="384" text-anchor="middle">서비스를 고르는 유일한 기준은 문제문이 어느 질문을 하고 있는가입니다</text>
+          </svg>
+        </div>
         <figcaption>
           "누가 무엇을 호출했는가"(CloudTrail), "리소스 구성이 규칙을 지키는가"(AWS Config),
           "얼마나 잘 동작하는가"(CloudWatch) 세 질문을 각 서비스에 배정한 구분.

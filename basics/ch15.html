@@ -64,7 +64,92 @@
         데이터가 흐르는 순서는 언제나 같습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-140">
+      <figure class="diagram" data-diagram="D-140" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 330" role="img" aria-labelledby="d-140-1-d140-title d-140-1-d140-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-140-1-d140-title">분석 파이프라인의 다섯 단계와 단계별 서비스</title>
+            <desc id="d-140-1-d140-desc">데이터가 왼쪽에서 오른쪽으로 흐르는 다섯 칸의 지도입니다.
+              첫째 칸은 수집입니다. Kinesis Data Streams 와 Amazon MSK 가 스트리밍 데이터를 받고 AWS DataSync 가 대량 파일을 옮깁니다.
+              둘째 칸은 저장입니다. Amazon S3 가 데이터 레이크가 되어 원본을 가공하지 않은 상태로 보관합니다.
+              셋째 칸은 카탈로그와 변환입니다. AWS Glue 의 크롤러가 스키마를 알아내 데이터 카탈로그에 등록하고 ETL 작업이 형식을 바꿉니다.
+              넷째 칸은 조회입니다. Amazon Athena 는 S3 에 있는 데이터를 옮기지 않고 그 자리에서 SQL 로 조회하고,
+              Amazon Redshift 는 데이터를 적재해 두고 웨어하우스로 반복 분석합니다.
+              다섯째 칸은 시각화이며 Amazon QuickSight 가 대시보드를 만듭니다.
+              서비스 이름만 죽 나열된 문항은 각 이름이 이 다섯 칸 가운데 어디에 속하는지로 환원해 읽습니다.</desc>
+
+            <defs>
+              <marker id="d-140-1-d140-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">데이터가 흐르는 다섯 단계</text>
+            <path class="dg-edge dg-edge--accent" d="M20 44 L700 44" marker-end="url(#d-140-1-d140-ar-accent)"/>
+
+            <!-- 1 수집 -->
+            <rect class="dg-panel" x="20" y="56" width="124" height="194" rx="4"/>
+            <rect class="dg-node dg-node--alt" x="20" y="56" width="124" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="82" y="81" text-anchor="middle">1 · 수집</text>
+            <rect class="dg-node" x="20" y="104" width="124" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="82" y="122" text-anchor="middle">Kinesis</text>
+            <text class="dg-fs-sm" x="82" y="138" text-anchor="middle">Data Streams</text>
+            <rect class="dg-node" x="20" y="150" width="124" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="82" y="168" text-anchor="middle">Amazon MSK</text>
+            <text class="dg-fs-sm" x="82" y="184" text-anchor="middle">Kafka 호환</text>
+            <rect class="dg-node" x="20" y="196" width="124" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="82" y="214" text-anchor="middle">AWS DataSync</text>
+            <text class="dg-fs-sm" x="82" y="230" text-anchor="middle">대량 파일 이동</text>
+
+            <!-- 2 저장 -->
+            <rect class="dg-panel" x="159" y="56" width="124" height="194" rx="4"/>
+            <rect class="dg-node dg-node--alt" x="159" y="56" width="124" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="221" y="81" text-anchor="middle">2 · 저장</text>
+            <rect class="dg-node dg-node--accent" x="159" y="104" width="124" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="221" y="130" text-anchor="middle">Amazon S3</text>
+            <text class="dg-fs-sm" x="221" y="152" text-anchor="middle">데이터 레이크</text>
+            <text class="dg-fs-sm" x="221" y="174" text-anchor="middle">원본을 그대로</text>
+            <text class="dg-fs-sm dg-muted" x="221" y="212" text-anchor="middle">모든 단계가</text>
+            <text class="dg-fs-sm dg-muted" x="221" y="230" text-anchor="middle">여기를 지납니다</text>
+
+            <!-- 3 카탈로그 · 변환 -->
+            <rect class="dg-panel" x="298" y="56" width="124" height="194" rx="4"/>
+            <rect class="dg-node dg-node--alt" x="298" y="56" width="124" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="74" text-anchor="middle">3 · 카탈로그</text>
+            <text class="dg-fs-sm dg-bold" x="360" y="90" text-anchor="middle">변환</text>
+            <rect class="dg-node" x="298" y="104" width="124" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="130" text-anchor="middle">AWS Glue</text>
+            <text class="dg-fs-sm" x="360" y="152" text-anchor="middle">크롤러 · 카탈로그</text>
+            <text class="dg-fs-sm" x="360" y="174" text-anchor="middle">ETL 작업</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="212" text-anchor="middle">스키마를 알아내</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="230" text-anchor="middle">테이블로 등록</text>
+
+            <!-- 4 조회 -->
+            <rect class="dg-panel" x="437" y="56" width="124" height="194" rx="4"/>
+            <rect class="dg-node dg-node--alt" x="437" y="56" width="124" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="499" y="81" text-anchor="middle">4 · 조회</text>
+            <rect class="dg-node" x="437" y="104" width="124" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="499" y="126" text-anchor="middle">Amazon Athena</text>
+            <text class="dg-fs-sm" x="499" y="146" text-anchor="middle">S3 를 그 자리에서</text>
+            <rect class="dg-node" x="437" y="166" width="124" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="499" y="188" text-anchor="middle">Amazon Redshift</text>
+            <text class="dg-fs-sm" x="499" y="208" text-anchor="middle">적재 후 반복 분석</text>
+
+            <!-- 5 시각화 -->
+            <rect class="dg-panel" x="576" y="56" width="124" height="194" rx="4"/>
+            <rect class="dg-node dg-node--alt" x="576" y="56" width="124" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="638" y="81" text-anchor="middle">5 · 시각화</text>
+            <rect class="dg-node" x="576" y="104" width="124" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="638" y="126" text-anchor="middle">QuickSight</text>
+            <text class="dg-fs-sm" x="638" y="146" text-anchor="middle">대시보드</text>
+            <text class="dg-fs-sm dg-muted" x="638" y="182" text-anchor="middle">조회 결과를</text>
+            <text class="dg-fs-sm dg-muted" x="638" y="200" text-anchor="middle">사람이 읽는 형태로</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="270" width="680" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="292" text-anchor="middle">서비스 이름만 나열된 문항은 각 이름이 어느 칸에 속하는지로 환원해 읽습니다</text>
+            <text class="dg-fs-sm" x="360" y="310" text-anchor="middle">수집 · 저장 · 카탈로그와 변환 · 조회 · 시각화</text>
+          </svg>
+        </div>
         <figcaption>
           분석 파이프라인의 다섯 단계와 각 단계의 서비스 — 수집(Kinesis · MSK · DataSync),
           저장(Amazon S3 데이터 레이크), 카탈로그와 변환(AWS Glue), 조회(Amazon Athena · Amazon Redshift),
@@ -296,7 +381,92 @@ aws kinesis increase-stream-retention-period \
 
       <h3 id="streams-vs-firehose">Data Streams와 Firehose의 선택 기준</h3>
 
-      <figure class="diagram" data-diagram="D-141">
+      <figure class="diagram" data-diagram="D-141" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 474" role="img" aria-labelledby="d-141-1-d141-title d-141-1-d141-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-141-1-d141-title">Kinesis Data Streams 와 Amazon Data Firehose 의 데이터 흐름 대비</title>
+            <desc id="d-141-1-d141-desc">위쪽 레인은 Kinesis Data Streams 입니다. 생산자가 보낸 레코드가 샤드에 들어가고 샤드 안에서는 순서가 보장됩니다.
+              레코드는 보존 기간 동안 샤드에 남아 있으므로 여러 소비자가 같은 데이터를 각자의 속도로 읽을 수 있고,
+              필요하면 되감아 다시 처리할 수도 있습니다. 실시간 경고를 보내는 소비자, 집계해 저장하는 소비자, 재처리하는 소비자가 동시에 붙는 그림입니다.
+              아래쪽 레인은 Amazon Data Firehose 입니다. 생산자가 보낸 데이터는 버퍼에 모이고, 버퍼 크기나 대기 시간 조건이 차면 목적지로 전송됩니다.
+              가는 길에 Lambda 함수로 변환할 수 있지만 이는 선택 사항입니다. 목적지는 Amazon S3, Amazon Redshift, Amazon OpenSearch Service 같은 적재 대상이며
+              배달이 끝나면 소비자가 직접 읽을 스트림이 남지 않습니다. 버퍼링 때문에 구조적으로 약간의 지연이 생깁니다.
+              그래서 실시간이라는 조건이나 여러 소비자가 각자 읽어야 한다는 조건은 Data Firehose 가 아니라 Data Streams 를 지목합니다.</desc>
+
+            <defs>
+              <marker id="d-141-1-d141-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-141-1-d141-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 레인 A -->
+            <text class="dg-fs-md dg-bold" x="20" y="26">Kinesis Data Streams — 샤드에 담아 두고 여러 소비자가 각자 읽습니다</text>
+            <rect class="dg-panel" x="20" y="34" width="680" height="180" rx="4"/>
+
+            <rect class="dg-node" x="34" y="100" width="110" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="89" y="124" text-anchor="middle">생산자</text>
+            <text class="dg-fs-sm dg-muted" x="89" y="144" text-anchor="middle">PutRecord</text>
+            <path class="dg-edge dg-edge--accent" d="M148 128 L176 128" marker-end="url(#d-141-1-d141-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="180" y="64" width="200" height="136" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="280" y="86" text-anchor="middle">샤드 (Shard)</text>
+            <rect class="dg-node" x="192" y="96" width="176" height="26" rx="4"/>
+            <text class="dg-fs-sm" x="204" y="114">샤드 1 — 순서 보장</text>
+            <rect class="dg-node" x="192" y="128" width="176" height="26" rx="4"/>
+            <text class="dg-fs-sm" x="204" y="146">샤드 2 — 순서 보장</text>
+            <rect class="dg-node" x="192" y="160" width="176" height="26" rx="4"/>
+            <text class="dg-fs-sm" x="204" y="178">보존 기간 동안 남음</text>
+
+            <path class="dg-edge dg-edge--accent" d="M384 122 L426 86" marker-end="url(#d-141-1-d141-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M384 132 L426 132" marker-end="url(#d-141-1-d141-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M384 142 L426 178" marker-end="url(#d-141-1-d141-ar-accent)"/>
+
+            <rect class="dg-node" x="430" y="66" width="256" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="442" y="91">소비자 A — 실시간 경고</text>
+            <rect class="dg-node" x="430" y="112" width="256" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="442" y="137">소비자 B — 집계 후 저장</text>
+            <rect class="dg-node" x="430" y="158" width="256" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="442" y="183">소비자 C — 되감아 재처리</text>
+
+            <!-- 레인 B -->
+            <text class="dg-fs-md dg-bold" x="20" y="232">Amazon Data Firehose — 버퍼에 모았다가 목적지로 배달하고 끝냅니다</text>
+            <rect class="dg-panel" x="20" y="240" width="680" height="160" rx="4"/>
+
+            <rect class="dg-node" x="34" y="292" width="110" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="89" y="316" text-anchor="middle">생산자</text>
+            <text class="dg-fs-sm dg-muted" x="89" y="336" text-anchor="middle">PutRecord</text>
+            <path class="dg-edge" d="M148 320 L176 320" marker-end="url(#d-141-1-d141-ar)"/>
+
+            <rect class="dg-node dg-node--warn" x="180" y="282" width="170" height="76" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="265" y="306" text-anchor="middle">버퍼</text>
+            <text class="dg-fs-sm" x="265" y="326" text-anchor="middle">크기 또는 대기 시간</text>
+            <text class="dg-fs-sm" x="265" y="346" text-anchor="middle">조건이 차면 전송</text>
+            <path class="dg-edge" d="M354 320 L376 320" marker-end="url(#d-141-1-d141-ar)"/>
+
+            <rect class="dg-node dg-node--muted" x="380" y="292" width="140" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="450" y="316" text-anchor="middle">Lambda 변환</text>
+            <text class="dg-fs-sm" x="450" y="336" text-anchor="middle">선택 사항</text>
+            <path class="dg-edge" d="M524 320 L546 320" marker-end="url(#d-141-1-d141-ar)"/>
+
+            <rect class="dg-node" x="550" y="266" width="136" height="112" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="618" y="288" text-anchor="middle">목적지에 적재</text>
+            <text class="dg-fs-sm" x="618" y="312" text-anchor="middle">Amazon S3</text>
+            <text class="dg-fs-sm" x="618" y="334" text-anchor="middle">Amazon Redshift</text>
+            <text class="dg-fs-sm" x="618" y="356" text-anchor="middle">OpenSearch Service</text>
+
+            <text class="dg-fs-sm dg-bold" x="34" y="384">소비자가 직접 읽을 스트림이 남지 않고, 버퍼링 때문에 구조적으로 지연이 생깁니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="414" width="680" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="436">real-time 이나 여러 소비자가 각자 읽는다는 조건은 Data Streams 를 지목합니다</text>
+            <text class="dg-fs-sm" x="34" y="454">S3 나 Redshift 로 적재만 하고 관리 부담을 줄이려면 Data Firehose 입니다</text>
+          </svg>
+        </div>
         <figcaption>
           Data Streams와 Amazon Data Firehose의 데이터 흐름 대비 — 한쪽은 샤드에 보관하며
           여러 소비자가 각자의 속도로 읽고, 다른 쪽은 버퍼에 모았다가 목적지로 배달하고 끝냅니다

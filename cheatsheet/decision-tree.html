@@ -108,7 +108,116 @@
     <section aria-labelledby="storage-tree">
       <h2 id="storage-tree">스토리지</h2>
 
-      <figure class="diagram" data-diagram="D-190">
+      <figure class="diagram" data-diagram="D-190" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 426" role="img" aria-labelledby="d-190-1-d190-title d-190-1-d190-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-190-1-d190-title">스토리지 선택 결정 트리</title>
+            <desc id="d-190-1-d190-desc">데이터에 어떻게 접근하는가라는 하나의 질문에서 시작해 네 갈래로 갈라지는 위에서 아래로 내려가는 결정 트리입니다.
+              첫째 갈래는 인스턴스 한 대가 디스크로 붙여 쓰는 경우입니다. 데이터가 사라져도 되고 최고 성능이 필요하면 EC2 인스턴스 스토어이고,
+              인스턴스와 무관하게 유지되어야 하면 Amazon EBS 입니다. EBS 안에서 볼륨 타입은 IOPS 와 스루풋 요구로 다시 가릅니다.
+              둘째 갈래는 여러 서버가 동시에 파일 시스템으로 쓰는 경우입니다. 프로토콜이 NFS 면 Amazon EFS,
+              Windows SMB 면 FSx for Windows File Server, HPC 용 Lustre 면 FSx for Lustre 입니다.
+              셋째 갈래는 HTTP 로 객체를 통째로 읽고 쓰는 경우이며 Amazon S3 입니다. 접근 빈도로 클래스를 가릅니다.
+              자주 읽으면 Standard, 패턴이 불규칙하면 Intelligent-Tiering, 거의 읽지 않으면 Glacier 계열입니다.
+              넷째 갈래는 온프레미스 애플리케이션이 기존 프로토콜을 그대로 쓰는 경우이며 AWS Storage Gateway 입니다.
+              파일 공유면 파일 게이트웨이, 블록이면 볼륨 게이트웨이, 백업 소프트웨어면 테이프 게이트웨이를 씁니다.
+              시험 시나리오의 첫 문장에 나오는 접근 방식만 읽어도 후보가 네 갈래 중 하나로 좁혀진다는 것이 이 트리의 쓸모입니다.</desc>
+
+            <defs>
+              <marker id="d-190-1-d190-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-190-1-d190-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node dg-node--accent" x="140" y="30" width="440" height="40" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="56" text-anchor="middle">데이터에 어떻게 접근하는가</text>
+
+            <path class="dg-edge dg-edge--accent" d="M360 70 L360 88 M98 88 L623 88"/>
+            <path class="dg-edge dg-edge--accent" d="M98 88 L98 100" marker-end="url(#d-190-1-d190-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M273 88 L273 100" marker-end="url(#d-190-1-d190-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M448 88 L448 100" marker-end="url(#d-190-1-d190-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M623 88 L623 100" marker-end="url(#d-190-1-d190-ar-accent)"/>
+
+            <!-- 갈래 1 -->
+            <rect class="dg-node dg-node--alt" x="20" y="104" width="155" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="98" y="124" text-anchor="middle">인스턴스 한 대가</text>
+            <text class="dg-fs-sm dg-bold" x="98" y="142" text-anchor="middle">디스크로 붙여서</text>
+            <path class="dg-edge" d="M98 152 L98 160" marker-end="url(#d-190-1-d190-ar)"/>
+            <rect class="dg-node" x="20" y="164" width="155" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="98" y="189" text-anchor="middle">사라져도 되는가</text>
+            <path class="dg-edge" d="M98 204 L98 212 L26 212 L26 334 M26 238 L34 238 M26 286 L34 286"/>
+            <rect class="dg-node dg-node--ok" x="36" y="216" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="46" y="235">사라져도 된다</text>
+            <text class="dg-fs-sm dg-bold" x="46" y="253">인스턴스 스토어</text>
+            <rect class="dg-node dg-node--ok" x="36" y="264" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="46" y="283">유지되어야 한다</text>
+            <text class="dg-fs-sm dg-bold" x="46" y="301">Amazon EBS</text>
+            <text class="dg-fs-sm dg-muted" x="36" y="330">볼륨 타입은 IOPS ·</text>
+            <text class="dg-fs-sm dg-muted" x="36" y="346">스루풋 요구로 가릅니다</text>
+
+            <!-- 갈래 2 -->
+            <rect class="dg-node dg-node--alt" x="195" y="104" width="155" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="273" y="124" text-anchor="middle">여러 서버가 동시에</text>
+            <text class="dg-fs-sm dg-bold" x="273" y="142" text-anchor="middle">파일 시스템으로</text>
+            <path class="dg-edge" d="M273 152 L273 160" marker-end="url(#d-190-1-d190-ar)"/>
+            <rect class="dg-node" x="195" y="164" width="155" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="273" y="189" text-anchor="middle">어떤 프로토콜인가</text>
+            <path class="dg-edge" d="M273 204 L273 212 L201 212 L201 334 M201 238 L209 238 M201 286 L209 286 M201 334 L209 334"/>
+            <rect class="dg-node dg-node--ok" x="211" y="216" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="221" y="235">NFS</text>
+            <text class="dg-fs-sm dg-bold" x="221" y="253">Amazon EFS</text>
+            <rect class="dg-node dg-node--ok" x="211" y="264" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="221" y="283">Windows SMB</text>
+            <text class="dg-fs-sm dg-bold" x="221" y="301">FSx for Windows</text>
+            <rect class="dg-node dg-node--ok" x="211" y="312" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="221" y="331">HPC · Lustre</text>
+            <text class="dg-fs-sm dg-bold" x="221" y="349">FSx for Lustre</text>
+
+            <!-- 갈래 3 -->
+            <rect class="dg-node dg-node--alt" x="370" y="104" width="155" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="448" y="124" text-anchor="middle">HTTP 로 객체를</text>
+            <text class="dg-fs-sm dg-bold" x="448" y="142" text-anchor="middle">통째로 읽고 쓴다</text>
+            <path class="dg-edge" d="M448 152 L448 160" marker-end="url(#d-190-1-d190-ar)"/>
+            <rect class="dg-node" x="370" y="164" width="155" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="448" y="189" text-anchor="middle">Amazon S3 · 접근 빈도</text>
+            <path class="dg-edge" d="M448 204 L448 212 L376 212 L376 334 M376 238 L384 238 M376 286 L384 286 M376 334 L384 334"/>
+            <rect class="dg-node dg-node--ok" x="386" y="216" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="396" y="235">자주 읽는다</text>
+            <text class="dg-fs-sm dg-bold" x="396" y="253">S3 Standard</text>
+            <rect class="dg-node dg-node--ok" x="386" y="264" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="396" y="283">패턴이 불규칙하다</text>
+            <text class="dg-fs-sm dg-bold" x="396" y="301">Intelligent-Tiering</text>
+            <rect class="dg-node dg-node--ok" x="386" y="312" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="396" y="331">거의 읽지 않는다</text>
+            <text class="dg-fs-sm dg-bold" x="396" y="349">Glacier 계열</text>
+
+            <!-- 갈래 4 -->
+            <rect class="dg-node dg-node--alt" x="545" y="104" width="155" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="623" y="124" text-anchor="middle">온프레미스 앱이</text>
+            <text class="dg-fs-sm dg-bold" x="623" y="142" text-anchor="middle">기존 프로토콜로</text>
+            <path class="dg-edge" d="M623 152 L623 160" marker-end="url(#d-190-1-d190-ar)"/>
+            <rect class="dg-node" x="545" y="164" width="155" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="623" y="189" text-anchor="middle">AWS Storage Gateway</text>
+            <path class="dg-edge" d="M623 204 L623 212 L551 212 L551 334 M551 238 L559 238 M551 286 L559 286 M551 334 L559 334"/>
+            <rect class="dg-node dg-node--ok" x="561" y="216" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="571" y="235">파일 공유</text>
+            <text class="dg-fs-sm dg-bold" x="571" y="253">파일 게이트웨이</text>
+            <rect class="dg-node dg-node--ok" x="561" y="264" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="571" y="283">블록 볼륨</text>
+            <text class="dg-fs-sm dg-bold" x="571" y="301">볼륨 게이트웨이</text>
+            <rect class="dg-node dg-node--ok" x="561" y="312" width="139" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="571" y="331">백업 소프트웨어</text>
+            <text class="dg-fs-sm dg-bold" x="571" y="349">테이프 게이트웨이</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="370" width="680" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="398" text-anchor="middle">시나리오 첫 문장의 접근 방식만 읽어도 후보가 네 갈래 중 하나로 좁혀집니다</text>
+          </svg>
+        </div>
         <figcaption>
           스토리지 선택 결정 트리 — 접근 방식(블록 · 파일 · 객체)에서 시작해
           공유 여부, 지속성 요구, 프로토콜, 접근 빈도로 갈라져
@@ -271,7 +380,108 @@
     <section aria-labelledby="database-tree">
       <h2 id="database-tree">데이터베이스</h2>
 
-      <figure class="diagram" data-diagram="D-191">
+      <figure class="diagram" data-diagram="D-191" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 484" role="img" aria-labelledby="d-191-1-d191-title d-191-1-d191-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-191-1-d191-title">데이터베이스 선택 결정 트리</title>
+            <desc id="d-191-1-d191-desc">관계형 데이터인가라는 질문에서 시작해 왼쪽 관계형 갈래와 오른쪽 비관계형 갈래로 나뉘는 위에서 아래로 내려가는 결정 트리입니다.
+              관계형 갈래에서는 먼저 운영 부담을 얼마나 줄여야 하는지를 묻습니다. 최소로 줄여야 하면 Amazon Aurora 이고,
+              표준 관리형으로 충분하면 Amazon RDS 입니다. 그다음 읽기 확장과 가용성 가운데 무엇이 요구인지를 묻습니다.
+              읽기 확장이면 읽기 전용 복제본이고 가용성이면 Multi-AZ 배포입니다. 둘은 서로 다른 문제이므로 처방도 다릅니다.
+              비관계형 갈래에서는 데이터 모델을 묻습니다. 키-값이고 대규모 처리량이면 Amazon DynamoDB,
+              MongoDB 호환 문서면 Amazon DocumentDB, 관계를 탐색하는 그래프면 Amazon Neptune,
+              시계열이면 Amazon Timestream, 인메모리 캐시나 초저지연 저장소면 Amazon ElastiCache 와 MemoryDB 입니다.
+              문제문에 LEAST operational overhead 라는 한정어가 보이면 관리형과 서버리스 쪽으로 꺾는 신호입니다.</desc>
+
+            <defs>
+              <marker id="d-191-1-d191-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-191-1-d191-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node dg-node--accent" x="200" y="30" width="320" height="40" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="56" text-anchor="middle">관계형 데이터인가</text>
+            <path class="dg-edge dg-edge--accent" d="M360 70 L360 86 M185 86 L535 86"/>
+            <path class="dg-edge dg-edge--accent" d="M185 86 L185 98" marker-end="url(#d-191-1-d191-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M535 86 L535 98" marker-end="url(#d-191-1-d191-ar-accent)"/>
+
+            <!-- 관계형 -->
+            <rect class="dg-node dg-node--alt" x="20" y="102" width="330" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="125" text-anchor="middle">예 — 관계형</text>
+            <path class="dg-edge" d="M185 138 L185 146" marker-end="url(#d-191-1-d191-ar)"/>
+
+            <rect class="dg-node" x="20" y="150" width="330" height="36" rx="4"/>
+            <text class="dg-fs-sm" x="185" y="173" text-anchor="middle">운영 부담을 얼마나 줄여야 하는가</text>
+            <path class="dg-edge" d="M185 186 L185 190 M100 190 L270 190"/>
+            <path class="dg-edge" d="M100 190 L100 196" marker-end="url(#d-191-1-d191-ar)"/>
+            <path class="dg-edge" d="M270 190 L270 196" marker-end="url(#d-191-1-d191-ar)"/>
+
+            <rect class="dg-node dg-node--ok" x="20" y="196" width="160" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="100" y="217" text-anchor="middle">최소로 줄인다</text>
+            <text class="dg-fs-sm dg-bold" x="100" y="238" text-anchor="middle">Amazon Aurora</text>
+            <rect class="dg-node dg-node--ok" x="190" y="196" width="160" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="270" y="217" text-anchor="middle">표준으로 충분</text>
+            <text class="dg-fs-sm dg-bold" x="270" y="238" text-anchor="middle">Amazon RDS</text>
+
+            <path class="dg-edge" d="M100 250 L100 258 L270 258 M270 250 L270 258"/>
+            <path class="dg-edge" d="M185 258 L185 262" marker-end="url(#d-191-1-d191-ar)"/>
+
+            <rect class="dg-node" x="20" y="266" width="330" height="36" rx="4"/>
+            <text class="dg-fs-sm" x="185" y="289" text-anchor="middle">읽기 확장과 가용성 중 무엇이 요구인가</text>
+            <path class="dg-edge" d="M185 302 L185 306 M100 306 L270 306"/>
+            <path class="dg-edge" d="M100 306 L100 312" marker-end="url(#d-191-1-d191-ar)"/>
+            <path class="dg-edge" d="M270 306 L270 312" marker-end="url(#d-191-1-d191-ar)"/>
+
+            <rect class="dg-node dg-node--ok" x="20" y="312" width="160" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="100" y="333" text-anchor="middle">읽기 확장</text>
+            <text class="dg-fs-sm dg-bold" x="100" y="354" text-anchor="middle">읽기 전용 복제본</text>
+            <rect class="dg-node dg-node--ok" x="190" y="312" width="160" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="270" y="333" text-anchor="middle">가용성</text>
+            <text class="dg-fs-sm dg-bold" x="270" y="354" text-anchor="middle">Multi-AZ 배포</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="388">읽기 확장과 가용성은 서로 다른 문제입니다</text>
+
+            <!-- 비관계형 -->
+            <rect class="dg-node dg-node--alt" x="370" y="102" width="330" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="535" y="125" text-anchor="middle">아니오 — 비관계형</text>
+            <path class="dg-edge" d="M535 138 L535 146" marker-end="url(#d-191-1-d191-ar)"/>
+
+            <rect class="dg-node" x="370" y="150" width="330" height="36" rx="4"/>
+            <text class="dg-fs-sm" x="535" y="173" text-anchor="middle">어떤 데이터 모델인가</text>
+            <path class="dg-edge" d="M535 186 L535 190 L376 190 L376 391
+                                      M376 215 L384 215 M376 259 L384 259 M376 303 L384 303
+                                      M376 347 L384 347 M376 391 L384 391"/>
+
+            <rect class="dg-node dg-node--ok" x="384" y="196" width="316" height="38" rx="4"/>
+            <text class="dg-fs-sm" x="396" y="220">키-값 · 대규모 처리량</text>
+            <text class="dg-fs-sm dg-bold" x="690" y="220" text-anchor="end">Amazon DynamoDB</text>
+
+            <rect class="dg-node dg-node--ok" x="384" y="240" width="316" height="38" rx="4"/>
+            <text class="dg-fs-sm" x="396" y="264">문서 (MongoDB 호환)</text>
+            <text class="dg-fs-sm dg-bold" x="690" y="264" text-anchor="end">Amazon DocumentDB</text>
+
+            <rect class="dg-node dg-node--ok" x="384" y="284" width="316" height="38" rx="4"/>
+            <text class="dg-fs-sm" x="396" y="308">그래프 · 관계 탐색</text>
+            <text class="dg-fs-sm dg-bold" x="690" y="308" text-anchor="end">Amazon Neptune</text>
+
+            <rect class="dg-node dg-node--ok" x="384" y="328" width="316" height="38" rx="4"/>
+            <text class="dg-fs-sm" x="396" y="352">시계열</text>
+            <text class="dg-fs-sm dg-bold" x="690" y="352" text-anchor="end">Amazon Timestream</text>
+
+            <rect class="dg-node dg-node--ok" x="384" y="372" width="316" height="38" rx="4"/>
+            <text class="dg-fs-sm" x="396" y="396">인메모리 · 초저지연</text>
+            <text class="dg-fs-sm dg-bold" x="690" y="396" text-anchor="end">ElastiCache · MemoryDB</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="424" width="680" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="446">LEAST operational overhead 한정어는 관리형과 서버리스 쪽으로 꺾는 신호입니다</text>
+            <text class="dg-fs-sm" x="34" y="464">읽기 확장과 가용성은 서로 다른 요구이므로 처방도 다릅니다</text>
+          </svg>
+        </div>
         <figcaption>
           데이터베이스 선택 결정 트리 — 관계형 여부에서 시작해 운영 부담,
           읽기 확장과 가용성 중 무엇이 요구인지, 비관계형이면 어떤 데이터 모델인지로 갈라져

@@ -98,7 +98,99 @@
         </table>
       </div>
 
-      <figure class="diagram" data-diagram="D-193">
+      <figure class="diagram" data-diagram="D-193" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 492" role="img" aria-labelledby="d-193-1-d193-title d-193-1-d193-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-193-1-d193-title">헷갈리는 쌍 여섯 개와 각 쌍의 결정 질문</title>
+            <desc id="d-193-1-d193-desc">시험이 집요하게 노리는 혼동 쌍 여섯 개를 카드 여섯 장으로 배치하고, 각 카드에 그 쌍을 가르는 결정 질문 한 줄과 두 답을 적었습니다.
+              첫째 카드는 Multi-AZ 배포와 읽기 전용 복제본입니다. 가용성 문제인지 읽기 확장 문제인지를 물으면 갈립니다.
+              둘째는 보안 그룹과 네트워크 ACL 입니다. 인스턴스 경계인지 서브넷 경계인지, 거부 규칙이 필요한지가 기준입니다.
+              셋째는 ALB 와 NLB 입니다. HTTP 경로나 헤더로 라우팅해야 하면 ALB, TCP 나 UDP 를 다루거나 고정 IP 가 필요하면 NLB 입니다.
+              넷째는 LSI 와 GSI 입니다. 파티션 키를 테이블과 공유하면 LSI, 다른 파티션 키를 쓰면 GSI 입니다.
+              다섯째는 Secrets Manager 와 Parameter Store 입니다. 자격 증명을 자동으로 교체해야 하면 Secrets Manager 이고,
+              교체 요구 없는 설정값이면 Parameter Store 입니다.
+              여섯째는 게이트웨이 엔드포인트와 인터페이스 엔드포인트입니다. 대상이 Amazon S3 나 DynamoDB 면 게이트웨이 엔드포인트,
+              그 밖의 서비스면 인터페이스 엔드포인트, 즉 PrivateLink 입니다.
+              쌍을 외우는 것이 아니라 결정 질문을 외우는 것이 요령이라는 것이 이 한 장의 취지입니다.</desc>
+
+            <text class="dg-fs-md dg-bold" x="20" y="30">쌍을 외우지 말고 각 쌍의 결정 질문을 외웁니다</text>
+
+            <!-- 1 -->
+            <rect class="dg-node dg-node--accent" x="20" y="44" width="220" height="182" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="32" y="66">Multi-AZ 배포</text>
+            <text class="dg-fs-sm dg-bold" x="32" y="84">vs  읽기 전용 복제본</text>
+            <path class="dg-grid" d="M32 102 L228 102"/>
+            <text class="dg-fs-sm dg-muted" x="32" y="122">결정 질문</text>
+            <text class="dg-fs-sm" x="32" y="140">가용성 문제인가</text>
+            <text class="dg-fs-sm" x="32" y="158">읽기 확장 문제인가</text>
+            <path class="dg-grid" d="M32 176 L228 176"/>
+            <text class="dg-fs-sm dg-bold" x="32" y="196">가용성 → Multi-AZ</text>
+            <text class="dg-fs-sm dg-bold" x="32" y="214">읽기 확장 → 복제본</text>
+
+            <!-- 2 -->
+            <rect class="dg-node" x="250" y="44" width="220" height="182" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="262" y="66">보안 그룹</text>
+            <text class="dg-fs-sm dg-bold" x="262" y="84">vs  네트워크 ACL</text>
+            <path class="dg-grid" d="M262 102 L458 102"/>
+            <text class="dg-fs-sm dg-muted" x="262" y="122">결정 질문</text>
+            <text class="dg-fs-sm" x="262" y="140">인스턴스 경계인가</text>
+            <text class="dg-fs-sm" x="262" y="158">서브넷 경계인가</text>
+            <path class="dg-grid" d="M262 176 L458 176"/>
+            <text class="dg-fs-sm dg-bold" x="262" y="196">인스턴스 → 보안 그룹</text>
+            <text class="dg-fs-sm dg-bold" x="262" y="214">거부 규칙 → NACL</text>
+
+            <!-- 3 -->
+            <rect class="dg-node" x="480" y="44" width="220" height="182" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="492" y="66">ALB</text>
+            <text class="dg-fs-sm dg-bold" x="492" y="84">vs  NLB</text>
+            <path class="dg-grid" d="M492 102 L688 102"/>
+            <text class="dg-fs-sm dg-muted" x="492" y="122">결정 질문</text>
+            <text class="dg-fs-sm" x="492" y="140">HTTP 경로 · 헤더로</text>
+            <text class="dg-fs-sm" x="492" y="158">라우팅해야 하는가</text>
+            <path class="dg-grid" d="M492 176 L688 176"/>
+            <text class="dg-fs-sm dg-bold" x="492" y="196">L7 라우팅 → ALB</text>
+            <text class="dg-fs-sm dg-bold" x="492" y="214">TCP · 고정 IP → NLB</text>
+
+            <!-- 4 -->
+            <rect class="dg-node" x="20" y="240" width="220" height="182" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="32" y="262">LSI</text>
+            <text class="dg-fs-sm dg-bold" x="32" y="280">vs  GSI</text>
+            <path class="dg-grid" d="M32 298 L228 298"/>
+            <text class="dg-fs-sm dg-muted" x="32" y="318">결정 질문</text>
+            <text class="dg-fs-sm" x="32" y="336">파티션 키를 테이블과</text>
+            <text class="dg-fs-sm" x="32" y="354">공유하는가</text>
+            <path class="dg-grid" d="M32 372 L228 372"/>
+            <text class="dg-fs-sm dg-bold" x="32" y="392">키 공유 → LSI</text>
+            <text class="dg-fs-sm dg-bold" x="32" y="410">다른 키 → GSI</text>
+
+            <!-- 5 -->
+            <rect class="dg-node" x="250" y="240" width="220" height="182" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="262" y="262">Secrets Manager</text>
+            <text class="dg-fs-sm dg-bold" x="262" y="280">vs  Parameter Store</text>
+            <path class="dg-grid" d="M262 298 L458 298"/>
+            <text class="dg-fs-sm dg-muted" x="262" y="318">결정 질문</text>
+            <text class="dg-fs-sm" x="262" y="336">자격 증명을 자동으로</text>
+            <text class="dg-fs-sm" x="262" y="354">교체해야 하는가</text>
+            <path class="dg-grid" d="M262 372 L458 372"/>
+            <text class="dg-fs-sm dg-bold" x="262" y="392">교체 필요 → Secrets</text>
+            <text class="dg-fs-sm dg-bold" x="262" y="410">설정값 → Parameter</text>
+
+            <!-- 6 -->
+            <rect class="dg-node" x="480" y="240" width="220" height="182" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="492" y="262">게이트웨이 엔드포인트</text>
+            <text class="dg-fs-sm dg-bold" x="492" y="280">vs  인터페이스 엔드포인트</text>
+            <path class="dg-grid" d="M492 298 L688 298"/>
+            <text class="dg-fs-sm dg-muted" x="492" y="318">결정 질문</text>
+            <text class="dg-fs-sm" x="492" y="336">대상이 S3 · DynamoDB</text>
+            <text class="dg-fs-sm" x="492" y="354">인가</text>
+            <path class="dg-grid" d="M492 372 L688 372"/>
+            <text class="dg-fs-sm dg-bold" x="492" y="392">그렇다 → 게이트웨이</text>
+            <text class="dg-fs-sm dg-bold" x="492" y="410">그 외 → 인터페이스</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="436" width="680" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="464" text-anchor="middle">문제문에서 결정 질문에 답할 단서를 먼저 찾으면 후보가 즉시 하나로 줄어듭니다</text>
+          </svg>
+        </div>
         <figcaption>
           시험 직전 한 장 요약 — Multi-AZ 배포와 읽기 전용 복제본, 보안 그룹과 네트워크 ACL,
           ALB와 NLB, LSI와 GSI, Secrets Manager와 Parameter Store,

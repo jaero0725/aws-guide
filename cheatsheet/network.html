@@ -55,7 +55,88 @@
     <section aria-labelledby="connection-matrix">
       <h2 id="connection-matrix">연결 매트릭스</h2>
 
-      <figure class="diagram" data-diagram="D-192">
+      <figure class="diagram" data-diagram="D-192" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 404" role="img" aria-labelledby="d-192-1-d192-title d-192-1-d192-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-192-1-d192-title">네트워크 연결 옵션 매트릭스</title>
+            <desc id="d-192-1-d192-desc">행에는 연결 대상 세 가지를, 열에는 요구 세 가지를 놓고 각 칸의 답이 되는 서비스를 고정한 행렬입니다.
+              첫 행은 VPC 와 VPC 를 잇는 경우입니다. 전이 라우팅이 필요하면 AWS Transit Gateway 이고, 피어링은 비전이이므로 답이 아닙니다.
+              둘만 단순하게 이으면 되면 VPC 피어링이며, 두 방법 모두 트래픽이 AWS 백본에만 머물러 인터넷을 지나지 않습니다.
+              둘째 행은 VPC 와 온프레미스를 잇는 경우입니다. 전이 라우팅이 필요하면 Transit Gateway 에 Direct Connect 나 VPN 을 붙이고,
+              대역폭과 일관된 지연이 요구되면 AWS Direct Connect 전용 회선이며, 인터넷을 지나면 안 되는 요구도 Direct Connect 의 프라이빗 가상 인터페이스가 답입니다.
+              Site-to-Site VPN 은 인터넷을 경유하므로 이 요구를 만족하지 않습니다.
+              셋째 행은 VPC 와 AWS 서비스를 잇는 경우입니다. 엔드포인트에는 전이 라우팅 개념이 없어 해당 없음이고,
+              Amazon S3 와 DynamoDB 는 라우팅 테이블에 붙는 게이트웨이 엔드포인트로 추가 요금 없이 닿으며,
+              그 밖의 서비스는 서브넷 안에 ENI 를 만드는 인터페이스 엔드포인트, 즉 PrivateLink 로 닿습니다.</desc>
+
+            <rect class="dg-node dg-node--empty" x="20" y="40" width="680" height="288" rx="4"/>
+            <path class="dg-grid" d="M20 88 L700 88 M20 168 L700 168 M20 248 L700 248
+                                      M190 40 L190 328 M360 40 L360 328 M530 40 L530 328"/>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="60">연결 대상</text>
+            <text class="dg-fs-sm dg-muted" x="30" y="78">요구</text>
+
+            <text class="dg-fs-sm dg-bold" x="200" y="60">전이 라우팅이</text>
+            <text class="dg-fs-sm dg-bold" x="200" y="78">필요하다</text>
+            <text class="dg-fs-sm dg-bold" x="370" y="60">대역폭과 일관된</text>
+            <text class="dg-fs-sm dg-bold" x="370" y="78">지연이 요구된다</text>
+            <rect class="dg-node dg-node--accent" x="530" y="40" width="170" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="540" y="60">인터넷을</text>
+            <text class="dg-fs-sm dg-bold" x="540" y="78">경유하면 안 된다</text>
+
+            <!-- 행 1 -->
+            <text class="dg-fs-sm dg-bold" x="30" y="126">VPC 와 VPC</text>
+            <text class="dg-fs-sm dg-muted" x="30" y="146">같은 계정 · 다른 계정</text>
+
+            <text class="dg-fs-sm dg-bold" x="200" y="112">Transit Gateway</text>
+            <text class="dg-fs-sm" x="200" y="134">허브가 전이 라우팅</text>
+            <text class="dg-fs-sm dg-muted" x="200" y="156">피어링은 비전이</text>
+
+            <text class="dg-fs-sm dg-bold" x="370" y="112">VPC 피어링</text>
+            <text class="dg-fs-sm" x="370" y="134">둘만 이을 때 단순</text>
+            <text class="dg-fs-sm dg-muted" x="370" y="156">중간 홉이 없음</text>
+
+            <text class="dg-fs-sm dg-bold" x="540" y="112">피어링 · TGW</text>
+            <text class="dg-fs-sm" x="540" y="134">둘 다 AWS 백본만</text>
+            <text class="dg-fs-sm dg-muted" x="540" y="156">인터넷을 안 지남</text>
+
+            <!-- 행 2 -->
+            <text class="dg-fs-sm dg-bold" x="30" y="206">VPC 와 온프레미스</text>
+            <text class="dg-fs-sm dg-muted" x="30" y="226">하이브리드 구성</text>
+
+            <text class="dg-fs-sm dg-bold" x="200" y="192">TGW + DX 또는 VPN</text>
+            <text class="dg-fs-sm" x="200" y="214">온프레미스도 허브에</text>
+            <text class="dg-fs-sm dg-muted" x="200" y="236">라우팅을 한 곳에서</text>
+
+            <text class="dg-fs-sm dg-bold" x="370" y="192">Direct Connect</text>
+            <text class="dg-fs-sm" x="370" y="214">전용 회선</text>
+            <text class="dg-fs-sm dg-muted" x="370" y="236">일관된 지연</text>
+
+            <text class="dg-fs-sm dg-bold" x="540" y="192">Direct Connect</text>
+            <text class="dg-fs-sm" x="540" y="214">프라이빗 VIF</text>
+            <text class="dg-fs-sm dg-muted" x="540" y="236">VPN 은 인터넷 경유</text>
+
+            <!-- 행 3 -->
+            <text class="dg-fs-sm dg-bold" x="30" y="286">VPC 와 AWS 서비스</text>
+            <text class="dg-fs-sm dg-muted" x="30" y="306">S3 · DynamoDB · 그 외</text>
+
+            <text class="dg-fs-sm dg-bold" x="200" y="272">해당 없음</text>
+            <text class="dg-fs-sm" x="200" y="294">엔드포인트에는</text>
+            <text class="dg-fs-sm dg-muted" x="200" y="316">전이 개념이 없습니다</text>
+
+            <text class="dg-fs-sm dg-bold" x="370" y="272">게이트웨이 엔드포인트</text>
+            <text class="dg-fs-sm" x="370" y="294">S3 · DynamoDB 전용</text>
+            <text class="dg-fs-sm dg-muted" x="370" y="316">추가 요금 없음</text>
+
+            <text class="dg-fs-sm dg-bold" x="540" y="272">인터페이스 엔드포인트</text>
+            <text class="dg-fs-sm" x="540" y="294">PrivateLink · ENI</text>
+            <text class="dg-fs-sm dg-muted" x="540" y="316">프라이빗 DNS 가로채기</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="344" width="680" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="366">인터넷 비경유 한정어는 VPC 엔드포인트나 Direct Connect 프라이빗 VIF 를 지목합니다</text>
+            <text class="dg-fs-sm" x="34" y="384">전이 라우팅이 보이면 VPC 피어링이 아니라 Transit Gateway 입니다</text>
+          </svg>
+        </div>
         <figcaption>
           네트워크 연결 옵션 매트릭스 — 연결 대상(VPC와 VPC · VPC와 온프레미스 · VPC와 AWS 서비스)을 한 축에,
           요구(전이 라우팅 · 대역폭 · 인터넷 비경유)를 다른 축에 놓고 각 칸의 답이 되는 서비스를 고정합니다

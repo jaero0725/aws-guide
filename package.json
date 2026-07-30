@@ -8,8 +8,7 @@
     "index": "node tools/build-index.mjs",
     "inline": "node tools/inline-diagrams.mjs",
     "check-inline": "node tools/inline-diagrams.mjs --check",
-    "build": "node tools/inline-diagrams.mjs && node tools/build-index.mjs && node tools/validate.mjs --all",
-    "verify": "node tools/inline-diagrams.mjs && node tools/build-index.mjs && node tools/validate.mjs --all --strict --deploy",
+    "build": "node tools/inline-diagrams.mjs && node tools/build-index.mjs && node tools/validate.mjs --all --strict --deploy",
     "serve": "python3 -m http.server 8000"
   }
 }

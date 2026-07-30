@@ -87,7 +87,73 @@
         사실이 확인되었습니다. 유출 여부는 아직 확인되지 않았습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-182">
+      <figure class="diagram" data-diagram="D-182" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 470" role="img" aria-labelledby="d-182-1-d182-title d-182-1-d182-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-182-1-d182-title">데이터베이스 노출이 성립하는 세 조건과 하나씩 제거했을 때</title>
+            <desc id="d-182-1-d182-desc">위쪽은 인터넷에서 데이터베이스까지 실제로 닿는 경로입니다.
+              인터넷에서 인터넷 게이트웨이를 지나 데이터베이스에 도달하려면 가운데 상자의 세 조건이 동시에 참이어야 합니다.
+              첫째, 그 서브넷의 라우팅 테이블에 인터넷 게이트웨이로 나가는 경로가 있어야 합니다.
+              둘째, 인스턴스에 퍼블릭 IP 주소가 붙어 있어야 합니다. 셋째, 보안 그룹이 데이터베이스 포트를 0.0.0.0/0 으로 열어 두어야 합니다.
+              셋 중 하나라도 거짓이면 경로는 성립하지 않습니다.
+              아래 세 줄은 조건을 하나씩 제거했을 때 무엇이 남는지 보여 줍니다.
+              라우팅 경로를 빼면 인터넷에서 오는 길 자체가 사라져 그 서브넷이 프라이빗이 됩니다.
+              퍼블릭 IP 를 떼면 인터넷 쪽에서 지목할 목적지 주소가 없어집니다.
+              보안 그룹을 애플리케이션 보안 그룹 참조로 좁히면 포트가 닫혀 접속이 거부되고 앱 계층만 통과합니다.
+              결론은 서브넷의 이름이 아무것도 결정하지 않으며 이 세 조건의 결합만이 노출을 만든다는 것입니다.</desc>
+
+            <defs>
+              <marker id="d-182-1-d182-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">노출이 성립하는 경로 — 세 조건이 모두 참일 때만</text>
+
+            <rect class="dg-node" x="20" y="100" width="96" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="68" y="133" text-anchor="middle">인터넷</text>
+            <path class="dg-edge dg-edge--danger" d="M120 128 L136 128" marker-end="url(#d-182-1-d182-ar-danger)"/>
+
+            <rect class="dg-node" x="140" y="100" width="96" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="188" y="133" text-anchor="middle">IGW</text>
+            <path class="dg-edge dg-edge--danger" d="M240 128 L256 128" marker-end="url(#d-182-1-d182-ar-danger)"/>
+
+            <rect class="dg-panel" x="260" y="56" width="250" height="160" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="260" y="48">세 조건이 함께 참</text>
+            <rect class="dg-node dg-node--danger" x="272" y="68" width="226" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="284" y="93">라우팅 테이블에 IGW 경로</text>
+            <rect class="dg-node dg-node--danger" x="272" y="116" width="226" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="284" y="141">인스턴스에 퍼블릭 IP</text>
+            <rect class="dg-node dg-node--danger" x="272" y="164" width="226" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="284" y="189">보안 그룹이 0.0.0.0/0 허용</text>
+
+            <path class="dg-edge dg-edge--danger" d="M514 128 L554 128" marker-end="url(#d-182-1-d182-ar-danger)"/>
+
+            <rect class="dg-node dg-node--danger" x="558" y="96" width="142" height="76" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="629" y="126" text-anchor="middle">데이터베이스</text>
+            <text class="dg-fs-sm" x="629" y="148" text-anchor="middle">인터넷에서</text>
+            <text class="dg-fs-sm" x="629" y="164" text-anchor="middle">접근 가능</text>
+
+            <!-- 조건 제거 -->
+            <text class="dg-fs-md dg-bold" x="20" y="250">조건을 하나씩 제거하면 무엇이 남는가</text>
+
+            <rect class="dg-node dg-node--ok" x="20" y="268" width="680" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="293">라우팅 테이블의 IGW 경로를 뺀다</text>
+            <text class="dg-fs-sm" x="300" y="293">인터넷에서 오는 길 자체가 사라집니다 — 프라이빗 서브넷</text>
+
+            <rect class="dg-node dg-node--ok" x="20" y="314" width="680" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="339">인스턴스의 퍼블릭 IP 를 뗀다</text>
+            <text class="dg-fs-sm" x="300" y="339">인터넷 쪽에서 지목할 목적지 주소가 없어집니다</text>
+
+            <rect class="dg-node dg-node--ok" x="20" y="360" width="680" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="385">보안 그룹을 앱 SG 참조로 좁힌다</text>
+            <text class="dg-fs-sm" x="300" y="385">포트가 닫혀 거부되고 앱 계층만 통과합니다</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="414" width="680" height="44" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="442" text-anchor="middle">서브넷 이름은 아무것도 결정하지 않습니다 — 세 조건의 결합이 노출을 만듭니다</text>
+          </svg>
+        </div>
         <figcaption>
           라우팅 테이블의 인터넷 게이트웨이 경로, 인스턴스에 붙은 퍼블릭 주소,
           보안 그룹의 개방 규칙 세 조건이 결합해 데이터베이스 노출이 성립하는 경로와,
