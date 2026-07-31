@@ -259,7 +259,100 @@
         </table>
       </div>
 
-      <figure class="diagram" data-diagram="D-185">
+      <figure class="diagram" data-diagram="D-185" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 536" role="img" aria-labelledby="d-185-1-d185-title d-185-1-d185-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-185-1-d185-title">요구 RTO·RPO 에서 세 결정으로 내려가는 DR 판단 경로</title>
+            <desc id="d-185-1-d185-desc">맨 위에서 문제문이 제시한 RTO 와 RPO 요구를 읽는 것에서 시작해 세 개의 결정으로 왼쪽에서 오른쪽으로 내려갑니다.
+              첫 번째 결정은 데이터 복제 방식입니다. 이 결정을 정하는 것은 RPO 입니다. 스냅샷 복사는 RPO 가 길고, 비동기 복제는 짧으며, 양방향 복제는 거의 없습니다.
+              두 번째 결정은 DNS 전환 방식입니다. 사람이 수동으로 레코드를 바꾸면 전환 자체가 RTO 를 늘리고,
+              Route 53 장애 조치 라우팅에 상태 확인을 연동하면 자동으로 넘어가며, 지연 시간이나 가중치 라우팅을 쓰면 평소에도 양쪽으로 트래픽이 갑니다.
+              세 번째 결정은 대상 리전에 얼마나 용량을 확보해 둘 것인가입니다. 아예 두지 않거나, 데이터베이스 같은 최소 코어만 상시로 두거나,
+              축소 스택이나 전체 규모를 상시로 띄워 둡니다.
+              아래 네 줄은 세 결정의 조합이 곧 DR 전략 이름이 된다는 것을 보여 줍니다.
+              복제 없음과 수동 전환과 용량 없음은 백업 및 복원이고, 비동기 복제와 자동 장애 조치와 최소 코어는 파일럿 라이트이며,
+              같은 조합에 축소 스택이면 웜 스탠바이, 양방향 복제와 지연 또는 가중치 라우팅과 전체 규모면 다중 사이트 액티브-액티브입니다.</desc>
+
+            <defs>
+              <marker id="d-185-1-d185-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node dg-node--accent" x="20" y="36" width="680" height="44" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="64" text-anchor="middle">요구 — 문제문에서 RTO 와 RPO 두 문장을 먼저 읽습니다</text>
+            <path class="dg-edge dg-edge--accent" d="M360 82 L360 96" marker-end="url(#d-185-1-d185-ar-accent)"/>
+
+            <!-- 결정 1 -->
+            <rect class="dg-panel" x="20" y="100" width="210" height="206" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="32" y="122">결정 1 — 데이터 복제</text>
+            <text class="dg-fs-sm dg-muted" x="32" y="142">RPO 가 정합니다</text>
+            <rect class="dg-node" x="32" y="152" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="44" y="173">스냅샷 복사</text>
+            <text class="dg-fs-sm dg-muted" x="44" y="189">RPO 가 깁니다</text>
+            <rect class="dg-node" x="32" y="202" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="44" y="223">비동기 복제</text>
+            <text class="dg-fs-sm dg-muted" x="44" y="239">RPO 가 짧습니다</text>
+            <rect class="dg-node" x="32" y="252" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="44" y="273">양방향 복제</text>
+            <text class="dg-fs-sm dg-muted" x="44" y="289">RPO 가 거의 없습니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M234 200 L251 200" marker-end="url(#d-185-1-d185-ar-accent)"/>
+
+            <!-- 결정 2 -->
+            <rect class="dg-panel" x="255" y="100" width="210" height="206" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="267" y="122">결정 2 — DNS 전환</text>
+            <text class="dg-fs-sm dg-muted" x="267" y="142">RTO 에 직접 더해집니다</text>
+            <rect class="dg-node" x="267" y="152" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="279" y="173">수동 전환</text>
+            <text class="dg-fs-sm dg-muted" x="279" y="189">사람 손이 필요합니다</text>
+            <rect class="dg-node" x="267" y="202" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="279" y="223">Route 53 장애 조치</text>
+            <text class="dg-fs-sm dg-muted" x="279" y="239">상태 확인 연동</text>
+            <rect class="dg-node" x="267" y="252" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="279" y="273">지연 · 가중치 라우팅</text>
+            <text class="dg-fs-sm dg-muted" x="279" y="289">평소에도 양쪽으로</text>
+
+            <path class="dg-edge dg-edge--accent" d="M469 200 L486 200" marker-end="url(#d-185-1-d185-ar-accent)"/>
+
+            <!-- 결정 3 -->
+            <rect class="dg-panel" x="490" y="100" width="210" height="206" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="502" y="122">결정 3 — 용량 확보</text>
+            <text class="dg-fs-sm dg-muted" x="502" y="142">상시 비용이 여기서 납니다</text>
+            <rect class="dg-node" x="502" y="152" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="514" y="173">두지 않음</text>
+            <text class="dg-fs-sm dg-muted" x="514" y="189">필요할 때 만듭니다</text>
+            <rect class="dg-node" x="502" y="202" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="514" y="223">최소 코어만 상시</text>
+            <text class="dg-fs-sm dg-muted" x="514" y="239">데이터베이스 등</text>
+            <rect class="dg-node" x="502" y="252" width="186" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="514" y="273">축소 또는 전 규모</text>
+            <text class="dg-fs-sm dg-muted" x="514" y="289">스택 전체가 상시</text>
+
+            <!-- 조합 결과 -->
+            <text class="dg-fs-md dg-bold" x="20" y="326">세 결정의 조합이 곧 전략 이름입니다</text>
+
+            <rect class="dg-node" x="20" y="336" width="680" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="34" y="357">스냅샷 복사 · 수동 전환 · 용량 없음</text>
+            <text class="dg-fs-sm dg-bold" x="686" y="357" text-anchor="end">백업 및 복원</text>
+
+            <rect class="dg-node" x="20" y="372" width="680" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="34" y="393">비동기 복제 · 장애 조치 라우팅 · 최소 코어</text>
+            <text class="dg-fs-sm dg-bold" x="686" y="393" text-anchor="end">파일럿 라이트</text>
+
+            <rect class="dg-node" x="20" y="408" width="680" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="34" y="429">비동기 복제 · 장애 조치 라우팅 · 축소 스택 상시</text>
+            <text class="dg-fs-sm dg-bold" x="686" y="429" text-anchor="end">웜 스탠바이</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="444" width="680" height="32" rx="4"/>
+            <text class="dg-fs-sm" x="34" y="465">양방향 복제 · 지연 또는 가중치 라우팅 · 전 규모 상시</text>
+            <text class="dg-fs-sm dg-bold" x="686" y="465" text-anchor="end">다중 사이트 액티브-액티브</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="486" width="680" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="511" text-anchor="middle">요구를 만족하는 것 가운데 가장 단순하고 저렴한 조합을 고릅니다</text>
+          </svg>
+        </div>
         <figcaption>
           요구 RTO와 RPO에서 출발해 데이터 복제 방식 · DNS 전환 방식 · 대상 리전 용량 확보 수준
           세 가지 결정으로 내려가는 판단 경로.

@@ -1,0 +1,84 @@
+<svg viewBox="0 0 720 394" role="img" aria-labelledby="d181-title d181-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d181-title">같은 읽기 부하에 세 처방을 적용했을 때 프라이머리에 남는 요청량</title>
+  <desc id="d181-desc">동일한 읽기 부하를 위에서 흘려 보내고, 세 가지 처방이 그 부하를 얼마나 가로채는지 세 열로 나란히 비교합니다.
+    왼쪽 처방은 읽기 전용 복제본입니다. 애플리케이션이 읽기 엔드포인트로 읽기를 보내므로 상당 부분이 복제본에서 처리되고
+    프라이머리에는 쓰기와 남은 읽기만 도달합니다. 아래 막대가 크게 짧아집니다.
+    가운데 처방은 ElastiCache 캐시 계층입니다. 캐시에 적중한 요청은 데이터베이스까지 내려가지 않으므로 미스만 프라이머리에 도달하고 막대가 가장 짧습니다.
+    오른쪽 처방은 Multi-AZ 배포입니다. 다른 가용 영역의 대기 인스턴스는 읽기 트래픽을 전혀 받지 않으므로 부하가 그대로 통과합니다.
+    그 지점을 가위표로 표시했고, 아래 막대는 처방을 적용하기 전과 같은 길이로 남습니다.
+    결론은 Multi-AZ 가 가용성을 사는 구성이지 읽기 부하를 더는 처방이 아니라는 것입니다.</desc>
+
+  <defs>
+    <marker id="d181-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d181-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">같은 읽기 부하 — 처방마다 프라이머리에 도달하는 양이 다릅니다</text>
+
+  <!-- 처방 A -->
+  <rect class="dg-panel" x="20" y="36" width="220" height="280" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="58">처방 A — 읽기 전용 복제본</text>
+  <rect class="dg-node dg-node--alt" x="34" y="70" width="192" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="130" y="93" text-anchor="middle">애플리케이션 읽기 부하</text>
+  <path class="dg-edge" d="M130 106 L130 122" marker-end="url(#d181-ar)"/>
+  <rect class="dg-node dg-node--ok" x="34" y="126" width="192" height="50" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="130" y="148" text-anchor="middle">읽기 전용 복제본</text>
+  <text class="dg-fs-sm" x="130" y="167" text-anchor="middle">읽기 엔드포인트가 흡수</text>
+  <path class="dg-edge dg-edge--dashed" d="M130 176 L130 190" marker-end="url(#d181-ar)"/>
+  <rect class="dg-node" x="34" y="194" width="192" height="50" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="130" y="216" text-anchor="middle">프라이머리</text>
+  <text class="dg-fs-sm dg-muted" x="130" y="235" text-anchor="middle">쓰기와 남은 읽기</text>
+  <text class="dg-fs-sm dg-muted" x="34" y="264">프라이머리에 도달하는 양</text>
+  <rect class="dg-node dg-node--empty" x="34" y="270" width="192" height="22" rx="4"/>
+  <rect class="dg-node dg-node--ok" x="35" y="271" width="77" height="20" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="310">크게 줄어듭니다</text>
+
+  <!-- 처방 B -->
+  <rect class="dg-panel" x="250" y="36" width="220" height="280" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="264" y="58">처방 B — ElastiCache</text>
+  <rect class="dg-node dg-node--alt" x="264" y="70" width="192" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="360" y="93" text-anchor="middle">애플리케이션 읽기 부하</text>
+  <path class="dg-edge" d="M360 106 L360 122" marker-end="url(#d181-ar)"/>
+  <rect class="dg-node dg-node--ok" x="264" y="126" width="192" height="50" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="148" text-anchor="middle">ElastiCache 캐시 계층</text>
+  <text class="dg-fs-sm" x="360" y="167" text-anchor="middle">적중분은 내려가지 않음</text>
+  <path class="dg-edge dg-edge--dotted" d="M360 176 L360 190" marker-end="url(#d181-ar)"/>
+  <rect class="dg-node" x="264" y="194" width="192" height="50" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="216" text-anchor="middle">프라이머리</text>
+  <text class="dg-fs-sm dg-muted" x="360" y="235" text-anchor="middle">캐시 미스만 처리</text>
+  <text class="dg-fs-sm dg-muted" x="264" y="264">프라이머리에 도달하는 양</text>
+  <rect class="dg-node dg-node--empty" x="264" y="270" width="192" height="22" rx="4"/>
+  <rect class="dg-node dg-node--ok" x="265" y="271" width="48" height="20" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="264" y="310">가장 크게 줄어듭니다</text>
+
+  <!-- 처방 C -->
+  <rect class="dg-panel" x="480" y="36" width="220" height="280" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="494" y="58">처방 C — Multi-AZ 배포</text>
+  <rect class="dg-node dg-node--alt" x="494" y="70" width="192" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="590" y="93" text-anchor="middle">애플리케이션 읽기 부하</text>
+  <path class="dg-edge dg-edge--danger" d="M590 106 L590 122" marker-end="url(#d181-ar-danger)"/>
+  <rect class="dg-node dg-node--muted" x="494" y="126" width="192" height="50" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="602" y="148" text-anchor="middle">대기 인스턴스</text>
+  <text class="dg-fs-sm" x="602" y="167" text-anchor="middle">읽기를 받지 않습니다</text>
+  <path class="dg-x" d="M502 134 L516 148 M516 134 L502 148"/>
+  <path class="dg-edge dg-edge--danger" d="M590 176 L590 190" marker-end="url(#d181-ar-danger)"/>
+  <rect class="dg-node dg-node--danger" x="494" y="194" width="192" height="50" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="590" y="216" text-anchor="middle">프라이머리</text>
+  <text class="dg-fs-sm" x="590" y="235" text-anchor="middle">읽기 부하가 그대로</text>
+  <text class="dg-fs-sm dg-muted" x="494" y="264">프라이머리에 도달하는 양</text>
+  <rect class="dg-node dg-node--empty" x="494" y="270" width="192" height="22" rx="4"/>
+  <rect class="dg-node dg-node--danger" x="495" y="271" width="190" height="20" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="494" y="310">전혀 줄지 않습니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="330" width="680" height="52" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="354">Multi-AZ 는 가용성을 사는 구성이지 읽기 부하를 더는 처방이 아닙니다</text>
+  <text class="dg-fs-sm" x="34" y="374">읽기 부하 문제에는 읽기 전용 복제본이나 캐시 계층으로 답합니다</text>
+</svg>

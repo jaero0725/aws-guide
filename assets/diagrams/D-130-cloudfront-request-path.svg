@@ -1,0 +1,87 @@
+<svg viewBox="0 0 720 452" role="img" aria-labelledby="d130-title d130-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d130-title">CloudFront 요청이 지나는 4단 경로와 캐시 키</title>
+  <desc id="d130-desc">뷰어에서 출발한 요청이 엣지 로케이션, 리전 엣지 캐시, 오리진 순서로 올라가는 왼쪽에서 오른쪽 흐름입니다.
+    응답이 어느 단계에서 돌아오는지에 따라 세 갈래로 갈립니다.
+    첫째, 엣지 로케이션 캐시에 적중하면 그 자리에서 즉시 응답합니다. 가장 빠르고 오리진에는 요청이 가지 않습니다.
+    둘째, 엣지가 미스면 여러 엣지가 공유하는 리전 엣지 캐시로 올라가고, 거기 적중하면 오리진까지 가지 않고 응답합니다.
+    셋째, 둘 다 미스면 오리진까지 올라가 응답을 받아 내려오면서 캐시에 채웁니다. 세 갈래를 아래쪽에 서로 겹치지 않는 되돌아오는 선으로 그렸습니다.
+    아래쪽은 캐시 키입니다. 경로는 항상 캐시 키에 들어가고 쿼리 문자열과 헤더와 쿠키는 캐시 정책이 허용한 것만 들어갑니다.
+    캐시 키에 넣는 항목이 늘어날수록 같은 콘텐츠가 여러 벌로 쪼개져 적중률이 떨어지므로, 적중률은 운이 아니라 캐시 정책 설계의 결과라는 것이 결론입니다.</desc>
+
+  <defs>
+    <marker id="d130-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d130-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d130-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 노드 -->
+  <rect class="dg-node" x="20" y="70" width="110" height="110" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="75" y="118" text-anchor="middle">뷰어</text>
+  <text class="dg-fs-sm dg-muted" x="75" y="140" text-anchor="middle">브라우저 · 앱</text>
+
+  <rect class="dg-node dg-node--accent" x="170" y="70" width="160" height="110" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="250" y="98" text-anchor="middle">엣지 로케이션</text>
+  <text class="dg-fs-sm" x="250" y="122" text-anchor="middle">가장 가까운 지점</text>
+  <text class="dg-fs-sm" x="250" y="144" text-anchor="middle">여기서 맞으면 끝</text>
+
+  <rect class="dg-node" x="370" y="70" width="160" height="110" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="450" y="98" text-anchor="middle">리전 엣지 캐시</text>
+  <text class="dg-fs-sm" x="450" y="122" text-anchor="middle">여러 엣지가 공유</text>
+  <text class="dg-fs-sm" x="450" y="144" text-anchor="middle">오리진 요청을 줄임</text>
+
+  <rect class="dg-node" x="570" y="70" width="130" height="110" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="635" y="106" text-anchor="middle">오리진</text>
+  <text class="dg-fs-sm dg-muted" x="635" y="128" text-anchor="middle">S3 · ALB</text>
+  <text class="dg-fs-sm dg-muted" x="635" y="148" text-anchor="middle">커스텀 오리진</text>
+
+  <!-- 요청 방향 -->
+  <path class="dg-edge" d="M134 118 L166 118" marker-end="url(#d130-ar)"/>
+  <path class="dg-edge dg-edge--dashed" d="M334 118 L366 118" marker-end="url(#d130-ar)"/>
+  <path class="dg-edge dg-edge--dashed" d="M534 118 L566 118" marker-end="url(#d130-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="150" y="60" text-anchor="middle">요청</text>
+  <text class="dg-fs-sm dg-muted" x="350" y="60" text-anchor="middle">미스</text>
+  <text class="dg-fs-sm dg-muted" x="550" y="60" text-anchor="middle">미스</text>
+
+  <!-- 응답이 돌아오는 세 갈래 -->
+  <path class="dg-edge dg-edge--accent" d="M250 184 L250 210 L60 210 L60 186" marker-end="url(#d130-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="262" y="205">엣지 캐시 히트 — 즉시 응답</text>
+
+  <path class="dg-edge dg-edge--ok dg-edge--dashed" d="M450 184 L450 238 L76 238 L76 186" marker-end="url(#d130-ar-ok)"/>
+  <text class="dg-fs-sm" x="462" y="233">리전 엣지 캐시에서 응답</text>
+
+  <path class="dg-edge dg-edge--dotted" d="M635 184 L635 266 L92 266 L92 186" marker-end="url(#d130-ar)"/>
+  <text class="dg-fs-sm" x="300" y="260">둘 다 미스 — 오리진까지 올라간 뒤 캐시를 채웁니다</text>
+
+  <!-- 캐시 키 -->
+  <text class="dg-fs-md dg-bold" x="20" y="316">캐시 키를 구성하는 요소 — 캐시 정책이 허용한 것만 들어갑니다</text>
+
+  <rect class="dg-node dg-node--ok" x="20" y="328" width="164" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="102" y="350" text-anchor="middle">경로</text>
+  <text class="dg-fs-sm dg-muted" x="102" y="370" text-anchor="middle">항상 포함</text>
+
+  <rect class="dg-node" x="192" y="328" width="164" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="274" y="350" text-anchor="middle">쿼리 문자열</text>
+  <text class="dg-fs-sm dg-muted" x="274" y="370" text-anchor="middle">정책에서 선택</text>
+
+  <rect class="dg-node" x="364" y="328" width="164" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="446" y="350" text-anchor="middle">헤더</text>
+  <text class="dg-fs-sm dg-muted" x="446" y="370" text-anchor="middle">정책에서 선택</text>
+
+  <rect class="dg-node" x="536" y="328" width="164" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="618" y="350" text-anchor="middle">쿠키</text>
+  <text class="dg-fs-sm dg-muted" x="618" y="370" text-anchor="middle">정책에서 선택</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="392" width="680" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="414">캐시 키에 넣는 항목이 늘어날수록 같은 콘텐츠가 여러 벌로 쪼개져 적중률이 떨어집니다</text>
+  <text class="dg-fs-sm" x="34" y="432">적중률은 운이 아니라 캐시 정책 설계의 결과입니다</text>
+</svg>

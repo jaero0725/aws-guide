@@ -1,0 +1,80 @@
+<svg viewBox="0 0 720 478" role="img" aria-labelledby="d180-title d180-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d180-title">장기 액세스 키의 확산 경로와 임시 자격 증명의 차단 지점</title>
+  <desc id="d180-desc">위쪽은 인스턴스에 장기 액세스 키를 파일로 심어 둔 경우입니다.
+    키가 담긴 인스턴스에서 네 갈래로 복사본이 번집니다. AMI 를 떠서 만든 다른 인스턴스, 소스 저장소에 함께 올라간 커밋,
+    애플리케이션 로그와 환경 변수 덤프, 그리고 볼륨 스냅샷과 백업입니다. 네 갈래를 모으는 오른쪽 상자가 결과입니다.
+    복사본 하나하나가 새로운 출발점이 되므로 어디까지 퍼졌는지 셀 수 없고, 되돌릴 회수 지점 자체가 사라집니다. 그 지점을 가위표로 표시했습니다.
+    아래쪽은 같은 인스턴스가 IAM 역할과 인스턴스 프로파일을 쓰는 경우입니다.
+    인스턴스에는 키 파일이 없고, 필요할 때마다 IMDSv2 를 통해 만료 시각이 있는 임시 자격 증명을 받습니다.
+    복사되더라도 곧 무효가 되므로 확산 경로 자체가 성립하지 않습니다.
+    이 사고의 본질은 키가 유출된 것이 아니라 회수할 수 없는 자격 증명을 처음부터 썼다는 데 있습니다.</desc>
+
+  <defs>
+    <marker id="d180-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d180-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 위: 장기 키 -->
+  <text class="dg-fs-md dg-bold" x="20" y="26">장기 액세스 키를 인스턴스에 심은 경우</text>
+  <rect class="dg-panel" x="20" y="34" width="680" height="212" rx="4"/>
+
+  <rect class="dg-node dg-node--danger" x="34" y="110" width="150" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="109" y="134" text-anchor="middle">EC2 인스턴스</text>
+  <text class="dg-fs-sm dg-mono" x="109" y="156" text-anchor="middle">.aws/credentials</text>
+
+  <path class="dg-edge dg-edge--danger" d="M188 132 L264 68" marker-end="url(#d180-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M188 136 L264 116" marker-end="url(#d180-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M188 144 L264 164" marker-end="url(#d180-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M188 148 L264 212" marker-end="url(#d180-ar-danger)"/>
+
+  <rect class="dg-node dg-node--danger" x="270" y="48" width="170" height="40" rx="4"/>
+  <text class="dg-fs-sm" x="282" y="73">AMI → 다른 인스턴스</text>
+  <rect class="dg-node dg-node--danger" x="270" y="96" width="170" height="40" rx="4"/>
+  <text class="dg-fs-sm" x="282" y="121">소스 저장소 커밋</text>
+  <rect class="dg-node dg-node--danger" x="270" y="144" width="170" height="40" rx="4"/>
+  <text class="dg-fs-sm" x="282" y="169">로그 · 환경 변수 덤프</text>
+  <rect class="dg-node dg-node--danger" x="270" y="192" width="170" height="40" rx="4"/>
+  <text class="dg-fs-sm" x="282" y="217">볼륨 스냅샷 · 백업</text>
+
+  <path class="dg-edge dg-edge--danger" d="M440 68 L454 68 L454 212 M440 116 L454 116 M440 164 L454 164 M440 212 L454 212"/>
+  <path class="dg-edge dg-edge--danger" d="M454 140 L466 140" marker-end="url(#d180-ar-danger)"/>
+
+  <rect class="dg-node dg-node--danger" x="472" y="96" width="214" height="88" rx="4"/>
+  <path class="dg-x" d="M484 110 L498 124 M498 110 L484 124"/>
+  <text class="dg-fs-sm dg-bold" x="508" y="122">회수 지점이 사라집니다</text>
+  <text class="dg-fs-sm" x="486" y="148">복사본마다 새 출발점이 되고</text>
+  <text class="dg-fs-sm" x="486" y="170">어디까지 퍼졌는지 모릅니다</text>
+
+  <!-- 아래: IAM 역할 -->
+  <text class="dg-fs-md dg-bold" x="20" y="284">IAM 역할과 인스턴스 프로파일을 쓴 경우</text>
+  <rect class="dg-panel" x="20" y="292" width="680" height="108" rx="4"/>
+
+  <rect class="dg-node" x="34" y="316" width="150" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="109" y="340" text-anchor="middle">EC2 인스턴스</text>
+  <text class="dg-fs-sm dg-muted" x="109" y="362" text-anchor="middle">키 파일이 없습니다</text>
+
+  <path class="dg-edge dg-edge--ok" d="M188 346 L222 346" marker-end="url(#d180-ar-ok)"/>
+
+  <rect class="dg-node" x="226" y="316" width="170" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="311" y="340" text-anchor="middle">인스턴스 프로파일</text>
+  <text class="dg-fs-sm dg-muted" x="311" y="362" text-anchor="middle">IMDSv2 로 발급</text>
+
+  <path class="dg-edge dg-edge--ok" d="M400 346 L434 346" marker-end="url(#d180-ar-ok)"/>
+
+  <rect class="dg-node dg-node--ok" x="438" y="306" width="246" height="80" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="561" y="330" text-anchor="middle">임시 자격 증명</text>
+  <text class="dg-fs-sm" x="561" y="352" text-anchor="middle">만료 시각이 붙어 있습니다</text>
+  <text class="dg-fs-sm dg-bold" x="561" y="374" text-anchor="middle">복사돼도 곧 무효가 됩니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="414" width="680" height="52" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="438">본질은 키가 유출된 것이 아니라 회수할 수 없는 자격 증명을 썼다는 데 있습니다</text>
+  <text class="dg-fs-sm" x="34" y="458">역할이 발급하는 임시 자격 증명은 확산 경로를 원천에서 끊습니다</text>
+</svg>

@@ -66,7 +66,87 @@
         이 셋이 어떻게 연결되는지가 이 절의 전부입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-160">
+      <figure class="diagram" data-diagram="D-160" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 460" role="img" aria-labelledby="d-160-1-d160-title d-160-1-d160-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-160-1-d160-title">CloudWatch 지표 · 로그 · 알람의 연결 경로</title>
+            <desc id="d-160-1-d160-desc">위쪽 줄은 지표 경로입니다. AWS 리소스가 지표를 내보내고, 알람이 그 지표를 감시하다가 조건을 만족하면
+              Amazon SNS 알림, Auto Scaling 조정, EC2 중지나 종료 같은 동작을 일으킵니다.
+              아래쪽 줄은 로그 경로이며 두 갈래로 갈립니다. 첫째 갈래는 지표 필터입니다. 로그 그룹에 들어온 로그에서 패턴을 뽑아 지표로 바꾸면
+              그 지표를 알람이 감시할 수 있습니다. 화살표가 위쪽 알람으로 올라가는 것이 그 경로입니다.
+              둘째 갈래는 구독 필터입니다. 로그를 AWS Lambda 나 Kinesis Data Firehose 로 실시간 전달해 별도 처리 파이프라인에 넘깁니다.
+              아래 주의 상자는 시험이 노리는 지점입니다. 메모리 사용률과 디스크 사용률은 하이퍼바이저가 볼 수 없는 게스트 OS 안의 값이라
+              EC2 기본 지표에 들어 있지 않습니다. CloudWatch 에이전트를 설치해 사용자 지정 지표로 올려야 알람을 걸 수 있습니다.</desc>
+
+            <defs>
+              <marker id="d-160-1-d160-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-160-1-d160-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="34">지표 경로</text>
+
+            <rect class="dg-node" x="20" y="64" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="85" y="90" text-anchor="middle">AWS 리소스</text>
+            <text class="dg-fs-sm dg-muted" x="85" y="110" text-anchor="middle">EC2 · RDS · ALB</text>
+            <path class="dg-edge" d="M154 94 L186 94" marker-end="url(#d-160-1-d160-ar)"/>
+
+            <rect class="dg-node" x="190" y="54" width="150" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="265" y="82" text-anchor="middle">지표 (Metrics)</text>
+            <text class="dg-fs-sm dg-muted" x="265" y="104" text-anchor="middle">기본 지표 +</text>
+            <text class="dg-fs-sm dg-muted" x="265" y="122" text-anchor="middle">사용자 지정 지표</text>
+            <path class="dg-edge dg-edge--accent" d="M344 94 L376 94" marker-end="url(#d-160-1-d160-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="380" y="64" width="140" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="450" y="90" text-anchor="middle">알람 (Alarm)</text>
+            <text class="dg-fs-sm" x="450" y="110" text-anchor="middle">평가 기간 동안 판정</text>
+            <path class="dg-edge dg-edge--accent" d="M524 94 L556 94" marker-end="url(#d-160-1-d160-ar-accent)"/>
+
+            <rect class="dg-panel" x="560" y="44" width="140" height="100" rx="4"/>
+            <rect class="dg-node dg-node--ok" x="568" y="52" width="124" height="26" rx="4"/>
+            <text class="dg-fs-sm" x="630" y="70" text-anchor="middle">Amazon SNS</text>
+            <rect class="dg-node dg-node--ok" x="568" y="82" width="124" height="26" rx="4"/>
+            <text class="dg-fs-sm" x="630" y="100" text-anchor="middle">Auto Scaling</text>
+            <rect class="dg-node dg-node--ok" x="568" y="112" width="124" height="26" rx="4"/>
+            <text class="dg-fs-sm" x="630" y="130" text-anchor="middle">EC2 중지 · 종료</text>
+
+            <text class="dg-fs-md dg-bold" x="20" y="176">로그 경로 — 두 갈래로 갑니다</text>
+
+            <rect class="dg-node" x="20" y="210" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="85" y="236" text-anchor="middle">로그 그룹</text>
+            <text class="dg-fs-sm dg-muted" x="85" y="256" text-anchor="middle">CloudWatch Logs</text>
+
+            <path class="dg-edge" d="M154 228 L186 218" marker-end="url(#d-160-1-d160-ar)"/>
+            <path class="dg-edge" d="M154 252 L186 278" marker-end="url(#d-160-1-d160-ar)"/>
+
+            <rect class="dg-node" x="190" y="192" width="150" height="50" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="265" y="212" text-anchor="middle">지표 필터</text>
+            <text class="dg-fs-sm dg-muted" x="265" y="232" text-anchor="middle">패턴을 지표로</text>
+            <path class="dg-edge dg-edge--accent dg-edge--dashed" d="M344 217 L410 217 L410 130" marker-end="url(#d-160-1-d160-ar-accent)"/>
+            <text class="dg-fs-sm" x="420" y="180">지표가 되어 알람으로</text>
+
+            <rect class="dg-node" x="190" y="256" width="150" height="50" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="265" y="276" text-anchor="middle">구독 필터</text>
+            <text class="dg-fs-sm dg-muted" x="265" y="296" text-anchor="middle">실시간 스트림</text>
+            <path class="dg-edge" d="M344 281 L376 281" marker-end="url(#d-160-1-d160-ar)"/>
+
+            <rect class="dg-node" x="380" y="251" width="200" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="480" y="277" text-anchor="middle">AWS Lambda</text>
+            <text class="dg-fs-sm dg-bold" x="480" y="297" text-anchor="middle">Kinesis Data Firehose</text>
+
+            <rect class="dg-node dg-node--warn" x="20" y="340" width="680" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="364">메모리 사용률과 디스크 사용률은 EC2 기본 지표가 아닙니다</text>
+            <text class="dg-fs-sm" x="34" y="382">게스트 OS 안의 값이므로 CloudWatch 에이전트를 설치해 사용자 지정 지표로 올려야 알람을 걸 수 있습니다</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="404" width="680" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="432" text-anchor="middle">알람은 지표에만 걸립니다 — 로그로 알람을 걸려면 먼저 지표 필터로 지표를 만듭니다</text>
+          </svg>
+        </div>
         <figcaption>
           CloudWatch의 세 요소와 연결 경로 — 지표는 알람을 거쳐 Amazon SNS · Auto Scaling · EC2 동작으로 이어지고,
           로그는 <strong>지표 필터</strong>를 거쳐 지표가 되거나 <strong>구독 필터</strong>를 거쳐
@@ -268,7 +348,80 @@ aws cloudwatch put-metric-alarm \
         시험은 이 구분만 반복해서 묻습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-161">
+      <figure class="diagram" data-diagram="D-161" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 412" role="img" aria-labelledby="d-161-1-d161-title d-161-1-d161-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-161-1-d161-title">CloudTrail · AWS Config · CloudWatch 에 질문을 하나씩 배정</title>
+            <desc id="d-161-1-d161-desc">세 서비스를 세 열로 놓고 각 열 맨 위에 그 서비스가 답하는 질문을 하나씩 붙였습니다.
+              첫째 열의 질문은 누가 무엇을 호출했는가입니다. 답하는 서비스는 AWS CloudTrail 이며 API 호출 이벤트를 남깁니다.
+              호출자 신원, 시각, 소스 IP, 요청과 응답 요소가 기록되므로 감사 추적과 누가 삭제했는지 조사하는 시나리오가 이 서비스를 지목합니다.
+              둘째 열의 질문은 리소스 구성이 규칙을 지키는가입니다. 답하는 서비스는 AWS Config 이며 리소스의 구성 항목 스냅샷과 변경 이력,
+              그리고 규칙 준수 여부를 남깁니다. 규정 준수 평가와 설정이 언제 어떻게 바뀌었는지를 묻는 시나리오가 이 서비스를 지목합니다.
+              셋째 열의 질문은 지금 얼마나 잘 동작하는가입니다. 답하는 서비스는 Amazon CloudWatch 이며 지표와 로그, 알람 상태, 대시보드를 다룹니다.
+              성능과 사용률 감시, 임계값을 넘으면 알림을 보내라는 시나리오가 이 서비스를 지목합니다.
+              감사와 규정 준수 시나리오에서 서비스를 고르는 유일한 기준은 문제문이 이 세 질문 가운데 어느 것을 하고 있는가입니다.</desc>
+
+            <defs>
+              <marker id="d-161-1-d161-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="30">질문이 서비스를 고릅니다</text>
+
+            <!-- 1 -->
+            <rect class="dg-panel" x="20" y="40" width="220" height="300" rx="4"/>
+            <rect class="dg-node dg-node--accent" x="32" y="52" width="196" height="64" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="130" y="80" text-anchor="middle">누가 무엇을</text>
+            <text class="dg-fs-md dg-bold" x="130" y="102" text-anchor="middle">호출했는가</text>
+            <path class="dg-edge" d="M130 116 L130 130" marker-end="url(#d-161-1-d161-ar)"/>
+            <rect class="dg-node" x="32" y="134" width="196" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="130" y="157" text-anchor="middle">AWS CloudTrail</text>
+            <text class="dg-fs-sm dg-muted" x="32" y="196">남기는 것</text>
+            <text class="dg-fs-sm" x="32" y="216">API 호출 이벤트</text>
+            <text class="dg-fs-sm" x="32" y="234">호출자 · 시각 · 소스 IP</text>
+            <text class="dg-fs-sm" x="32" y="252">요청과 응답 요소</text>
+            <text class="dg-fs-sm dg-muted" x="32" y="282">문제문의 신호</text>
+            <text class="dg-fs-sm dg-bold" x="32" y="302">감사 추적이 필요하다</text>
+            <text class="dg-fs-sm dg-bold" x="32" y="322">누가 지웠는지 조사</text>
+
+            <!-- 2 -->
+            <rect class="dg-panel" x="250" y="40" width="220" height="300" rx="4"/>
+            <rect class="dg-node dg-node--accent" x="262" y="52" width="196" height="64" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="80" text-anchor="middle">리소스 구성이</text>
+            <text class="dg-fs-md dg-bold" x="360" y="102" text-anchor="middle">규칙을 지키는가</text>
+            <path class="dg-edge" d="M360 116 L360 130" marker-end="url(#d-161-1-d161-ar)"/>
+            <rect class="dg-node" x="262" y="134" width="196" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="157" text-anchor="middle">AWS Config</text>
+            <text class="dg-fs-sm dg-muted" x="262" y="196">남기는 것</text>
+            <text class="dg-fs-sm" x="262" y="216">구성 항목 스냅샷</text>
+            <text class="dg-fs-sm" x="262" y="234">구성 변경 이력</text>
+            <text class="dg-fs-sm" x="262" y="252">규칙 준수 여부</text>
+            <text class="dg-fs-sm dg-muted" x="262" y="282">문제문의 신호</text>
+            <text class="dg-fs-sm dg-bold" x="262" y="302">규정 준수를 평가</text>
+            <text class="dg-fs-sm dg-bold" x="262" y="322">설정이 언제 바뀌었나</text>
+
+            <!-- 3 -->
+            <rect class="dg-panel" x="480" y="40" width="220" height="300" rx="4"/>
+            <rect class="dg-node dg-node--accent" x="492" y="52" width="196" height="64" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="590" y="80" text-anchor="middle">지금 얼마나</text>
+            <text class="dg-fs-md dg-bold" x="590" y="102" text-anchor="middle">잘 동작하는가</text>
+            <path class="dg-edge" d="M590 116 L590 130" marker-end="url(#d-161-1-d161-ar)"/>
+            <rect class="dg-node" x="492" y="134" width="196" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="590" y="157" text-anchor="middle">Amazon CloudWatch</text>
+            <text class="dg-fs-sm dg-muted" x="492" y="196">남기는 것</text>
+            <text class="dg-fs-sm" x="492" y="216">지표와 로그</text>
+            <text class="dg-fs-sm" x="492" y="234">알람 상태</text>
+            <text class="dg-fs-sm" x="492" y="252">대시보드</text>
+            <text class="dg-fs-sm dg-muted" x="492" y="282">문제문의 신호</text>
+            <text class="dg-fs-sm dg-bold" x="492" y="302">성능 · 사용률 감시</text>
+            <text class="dg-fs-sm dg-bold" x="492" y="322">임계값을 넘으면 알림</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="356" width="680" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="384" text-anchor="middle">서비스를 고르는 유일한 기준은 문제문이 어느 질문을 하고 있는가입니다</text>
+          </svg>
+        </div>
         <figcaption>
           세 서비스에 질문을 하나씩 배정한 그림 — AWS CloudTrail은 "누가 무엇을 호출했는가",
           AWS Config는 "리소스 구성이 규칙을 지키는가", Amazon CloudWatch는 "지금 얼마나 잘 동작하는가"에 답합니다.
@@ -504,7 +657,81 @@ aws ssm describe-sessions --state Active \
         여기서는 그 위에 얹히는 도구들을 정리합니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-162">
+      <figure class="diagram" data-diagram="D-162" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 424" role="img" aria-labelledby="d-162-1-d162-title d-162-1-d162-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-162-1-d162-title">다중 계정 랜딩 존의 계정 분리와 중앙 집계 경로</title>
+            <desc id="d-162-1-d162-desc">맨 위에 관리 계정이 있고 그 아래로 두 개의 조직 단위가 갈라집니다.
+              왼쪽 워크로드 조직 단위에는 운영 워크로드 계정과 개발 워크로드 계정이 있고, 오른쪽 보안 조직 단위에는 로그 아카이브 계정과 감사 계정이 있습니다.
+              두 조직 단위에는 각각 SCP 가드레일이 붙어 있습니다. SCP 는 조직 단위 수준에 붙어 그 아래 모든 계정의 권한 상한을 정하며
+              멤버 계정의 루트 사용자에게도 적용됩니다.
+              가운데 화살표는 로그가 모이는 경로입니다. 워크로드 계정들의 CloudTrail 이벤트와 AWS Config 구성 기록이
+              로그 아카이브 계정의 중앙 버킷으로 흘러 들어갑니다. 그 버킷은 삭제가 제한되어 있습니다.
+              감사 계정은 그 로그를 읽기 전용으로만 조회합니다. 로그를 만드는 계정과 보관하는 계정과 조사하는 계정이 서로 다르기 때문에
+              워크로드 계정에서 사고가 나도 증거가 남습니다.
+              결론은 계정을 나누는 일 자체가 보안 경계라는 것입니다. 권한 실수와 리소스 폭주가 계정 밖으로 번지지 않습니다.</desc>
+
+            <defs>
+              <marker id="d-162-1-d162-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-162-1-d162-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node" x="260" y="36" width="200" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="62" text-anchor="middle">관리 계정 (조직 루트)</text>
+            <path class="dg-edge" d="M360 80 L360 94 M160 94 L560 94"/>
+            <path class="dg-edge" d="M160 94 L160 106" marker-end="url(#d-162-1-d162-ar)"/>
+            <path class="dg-edge" d="M560 94 L560 106" marker-end="url(#d-162-1-d162-ar)"/>
+
+            <!-- 워크로드 OU -->
+            <rect class="dg-panel" x="20" y="110" width="280" height="152" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="32" y="134">워크로드 OU</text>
+            <rect class="dg-node dg-node--warn" x="170" y="116" width="118" height="22" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="229" y="133" text-anchor="middle">SCP 가드레일</text>
+
+            <rect class="dg-node" x="32" y="146" width="256" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="44" y="165">운영 워크로드 계정</text>
+            <text class="dg-fs-sm dg-muted" x="44" y="183">애플리케이션이 도는 곳</text>
+
+            <rect class="dg-node" x="32" y="202" width="256" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="44" y="221">개발 워크로드 계정</text>
+            <text class="dg-fs-sm dg-muted" x="44" y="239">실험과 검증</text>
+
+            <!-- 집계 화살표 -->
+            <path class="dg-edge dg-edge--accent" d="M304 168 L416 168" marker-end="url(#d-162-1-d162-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M304 224 L360 224 L360 180 L416 180" marker-end="url(#d-162-1-d162-ar-accent)"/>
+
+            <!-- 보안 OU -->
+            <rect class="dg-panel" x="420" y="110" width="280" height="152" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="432" y="134">보안 OU</text>
+            <rect class="dg-node dg-node--warn" x="570" y="116" width="118" height="22" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="629" y="133" text-anchor="middle">SCP 가드레일</text>
+
+            <rect class="dg-node dg-node--accent" x="432" y="146" width="256" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="444" y="165">로그 아카이브 계정</text>
+            <text class="dg-fs-sm" x="444" y="183">중앙 버킷 · 삭제 제한</text>
+
+            <path class="dg-edge dg-edge--dotted" d="M560 190 L560 198" marker-end="url(#d-162-1-d162-ar)"/>
+
+            <rect class="dg-node" x="432" y="202" width="256" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="444" y="221">감사 계정</text>
+            <text class="dg-fs-sm dg-muted" x="444" y="239">읽기 전용으로만 조회</text>
+
+            <text class="dg-fs-sm dg-bold" x="20" y="288">워크로드 계정의 CloudTrail 이벤트와 AWS Config 구성 기록이 로그 아카이브 계정으로 모입니다</text>
+
+            <rect class="dg-node dg-node--warn" x="20" y="300" width="680" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="324">가드레일은 OU 단위로 붙어 그 아래 모든 계정의 권한 상한을 정합니다</text>
+            <text class="dg-fs-sm" x="34" y="344">SCP 는 권한을 부여하지 않고 상한만 정하며 멤버 계정의 루트 사용자에게도 적용됩니다</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="368" width="680" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="396" text-anchor="middle">계정을 나누는 일 자체가 보안 경계입니다 — 사고가 계정 밖으로 번지지 않습니다</text>
+          </svg>
+        </div>
         <figcaption>
           다중 계정 랜딩 존 — 관리 계정, 로그 아카이브 계정, 감사 계정, 워크로드 계정으로 나뉜 구성에서
           CloudTrail 로그와 Config 기록이 중앙 계정으로 모이고 가드레일이 조직 단위(OU)로 적용되는 경로를 보입니다.
@@ -582,7 +809,79 @@ aws ssm describe-sessions --state Active \
         스택을 지우면 그 안의 리소스가 함께 정리됩니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-163">
+      <figure class="diagram" data-diagram="D-163" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 356" role="img" aria-labelledby="d-163-1-d163-title d-163-1-d163-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-163-1-d163-title">CloudFormation 스택의 수명주기 순환</title>
+            <desc id="d-163-1-d163-desc">템플릿에서 시작해 다시 템플릿으로 돌아오는 순환 흐름입니다.
+              먼저 JSON 이나 YAML 로 쓴 템플릿을 준비합니다. 그 템플릿으로 변경 세트를 만들면 실제로 무엇이 바뀌는지 미리 볼 수 있습니다.
+              검토가 끝나면 생성이나 업데이트를 실행하고, 성공하면 스택이 완료 상태가 됩니다.
+              실행이 실패하면 아래쪽 갈래로 빠져 자동 롤백이 일어나 스택이 이전 상태로 되돌아갑니다. 절반만 적용된 상태로 남지 않습니다.
+              오른쪽 위 점선 화살표는 사고의 원인입니다. 누군가 콘솔이나 CLI 로 스택 밖에서 리소스를 직접 바꾸면 실제 구성이 템플릿과 어긋납니다.
+              드리프트 감지가 그 어긋난 부분을 찾아내고, 찾아낸 차이를 템플릿에 반영하거나 원래대로 되돌리면서 순환이 처음으로 돌아갑니다.
+              이 순환이 코드형 인프라의 기본 작업 흐름이며, 손으로 바꾼 변경을 템플릿으로 되돌리는 단계까지 포함해야 흐름이 닫힙니다.</desc>
+
+            <defs>
+              <marker id="d-163-1-d163-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-163-1-d163-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-163-1-d163-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">템플릿에서 시작해 템플릿으로 돌아오는 순환</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="90" width="140" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="90" y="115" text-anchor="middle">템플릿</text>
+            <text class="dg-fs-sm dg-muted" x="90" y="135" text-anchor="middle">JSON · YAML</text>
+            <path class="dg-edge dg-edge--accent" d="M164 120 L196 120" marker-end="url(#d-163-1-d163-ar-accent)"/>
+
+            <rect class="dg-node" x="200" y="90" width="140" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="270" y="115" text-anchor="middle">변경 세트</text>
+            <text class="dg-fs-sm dg-muted" x="270" y="135" text-anchor="middle">바뀔 내용 미리 보기</text>
+            <path class="dg-edge dg-edge--accent" d="M344 120 L376 120" marker-end="url(#d-163-1-d163-ar-accent)"/>
+
+            <rect class="dg-node" x="380" y="90" width="150" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="455" y="115" text-anchor="middle">생성 또는</text>
+            <text class="dg-fs-sm dg-bold" x="455" y="135" text-anchor="middle">업데이트 실행</text>
+            <path class="dg-edge dg-edge--accent" d="M534 120 L566 120" marker-end="url(#d-163-1-d163-ar-accent)"/>
+
+            <rect class="dg-node dg-node--ok" x="570" y="90" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="635" y="115" text-anchor="middle">스택 완료</text>
+            <text class="dg-fs-sm dg-mono" x="635" y="135" text-anchor="middle">CREATE_COMPLETE</text>
+
+            <!-- 콘솔 직접 변경 -->
+            <rect class="dg-node dg-node--warn" x="550" y="36" width="150" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="625" y="61" text-anchor="middle">콘솔 · CLI 직접 변경</text>
+            <path class="dg-edge dg-edge--dotted" d="M625 76 L625 86" marker-end="url(#d-163-1-d163-ar)"/>
+
+            <!-- 실패 · 롤백 -->
+            <path class="dg-edge dg-edge--danger" d="M455 154 L455 186" marker-end="url(#d-163-1-d163-ar-danger)"/>
+            <text class="dg-fs-sm dg-bold" x="330" y="176">실패하면</text>
+            <rect class="dg-node dg-node--danger" x="380" y="190" width="150" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="455" y="212" text-anchor="middle">자동 롤백</text>
+            <text class="dg-fs-sm" x="455" y="232" text-anchor="middle">이전 상태로 복귀</text>
+
+            <!-- 드리프트 -->
+            <path class="dg-edge" d="M635 154 L635 186" marker-end="url(#d-163-1-d163-ar)"/>
+            <rect class="dg-node" x="570" y="190" width="130" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="635" y="212" text-anchor="middle">드리프트 감지</text>
+            <text class="dg-fs-sm dg-muted" x="635" y="232" text-anchor="middle">어긋난 부분 찾기</text>
+
+            <path class="dg-edge dg-edge--dashed" d="M635 248 L635 280 L90 280 L90 154" marker-end="url(#d-163-1-d163-ar)"/>
+            <text class="dg-fs-sm dg-bold" x="110" y="274">찾아낸 차이를 템플릿에 반영하거나 원래대로 되돌립니다</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="300" width="680" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="328" text-anchor="middle">손으로 바꾼 변경을 템플릿으로 되돌리는 단계까지 포함해야 이 흐름이 닫힙니다</text>
+          </svg>
+        </div>
         <figcaption>
           CloudFormation 스택의 수명주기 — 템플릿에서 변경 세트를 만들어 검토하고,
           생성이나 업데이트를 실행하며, 실패하면 롤백되고, 콘솔이나 CLI로 직접 바꾼 부분은

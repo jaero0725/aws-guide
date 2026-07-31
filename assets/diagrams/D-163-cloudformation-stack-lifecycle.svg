@@ -1,0 +1,71 @@
+<svg viewBox="0 0 720 356" role="img" aria-labelledby="d163-title d163-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d163-title">CloudFormation 스택의 수명주기 순환</title>
+  <desc id="d163-desc">템플릿에서 시작해 다시 템플릿으로 돌아오는 순환 흐름입니다.
+    먼저 JSON 이나 YAML 로 쓴 템플릿을 준비합니다. 그 템플릿으로 변경 세트를 만들면 실제로 무엇이 바뀌는지 미리 볼 수 있습니다.
+    검토가 끝나면 생성이나 업데이트를 실행하고, 성공하면 스택이 완료 상태가 됩니다.
+    실행이 실패하면 아래쪽 갈래로 빠져 자동 롤백이 일어나 스택이 이전 상태로 되돌아갑니다. 절반만 적용된 상태로 남지 않습니다.
+    오른쪽 위 점선 화살표는 사고의 원인입니다. 누군가 콘솔이나 CLI 로 스택 밖에서 리소스를 직접 바꾸면 실제 구성이 템플릿과 어긋납니다.
+    드리프트 감지가 그 어긋난 부분을 찾아내고, 찾아낸 차이를 템플릿에 반영하거나 원래대로 되돌리면서 순환이 처음으로 돌아갑니다.
+    이 순환이 코드형 인프라의 기본 작업 흐름이며, 손으로 바꾼 변경을 템플릿으로 되돌리는 단계까지 포함해야 흐름이 닫힙니다.</desc>
+
+  <defs>
+    <marker id="d163-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d163-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d163-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">템플릿에서 시작해 템플릿으로 돌아오는 순환</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="90" width="140" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="90" y="115" text-anchor="middle">템플릿</text>
+  <text class="dg-fs-sm dg-muted" x="90" y="135" text-anchor="middle">JSON · YAML</text>
+  <path class="dg-edge dg-edge--accent" d="M164 120 L196 120" marker-end="url(#d163-ar-accent)"/>
+
+  <rect class="dg-node" x="200" y="90" width="140" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="270" y="115" text-anchor="middle">변경 세트</text>
+  <text class="dg-fs-sm dg-muted" x="270" y="135" text-anchor="middle">바뀔 내용 미리 보기</text>
+  <path class="dg-edge dg-edge--accent" d="M344 120 L376 120" marker-end="url(#d163-ar-accent)"/>
+
+  <rect class="dg-node" x="380" y="90" width="150" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="455" y="115" text-anchor="middle">생성 또는</text>
+  <text class="dg-fs-sm dg-bold" x="455" y="135" text-anchor="middle">업데이트 실행</text>
+  <path class="dg-edge dg-edge--accent" d="M534 120 L566 120" marker-end="url(#d163-ar-accent)"/>
+
+  <rect class="dg-node dg-node--ok" x="570" y="90" width="130" height="60" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="635" y="115" text-anchor="middle">스택 완료</text>
+  <text class="dg-fs-sm dg-mono" x="635" y="135" text-anchor="middle">CREATE_COMPLETE</text>
+
+  <!-- 콘솔 직접 변경 -->
+  <rect class="dg-node dg-node--warn" x="550" y="36" width="150" height="40" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="625" y="61" text-anchor="middle">콘솔 · CLI 직접 변경</text>
+  <path class="dg-edge dg-edge--dotted" d="M625 76 L625 86" marker-end="url(#d163-ar)"/>
+
+  <!-- 실패 · 롤백 -->
+  <path class="dg-edge dg-edge--danger" d="M455 154 L455 186" marker-end="url(#d163-ar-danger)"/>
+  <text class="dg-fs-sm dg-bold" x="330" y="176">실패하면</text>
+  <rect class="dg-node dg-node--danger" x="380" y="190" width="150" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="455" y="212" text-anchor="middle">자동 롤백</text>
+  <text class="dg-fs-sm" x="455" y="232" text-anchor="middle">이전 상태로 복귀</text>
+
+  <!-- 드리프트 -->
+  <path class="dg-edge" d="M635 154 L635 186" marker-end="url(#d163-ar)"/>
+  <rect class="dg-node" x="570" y="190" width="130" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="635" y="212" text-anchor="middle">드리프트 감지</text>
+  <text class="dg-fs-sm dg-muted" x="635" y="232" text-anchor="middle">어긋난 부분 찾기</text>
+
+  <path class="dg-edge dg-edge--dashed" d="M635 248 L635 280 L90 280 L90 154" marker-end="url(#d163-ar)"/>
+  <text class="dg-fs-sm dg-bold" x="110" y="274">찾아낸 차이를 템플릿에 반영하거나 원래대로 되돌립니다</text>
+
+  <rect class="dg-node dg-node--empty" x="20" y="300" width="680" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="328" text-anchor="middle">손으로 바꾼 변경을 템플릿으로 되돌리는 단계까지 포함해야 이 흐름이 닫힙니다</text>
+</svg>

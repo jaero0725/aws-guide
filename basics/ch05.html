@@ -173,7 +173,92 @@
         물리 호스트를 통째로 쓰면 전용 호스트입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-040">
+      <figure class="diagram" data-diagram="D-040" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 536" role="img" aria-labelledby="d-040-1-d040-title d-040-1-d040-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-040-1-d040-title">EC2 구매 옵션 5종 결정 트리</title>
+            <desc id="d-040-1-d040-desc">워크로드의 성격을 네 번 물어 다섯 가지 구매 옵션 중 하나로 수렴시키는 결정 트리입니다.
+              먼저 중단을 허용할 수 있으면 스팟 인스턴스입니다.
+              허용할 수 없다면 1년 이상 꾸준히 쓸 계획인지 묻고, 아니라면 온디맨드입니다.
+              꾸준히 쓴다면 물리 서버 가시성이나 소켓·코어 단위 라이선스 요구가 있는지 묻고, 있다면 전용 호스트입니다.
+              없다면 특정 가용 영역의 용량 예약이 필요한지 묻고, 필요하면 예약 인스턴스, 필요 없고 유연성이 중요하면 Savings Plans 입니다.
+              금액은 표시하지 않습니다. 약정 기간이 길고 중단을 더 많이 허용할수록 단가가 낮아진다는 상대 관계만 기억하면 됩니다.</desc>
+
+            <defs>
+              <marker id="d-040-1-d040-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-040-1-d040-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node dg-node--alt" x="20" y="44" width="220" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="130" y="70" text-anchor="middle">중단을 허용할 수 있는가</text>
+            <text class="dg-fs-sm dg-muted" x="130" y="90" text-anchor="middle">배치 · 렌더링 · 상태 비저장</text>
+
+            <rect class="dg-node dg-node--alt" x="20" y="140" width="220" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="130" y="166" text-anchor="middle">1년 이상 꾸준히 쓰는가</text>
+            <text class="dg-fs-sm dg-muted" x="130" y="186" text-anchor="middle">기저 부하가 있는가</text>
+
+            <rect class="dg-node dg-node--alt" x="20" y="236" width="220" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="130" y="262" text-anchor="middle">물리 서버 가시성이 필요한가</text>
+            <text class="dg-fs-sm dg-muted" x="130" y="282" text-anchor="middle">소켓·코어 단위 라이선스</text>
+
+            <rect class="dg-node dg-node--alt" x="20" y="332" width="220" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="130" y="358" text-anchor="middle">용량 예약이 필요한가</text>
+            <text class="dg-fs-sm dg-muted" x="130" y="378" text-anchor="middle">특정 AZ 의 자리 확보</text>
+
+            <rect class="dg-node dg-node--accent" x="470" y="40" width="230" height="68" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="484" y="64">스팟 인스턴스</text>
+            <text class="dg-fs-sm" x="484" y="84">단가가 가장 낮습니다</text>
+            <text class="dg-fs-sm dg-muted" x="484" y="102">용량이 회수되면 중단됩니다</text>
+
+            <rect class="dg-node" x="470" y="136" width="230" height="68" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="484" y="160">온디맨드</text>
+            <text class="dg-fs-sm" x="484" y="180">약정이 없습니다</text>
+            <text class="dg-fs-sm dg-muted" x="484" y="198">단가는 가장 높습니다</text>
+
+            <rect class="dg-node" x="470" y="232" width="230" height="68" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="484" y="256">전용 호스트</text>
+            <text class="dg-fs-sm" x="484" y="276">물리 호스트를 통째로 할당</text>
+            <text class="dg-fs-sm dg-muted" x="484" y="294">소켓·코어 라이선스에 대응</text>
+
+            <rect class="dg-node" x="470" y="328" width="230" height="68" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="484" y="352">예약 인스턴스</text>
+            <text class="dg-fs-sm" x="484" y="372">1년 또는 3년 약정</text>
+            <text class="dg-fs-sm dg-muted" x="484" y="390">영역 지정 시 용량 예약</text>
+
+            <rect class="dg-node" x="470" y="424" width="230" height="68" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="484" y="448">Savings Plans</text>
+            <text class="dg-fs-sm" x="484" y="468">1년 또는 3년 약정</text>
+            <text class="dg-fs-sm dg-muted" x="484" y="486">사용량 기준 · 인스턴스 유연</text>
+
+            <path class="dg-edge dg-edge--accent" d="M240 74 L466 74" marker-end="url(#d-040-1-d040-ar-accent)"/>
+            <text class="dg-fs-sm dg-bold" x="252" y="66">예</text>
+            <path class="dg-edge" d="M130 104 L130 136" marker-end="url(#d-040-1-d040-ar)"/>
+            <text class="dg-fs-sm" x="138" y="126">아니오</text>
+
+            <path class="dg-edge" d="M240 170 L466 170" marker-end="url(#d-040-1-d040-ar)"/>
+            <text class="dg-fs-sm" x="252" y="162">아니오</text>
+            <path class="dg-edge" d="M130 200 L130 232" marker-end="url(#d-040-1-d040-ar)"/>
+            <text class="dg-fs-sm" x="138" y="222">예</text>
+
+            <path class="dg-edge" d="M240 266 L466 266" marker-end="url(#d-040-1-d040-ar)"/>
+            <text class="dg-fs-sm" x="252" y="258">예</text>
+            <path class="dg-edge" d="M130 296 L130 328" marker-end="url(#d-040-1-d040-ar)"/>
+            <text class="dg-fs-sm" x="138" y="318">아니오</text>
+
+            <path class="dg-edge" d="M240 362 L466 362" marker-end="url(#d-040-1-d040-ar)"/>
+            <text class="dg-fs-sm" x="252" y="354">예</text>
+            <path class="dg-edge" d="M130 392 L130 458 L466 458" marker-end="url(#d-040-1-d040-ar)"/>
+            <text class="dg-fs-sm" x="138" y="424">아니오</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="522">금액은 쓰지 않습니다 — 약정 기간이 길고 중단을 더 허용할수록 단가가 낮아진다는 상대 관계만 기억합니다</text>
+          </svg>
+        </div>
         <figcaption>
           구매 옵션 결정 트리 — 중단을 허용할 수 있는가, 사용 기간을 약정할 수 있는가,
           라이선스나 규정이 물리적 격리를 요구하는가라는 세 갈래로 다섯 옵션이 갈립니다
@@ -325,7 +410,70 @@
         중단 위험이 높아졌을 때 미리 워크로드를 옮길 기회를 줍니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-041">
+      <figure class="diagram" data-diagram="D-041" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 350" role="img" aria-labelledby="d-041-1-d041-title d-041-1-d041-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-041-1-d041-title">스팟 인스턴스 중단 처리 타임라인</title>
+            <desc id="d-041-1-d041-desc">스팟 인스턴스가 회수될 때 일어나는 일을 왼쪽에서 오른쪽으로 늘어놓은 타임라인입니다.
+              정상 실행 중이던 인스턴스에 대해 EC2 가 용량 회수를 결정하면 중단 알림이 인스턴스 메타데이터와 EventBridge 로 전달됩니다.
+              알림 이후 약 2분의 유예가 주어지고, 이 시간 안에 진행 중인 요청을 마무리하고 로드 밸런서에서 빠지고
+              작업 상태를 외부 스토리지에 체크포인트로 저장해야 합니다.
+              유예가 끝나면 인스턴스는 종료되고, Auto Scaling 그룹이나 EC2 플릿이 다른 용량 풀에서 대체 인스턴스를 시작합니다.
+              2분 안에 끝낼 수 있는 일만 남아 있어야 하므로 상태를 인스턴스 안에 두지 않는 설계가 전제입니다.</desc>
+
+            <defs>
+              <marker id="d-041-1-d041-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-041-1-d041-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node" x="20" y="70" width="124" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="82" y="98" text-anchor="middle">정상 실행</text>
+            <text class="dg-fs-sm dg-muted" x="82" y="120" text-anchor="middle">스팟 용량으로</text>
+            <text class="dg-fs-sm dg-muted" x="82" y="140" text-anchor="middle">작업 처리 중</text>
+
+            <rect class="dg-node dg-node--warn" x="159" y="70" width="124" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="221" y="98" text-anchor="middle">중단 알림</text>
+            <text class="dg-fs-sm" x="221" y="120" text-anchor="middle">메타데이터와</text>
+            <text class="dg-fs-sm" x="221" y="140" text-anchor="middle">EventBridge 로</text>
+
+            <rect class="dg-node dg-node--accent" x="298" y="70" width="124" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="98" text-anchor="middle">약 2분 유예</text>
+            <text class="dg-fs-sm" x="360" y="120" text-anchor="middle">드레이닝 ·</text>
+            <text class="dg-fs-sm" x="360" y="140" text-anchor="middle">체크포인트 저장</text>
+
+            <rect class="dg-node dg-node--danger" x="437" y="70" width="124" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="499" y="98" text-anchor="middle">인스턴스 종료</text>
+            <text class="dg-fs-sm" x="499" y="120" text-anchor="middle">로컬 상태는</text>
+            <text class="dg-fs-sm" x="499" y="140" text-anchor="middle">함께 사라집니다</text>
+
+            <rect class="dg-node dg-node--ok" x="576" y="70" width="124" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="638" y="98" text-anchor="middle">재배치</text>
+            <text class="dg-fs-sm" x="638" y="120" text-anchor="middle">다른 용량 풀에서</text>
+            <text class="dg-fs-sm" x="638" y="140" text-anchor="middle">대체 인스턴스 시작</text>
+
+            <path class="dg-edge" d="M144 113 L155 113" marker-end="url(#d-041-1-d041-ar)"/>
+            <path class="dg-edge dg-edge--accent" d="M283 113 L294 113" marker-end="url(#d-041-1-d041-ar-accent)"/>
+            <path class="dg-edge" d="M422 113 L433 113" marker-end="url(#d-041-1-d041-ar)"/>
+            <path class="dg-edge" d="M561 113 L572 113" marker-end="url(#d-041-1-d041-ar)"/>
+
+            <path class="dg-grid" d="M20 184 L700 184"/>
+            <text class="dg-fs-sm dg-muted" x="20" y="204">시간 →</text>
+            <text class="dg-fs-sm dg-bold" x="360" y="204" text-anchor="middle">이 구간이 전부입니다</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="226" width="680" height="82" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="252" text-anchor="middle">2분 안에 끝낼 수 있는 일만 남아 있어야 합니다</text>
+            <text class="dg-fs-sm" x="360" y="276" text-anchor="middle">세션과 작업 상태를 인스턴스 밖(S3 · DynamoDB · ElastiCache)에 두고</text>
+            <text class="dg-fs-sm" x="360" y="298" text-anchor="middle">언제 사라져도 되는 상태 비저장 설계를 전제로 씁니다</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="336">여러 인스턴스 유형과 여러 AZ 를 후보로 두면 한 용량 풀이 마르더라도 대체를 찾기 쉬워집니다</text>
+          </svg>
+        </div>
         <figcaption>
           스팟 인스턴스 중단 처리 타임라인 — 재조정 권장 신호와 2분 중단 통지를 받아 진행 중 작업을 마무리하고
           체크포인트를 남긴 뒤 Auto Scaling이 대체 용량을 확보합니다. 상태 비저장 설계가 전제입니다
@@ -512,7 +660,88 @@ systemctl restart web-app</code></pre>
         API의 배치 전략 값에는 <code>cluster</code> · <code>partition</code> · <code>spread</code>가 있습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-042">
+      <figure class="diagram" data-diagram="D-042" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 420" role="img" aria-labelledby="d-042-1-d042-title d-042-1-d042-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-042-1-d042-title">배치 그룹 3종의 장애 도메인</title>
+            <desc id="d-042-1-d042-desc">같은 랙 그림 위에 세 가지 배치 그룹 전략을 나란히 놓았습니다.
+              클러스터 배치 그룹은 하나의 가용 영역 안에서 인스턴스를 물리적으로 가깝게 모아 네트워크 지연을 최소화하지만
+              같은 랙을 공유하므로 랙 하나가 죽으면 전부 함께 죽습니다.
+              파티션 배치 그룹은 인스턴스를 파티션 단위로 묶고 파티션마다 서로 다른 랙에 배치하므로
+              랙 하나가 죽어도 한 파티션만 잃습니다. 분산 시스템의 복제본 배치에 맞습니다.
+              분산 배치 그룹은 인스턴스마다 랙을 완전히 분리하므로 장애 격리가 가장 강하지만 한 그룹에 넣을 수 있는 수가 제한됩니다.
+              아래 축이 결론입니다. 네트워크 성능 최적화와 장애 격리는 서로 반대 방향으로 움직입니다.</desc>
+
+            <text class="dg-fs-md dg-bold" x="126" y="30" text-anchor="middle">클러스터</text>
+            <text class="dg-fs-md dg-bold" x="360" y="30" text-anchor="middle">파티션</text>
+            <text class="dg-fs-md dg-bold" x="594" y="30" text-anchor="middle">분산</text>
+            <text class="dg-fs-sm dg-muted" x="126" y="50" text-anchor="middle">한 AZ 안에 근접 배치</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="50" text-anchor="middle">파티션마다 다른 랙</text>
+            <text class="dg-fs-sm dg-muted" x="594" y="50" text-anchor="middle">인스턴스마다 다른 하드웨어</text>
+
+            <!-- 클러스터 -->
+            <rect class="dg-panel" x="20" y="62" width="212" height="200" rx="4"/>
+            <rect class="dg-node dg-node--alt" x="34" y="76" width="184" height="120" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="44" y="94">랙 1</text>
+            <rect class="dg-node dg-node--accent" x="44" y="102" width="76" height="38" rx="3"/>
+            <text class="dg-fs-sm" x="82" y="126" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--accent" x="128" y="102" width="76" height="38" rx="3"/>
+            <text class="dg-fs-sm" x="166" y="126" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--accent" x="44" y="146" width="76" height="38" rx="3"/>
+            <text class="dg-fs-sm" x="82" y="170" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--accent" x="128" y="146" width="76" height="38" rx="3"/>
+            <text class="dg-fs-sm" x="166" y="170" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--empty" x="34" y="204" width="184" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="126" y="224" text-anchor="middle">랙 2 — 사용 안 함</text>
+            <text class="dg-fs-sm dg-muted" x="126" y="242" text-anchor="middle">근접이 목적</text>
+
+            <!-- 파티션 -->
+            <rect class="dg-panel" x="254" y="62" width="212" height="200" rx="4"/>
+            <rect class="dg-node dg-node--alt" x="268" y="76" width="184" height="84" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="278" y="94">랙 1 · 파티션 1</text>
+            <rect class="dg-node dg-node--accent" x="278" y="102" width="76" height="48" rx="3"/>
+            <text class="dg-fs-sm" x="316" y="131" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--accent" x="362" y="102" width="76" height="48" rx="3"/>
+            <text class="dg-fs-sm" x="400" y="131" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--alt" x="268" y="168" width="184" height="84" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="278" y="186">랙 2 · 파티션 2</text>
+            <rect class="dg-node dg-node--accent" x="278" y="194" width="76" height="48" rx="3"/>
+            <text class="dg-fs-sm" x="316" y="223" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--accent" x="362" y="194" width="76" height="48" rx="3"/>
+            <text class="dg-fs-sm" x="400" y="223" text-anchor="middle">인스턴스</text>
+
+            <!-- 분산 -->
+            <rect class="dg-panel" x="488" y="62" width="212" height="200" rx="4"/>
+            <rect class="dg-node dg-node--alt" x="502" y="76" width="88" height="84" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="512" y="94">랙 1</text>
+            <rect class="dg-node dg-node--accent" x="510" y="102" width="72" height="48" rx="3"/>
+            <text class="dg-fs-sm" x="546" y="131" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--alt" x="598" y="76" width="88" height="84" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="608" y="94">랙 2</text>
+            <rect class="dg-node dg-node--accent" x="606" y="102" width="72" height="48" rx="3"/>
+            <text class="dg-fs-sm" x="642" y="131" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--alt" x="502" y="168" width="88" height="84" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="512" y="186">랙 3</text>
+            <rect class="dg-node dg-node--accent" x="510" y="194" width="72" height="48" rx="3"/>
+            <text class="dg-fs-sm" x="546" y="223" text-anchor="middle">인스턴스</text>
+            <rect class="dg-node dg-node--alt" x="598" y="168" width="88" height="84" rx="4"/>
+            <text class="dg-fs-sm dg-muted" x="608" y="186">랙 4</text>
+            <rect class="dg-node dg-node--accent" x="606" y="194" width="72" height="48" rx="3"/>
+            <text class="dg-fs-sm" x="642" y="223" text-anchor="middle">인스턴스</text>
+
+            <text class="dg-fs-sm" x="126" y="284" text-anchor="middle">랙 하나가 죽으면 전부</text>
+            <text class="dg-fs-sm" x="360" y="284" text-anchor="middle">랙 하나가 죽으면 한 파티션만</text>
+            <text class="dg-fs-sm" x="594" y="284" text-anchor="middle">랙 하나가 죽으면 하나만</text>
+
+            <path class="dg-grid" d="M20 306 L700 306"/>
+            <text class="dg-fs-sm dg-bold" x="20" y="332">← 네트워크 지연이 낮다 (성능 최적화)</text>
+            <text class="dg-fs-sm dg-bold" x="700" y="332" text-anchor="end">장애 격리가 강하다 →</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="346" width="680" height="56" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="370" text-anchor="middle">성능 최적화와 장애 격리는 서로 반대 방향입니다</text>
+            <text class="dg-fs-sm" x="360" y="392" text-anchor="middle">HPC 처럼 노드 간 지연이 중요하면 클러스터, 가용성이 중요하면 파티션이나 분산을 고릅니다</text>
+          </svg>
+        </div>
         <figcaption>
           배치 그룹 3종의 장애 도메인 비교 — 클러스터는 한 가용 영역 안에 인스턴스를 밀집시키고,
           파티션은 랙 단위로 나누며, 분산은 인스턴스마다 하드웨어를 완전히 분리합니다
@@ -614,7 +843,88 @@ aws ec2 run-instances \
         자격 증명을 훔칠 수 있습니다. IMDSv2는 이 공격 경로를 막기 위해 설계되었습니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-043">
+      <figure class="diagram" data-diagram="D-043" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 470" role="img" aria-labelledby="d-043-1-d043-title d-043-1-d043-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-043-1-d043-title">IMDSv2 요청 흐름과 SSRF 차단</title>
+            <desc id="d-043-1-d043-desc">위쪽은 IMDSv2 의 정상 요청 흐름입니다.
+              인스턴스 안의 프로세스가 먼저 PUT 으로 토큰 발급을 요청하고, TTL 헤더와 함께 세션 토큰을 받습니다.
+              그 뒤 메타데이터를 읽는 모든 GET 요청에 토큰 헤더를 실어야만 응답을 받습니다. 토큰이 없는 GET 은 거부됩니다.
+              아래쪽은 서버 측 요청 위조 공격 비교입니다.
+              공격자는 취약한 애플리케이션이 임의의 URL 을 대신 가져오게 만들 수는 있지만 보통 GET 만 유도할 수 있고
+              임의 헤더를 붙이게 할 수도 없습니다.
+              그래서 IMDSv1 에서는 자격 증명이 그대로 빠져나가지만 IMDSv2 에서는 토큰 발급 단계에서 막힙니다.
+              아울러 hop limit 을 1 로 두면 응답 패킷이 한 홉을 넘지 못하므로 컨테이너처럼 한 홉 건너에 있는 프로세스가 접근하지 못합니다.</desc>
+
+            <defs>
+              <marker id="d-043-1-d043-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-043-1-d043-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-043-1-d043-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="30">IMDSv2 — 토큰을 먼저 받아야 합니다</text>
+
+            <rect class="dg-node" x="20" y="46" width="190" height="130" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="115" y="104" text-anchor="middle">인스턴스 안의</text>
+            <text class="dg-fs-sm dg-bold" x="115" y="124" text-anchor="middle">애플리케이션</text>
+
+            <rect class="dg-node dg-node--accent" x="500" y="46" width="200" height="130" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="600" y="94" text-anchor="middle">인스턴스 메타데이터</text>
+            <text class="dg-fs-sm dg-bold" x="600" y="114" text-anchor="middle">서비스 (IMDS)</text>
+            <text class="dg-fs-sm dg-mono" x="600" y="140" text-anchor="middle">169.254.169.254</text>
+
+            <path class="dg-edge dg-edge--accent" d="M210 68 L496 68" marker-end="url(#d-043-1-d043-ar-accent)"/>
+            <text class="dg-fs-sm dg-mono" x="220" y="62">1. PUT /latest/api/token</text>
+            <path class="dg-edge dg-edge--accent" d="M496 100 L214 100" marker-end="url(#d-043-1-d043-ar-accent)"/>
+            <text class="dg-fs-sm" x="220" y="94">2. 세션 토큰 발급 (TTL 지정)</text>
+            <path class="dg-edge dg-edge--accent" d="M210 132 L496 132" marker-end="url(#d-043-1-d043-ar-accent)"/>
+            <text class="dg-fs-sm dg-mono" x="220" y="126">3. GET + 토큰 헤더</text>
+            <path class="dg-edge dg-edge--accent" d="M496 164 L214 164" marker-end="url(#d-043-1-d043-ar-accent)"/>
+            <text class="dg-fs-sm" x="220" y="158">4. 메타데이터 · 임시 자격 증명 응답</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="196">토큰 헤더가 없는 GET 은 거부됩니다 — 여기가 IMDSv1 과 갈리는 지점입니다</text>
+
+            <path class="dg-grid" d="M20 212 L700 212"/>
+            <text class="dg-fs-md dg-bold" x="20" y="238">서버 측 요청 위조(SSRF) 공격 비교</text>
+
+            <rect class="dg-node" x="20" y="252" width="150" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="282" text-anchor="middle">공격자</text>
+            <text class="dg-fs-sm dg-muted" x="95" y="302" text-anchor="middle">URL 을 주입</text>
+
+            <rect class="dg-node dg-node--warn" x="210" y="252" width="190" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="305" y="274" text-anchor="middle">취약한 애플리케이션</text>
+            <text class="dg-fs-sm" x="305" y="294" text-anchor="middle">GET 만 대신 보낼 수 있음</text>
+            <text class="dg-fs-sm dg-muted" x="305" y="313" text-anchor="middle">임의 헤더 주입은 어려움</text>
+
+            <path class="dg-edge" d="M170 287 L206 287" marker-end="url(#d-043-1-d043-ar)"/>
+
+            <rect class="dg-node dg-node--danger" x="440" y="240" width="260" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="452" y="258">IMDSv1 — 그대로 응답</text>
+            <text class="dg-fs-sm" x="452" y="277">토큰 없이 GET 만으로 자격 증명 유출</text>
+            <path class="dg-edge dg-edge--danger" d="M400 275 L436 264" marker-end="url(#d-043-1-d043-ar-danger)"/>
+
+            <rect class="dg-node dg-node--ok" x="440" y="298" width="260" height="46" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="452" y="316">IMDSv2 — 토큰 단계에서 차단</text>
+            <text class="dg-fs-sm" x="452" y="335">PUT 과 헤더를 유도할 수 없어 실패</text>
+            <path class="dg-edge dg-edge--ok" d="M400 299 L436 315"/>
+            <path class="dg-x" d="M410 296 L426 312 M426 296 L410 312"/>
+
+            <rect class="dg-node dg-node--accent" x="20" y="364" width="680" height="52" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="386" text-anchor="middle">hop limit — 응답 패킷이 넘을 수 있는 홉 수의 상한</text>
+            <text class="dg-fs-sm" x="360" y="406" text-anchor="middle">1 로 두면 인스턴스 자신만 읽을 수 있고, 컨테이너처럼 한 홉 건너에 있는 프로세스는 읽지 못합니다</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="444">IMDSv2 를 필수로 강제하면(HttpTokens=required) IMDSv1 방식 요청 자체가 받아들여지지 않습니다</text>
+          </svg>
+        </div>
         <figcaption>
           IMDSv2의 두 단계 요청 — PUT으로 세션 토큰을 받고 그 토큰을 헤더에 실은 GET만 응답을 받습니다.
           홉 제한과 결합하면 서버 측 요청 위조로는 토큰 발급 단계를 통과할 수 없습니다

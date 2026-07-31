@@ -167,8 +167,8 @@ const mixedSet = set.mock === true || set.diagnostic === true ||
 | `saa-resilient` | `resilient` | `saa-resilient-001` |
 | `saa-performance` | `performance` | `saa-performance-001` |
 | `saa-cost` | `cost` | `saa-cost-001` |
-| `saa-mock-1` | `mock1` | `saa-mock1-001` … `saa-mock1-065` |
-| `saa-diagnostic` | `diag` | `saa-diag-001` … `saa-diag-040` |
+| `saa-mock-1` | `mock-1` | `saa-mock-1-001` … `saa-mock-1-065` |
+| `saa-diagnostic` | `diagnostic` | `saa-diagnostic-001` … `saa-diagnostic-040` |
 | `basics-ch08` | `ch08` | `basics-ch08-001` … `basics-ch08-010` |
 
 번호는 **세트 안에서 1부터 3자리 zero-pad**. 중간 문항을 지워도 번호를 당기지 않는다

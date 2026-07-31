@@ -1,0 +1,228 @@
+{
+  "deckId": "saa-trap-pairs",
+  "title": "SAA — 헷갈리는 쌍 판단 기준",
+  "exam": "SAA",
+  "examCode": "SAA-C03",
+  "cards": [
+    {
+      "id": "fc-trap-001",
+      "deck": "saa-trap-pairs",
+      "front": "RDS Multi-AZ와 읽기 전용 복제본, 복제 방식의 차이는?",
+      "back": "Multi-AZ는 **동기(synchronous)** 복제로 가용성 담당, 읽기 전용 복제본은 **비동기(asynchronous)** 복제로 읽기 확장 담당.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch10"
+    },
+    {
+      "id": "fc-trap-002",
+      "deck": "saa-trap-pairs",
+      "front": "표준 Multi-AZ 인스턴스 배포에서 대기 인스턴스가 읽기 트래픽을 받는가?",
+      "back": "**받지 않는다.** 읽기 가능한 대기 인스턴스가 필요하면 별개 아키텍처인 **Multi-AZ DB 클러스터 배포**를 써야 한다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch10"
+    },
+    {
+      "id": "fc-trap-003",
+      "deck": "saa-trap-pairs",
+      "front": "보안 그룹과 네트워크 ACL 중 상태 저장(stateful)은 어느 쪽인가?",
+      "back": "**보안 그룹**이 상태 저장(반환 트래픽 자동 허용), **네트워크 ACL**은 상태 비저장(반환 트래픽도 명시적으로 허용해야 함).",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch03"
+    },
+    {
+      "id": "fc-trap-004",
+      "deck": "saa-trap-pairs",
+      "front": "보안 그룹과 네트워크 ACL 중 거부(Deny) 규칙을 지원하는 것은?",
+      "back": "**네트워크 ACL만** 허용·거부 규칙을 모두 지원한다. 보안 그룹은 **허용 규칙만** 지원한다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch03"
+    },
+    {
+      "id": "fc-trap-005",
+      "deck": "saa-trap-pairs",
+      "front": "NAT 게이트웨이가 여러 AZ에서 자동으로 이중화되는가?",
+      "back": "**아니다.** NAT 게이트웨이는 지정한 서브넷의 AZ 안에서만 동작하므로, AZ마다 하나씩 두어야 이중화된다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch04"
+    },
+    {
+      "id": "fc-trap-006",
+      "deck": "saa-trap-pairs",
+      "front": "VPC 피어링과 Transit Gateway의 구조적 차이는?",
+      "back": "피어링은 **두 VPC를 1:1로 연결**하며 전이적 라우팅이 없다. Transit Gateway는 **허브 역할**로 다수 VPC와 온프레미스를 한곳에 모은다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch04"
+    },
+    {
+      "id": "fc-trap-007",
+      "deck": "saa-trap-pairs",
+      "front": "Direct Connect와 Site-to-Site VPN 중 공용 인터넷을 지나지 않는 것은?",
+      "back": "**Direct Connect** — 전용 회선. VPN은 인터넷 위에 IPsec 터널을 세우므로 암호화되지만 경로는 공용망이다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch04"
+    },
+    {
+      "id": "fc-trap-008",
+      "deck": "saa-trap-pairs",
+      "front": "CloudFront와 Global Accelerator의 근본적 차이는?",
+      "back": "CloudFront는 엣지에서 **콘텐츠를 캐싱**하는 HTTP 계열 서비스, Global Accelerator는 **고정 애니캐스트 IP**로 AWS 백본까지의 경로를 앞당기며 TCP·UDP도 다룬다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch14"
+    },
+    {
+      "id": "fc-trap-009",
+      "deck": "saa-trap-pairs",
+      "front": "Route 53 장애 조치 라우팅과 다중값 응답의 차이는?",
+      "back": "장애 조치는 **기본·보조를 정해** 상태 확인 실패 시 전환. 다중값 응답은 여러 레코드를 **거의 무작위로** 함께 반환한다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch14"
+    },
+    {
+      "id": "fc-trap-010",
+      "deck": "saa-trap-pairs",
+      "front": "S3 One Zone-IA와 Standard-IA를 가르는 결정적 축은?",
+      "back": "저장하는 **AZ 수** — Standard-IA는 3개 이상, One Zone-IA는 **1개**. 최소 저장 기간·최소 청구 크기는 둘 다 동일하다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-trap-011",
+      "deck": "saa-trap-pairs",
+      "front": "S3 교차 리전 복제(CRR)를 켜면 기존 객체도 자동으로 복사되는가?",
+      "back": "**아니다.** 복제는 규칙을 켠 시점 이후의 새 객체·변경에만 적용되며, 원본·대상 버킷 모두 버전 관리가 켜져 있어야 한다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch08"
+    },
+    {
+      "id": "fc-trap-012",
+      "deck": "saa-trap-pairs",
+      "front": "EBS와 인스턴스 스토어의 근본적 차이는?",
+      "back": "EBS는 **네트워크로 연결된 영속 볼륨**, 인스턴스 스토어는 호스트에 물리적으로 붙은 **임시 저장소**로 인스턴스를 중지·종료하면 사라진다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch06"
+    },
+    {
+      "id": "fc-trap-013",
+      "deck": "saa-trap-pairs",
+      "front": "EBS 스냅샷과 AMI의 차이는?",
+      "back": "스냅샷은 **볼륨 하나의 시점 백업**, AMI는 **인스턴스를 시작하기 위한 템플릿**(루트 볼륨 스냅샷 + 블록 디바이스 매핑 포함).",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch06"
+    },
+    {
+      "id": "fc-trap-014",
+      "deck": "saa-trap-pairs",
+      "front": "SQS, SNS, EventBridge의 전달 방식 차이는?",
+      "back": "SQS는 **한 메시지를 한 소비자**가 가져가는 큐, SNS는 **모든 구독자에게 팬아웃**, EventBridge는 **이벤트 내용에 따른 규칙 라우팅**.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-trap-015",
+      "deck": "saa-trap-pairs",
+      "front": "SQS 표준 큐를 FIFO 큐로 나중에 전환할 수 있는가?",
+      "back": "**없다.** 큐 타입은 생성 후 변경 불가하며, FIFO가 필요하면 새로 만들어야 한다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch12"
+    },
+    {
+      "id": "fc-trap-016",
+      "deck": "saa-trap-pairs",
+      "front": "DynamoDB DAX와 ElastiCache의 차이는?",
+      "back": "DAX는 **DynamoDB 전용** 캐시로 DynamoDB API와 호환된다. ElastiCache는 범용 캐시라 캐시 적재·무효화를 애플리케이션이 직접 구현해야 한다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch11"
+    },
+    {
+      "id": "fc-trap-017",
+      "deck": "saa-trap-pairs",
+      "front": "ECS·EKS·Fargate의 관계는?",
+      "back": "**Fargate는 오케스트레이터가 아니라 서버리스 실행 모드**이며 ECS·EKS 양쪽에서 쓸 수 있다. ECS는 AWS 자체 오케스트레이터, EKS는 관리형 Kubernetes.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch13"
+    },
+    {
+      "id": "fc-trap-018",
+      "deck": "saa-trap-pairs",
+      "front": "WAF와 Shield의 담당 영역 차이는?",
+      "back": "WAF는 **HTTP 요청의 내용**을 규칙으로 검사(L7). Shield는 **DDoS 공격 대응**이며 표준 보호는 기본 제공, Advanced는 별도 구독.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch16"
+    },
+    {
+      "id": "fc-trap-019",
+      "deck": "saa-trap-pairs",
+      "front": "버킷 정책과 ACL의 차이는?",
+      "back": "버킷 정책은 **리소스 기반 정책**(JSON, 세밀한 조건). ACL은 객체·버킷 단위의 옛 접근 제어 방식이며 **신규 버킷은 ACL이 비활성 상태**로 생성된다.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch16"
+    },
+    {
+      "id": "fc-trap-020",
+      "deck": "saa-trap-pairs",
+      "front": "S3 Glacier Instant Retrieval과 Flexible Retrieval을 가르는 축은?",
+      "back": "**밀리초 즉시 검색 여부** — Instant Retrieval은 즉시 접근, Flexible Retrieval은 신속(1~5분)·대량(5~12시간) 검색이 필요하다. 최소 저장 기간은 둘 다 90일.",
+      "tags": [
+        "trap",
+        "saa"
+      ],
+      "chapter": "ch08"
+    }
+  ]
+}

@@ -1,0 +1,295 @@
+{
+  "setId": "basics-ch06",
+  "title": "6장 · EBS와 블록 스토리지 — 확인 문제",
+  "exam": "BASICS",
+  "domain": "EBS와 블록 스토리지",
+  "examCode": "SAA-C03",
+  "questions": [
+    {
+      "id": "basics-ch06-001",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 가용 영역에 있는 EBS 볼륨의 데이터를 다른 가용 영역의 새 EC2 인스턴스에서 써야 합니다. 어떻게 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "볼륨을 분리한 뒤 다른 가용 영역의 인스턴스에 그대로 연결합니다." },
+        { "id": "B", "text": "스냅샷을 만들고 대상 가용 영역에 새 볼륨을 만들어 연결합니다." },
+        { "id": "C", "text": "멀티 어태치를 활성화해 두 가용 영역의 인스턴스가 함께 쓰게 합니다." },
+        { "id": "D", "text": "볼륨의 가용 영역 속성을 수정해 대상 가용 영역으로 바꿉니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "EBS 볼륨은 특정 가용 영역 안에 존재하는 리소스이며 그 경계를 넘어 연결할 수 없습니다. 그래서 데이터를 다른 가용 영역으로 옮기는 표준 경로는 스냅샷을 경유하는 것입니다. 스냅샷은 리전 범위에서 관리되므로 같은 리전의 어느 가용 영역에서든 새 볼륨을 만들 수 있고, 다른 리전으로 옮길 때는 스냅샷을 복사한 뒤 그쪽에서 볼륨을 만듭니다. 복원된 볼륨은 백그라운드로 데이터를 채우는 동안에도 바로 사용할 수 있어 대기 시간이 길지 않습니다.",
+      "distractorNotes": {
+        "A": "볼륨과 인스턴스가 같은 가용 영역에 있어야 연결됩니다. 분리해도 다른 영역으로 옮겨지지 않습니다.",
+        "C": "멀티 어태치도 같은 가용 영역 안에서만 동작하며 지원 볼륨 타입도 제한됩니다. 가용 영역을 넘는 수단이 아닙니다.",
+        "D": "볼륨의 가용 영역은 생성 시 정해지며 수정할 수 있는 속성이 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html", "title": "Amazon EC2 사용 설명서 — EBS 스냅샷" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AttachVolume.html", "title": "Amazon EC2 API 레퍼런스 — AttachVolume" }
+      ],
+      "tags": ["ebs", "snapshot", "availability-zone", "ec2"]
+    },
+    {
+      "id": "basics-ch06-002",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "세 개 가용 영역에 흩어진 수십 대의 EC2 인스턴스가 같은 디렉터리의 파일을 동시에 읽고 써야 합니다. 어떤 스토리지를 써야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "`io2` 볼륨에 멀티 어태치를 켜서 모든 인스턴스에 연결합니다." },
+        { "id": "B", "text": "Amazon EFS 파일 시스템을 만들고 각 가용 영역에 마운트 대상을 둡니다." },
+        { "id": "C", "text": "인스턴스마다 `gp3` 볼륨을 두고 주기적으로 내용을 동기화합니다." },
+        { "id": "D", "text": "인스턴스 스토어를 공유 디렉터리로 내보내 서로 마운트하게 합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "EBS는 블록 장치이며 기본적으로 인스턴스 하나에 붙는 스토리지입니다. 여러 인스턴스가 같은 파일을 동시에 다뤄야 한다는 요구는 블록 계층이 아니라 파일 계층의 문제이고, 여기에 대응하는 서비스가 Amazon EFS입니다. EFS는 가용 영역마다 마운트 대상을 두어 여러 영역의 인스턴스가 같은 파일 시스템을 공유할 수 있게 합니다. EBS 멀티 어태치는 일부 볼륨 타입에서 같은 가용 영역 안의 인스턴스들에만 허용되고, 파일 시스템 차원의 동시 접근 제어도 애플리케이션이 직접 감당해야 하므로 이 요구의 답이 되지 않습니다.",
+      "distractorNotes": {
+        "A": "멀티 어태치는 같은 가용 영역으로 제한되며 지원 볼륨 타입도 한정됩니다. 다중 가용 영역 공유에는 쓸 수 없습니다.",
+        "C": "동기화 방식은 지연과 충돌을 만들고, 같은 파일을 동시에 수정하는 상황을 안전하게 처리하지 못합니다.",
+        "D": "인스턴스 스토어는 휘발성이고 인스턴스에 종속됩니다. 공유 스토리지의 기반으로 삼을 수 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volumes-multi.html", "title": "Amazon EBS 사용 설명서 — 멀티 어태치" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AttachVolume.html", "title": "Amazon EC2 API 레퍼런스 — AttachVolume" }
+      ],
+      "tags": ["ebs", "efs", "shared-storage", "multi-attach"]
+    },
+    {
+      "id": "basics-ch06-003",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "분석 데이터베이스가 40 TiB 용량에 약 20,000 IOPS와 800 MiB/s 처리량을 요구합니다. 가장 비용 효율적인(MOST cost-effective) 볼륨 구성은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "`io1` 볼륨을 만들고 필요한 IOPS를 프로비저닝합니다." },
+        { "id": "B", "text": "`gp3` 볼륨을 만들고 필요한 IOPS와 처리량을 지정합니다." },
+        { "id": "C", "text": "`gp2` 볼륨을 크게 만들어 크기에 비례하는 성능을 확보합니다." },
+        { "id": "D", "text": "`st1` 볼륨을 만들어 처리량 중심으로 구성합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "gp3는 2025년에 상한이 크게 올라 최대 64 TiB, 80,000 IOPS, 2,000 MiB/s를 지원합니다. 이 요구는 그 범위 안에 충분히 들어오므로 더 비싼 프로비저닝 IOPS 계열로 갈 이유가 없습니다. gp3의 또 다른 장점은 용량과 성능을 따로 정할 수 있다는 점입니다. 성능이 크기에 묶여 있는 gp2와 달리 필요 없는 용량을 사지 않아도 되므로 같은 성능을 더 저렴하게 얻습니다. 옛 상한을 기준으로 판단해 프로비저닝 IOPS 볼륨을 고르는 것이 이 유형의 대표적인 함정입니다.",
+      "distractorNotes": {
+        "A": "io1은 최대 16 TiB까지만 지원하므로 40 TiB 요구를 담을 수 없고, 성능이 충분한 상황에서 더 비싼 선택이기도 합니다.",
+        "C": "gp2는 IOPS를 따로 지정할 수 없고 크기가 성능을 결정합니다. 성능을 얻기 위해 필요 없는 용량을 사게 됩니다.",
+        "D": "st1은 순차 처리량에 강한 HDD입니다. 20,000 IOPS 수준의 임의 접근 요구를 감당하지 못합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html", "title": "Amazon EBS 사용 설명서 — 볼륨 유형" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVolume.html", "title": "Amazon EC2 API 레퍼런스 — CreateVolume" }
+      ],
+      "tags": ["ebs", "gp3", "volume-type", "cost-optimization"]
+    },
+    {
+      "id": "basics-ch06-004",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "매일 스냅샷을 만드는 500 GiB 볼륨이 있습니다. 팀이 \"스냅샷 30개면 15 TiB를 저장하는 셈\"이라고 걱정합니다. 스냅샷 저장 방식에 대한 설명으로 옳은 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "첫 스냅샷만 전체이고 이후에는 변경된 블록만 저장됩니다." },
+        { "id": "B", "text": "스냅샷마다 볼륨 전체가 복사되므로 계산이 맞습니다." },
+        { "id": "C", "text": "스냅샷은 볼륨 크기만큼 공간을 예약하고 나중에 채워집니다." },
+        { "id": "D", "text": "오래된 스냅샷을 하나 지우면 항상 그 볼륨 크기만큼 절약됩니다." }
+      ],
+      "answer": ["A"],
+      "explanation": "EBS 스냅샷은 증분 방식입니다. 처음 한 번만 사용 중인 블록 전체를 저장하고, 이후에는 직전 스냅샷 이후 변경된 블록만 새로 저장하면서 변하지 않은 블록은 기존 것을 참조합니다. 그래서 저장량은 볼륨 크기가 아니라 실제 데이터와 변경량으로 결정됩니다. 삭제도 같은 원리를 따릅니다. 어떤 스냅샷을 지워도 다른 스냅샷이 여전히 참조하는 블록은 남고, 그 스냅샷만 참조하던 블록만 제거되므로 줄어드는 용량은 예상보다 작을 수 있습니다. 그래서 스냅샷 하나를 지워 얼마를 아끼겠다는 계산은 대체로 빗나갑니다.",
+      "distractorNotes": {
+        "B": "전체 복사 방식이었다면 일 단위 백업을 유지하는 것이 현실적이지 않았을 것입니다. 증분 구조가 이를 가능하게 합니다.",
+        "C": "미리 공간을 예약하는 구조가 아닙니다. 실제 저장된 블록만큼만 사용됩니다.",
+        "D": "다른 스냅샷이 참조하는 블록은 그대로 남습니다. 절약되는 양은 그 스냅샷만 갖고 있던 블록으로 한정됩니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html", "title": "Amazon EC2 사용 설명서 — EBS 스냅샷" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateSnapshot.html", "title": "Amazon EC2 API 레퍼런스 — CreateSnapshot" }
+      ],
+      "tags": ["ebs", "snapshot", "incremental-backup", "cost-optimization"]
+    },
+    {
+      "id": "basics-ch06-005",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "감사 결과 암호화되지 않은 EBS 볼륨이 발견되어 저장 데이터를 암호화해야 합니다. 어떤 절차가 필요합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "볼륨 수정 화면에서 암호화 옵션을 켜고 KMS 키를 지정합니다." },
+        { "id": "B", "text": "계정 수준 기본 암호화를 켜면 기존 볼륨도 순차적으로 암호화됩니다." },
+        { "id": "C", "text": "스냅샷을 만들고 암호화 사본으로 복사한 뒤 새 볼륨을 만들어 교체합니다." },
+        { "id": "D", "text": "볼륨 타입을 `gp3` 로 변경하면서 KMS 키를 함께 지정합니다." }
+      ],
+      "answer": ["C"],
+      "explanation": "EBS의 암호화 여부는 볼륨을 만들 때 결정되는 속성이며 나중에 제자리에서 바꿀 수 없습니다. 그래서 기존 볼륨을 암호화하려면 스냅샷을 거쳐 새 볼륨을 만드는 경로를 밟습니다. 스냅샷을 복사할 때 암호화를 지정하면 암호화된 사본이 만들어지고, 그 사본에서 만든 볼륨은 암호화된 상태가 됩니다. 반대로 암호화된 볼륨에서 만든 스냅샷과 그 스냅샷에서 만든 볼륨은 계속 암호화 상태를 유지하므로, 한 번 암호화 경로에 들어서면 전파는 자동입니다. 계정 수준의 기본 암호화는 앞으로 만들어질 볼륨에만 적용됩니다.",
+      "distractorNotes": {
+        "A": "볼륨에는 암호화를 나중에 켜는 설정이 없습니다. 가장 그럴듯해 보이지만 존재하지 않는 조작입니다.",
+        "B": "기본 암호화는 새로 만들어지는 볼륨에만 적용되며 기존 볼륨을 건드리지 않습니다.",
+        "D": "볼륨 타입 변경은 성능과 비용 속성을 바꾸는 작업입니다. 암호화 상태와는 무관합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html", "title": "Amazon EC2 사용 설명서 — Amazon EBS 암호화" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CopySnapshot.html", "title": "Amazon EC2 API 레퍼런스 — CopySnapshot" }
+      ],
+      "tags": ["ebs", "encryption", "snapshot", "kms"]
+    },
+    {
+      "id": "basics-ch06-006",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "`io2` 볼륨에 100,000 IOPS를 프로비저닝했는데 측정값이 32,000 부근에서 더 오르지 않습니다. 볼륨 설정은 요청한 대로 반영되어 있습니다. 원인으로 가장 유력한 것은 무엇입니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "볼륨 타입을 `gp3` 로 바꾸면 상한이 풀리므로 타입을 변경해야 합니다." },
+        { "id": "B", "text": "인스턴스 쪽 상한에 걸린 것이므로 더 높은 상한을 지원하는 인스턴스로 바꿔야 합니다." },
+        { "id": "C", "text": "볼륨 크기가 부족한 것이므로 크기를 두 배로 늘려야 합니다." },
+        { "id": "D", "text": "멀티 어태치를 켜서 두 인스턴스가 부하를 나누어 처리해야 합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "스토리지 성능은 볼륨과 인스턴스 양쪽의 상한 중 낮은 쪽에 묶입니다. 볼륨에 아무리 높은 값을 프로비저닝해도 인스턴스가 그만큼의 요청을 처리하지 못하면 그 지점에서 멈춥니다. Nitro 시스템 기반 인스턴스는 최대 256,000 IOPS까지 지원하지만 그 외 인스턴스는 32,000이 한계이며, 측정값이 정확히 그 부근에서 정체된다는 사실이 강력한 단서입니다. 그래서 성능 설계를 할 때는 볼륨 사양만 보지 말고 인스턴스 쪽 상한을 함께 확인해야 하고, 이 확인을 건너뛰면 쓰지도 못하는 IOPS에 비용을 내게 됩니다.",
+      "distractorNotes": {
+        "A": "gp3의 최대 IOPS는 io2보다 낮으므로 타입을 바꿔도 상한이 풀리지 않습니다. 오히려 낮아집니다.",
+        "C": "io2는 크기와 무관하게 IOPS를 프로비저닝합니다. 크기를 늘려도 병목은 그대로입니다.",
+        "D": "멀티 어태치는 여러 인스턴스가 같은 볼륨을 보게 하는 기능이며 단일 워크로드의 처리량 병목을 해소하는 수단이 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html", "title": "Amazon EBS 사용 설명서 — 볼륨 유형" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateVolume.html", "title": "Amazon EC2 API 레퍼런스 — CreateVolume" }
+      ],
+      "tags": ["ebs", "io2", "iops", "performance"]
+    },
+    {
+      "id": "basics-ch06-007",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "EC2 인스턴스 스토어에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "인스턴스를 중지하거나 종료하면 인스턴스 스토어의 데이터가 사라집니다." },
+        { "id": "B", "text": "인스턴스를 재부팅하는 경우에는 데이터가 유지됩니다." },
+        { "id": "C", "text": "인스턴스 스토어의 데이터는 AMI를 만들 때 이미지에 함께 담깁니다." },
+        { "id": "D", "text": "인스턴스 스토어 볼륨은 분리해 다른 인스턴스에 연결할 수 있습니다." },
+        { "id": "E", "text": "인스턴스 스토어도 스냅샷을 만들어 백업할 수 있습니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "인스턴스 스토어는 인스턴스가 실행되는 호스트에 물리적으로 붙어 있는 저장 장치입니다. 지연이 매우 낮다는 장점이 있지만 호스트에 묶여 있으므로 인스턴스가 그 호스트를 떠나는 순간 데이터가 사라집니다. 중지와 종료가 여기에 해당하고, 재부팅은 같은 호스트에서 다시 시작하는 동작이라 데이터가 남습니다. 이 차이를 모르면 비용을 아끼려고 인스턴스를 중지했다가 데이터를 잃습니다. 그래서 인스턴스 스토어는 임시 버퍼나 캐시, 다시 만들 수 있는 중간 산출물에만 쓰고 남아야 하는 데이터는 EBS나 다른 서비스에 둡니다.",
+      "distractorNotes": {
+        "C": "AMI에는 EBS 스냅샷과 블록 디바이스 매핑, 시작 메타데이터가 담깁니다. 인스턴스 스토어의 데이터는 보존되지 않습니다.",
+        "D": "인스턴스 스토어는 호스트에 붙어 있어 분리하거나 다른 인스턴스에 연결할 수 없습니다. 그 동작이 가능한 쪽은 EBS입니다.",
+        "E": "스냅샷 기능은 EBS 볼륨을 대상으로 합니다. 인스턴스 스토어에는 해당하지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html", "title": "Amazon EC2 사용 설명서 — 인스턴스 스토어" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CreateImage.html", "title": "Amazon EC2 API 레퍼런스 — CreateImage" }
+      ],
+      "tags": ["ec2", "instance-store", "ebs", "ami"]
+    },
+    {
+      "id": "basics-ch06-008",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "EBS 볼륨의 변경과 암호화에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "크기와 타입, IOPS는 대체로 중단 없이 변경할 수 있지만 파일 시스템 확장은 따로 해야 합니다." },
+        { "id": "B", "text": "암호화된 볼륨의 스냅샷과 그 스냅샷에서 만든 볼륨은 모두 암호화된 상태가 됩니다." },
+        { "id": "C", "text": "계정 수준 기본 암호화를 켜면 기존 볼륨도 순차적으로 암호화됩니다." },
+        { "id": "D", "text": "볼륨 설정에서 암호화를 활성화하면 기존 볼륨을 제자리에서 암호화할 수 있습니다." },
+        { "id": "E", "text": "암호화를 적용하면 IOPS 성능이 크게 떨어지므로 성능이 중요한 볼륨에는 쓰지 않습니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "볼륨 변경은 운영 중에 수행할 수 있어 편리하지만 반쪽짜리 작업으로 끝나기 쉽습니다. 블록 장치가 커져도 그 위에 올라간 파일 시스템은 자동으로 늘어나지 않으므로 운영체제 쪽에서 확장 명령을 실행해야 실제 용량이 늘어납니다. 볼륨을 키웠는데 여유 공간이 그대로라는 상황이 여기서 나옵니다. 암호화 쪽에서는 전파 규칙이 핵심입니다. 한 번 암호화된 볼륨에서 파생된 스냅샷과 볼륨은 계속 암호화 상태를 유지하므로, 처음 만들 때 암호화해 두면 이후 관리가 단순해집니다.",
+      "distractorNotes": {
+        "C": "기본 암호화는 앞으로 만들어질 볼륨에만 적용됩니다. 기존 볼륨은 스냅샷을 거쳐 다시 만들어야 합니다.",
+        "D": "제자리 암호화는 제공되지 않습니다. 암호화 여부는 볼륨 생성 시점에 정해집니다.",
+        "E": "암호화는 모든 볼륨 타입에서 지원되고 성능 영향도 사실상 없습니다. 성능을 이유로 암호화를 포기할 근거가 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifyVolume.html", "title": "Amazon EC2 API 레퍼런스 — ModifyVolume" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_EnableEbsEncryptionByDefault.html", "title": "Amazon EC2 API 레퍼런스 — EnableEbsEncryptionByDefault" }
+      ],
+      "tags": ["ebs", "modify-volume", "encryption", "file-system"]
+    },
+    {
+      "id": "basics-ch06-009",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "medium",
+      "type": "matching",
+      "question": "각 워크로드에 알맞은 스토리지 선택지를 연결하세요. 목록에는 정답이 아닌 미끼 값이 섞여 있습니다.",
+      "code": null,
+      "pairs": [
+        { "id": "p1", "left": "대부분의 범용 워크로드에 쓰며 용량과 성능을 서로 독립적으로 정하고 싶다", "right": "gp3" },
+        { "id": "p2", "left": "수십만 IOPS가 필요한 미션 크리티컬 데이터베이스이며 볼륨 하나로 수십 TiB까지 확장해야 한다", "right": "io2" },
+        { "id": "p3", "left": "빅데이터 로그 처리처럼 대용량 순차 읽기 처리량이 지배적이고 비용을 낮춰야 한다", "right": "st1" },
+        { "id": "p4", "left": "거의 접근하지 않는 데이터를 가장 저렴하게 보관하며 부트 볼륨으로는 쓰지 않는다", "right": "sc1" },
+        { "id": "p5", "left": "다시 만들 수 있는 임시 버퍼와 캐시를 가장 낮은 지연으로 다루며 휘발성을 감수한다", "right": "인스턴스 스토어" }
+      ],
+      "extraRights": ["gp2", "Amazon EFS"],
+      "explanation": "볼륨 선택은 임의 접근이 많은지 순차 처리량이 중요한지로 먼저 갈립니다. 임의 접근이면 SSD 계열이고, 그 안에서 필요한 IOPS가 범용 타입의 상한을 넘는지에 따라 프로비저닝 IOPS 계열로 올라갑니다. 순차 처리량이 지배적이면 HDD 계열이 훨씬 저렴하며, 접근 빈도가 아주 낮으면 더 차가운 쪽으로 갑니다. 다만 HDD 계열은 부트 볼륨으로 쓸 수 없다는 제약이 있습니다. 미끼로 넣은 gp2는 성능이 크기에 묶여 있어 같은 성능을 얻는 데 더 많은 용량을 사야 하고, EFS는 블록이 아니라 공유 파일 시스템이라 계층 자체가 다릅니다.",
+      "distractorNotes": {
+        "p1": "예전 기준으로는 성능이 부족해 보여 다른 타입으로 올라가기 쉽습니다. 상향된 상한을 알고 있으면 대부분 여기서 해결됩니다.",
+        "p2": "필요한 IOPS와 최대 용량을 함께 보아야 합니다. 상한이 더 낮은 타입을 고르면 요구를 담지 못합니다.",
+        "p3": "처리량이 중요하다는 이유만으로 SSD를 고르면 비용이 크게 늘어납니다. 순차 읽기라는 단서가 결정적입니다.",
+        "p4": "가장 저렴하다는 이유로 운영체제를 여기에 두는 선택지가 함정으로 나옵니다. 부트 볼륨으로는 쓸 수 없습니다.",
+        "p5": "휘발성을 감수한다는 조건이 있어야 이 선택이 성립합니다. 조건이 없으면 데이터 유실 사고가 됩니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html", "title": "Amazon EBS 사용 설명서 — 볼륨 유형" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html", "title": "Amazon EC2 사용 설명서 — 인스턴스 스토어" }
+      ],
+      "tags": ["ebs", "volume-type", "instance-store", "cost-optimization"]
+    },
+    {
+      "id": "basics-ch06-010",
+      "exam": "BASICS",
+      "domain": "EBS와 블록 스토리지",
+      "chapter": "ch06",
+      "difficulty": "hard",
+      "type": "ordering",
+      "question": "암호화되지 않은 데이터 볼륨을 암호화된 볼륨으로 교체하는 절차를 순서대로 배열하세요.",
+      "code": null,
+      "items": [
+        { "id": "i3", "text": "암호화된 스냅샷에서 같은 가용 영역에 새 볼륨을 만든다" },
+        { "id": "i1", "text": "인스턴스를 중지하고 대상 볼륨의 스냅샷을 만든다" },
+        { "id": "i5", "text": "인스턴스를 시작해 파일 시스템이 정상적으로 마운트되는지 확인한다" },
+        { "id": "i4", "text": "기존 볼륨을 분리하고 새 볼륨을 같은 디바이스 이름으로 연결한다" },
+        { "id": "i2", "text": "그 스냅샷을 암호화 옵션과 KMS 키를 지정해 복사한다" }
+      ],
+      "answer": ["i1", "i2", "i3", "i4", "i5"],
+      "explanation": "암호화 여부가 생성 시점에 고정되기 때문에 이 작업은 볼륨을 바꿔 끼우는 교체 작업이 됩니다. 먼저 데이터가 일관된 상태에서 스냅샷을 뜨기 위해 인스턴스를 멈추고, 그 스냅샷을 복사할 때 암호화를 지정해 암호화된 사본을 만듭니다. 사본에서 새 볼륨을 만들면 그 볼륨은 암호화된 상태이며, 이후 파생되는 스냅샷과 볼륨도 암호화가 유지됩니다. 마지막으로 디바이스 이름을 원래와 같게 맞춰 연결해야 운영체제와 애플리케이션이 경로를 그대로 인식합니다. 이 절차는 RDS 인스턴스를 암호화할 때의 흐름과 사실상 같아서 함께 외워 두면 좋습니다.",
+      "distractorNotes": {
+        "i1": "실행 중인 볼륨에서 바로 스냅샷을 뜨면 쓰기 도중의 상태가 담길 수 있습니다. 중지가 앞에 오는 이유입니다.",
+        "i2": "복사 단계에서 암호화를 지정한다는 점이 이 절차의 핵심입니다. 스냅샷을 만드는 단계에서 암호화를 켜는 것이 아닙니다.",
+        "i4": "디바이스 이름을 원래와 다르게 붙이면 마운트 설정이 어긋나 부팅이나 서비스 기동이 실패할 수 있습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html", "title": "Amazon EC2 사용 설명서 — Amazon EBS 암호화" },
+        { "url": "https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CopySnapshot.html", "title": "Amazon EC2 API 레퍼런스 — CopySnapshot" }
+      ],
+      "tags": ["ebs", "encryption", "snapshot", "kms"]
+    }
+  ]
+}

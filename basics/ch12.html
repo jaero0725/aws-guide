@@ -259,7 +259,120 @@ curl -X POST https://internal-worker.example.internal/jobs \
         호출 경로마다 재시도하는 주체와 실패 메시지의 도착지가 다릅니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-110">
+      <figure class="diagram" data-diagram="D-110" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 500" role="img" aria-labelledby="d-110-1-d110-title d-110-1-d110-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-110-1-d110-title">Lambda 호출 모델 세 가지 — 재시도 주체와 실패 도착지</title>
+            <desc id="d-110-1-d110-desc">AWS Lambda 함수를 부르는 방법은 세 가지이고 실패했을 때 벌어지는 일이 셋 다 다릅니다.
+              첫째 동기 호출은 API Gateway 같은 호출자가 응답을 기다리는 방식입니다. 함수가 실패하면 오류가 호출자에게 그대로 돌아가고
+              Lambda 는 아무것도 다시 시도하지 않으며 메시지를 받아 줄 배달 못 한 편지 큐도 없습니다. 재시도는 호출자의 책임입니다.
+              둘째 비동기 호출은 EventBridge 나 SNS 가 이벤트를 던지고 즉시 떠나는 방식입니다.
+              Lambda 가 내부 큐에 이벤트를 넣고 스스로 기본 두 번까지 재시도하며, 그래도 실패하면 온-실패 대상이나 배달 못 한 편지 큐로 보냅니다.
+              이 대상을 설정하지 않으면 이벤트는 그냥 사라집니다.
+              셋째 이벤트 소스 매핑은 Lambda 가 SQS 큐나 Kinesis 및 DynamoDB 스트림을 직접 폴링하는 방식입니다.
+              재시도 규칙은 Lambda 가 아니라 소스가 정합니다. SQS 라면 가시성 제한 시간이 지나 메시지가 다시 보이고
+              수신 횟수가 maxReceiveCount 를 넘으면 그 큐에 붙은 배달 못 한 편지 큐로 옮겨집니다.
+              메시지가 사라졌다는 신고를 받으면 먼저 어느 호출 모델인지부터 확인해야 하는 이유가 이것입니다.</desc>
+
+            <defs>
+              <marker id="d-110-1-d110-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-110-1-d110-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-110-1-d110-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">같은 함수라도 어떻게 불렀느냐에 따라 실패의 결말이 다릅니다</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="62">호출 모델</text>
+            <text class="dg-fs-sm dg-muted" x="156" y="62">호출 주체</text>
+            <text class="dg-fs-sm dg-muted" x="302" y="62">함수</text>
+            <text class="dg-fs-sm dg-muted" x="448" y="62">실패했을 때 가는 곳</text>
+
+            <!-- 레인 1: 동기 -->
+            <rect class="dg-panel" x="14" y="70" width="692" height="110" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="24" y="112">동기 호출</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="24" y="132">RequestResponse</text>
+
+            <rect class="dg-node" x="156" y="92" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="221" y="118" text-anchor="middle">API Gateway</text>
+            <text class="dg-fs-sm dg-muted" x="221" y="138" text-anchor="middle">응답을 기다립니다</text>
+
+            <path class="dg-edge" d="M286 122 L298 122" marker-end="url(#d-110-1-d110-ar)"/>
+
+            <rect class="dg-node" x="302" y="92" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="367" y="118" text-anchor="middle">Lambda</text>
+            <text class="dg-fs-sm dg-muted" x="367" y="138" text-anchor="middle">재시도 없음</text>
+
+            <path class="dg-edge dg-edge--danger" d="M432 122 L444 122" marker-end="url(#d-110-1-d110-ar-danger)"/>
+
+            <rect class="dg-node dg-node--danger" x="448" y="92" width="252" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="462" y="116">DLQ 라는 개념이 없습니다</text>
+            <text class="dg-fs-sm" x="462" y="138">오류가 호출자에게 그대로 돌아갑니다</text>
+
+            <text class="dg-fs-sm dg-bold" x="156" y="172">재시도 주체 — 호출자 (클라이언트 또는 SDK 가 알아서 다시 부릅니다)</text>
+
+            <!-- 레인 2: 비동기 -->
+            <rect class="dg-panel" x="14" y="188" width="692" height="110" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="24" y="230">비동기 호출</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="24" y="250">Event</text>
+
+            <rect class="dg-node" x="156" y="210" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="221" y="236" text-anchor="middle">EventBridge · SNS</text>
+            <text class="dg-fs-sm dg-muted" x="221" y="256" text-anchor="middle">던지고 떠납니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M286 240 L298 240" marker-end="url(#d-110-1-d110-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="302" y="210" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="367" y="236" text-anchor="middle">Lambda 내부 큐</text>
+            <text class="dg-fs-sm dg-bold" x="367" y="256" text-anchor="middle">기본 2회 재시도</text>
+
+            <path class="dg-edge dg-edge--accent" d="M432 240 L444 240" marker-end="url(#d-110-1-d110-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="448" y="210" width="252" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="462" y="234">온-실패 대상 또는 DLQ</text>
+            <text class="dg-fs-sm" x="462" y="256">SQS · SNS · EventBridge · Lambda</text>
+
+            <text class="dg-fs-sm dg-bold" x="156" y="290">재시도 주체 — Lambda 서비스 · 대상을 설정하지 않으면 이벤트는 그냥 사라집니다</text>
+
+            <!-- 레인 3: 이벤트 소스 매핑 -->
+            <rect class="dg-panel" x="14" y="306" width="692" height="110" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="24" y="342">이벤트 소스</text>
+            <text class="dg-fs-sm dg-bold" x="24" y="360">매핑 (폴링)</text>
+            <text class="dg-fs-sm dg-mono dg-muted" x="24" y="380">Poll-based</text>
+
+            <rect class="dg-node" x="156" y="328" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="221" y="352" text-anchor="middle">SQS · Kinesis</text>
+            <text class="dg-fs-sm dg-bold" x="221" y="370" text-anchor="middle">DynamoDB 스트림</text>
+
+            <path class="dg-edge" d="M298 358 L290 358" marker-end="url(#d-110-1-d110-ar)"/>
+            <text class="dg-fs-sm dg-muted" x="294" y="324" text-anchor="middle">폴링</text>
+
+            <rect class="dg-node" x="302" y="328" width="130" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="367" y="352" text-anchor="middle">Lambda</text>
+            <text class="dg-fs-sm dg-muted" x="367" y="372" text-anchor="middle">배치로 꺼내 갑니다</text>
+
+            <path class="dg-edge dg-edge--danger" d="M432 358 L444 358" marker-end="url(#d-110-1-d110-ar-danger)"/>
+
+            <rect class="dg-node dg-node--warn" x="448" y="328" width="252" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="462" y="352">소스에 붙은 DLQ</text>
+            <text class="dg-fs-sm" x="462" y="374">SQS 는 maxReceiveCount 초과 시 이동</text>
+
+            <text class="dg-fs-sm dg-bold" x="156" y="408">재시도 주체 — 이벤트 소스 · 가시성 제한 시간이 지나면 메시지가 다시 보입니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="428" width="680" height="60" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="452" text-anchor="middle">"메시지가 사라졌다"의 진단은 호출 모델을 확인하는 데서 시작합니다</text>
+            <text class="dg-fs-sm" x="360" y="474" text-anchor="middle">DLQ 를 붙일 자리가 모델마다 다르고, 동기 호출에는 아예 그런 자리가 없습니다</text>
+          </svg>
+        </div>
         <figcaption>
           AWS Lambda 호출 모델 세 가지 — 동기 호출은 호출자가 직접 응답을 받고 재시도도 호출자의 몫이며,
           비동기 호출은 Lambda가 내부 큐에 넣고 스스로 재시도한 뒤 실패분을 배달 못 한 편지 큐나 대상으로 보내고,
@@ -330,7 +443,93 @@ curl -X POST https://internal-worker.example.internal/jobs \
         한 함수가 폭주하면 같은 계정의 다른 함수가 스로틀링됩니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-111">
+      <figure class="diagram" data-diagram="D-111" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 460" role="img" aria-labelledby="d-111-1-d111-title d-111-1-d111-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-111-1-d111-title">Lambda 동시성 풀과 예약·프로비저닝된 동시성</title>
+            <desc id="d-111-1-d111-desc">맨 위 막대는 리전마다 하나씩 있는 계정 동시성 한도입니다.
+              예약 동시성을 설정한 함수는 이 풀에서 자기 몫을 미리 떼어 갑니다.
+              떼어 온 몫은 그 함수만 쓸 수 있는 보장인 동시에 그 함수가 넘을 수 없는 상한이기도 합니다.
+              나머지 구간은 예약하지 않은 모든 함수가 먼저 쓰는 쪽이 먼저 가져가는 공유 풀입니다.
+              가운데는 그래서 벌어지는 사고입니다. 공유 풀을 쓰는 함수 하나가 폭주해 풀을 다 써 버리면
+              같은 공유 풀에 있는 다른 함수는 실행 환경을 얻지 못해 호출이 스로틀됩니다.
+              예약 동시성은 바로 이 굶주림을 막는 칸막이입니다.
+              맨 아래는 프로비저닝된 동시성입니다. 온디맨드에서는 요청이 도착한 뒤에 실행 환경을 초기화하느라
+              콜드 스타트 구간이 생기지만, 프로비저닝된 동시성은 요청이 오기 전에 실행 환경을 미리 만들어 두므로
+              요청이 도착하는 즉시 핸들러가 실행됩니다. 예약 동시성은 개수를 나누는 장치이고
+              프로비저닝된 동시성은 지연 시간을 없애는 장치라는 점에서 목적이 다릅니다.</desc>
+
+            <defs>
+              <marker id="d-111-1-d111-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">계정 동시성 한도 — 리전마다 하나의 풀입니다</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="46">예약 동시성은 이 풀에서 몫을 떼어 옵니다. 보장이면서 동시에 상한입니다</text>
+
+            <!-- 동시성 풀 막대 -->
+            <rect class="dg-node dg-node--accent" x="20" y="58" width="170" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="105" y="80" text-anchor="middle">예약 동시성</text>
+            <text class="dg-fs-sm" x="105" y="98" text-anchor="middle">함수 A 전용</text>
+
+            <rect class="dg-node dg-node--accent" x="190" y="58" width="110" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="245" y="80" text-anchor="middle">예약 동시성</text>
+            <text class="dg-fs-sm" x="245" y="98" text-anchor="middle">함수 B 전용</text>
+
+            <rect class="dg-node dg-node--muted" x="300" y="58" width="400" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="500" y="80" text-anchor="middle">예약하지 않은 모든 함수의 공유 풀</text>
+            <text class="dg-fs-sm" x="500" y="98" text-anchor="middle">먼저 쓰는 쪽이 먼저 가져갑니다</text>
+
+            <path class="dg-grid" d="M20 114 L20 122 M300 114 L300 122 M700 114 L700 122 M20 122 L700 122"/>
+            <text class="dg-fs-sm dg-muted" x="360" y="140" text-anchor="middle">두 조각의 합이 계정 한도를 넘을 수 없습니다</text>
+
+            <!-- 폭주 -->
+            <path class="dg-edge dg-edge--danger dg-edge--dashed" d="M500 106 L500 156"/>
+
+            <text class="dg-fs-sm dg-bold" x="20" y="180">한 함수의 폭주가</text>
+            <text class="dg-fs-sm dg-bold" x="20" y="200">다른 함수를 굶깁니다</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="222">예약 동시성은 이 굶주림을</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="240">막는 칸막이입니다</text>
+
+            <rect class="dg-node dg-node--danger" x="350" y="160" width="150" height="58" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="425" y="184" text-anchor="middle">함수 C 폭주</text>
+            <text class="dg-fs-sm" x="425" y="206" text-anchor="middle">공유 풀을 소진</text>
+
+            <path class="dg-edge dg-edge--danger" d="M500 189 L554 189" marker-end="url(#d-111-1-d111-ar-danger)"/>
+
+            <rect class="dg-node dg-node--danger" x="560" y="160" width="140" height="58" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="184" text-anchor="middle">함수 D</text>
+            <text class="dg-fs-sm" x="630" y="206" text-anchor="middle">호출이 스로틀됩니다</text>
+
+            <text class="dg-fs-sm dg-muted" x="350" y="240">함수 A · B 는 예약 몫이 있으므로 영향을 받지 않습니다</text>
+
+            <!-- 프로비저닝된 동시성 -->
+            <path class="dg-grid" d="M20 256 L700 256"/>
+            <text class="dg-fs-md dg-bold" x="20" y="282">프로비저닝된 동시성 — 콜드 스타트 구간 자체를 없앱니다</text>
+
+            <path class="dg-edge dg-edge--dotted" d="M240 292 L240 386"/>
+            <text class="dg-fs-sm dg-bold" x="240" y="404" text-anchor="middle">요청 도착</text>
+
+            <text class="dg-fs-sm dg-bold" x="20" y="316">온디맨드</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="334">초기화부터 시작</text>
+            <rect class="dg-node dg-node--warn" x="240" y="300" width="180" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="330" y="322" text-anchor="middle">콜드 스타트 · 초기화</text>
+            <rect class="dg-node" x="424" y="300" width="180" height="34" rx="4"/>
+            <text class="dg-fs-sm" x="514" y="322" text-anchor="middle">핸들러 실행</text>
+
+            <text class="dg-fs-sm dg-bold" x="20" y="364">프로비저닝됨</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="382">이미 초기화되어 있음</text>
+            <rect class="dg-node dg-node--ok" x="240" y="348" width="180" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="330" y="370" text-anchor="middle">핸들러 실행</text>
+            <text class="dg-fs-sm dg-bold" x="432" y="370">초기화 구간이 없습니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="414" width="680" height="38" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="438" text-anchor="middle">예약 동시성은 개수를 나누는 장치, 프로비저닝된 동시성은 지연 시간을 없애는 장치입니다</text>
+          </svg>
+        </div>
         <figcaption>
           계정 동시성 풀과 두 가지 동시성 설정 — 예약된 동시성은 풀의 일부를 한 함수 몫으로 떼어 내
           보장이자 상한으로 동시에 작동하고, 프로비저닝된 동시성은 실행 환경을 미리 초기화해 두어
@@ -423,7 +622,101 @@ aws lambda get-account-settings \
         즉 연결한 서브넷에 인터넷으로 나가는 경로가 없으면 <strong>외부 API 호출이 그 순간부터 실패</strong>합니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-112">
+      <figure class="diagram" data-diagram="D-112" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 434" role="img" aria-labelledby="d-112-1-d112-title d-112-1-d112-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-112-1-d112-title">VPC에 연결한 Lambda 함수의 네트워크 경로</title>
+            <desc id="d-112-1-d112-desc">Lambda 함수 자체는 AWS 가 관리하는 계정에서 실행되고, VPC 설정을 붙이면
+              고객 VPC 의 프라이빗 서브넷에 네트워크 인터페이스가 만들어져 그 인터페이스를 통해 트래픽이 나갑니다.
+              같은 프라이빗 서브넷 안의 RDS 나 ElastiCache 같은 리소스에는 이 인터페이스만으로 바로 닿습니다.
+              그러나 인터넷의 외부 API 로 나가려면 퍼블릭 서브넷의 NAT 게이트웨이를 거쳐야 하고,
+              S3 나 DynamoDB 같은 퍼블릭 AWS 엔드포인트로 가려면 NAT 게이트웨이나 VPC 엔드포인트가 필요합니다.
+              함수에 퍼블릭 IP 를 붙이는 선택지는 없기 때문에 이 두 가지 중 하나가 없으면 아웃바운드 호출은
+              오류가 아니라 타임아웃으로 끝납니다. VPC 에 연결한 순간부터 외부 API 호출이 멈췄다는 사고의 원인이 정확히 이것입니다.</desc>
+
+            <defs>
+              <marker id="d-112-1-d112-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-112-1-d112-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-112-1-d112-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">VPC 에 붙이면 안쪽은 열리고 바깥쪽은 닫힙니다</text>
+
+            <!-- Lambda 서비스 계정 -->
+            <rect class="dg-node dg-node--alt" x="20" y="180" width="120" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="80" y="204" text-anchor="middle">Lambda 함수</text>
+            <text class="dg-fs-sm dg-muted" x="80" y="224" text-anchor="middle">AWS 관리 계정</text>
+            <text class="dg-fs-sm dg-muted" x="80" y="258" text-anchor="middle">퍼블릭 IP 를</text>
+            <text class="dg-fs-sm dg-muted" x="80" y="276" text-anchor="middle">붙일 수 없습니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M140 210 L168 210" marker-end="url(#d-112-1-d112-ar-accent)"/>
+
+            <!-- VPC -->
+            <rect class="dg-panel" x="150" y="58" width="334" height="304" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="160" y="78">고객 VPC</text>
+
+            <rect class="dg-node dg-node--empty" x="162" y="88" width="160" height="256" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="172" y="108">프라이빗 서브넷</text>
+
+            <rect class="dg-node dg-node--accent" x="174" y="180" width="136" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="242" y="204" text-anchor="middle">ENI</text>
+            <text class="dg-fs-sm dg-muted" x="242" y="224" text-anchor="middle">네트워크 인터페이스</text>
+
+            <path class="dg-edge dg-edge--ok" d="M242 240 L242 262" marker-end="url(#d-112-1-d112-ar-ok)"/>
+
+            <rect class="dg-node dg-node--ok" x="174" y="268" width="136" height="66" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="242" y="290" text-anchor="middle">RDS · ElastiCache</text>
+            <text class="dg-fs-sm" x="242" y="310" text-anchor="middle">추가 구성 없이</text>
+            <text class="dg-fs-sm" x="242" y="326" text-anchor="middle">바로 닿습니다</text>
+
+            <!-- 퍼블릭 서브넷 + NAT -->
+            <rect class="dg-node dg-node--empty" x="334" y="120" width="140" height="130" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="344" y="140">퍼블릭 서브넷</text>
+
+            <path class="dg-edge" d="M310 210 L332 214" marker-end="url(#d-112-1-d112-ar)"/>
+
+            <rect class="dg-node dg-node--warn" x="342" y="152" width="124" height="86" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="404" y="180" text-anchor="middle">NAT</text>
+            <text class="dg-fs-sm dg-bold" x="404" y="198" text-anchor="middle">게이트웨이</text>
+            <text class="dg-fs-sm" x="404" y="222" text-anchor="middle">따로 만들어야</text>
+            <text class="dg-fs-sm" x="404" y="238" text-anchor="middle">합니다</text>
+
+            <!-- VPC 엔드포인트 -->
+            <path class="dg-edge" d="M310 232 L328 232 L328 302 L336 302" marker-end="url(#d-112-1-d112-ar)"/>
+
+            <rect class="dg-node dg-node--warn" x="342" y="270" width="124" height="66" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="404" y="292" text-anchor="middle">VPC 엔드포인트</text>
+            <text class="dg-fs-sm" x="404" y="312" text-anchor="middle">게이트웨이 또는</text>
+            <text class="dg-fs-sm" x="404" y="328" text-anchor="middle">인터페이스</text>
+
+            <!-- VPC 밖 -->
+            <path class="dg-edge" d="M466 195 L498 195" marker-end="url(#d-112-1-d112-ar)"/>
+            <rect class="dg-node" x="504" y="160" width="196" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="602" y="186" text-anchor="middle">인터넷 · 외부 API</text>
+            <text class="dg-fs-sm dg-muted" x="602" y="210" text-anchor="middle">NAT 를 거쳐야만 닿습니다</text>
+
+            <path class="dg-edge" d="M466 303 L498 303" marker-end="url(#d-112-1-d112-ar)"/>
+            <rect class="dg-node" x="504" y="270" width="196" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="602" y="296" text-anchor="middle">S3 · DynamoDB</text>
+            <text class="dg-fs-sm dg-muted" x="602" y="320" text-anchor="middle">퍼블릭 AWS 엔드포인트</text>
+
+            <text class="dg-fs-sm dg-muted" x="504" y="130">VPC 바깥</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--danger" x="20" y="374" width="680" height="52" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="396" text-anchor="middle">둘 중 하나도 없으면 아웃바운드는 오류가 아니라 타임아웃으로 끝납니다</text>
+            <text class="dg-fs-sm" x="360" y="416" text-anchor="middle">"VPC 에 연결한 뒤부터 외부 API 호출이 멈췄다"는 사고의 원인이 이것입니다</text>
+          </svg>
+        </div>
         <figcaption>
           VPC에 연결한 AWS Lambda의 네트워크 경로 — 함수는 네트워크 인터페이스를 통해 프라이빗 서브넷의 리소스에 닿지만,
           인터넷이나 퍼블릭 AWS 엔드포인트로 나가려면 NAT 게이트웨이 또는 VPC 엔드포인트가 따로 필요합니다
@@ -626,7 +919,132 @@ aws lambda get-account-settings \
 
       <h3 id="sqs-standard-vs-fifo">표준 큐와 FIFO 큐 <span class="badge badge--saa">SAA 빈출</span></h3>
 
-      <figure class="diagram" data-diagram="D-113">
+      <figure class="diagram" data-diagram="D-113" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 490" role="img" aria-labelledby="d-113-1-d113-title d-113-1-d113-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-113-1-d113-title">SQS 표준 큐와 FIFO 큐, 그리고 메시지 수명주기</title>
+            <desc id="d-113-1-d113-desc">생산자가 1, 2, 3, 4 순서로 보낸 같은 메시지 열을 두 종류의 큐에 각각 넣었을 때
+              소비자가 무엇을 받게 되는지 비교합니다. 표준 큐에서는 순서가 뒤섞여 도착할 수 있고 같은 메시지가 두 번 올 수 있습니다.
+              대신 처리량에 사실상 제한이 없습니다. FIFO 큐에서는 메시지 그룹 ID 로 묶인 그룹 안에서만 엄격한 순서가 보장되고
+              중복 제거가 이루어집니다. 서로 다른 그룹 사이의 순서는 보장되지 않으며 처리량은 배치 없이 초당 300개,
+              배치를 쓰면 초당 3,000개가 기준입니다.
+              아래쪽은 두 큐에 공통으로 적용되는 메시지 수명주기입니다. 소비자가 메시지를 수신하면 가시성 제한 시간 동안
+              다른 소비자에게 보이지 않게 감춰집니다. 기본값은 30초입니다.
+              그 안에 처리를 마치고 DeleteMessage 를 호출하면 메시지가 사라지지만, 호출하지 못한 채 시간이 지나면
+              메시지가 큐에 다시 나타나고 수신 횟수가 하나 늘어납니다.
+              이 수신 횟수가 재드라이브 정책의 maxReceiveCount 를 넘으면 메시지는 배달 못 한 편지 큐로 옮겨집니다.</desc>
+
+            <defs>
+              <marker id="d-113-1-d113-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-113-1-d113-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-113-1-d113-ar-warn" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--warn" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-113-1-d113-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 생산자 -->
+            <text class="dg-fs-md dg-bold" x="20" y="42">생산자가 보낸 순서</text>
+            <rect class="dg-node dg-node--accent" x="200" y="22" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="217" y="42" text-anchor="middle">1</text>
+            <rect class="dg-node dg-node--accent" x="240" y="22" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="257" y="42" text-anchor="middle">2</text>
+            <rect class="dg-node dg-node--accent" x="280" y="22" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="297" y="42" text-anchor="middle">3</text>
+            <rect class="dg-node dg-node--accent" x="320" y="22" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="337" y="42" text-anchor="middle">4</text>
+            <text class="dg-fs-sm dg-muted" x="370" y="42">같은 열을 두 큐에 똑같이 넣습니다</text>
+
+            <!-- 표준 큐 -->
+            <rect class="dg-panel" x="20" y="66" width="330" height="200" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="90">표준 큐</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="112">소비자가 받는 순서 (예)</text>
+
+            <rect class="dg-node" x="34" y="120" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="51" y="140" text-anchor="middle">2</text>
+            <rect class="dg-node" x="74" y="120" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="91" y="140" text-anchor="middle">1</text>
+            <rect class="dg-node" x="114" y="120" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="131" y="140" text-anchor="middle">3</text>
+            <rect class="dg-node dg-node--warn" x="154" y="120" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="171" y="140" text-anchor="middle">3</text>
+            <rect class="dg-node" x="194" y="120" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="211" y="140" text-anchor="middle">4</text>
+            <text class="dg-fs-sm dg-bold" x="171" y="166" text-anchor="middle">중복</text>
+
+            <text class="dg-fs-sm" x="34" y="196">순서 보장 없음 — 최선 노력</text>
+            <text class="dg-fs-sm" x="34" y="216">중복 전달 가능 — 최소 1회 전달</text>
+            <text class="dg-fs-sm" x="34" y="236">처리량에 사실상 제한이 없습니다</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="256">소비자가 멱등하게 만들어야 합니다</text>
+
+            <!-- FIFO 큐 -->
+            <rect class="dg-panel" x="370" y="66" width="330" height="208" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="384" y="90">FIFO 큐</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="112">메시지 그룹 안에서만 순서 보장</text>
+
+            <text class="dg-fs-sm dg-bold" x="384" y="140">그룹 A</text>
+            <rect class="dg-node dg-node--ok" x="444" y="120" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="461" y="140" text-anchor="middle">1</text>
+            <rect class="dg-node dg-node--ok" x="484" y="120" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="501" y="140" text-anchor="middle">3</text>
+            <text class="dg-fs-sm dg-muted" x="530" y="140">순서 그대로</text>
+
+            <text class="dg-fs-sm dg-bold" x="384" y="176">그룹 B</text>
+            <rect class="dg-node dg-node--ok" x="444" y="156" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="461" y="176" text-anchor="middle">2</text>
+            <rect class="dg-node dg-node--ok" x="484" y="156" width="34" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="501" y="176" text-anchor="middle">4</text>
+            <text class="dg-fs-sm dg-muted" x="530" y="176">순서 그대로</text>
+
+            <text class="dg-fs-sm" x="384" y="202">그룹이 다르면 서로의 순서는 무관합니다</text>
+            <text class="dg-fs-sm" x="384" y="222">중복 제거 — 정확히 한 번 처리</text>
+            <text class="dg-fs-sm" x="384" y="242">초당 300개 · 배치 사용 시 초당 3,000개</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="262">MessageGroupId 를 빠뜨리면 전송이 실패합니다</text>
+
+            <!-- 수명주기 -->
+            <text class="dg-fs-md dg-bold" x="20" y="300">메시지 수명주기 — 두 큐에 공통입니다</text>
+
+            <rect class="dg-node" x="20" y="312" width="120" height="50" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="80" y="342" text-anchor="middle">소비자가 수신</text>
+
+            <path class="dg-edge" d="M140 337 L152 337" marker-end="url(#d-113-1-d113-ar)"/>
+
+            <rect class="dg-node dg-node--accent" x="158" y="312" width="150" height="50" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="233" y="333" text-anchor="middle">가시성 제한 시간 동안</text>
+            <text class="dg-fs-sm" x="233" y="351" text-anchor="middle">감춰집니다 (기본 30초)</text>
+
+            <path class="dg-edge dg-edge--ok" d="M308 328 L318 302" marker-end="url(#d-113-1-d113-ar-ok)"/>
+            <rect class="dg-node dg-node--ok" x="324" y="276" width="160" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="404" y="302" text-anchor="middle">DeleteMessage — 사라짐</text>
+
+            <path class="dg-edge dg-edge--warn" d="M308 348 L318 372" marker-end="url(#d-113-1-d113-ar-warn)"/>
+            <rect class="dg-node dg-node--warn" x="324" y="352" width="160" height="50" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="404" y="374" text-anchor="middle">시간이 지나면 다시 보임</text>
+            <text class="dg-fs-sm" x="404" y="392" text-anchor="middle">수신 횟수 +1</text>
+
+            <path class="dg-edge dg-edge--danger" d="M484 377 L508 377" marker-end="url(#d-113-1-d113-ar-danger)"/>
+            <rect class="dg-node dg-node--danger" x="514" y="352" width="186" height="50" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="607" y="374" text-anchor="middle">배달 못 한 편지 큐 (DLQ)</text>
+            <text class="dg-fs-sm dg-mono" x="607" y="392" text-anchor="middle">maxReceiveCount 초과</text>
+
+            <path class="dg-edge dg-edge--warn dg-edge--dashed" d="M340 402 L340 416 L80 416 L80 366" marker-end="url(#d-113-1-d113-ar-warn)"/>
+            <text class="dg-fs-sm dg-muted" x="200" y="434" text-anchor="middle">한도 안이면 다시 수신됩니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="444" width="680" height="38" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="468" text-anchor="middle">순서와 중복 제거가 요구되면 FIFO, 처리량이 요구되면 표준 — 큐 타입은 만든 뒤 바꿀 수 없습니다</text>
+          </svg>
+        </div>
         <figcaption>
           같은 메시지 열을 표준 큐와 FIFO 큐에 넣었을 때의 차이 — 표준 큐는 순서를 보장하지 않고 중복 전달이 있을 수 있는 대신 처리량이 사실상 제한되지 않고,
           FIFO 큐는 메시지 그룹 안에서 순서와 중복 제거를 보장하는 대신 처리량에 정해진 값이 있습니다
@@ -1034,7 +1452,114 @@ aws lambda get-account-settings \
     <section aria-labelledby="messaging-choice">
       <h2 id="messaging-choice">SNS · SQS · EventBridge — 무엇을 고를 것인가 <span class="badge badge--saa">SAA 빈출</span></h2>
 
-      <figure class="diagram" data-diagram="D-114">
+      <figure class="diagram" data-diagram="D-114" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 442" role="img" aria-labelledby="d-114-1-d114-title d-114-1-d114-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-114-1-d114-title">SNS 팬아웃과 EventBridge 라우팅의 구조 차이</title>
+            <desc id="d-114-1-d114-desc">왼쪽은 Amazon SNS 의 팬아웃입니다. 게시자가 주제에 메시지를 한 번 올리면
+              그 주제를 구독한 모든 대상에게 같은 메시지가 그대로 밀려 갑니다.
+              구독마다 붙일 수 있는 필터 정책은 받을지 말지를 정할 뿐이고 대상마다 다른 내용을 보내지는 못합니다.
+              구독자 중 하나를 SQS 큐로 두면 팬아웃과 동시에 완충 효과를 얻습니다.
+              소비자가 잠시 느려지거나 죽어도 메시지가 큐에 남아 있기 때문입니다.
+              오른쪽은 Amazon EventBridge 의 라우팅입니다. 이벤트가 버스에 들어오면 규칙들이 이벤트 본문을
+              이벤트 패턴으로 검사하고, 패턴이 맞는 규칙에 연결된 대상에게만 이벤트가 전달됩니다.
+              즉 SNS 는 같은 것을 여러 곳에 뿌리는 구조이고 EventBridge 는 내용을 보고 갈 곳을 고르는 구조입니다.</desc>
+
+            <defs>
+              <marker id="d-114-1-d114-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-114-1-d114-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-114-1-d114-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-114-1-d114-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="30">같은 것을 여럿에게 vs 내용을 보고 갈 곳을 고르기</text>
+
+            <!-- SNS -->
+            <rect class="dg-panel" x="20" y="44" width="330" height="316" rx="4"/>
+
+            <rect class="dg-node" x="130" y="60" width="110" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="82" text-anchor="middle">게시자</text>
+            <path class="dg-edge dg-edge--accent" d="M185 94 L185 102" marker-end="url(#d-114-1-d114-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="96" y="106" width="178" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="128" text-anchor="middle">SNS 주제</text>
+            <text class="dg-fs-sm" x="185" y="146" text-anchor="middle">구독자 전원에게 같은 메시지</text>
+
+            <path class="dg-edge dg-edge--ok" d="M140 150 L88 182" marker-end="url(#d-114-1-d114-ar-ok)"/>
+            <path class="dg-edge" d="M185 150 L200 182" marker-end="url(#d-114-1-d114-ar)"/>
+            <path class="dg-edge" d="M230 150 L292 182" marker-end="url(#d-114-1-d114-ar)"/>
+
+            <rect class="dg-node dg-node--ok" x="34" y="186" width="108" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="88" y="210" text-anchor="middle">SQS 큐</text>
+            <text class="dg-fs-sm" x="88" y="230" text-anchor="middle">구독</text>
+
+            <rect class="dg-node" x="150" y="186" width="100" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="200" y="210" text-anchor="middle">Lambda</text>
+            <text class="dg-fs-sm" x="200" y="230" text-anchor="middle">구독</text>
+
+            <rect class="dg-node" x="258" y="186" width="78" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="297" y="210" text-anchor="middle">HTTPS</text>
+            <text class="dg-fs-sm" x="297" y="230" text-anchor="middle">구독</text>
+
+            <text class="dg-fs-sm dg-bold" x="34" y="270">큐를 끼우면 완충까지 얻습니다</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="288">소비자가 느려져도 메시지가 큐에 남습니다</text>
+
+            <text class="dg-fs-sm" x="34" y="316">구독한 대상 전원에게 밀어 줍니다</text>
+            <text class="dg-fs-sm" x="34" y="334">필터 정책은 받을지 말지만 정합니다</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="352">대상마다 다른 내용을 보낼 수는 없습니다</text>
+
+            <!-- EventBridge -->
+            <rect class="dg-panel" x="370" y="44" width="330" height="316" rx="4"/>
+
+            <rect class="dg-node" x="480" y="60" width="110" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="535" y="82" text-anchor="middle">이벤트 소스</text>
+            <path class="dg-edge dg-edge--accent" d="M535 94 L535 102" marker-end="url(#d-114-1-d114-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="446" y="106" width="178" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="535" y="128" text-anchor="middle">이벤트 버스</text>
+            <text class="dg-fs-sm" x="535" y="146" text-anchor="middle">규칙이 본문을 검사합니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M490 150 L456 182" marker-end="url(#d-114-1-d114-ar-accent)"/>
+            <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M580 150 L614 182" marker-end="url(#d-114-1-d114-ar-muted)"/>
+
+            <rect class="dg-node dg-node--accent" x="384" y="186" width="144" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="456" y="210" text-anchor="middle">규칙 A</text>
+            <text class="dg-fs-sm dg-mono" x="456" y="230" text-anchor="middle">detail-type = 주문</text>
+
+            <rect class="dg-node dg-node--muted" x="542" y="186" width="144" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="614" y="210" text-anchor="middle">규칙 B</text>
+            <text class="dg-fs-sm dg-mono" x="614" y="230" text-anchor="middle">detail-type = 환불</text>
+
+            <path class="dg-edge dg-edge--accent" d="M456 246 L456 262" marker-end="url(#d-114-1-d114-ar-accent)"/>
+            <path class="dg-edge dg-edge--muted dg-edge--dotted" d="M614 246 L614 262" marker-end="url(#d-114-1-d114-ar-muted)"/>
+
+            <rect class="dg-node dg-node--accent" x="384" y="266" width="144" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="456" y="293" text-anchor="middle">대상 — 주문 처리</text>
+
+            <rect class="dg-node dg-node--muted" x="542" y="266" width="144" height="44" rx="4"/>
+            <text class="dg-fs-sm" x="614" y="293" text-anchor="middle">대상 — 환불 처리</text>
+
+            <text class="dg-fs-sm" x="384" y="334">패턴이 맞는 규칙의 대상에만 갑니다</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="352">주문 이벤트 하나는 규칙 A 쪽으로만 흘러갑니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="374" width="680" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="398" text-anchor="middle">브로드캐스트가 필요하면 SNS, 내용으로 갈 곳을 갈라야 하면 EventBridge</text>
+            <text class="dg-fs-sm" x="360" y="420" text-anchor="middle">SNS 주제에 SQS 큐를 구독시키면 팬아웃과 완충을 한 번에 얻습니다</text>
+          </svg>
+        </div>
         <figcaption>
           Amazon SNS의 주제 구독 기반 팬아웃과 Amazon EventBridge의 규칙 기반 라우팅의 구조 차이 —
           SNS는 구독한 모든 대상에게 같은 메시지를 밀어 주고 필터 정책으로 받을지 말지만 정하는 반면,

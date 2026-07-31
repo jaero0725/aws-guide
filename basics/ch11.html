@@ -105,7 +105,99 @@
 
       <h3 id="dynamodb-partition-key">파티션 키 설계와 핫 파티션 <span class="badge badge--saa">SAA 빈출</span></h3>
 
-      <figure class="diagram" data-diagram="D-100">
+      <figure class="diagram" data-diagram="D-100" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 476" role="img" aria-labelledby="d-100-1-d100-title d-100-1-d100-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-100-1-d100-title">DynamoDB 파티션 키 설계와 핫 파티션</title>
+            <desc id="d-100-1-d100-desc">DynamoDB 는 항목의 파티션 키 값을 해시해 그 결과로 저장할 파티션을 고릅니다.
+              왼쪽은 사용자 ID 처럼 값의 가짓수가 아주 많은 키를 쓴 경우입니다.
+              해시 결과가 골고루 퍼지므로 파티션마다 비슷한 양의 읽기와 쓰기가 걸리고 테이블 전체 용량이 그대로 활용됩니다.
+              오른쪽은 주문 상태처럼 값이 몇 가지뿐인 키를 쓴 경우입니다.
+              대부분의 항목이 같은 키 값을 갖기 때문에 같은 파티션으로 몰리고, 그 파티션 하나가 감당할 수 있는 처리량을 넘는 순간
+              테이블 전체 용량이 남아 있어도 요청이 스로틀됩니다. 이것이 핫 파티션입니다.
+              아래 두 카드가 해법입니다. 하나는 가짓수가 많은 속성을 파티션 키로 올리고 원래 쓰려던 속성은 정렬 키로 내리는 복합 키 설계이고,
+              다른 하나는 키 값 뒤에 계산된 접미사를 붙여 같은 논리적 키를 여러 파티션으로 흩뿌리는 방법입니다.</desc>
+
+            <defs>
+              <marker id="d-100-1-d100-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-100-1-d100-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">파티션 키 값이 해시되어 파티션이 정해집니다</text>
+
+            <!-- 좋은 키 -->
+            <rect class="dg-panel" x="20" y="40" width="330" height="276" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="64">값의 가짓수가 많은 키</text>
+
+            <rect class="dg-node dg-node--ok" x="34" y="74" width="302" height="32" rx="4"/>
+            <text class="dg-fs-sm dg-mono dg-bold" x="185" y="95" text-anchor="middle">PK = userId</text>
+
+            <path class="dg-edge" d="M185 108 L185 132" marker-end="url(#d-100-1-d100-ar)"/>
+            <text class="dg-fs-sm dg-muted" x="196" y="126">해시</text>
+
+            <rect class="dg-node dg-node--ok" x="44" y="230" width="50" height="58" rx="3"/>
+            <rect class="dg-node dg-node--ok" x="124" y="226" width="50" height="62" rx="3"/>
+            <rect class="dg-node dg-node--ok" x="204" y="233" width="50" height="55" rx="3"/>
+            <rect class="dg-node dg-node--ok" x="284" y="228" width="50" height="60" rx="3"/>
+            <path class="dg-grid" d="M34 288 L340 288"/>
+            <text class="dg-fs-sm dg-muted" x="69" y="304" text-anchor="middle">P1</text>
+            <text class="dg-fs-sm dg-muted" x="149" y="304" text-anchor="middle">P2</text>
+            <text class="dg-fs-sm dg-muted" x="229" y="304" text-anchor="middle">P3</text>
+            <text class="dg-fs-sm dg-muted" x="309" y="304" text-anchor="middle">P4</text>
+
+            <text class="dg-fs-sm dg-bold" x="34" y="160">고르게 분배됩니다</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="180">테이블 용량이 그대로 쓰입니다</text>
+
+            <!-- 나쁜 키 -->
+            <rect class="dg-panel" x="370" y="40" width="330" height="276" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="384" y="64">값의 가짓수가 적은 키</text>
+
+            <rect class="dg-node dg-node--danger" x="384" y="74" width="302" height="32" rx="4"/>
+            <text class="dg-fs-sm dg-mono dg-bold" x="535" y="95" text-anchor="middle">PK = status</text>
+
+            <path class="dg-edge dg-edge--danger" d="M535 108 L535 132" marker-end="url(#d-100-1-d100-ar-danger)"/>
+            <text class="dg-fs-sm dg-muted" x="546" y="126">해시</text>
+
+            <rect class="dg-node dg-node--danger" x="394" y="158" width="50" height="130" rx="3"/>
+            <rect class="dg-node dg-node--muted" x="474" y="274" width="50" height="14" rx="3"/>
+            <rect class="dg-node dg-node--muted" x="554" y="272" width="50" height="16" rx="3"/>
+            <rect class="dg-node dg-node--muted" x="634" y="276" width="50" height="12" rx="3"/>
+            <path class="dg-grid" d="M384 288 L690 288"/>
+            <text class="dg-fs-sm dg-bold" x="419" y="304" text-anchor="middle">P1</text>
+            <text class="dg-fs-sm dg-muted" x="499" y="304" text-anchor="middle">P2</text>
+            <text class="dg-fs-sm dg-muted" x="579" y="304" text-anchor="middle">P3</text>
+            <text class="dg-fs-sm dg-muted" x="659" y="304" text-anchor="middle">P4</text>
+
+            <path class="dg-x" d="M456 168 L470 182 M470 168 L456 182"/>
+            <text class="dg-fs-sm dg-bold" x="480" y="170">한 파티션에 몰립니다</text>
+            <text class="dg-fs-sm dg-bold" x="480" y="190">스로틀링 발생</text>
+            <text class="dg-fs-sm dg-muted" x="480" y="214">테이블 전체 용량이</text>
+            <text class="dg-fs-sm dg-muted" x="480" y="232">남아 있어도 막힙니다</text>
+
+            <!-- 해법 -->
+            <text class="dg-fs-md dg-bold" x="20" y="340">해법은 키를 흩뿌리는 것입니다</text>
+
+            <rect class="dg-node" x="20" y="350" width="330" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="372">복합 키로 바꿉니다</text>
+            <text class="dg-fs-sm dg-mono" x="34" y="392">PK = customerId · SK = status#날짜</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="412">가짓수가 많은 속성을 파티션 키로 올립니다</text>
+
+            <rect class="dg-node" x="370" y="350" width="330" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="384" y="372">접미사로 분산합니다</text>
+            <text class="dg-fs-sm dg-mono" x="384" y="392">PK = PENDING#07</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="412">같은 논리 키를 여러 파티션으로 나눕니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="432" width="680" height="34" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="454" text-anchor="middle">용량을 올려도 핫 파티션은 풀리지 않습니다 — 고쳐야 하는 것은 키 설계입니다</text>
+          </svg>
+        </div>
         <figcaption>
           파티션 키 값이 해시되어 파티션에 분배되는 과정과, 값의 가짓수가 적은 키를 골랐을 때 한 파티션으로 요청이
           몰려 스로틀링이 발생하는 상황 — 해법은 파티션 키의 카디널리티를 높이거나 접미사로 쓰기를 흩뿌리는 것입니다
@@ -241,7 +333,104 @@
           인덱스에 대한 질의가 기본 테이블의 <strong>모든 파티션에 걸친 데이터</strong>를 대상으로 하므로 "글로벌"입니다.</li>
       </ul>
 
-      <figure class="diagram" data-diagram="D-101">
+      <figure class="diagram" data-diagram="D-101" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 506" role="img" aria-labelledby="d-101-1-d101-title d-101-1-d101-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-101-1-d101-title">LSI와 GSI의 구조 차이</title>
+            <desc id="d-101-1-d101-desc">왼쪽 로컬 보조 인덱스는 기본 테이블과 파티션 키를 공유합니다.
+              인덱스 항목이 테이블 항목과 같은 파티션 안에 자리 잡기 때문에 정렬 키만 다른 또 하나의 정렬 순서를 얻는 셈이고,
+              읽기와 쓰기 용량도 테이블 것을 함께 씁니다. 대신 파티션 키 값 하나당 10 GB 라는 크기 제한이 생기고
+              테이블을 만들 때만 정의할 수 있어 나중에 추가하거나 지울 수 없습니다. 최대 5개입니다.
+              오른쪽 글로벌 보조 인덱스는 파티션 키를 테이블과 다르게 잡을 수 있고 자기만의 파티션 공간을 갖습니다.
+              테이블에 쓰기가 일어나면 인덱스로 비동기 전파되며, 읽기와 쓰기 용량을 테이블과 별도로 설정하므로
+              인덱스 쪽 스로틀링이 테이블과 독립적으로 발생합니다. 크기 제한이 없고 언제든 추가하거나 삭제할 수 있으며 최대 20개입니다.
+              이미 운영 중인 테이블에 새 조회 패턴을 붙여야 한다는 시나리오의 답은 항상 GSI 입니다.</desc>
+
+            <defs>
+              <marker id="d-101-1-d101-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">파티션 공간을 공유하는가, 따로 갖는가</text>
+
+            <!-- LSI -->
+            <rect class="dg-panel" x="20" y="40" width="330" height="212" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="64">LSI — 로컬 보조 인덱스</text>
+
+            <rect class="dg-node dg-node--alt" x="34" y="76" width="302" height="124" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="98" text-anchor="middle">같은 파티션 — 파티션 키 = A</text>
+
+            <rect class="dg-node" x="46" y="110" width="136" height="78" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="114" y="136" text-anchor="middle">기본 테이블</text>
+            <text class="dg-fs-sm dg-mono" x="114" y="158" text-anchor="middle">SK = 날짜</text>
+            <text class="dg-fs-sm dg-muted" x="114" y="178" text-anchor="middle">항목</text>
+
+            <rect class="dg-node dg-node--accent" x="192" y="110" width="132" height="78" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="258" y="136" text-anchor="middle">LSI</text>
+            <text class="dg-fs-sm dg-mono" x="258" y="158" text-anchor="middle">SK = 상태</text>
+            <text class="dg-fs-sm dg-muted" x="258" y="178" text-anchor="middle">같은 자리에</text>
+
+            <text class="dg-fs-sm" x="34" y="222">파티션 키를 테이블과 다르게 잡을 수 없습니다</text>
+            <text class="dg-fs-sm dg-bold" x="34" y="242">테이블의 읽기·쓰기 용량을 함께 씁니다</text>
+
+            <!-- GSI -->
+            <rect class="dg-panel" x="370" y="40" width="330" height="212" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="384" y="64">GSI — 글로벌 보조 인덱스</text>
+
+            <rect class="dg-node dg-node--alt" x="384" y="76" width="142" height="124" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="455" y="98" text-anchor="middle">파티션 키 = A</text>
+            <rect class="dg-node" x="394" y="110" width="122" height="78" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="455" y="140" text-anchor="middle">기본 테이블</text>
+            <text class="dg-fs-sm dg-muted" x="455" y="162" text-anchor="middle">항목</text>
+
+            <path class="dg-edge dg-edge--dashed" d="M526 149 L544 149" marker-end="url(#d-101-1-d101-ar)"/>
+
+            <rect class="dg-node dg-node--alt" x="548" y="76" width="138" height="124" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="617" y="98" text-anchor="middle">파티션 키 = B</text>
+            <rect class="dg-node dg-node--accent" x="558" y="110" width="118" height="78" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="617" y="140" text-anchor="middle">GSI</text>
+            <text class="dg-fs-sm dg-muted" x="617" y="162" text-anchor="middle">자기 공간</text>
+
+            <text class="dg-fs-sm" x="384" y="222">쓰기가 인덱스로 비동기 전파됩니다</text>
+            <text class="dg-fs-sm dg-bold" x="384" y="242">읽기·쓰기 용량을 따로 설정합니다</text>
+
+            <!-- 비교표 -->
+            <rect class="dg-node dg-node--empty" x="20" y="266" width="680" height="180" rx="4"/>
+            <path class="dg-grid" d="M20 296 L700 296 M20 326 L700 326 M20 356 L700 356
+                                      M20 386 L700 386 M20 416 L700 416
+                                      M250 266 L250 446 M475 266 L475 446"/>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="287">항목</text>
+            <text class="dg-fs-sm dg-bold" x="260" y="287">LSI</text>
+            <text class="dg-fs-sm dg-bold" x="485" y="287">GSI</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="317">파티션 키</text>
+            <text class="dg-fs-sm" x="260" y="317">테이블과 동일해야 합니다</text>
+            <text class="dg-fs-sm" x="485" y="317">아무 속성이나 쓸 수 있습니다</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="347">최대 개수</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="260" y="347">5개</text>
+            <text class="dg-fs-sm dg-bold dg-num" x="485" y="347">20개</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="377">크기 제약</text>
+            <text class="dg-fs-sm dg-bold" x="260" y="377">파티션 키 값당 10 GB</text>
+            <text class="dg-fs-sm" x="485" y="377">제한 없음</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="407">용량</text>
+            <text class="dg-fs-sm" x="260" y="407">테이블 용량을 공유</text>
+            <text class="dg-fs-sm dg-bold" x="485" y="407">자체 용량 설정</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="437">만드는 시점</text>
+            <text class="dg-fs-sm" x="260" y="437">테이블 생성 시에만</text>
+            <text class="dg-fs-sm dg-bold" x="485" y="437">언제든 추가 · 삭제</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="458" width="680" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="483" text-anchor="middle">"이미 운영 중인 테이블에 새 조회 패턴을 추가해야 한다" — 답은 언제나 GSI 입니다</text>
+          </svg>
+        </div>
         <figcaption>
           LSI와 GSI의 구조 차이 — LSI는 기본 테이블의 파티션 키를 그대로 쓰고 같은 파티션 안에 자리 잡아 테이블 용량을
           함께 쓰는 반면, GSI는 자기 파티션 공간과 자기 용량 설정을 갖고 테이블과 독립적으로 확장합니다
@@ -486,7 +675,90 @@
 
       <h3 id="dynamodb-streams">DynamoDB 스트림 — 변경을 이벤트로 바꾼다</h3>
 
-      <figure class="diagram" data-diagram="D-102">
+      <figure class="diagram" data-diagram="D-102" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 456" role="img" aria-labelledby="d-102-1-d102-title d-102-1-d102-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-102-1-d102-title">DynamoDB 스트림에서 Lambda까지의 경로</title>
+            <desc id="d-102-1-d102-desc">테이블의 항목이 추가되거나 수정되거나 삭제되면 그 변경 하나하나가 스트림 레코드가 되어
+              DynamoDB 스트림에 시간 순서대로 쌓입니다. Lambda 는 이 스트림을 이벤트 소스 매핑으로 폴링하며
+              레코드를 배치로 가져가 처리합니다. 즉 DynamoDB 가 Lambda 를 호출하는 것이 아니라 Lambda 가 가지러 오는 구조이고,
+              그래서 재시도 규칙도 Lambda 의 비동기 호출 규칙이 아니라 스트림의 규칙을 따릅니다.
+              스트림을 켤 때 고르는 뷰 타입에 따라 레코드에 담기는 내용이 달라집니다.
+              키만 담을 수도 있고, 변경 후 항목 전체나 변경 전 항목 전체를 담을 수도 있으며, 둘 다 담을 수도 있습니다.
+              변경 전후를 비교하는 로직을 짜려면 NEW_AND_OLD_IMAGES 가 필요합니다.
+              글로벌 테이블의 리전 간 복제도 별도의 장치가 아니라 같은 스트림 위에서 동작합니다.</desc>
+
+            <defs>
+              <marker id="d-102-1-d102-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-102-1-d102-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">변경이 레코드가 되고, Lambda 가 가지러 옵니다</text>
+
+            <rect class="dg-node" x="20" y="46" width="140" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="90" y="74" text-anchor="middle">DynamoDB 테이블</text>
+            <text class="dg-fs-sm dg-muted" x="90" y="96" text-anchor="middle">항목 추가 · 수정 · 삭제</text>
+
+            <path class="dg-edge dg-edge--accent" d="M160 81 L184 81" marker-end="url(#d-102-1-d102-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="190" y="46" width="170" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="275" y="74" text-anchor="middle">DynamoDB 스트림</text>
+            <text class="dg-fs-sm" x="275" y="96" text-anchor="middle">변경이 순서대로 쌓입니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M384 81 L366 81" marker-end="url(#d-102-1-d102-ar-accent)"/>
+            <text class="dg-fs-sm dg-bold" x="375" y="134" text-anchor="middle">폴링</text>
+
+            <rect class="dg-node" x="390" y="46" width="150" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="465" y="74" text-anchor="middle">Lambda</text>
+            <text class="dg-fs-sm dg-muted" x="465" y="96" text-anchor="middle">이벤트 소스 매핑</text>
+
+            <path class="dg-edge" d="M540 81 L564 81" marker-end="url(#d-102-1-d102-ar)"/>
+
+            <rect class="dg-node" x="570" y="46" width="130" height="70" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="635" y="74" text-anchor="middle">후속 처리</text>
+            <text class="dg-fs-sm dg-muted" x="635" y="96" text-anchor="middle">집계 · 알림 · 색인</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="136">재시도 규칙도 스트림의 규칙을 따릅니다</text>
+
+            <!-- 글로벌 테이블 -->
+            <path class="dg-edge dg-edge--dashed" d="M275 116 L275 152" marker-end="url(#d-102-1-d102-ar)"/>
+            <rect class="dg-node dg-node--alt" x="190" y="156" width="340" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="178" text-anchor="middle">글로벌 테이블의 리전 간 복제</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="198" text-anchor="middle">별도 장치가 아니라 같은 스트림 위에서 동작합니다</text>
+
+            <!-- 뷰 타입 -->
+            <text class="dg-fs-md dg-bold" x="20" y="236">뷰 타입이 레코드에 담기는 내용을 정합니다</text>
+
+            <rect class="dg-node dg-node--empty" x="20" y="246" width="680" height="150" rx="4"/>
+            <path class="dg-grid" d="M20 276 L700 276 M20 306 L700 306 M20 336 L700 336 M20 366 L700 366
+                                      M270 246 L270 396"/>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="267">StreamViewType</text>
+            <text class="dg-fs-sm dg-muted" x="282" y="267">스트림 레코드에 담기는 것</text>
+
+            <text class="dg-fs-sm dg-mono dg-bold" x="30" y="297">KEYS_ONLY</text>
+            <text class="dg-fs-sm" x="282" y="297">변경된 항목의 키만 — 가장 가볍습니다</text>
+
+            <text class="dg-fs-sm dg-mono dg-bold" x="30" y="327">NEW_IMAGE</text>
+            <text class="dg-fs-sm" x="282" y="327">변경된 뒤의 항목 전체</text>
+
+            <text class="dg-fs-sm dg-mono dg-bold" x="30" y="357">OLD_IMAGE</text>
+            <text class="dg-fs-sm" x="282" y="357">변경되기 전의 항목 전체</text>
+
+            <text class="dg-fs-sm dg-mono dg-bold" x="30" y="387">NEW_AND_OLD_IMAGES</text>
+            <text class="dg-fs-sm dg-bold" x="282" y="387">전후 모두 — 변경 내용을 비교하려면 이것이 필요합니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="408" width="680" height="38" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="432" text-anchor="middle">"항목이 바뀔 때마다 무언가 하고 싶다"의 표준 답은 스트림 + Lambda 이벤트 소스 매핑입니다</text>
+          </svg>
+        </div>
         <figcaption>
           테이블 항목의 변경이 스트림 레코드가 되고 AWS Lambda가 이를 폴링해 처리하는 경로 — 뷰 타입에 따라 스트림에
           담기는 내용이 달라지며, 글로벌 테이블의 리전 간 복제도 같은 스트림 위에서 동작합니다
@@ -773,7 +1045,93 @@
         <strong>데이터가 어디에 있고, 누가 캐시 로직을 책임지며, 무엇을 캐시하는가</strong>입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-103">
+      <figure class="diagram" data-diagram="D-103" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 390" role="img" aria-labelledby="d-103-1-d103-title d-103-1-d103-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-103-1-d103-title">캐시 계층이 놓이는 자리 — DAX와 ElastiCache</title>
+            <desc id="d-103-1-d103-desc">왼쪽 DynamoDB Accelerator 는 DynamoDB 앞에만 놓이는 전용 캐시입니다.
+              애플리케이션은 DynamoDB API 를 그대로 호출하고 SDK 클라이언트만 DAX 클라이언트로 바꾸면 되므로
+              캐시 조회와 채우기 로직을 따로 짤 일이 거의 없습니다. 대신 DynamoDB 이외의 데이터 소스에는 쓸 수 없습니다.
+              오른쪽 ElastiCache 는 Redis 나 Memcached 를 그대로 제공하는 범용 캐시라
+              RDS 든 DynamoDB 든 외부 API 든 어떤 데이터 소스 앞에도 놓을 수 있습니다.
+              그 대가로 캐시를 먼저 보고 없으면 원본에서 읽어 캐시에 넣는 지연 로딩,
+              또는 원본에 쓸 때 캐시도 함께 갱신하는 라이트 스루 같은 채우기 전략과
+              무효화와 만료 시간 관리를 애플리케이션이 직접 구현해야 합니다.
+              "코드를 거의 바꾸지 않고 DynamoDB 읽기를 빠르게" 라는 요구는 DAX 를,
+              "여러 종류의 데이터 소스 앞에 캐시를" 이라는 요구는 ElastiCache 를 가리킵니다.</desc>
+
+            <defs>
+              <marker id="d-103-1-d103-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-103-1-d103-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">캐시가 붙는 자리와 캐시 로직의 주인이 다릅니다</text>
+
+            <!-- DAX -->
+            <rect class="dg-panel" x="20" y="40" width="330" height="270" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="64">DAX — DynamoDB 앞에만</text>
+
+            <rect class="dg-node" x="110" y="78" width="150" height="38" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="102" text-anchor="middle">애플리케이션</text>
+
+            <path class="dg-edge dg-edge--accent" d="M185 116 L185 130" marker-end="url(#d-103-1-d103-ar-accent)"/>
+            <text class="dg-fs-sm dg-muted" x="196" y="128">DynamoDB API 그대로</text>
+
+            <rect class="dg-node dg-node--accent" x="96" y="134" width="178" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="156" text-anchor="middle">DAX 클러스터</text>
+            <text class="dg-fs-sm" x="185" y="176" text-anchor="middle">캐시 로직은 DAX 안에</text>
+
+            <path class="dg-edge dg-edge--accent" d="M185 186 L185 200" marker-end="url(#d-103-1-d103-ar-accent)"/>
+
+            <rect class="dg-node" x="110" y="204" width="150" height="38" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="228" text-anchor="middle">DynamoDB</text>
+
+            <text class="dg-fs-sm" x="34" y="266">SDK 클라이언트만 바꾸면 됩니다</text>
+            <text class="dg-fs-sm" x="34" y="284">채우기 전략을 짤 일이 거의 없습니다</text>
+            <text class="dg-fs-sm dg-bold" x="34" y="302">DynamoDB 이외에는 쓸 수 없습니다</text>
+
+            <!-- ElastiCache -->
+            <rect class="dg-panel" x="370" y="40" width="330" height="270" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="384" y="64">ElastiCache — 아무 소스 앞에나</text>
+
+            <rect class="dg-node" x="460" y="78" width="150" height="38" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="535" y="102" text-anchor="middle">애플리케이션</text>
+
+            <path class="dg-edge" d="M496 116 L456 130" marker-end="url(#d-103-1-d103-ar)"/>
+            <path class="dg-edge dg-edge--dashed" d="M574 116 L614 130" marker-end="url(#d-103-1-d103-ar)"/>
+
+            <rect class="dg-node dg-node--accent" x="384" y="134" width="136" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="452" y="156" text-anchor="middle">ElastiCache</text>
+            <text class="dg-fs-sm" x="452" y="176" text-anchor="middle">Redis · Memcached</text>
+
+            <rect class="dg-node" x="550" y="134" width="136" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="618" y="156" text-anchor="middle">임의의 데이터 소스</text>
+            <text class="dg-fs-sm dg-muted" x="618" y="176" text-anchor="middle">RDS · DynamoDB · API</text>
+
+            <rect class="dg-node dg-node--warn" x="384" y="198" width="136" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="452" y="220" text-anchor="middle">지연 로딩</text>
+            <text class="dg-fs-sm" x="452" y="240" text-anchor="middle">미스 때 채웁니다</text>
+
+            <rect class="dg-node dg-node--warn" x="550" y="198" width="136" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="618" y="220" text-anchor="middle">라이트 스루</text>
+            <text class="dg-fs-sm" x="618" y="240" text-anchor="middle">쓸 때 함께 채웁니다</text>
+
+            <text class="dg-fs-sm dg-bold" x="384" y="270">두 전략 모두 애플리케이션이 구현합니다</text>
+            <text class="dg-fs-sm" x="384" y="288">무효화와 만료 시간도 직접 관리합니다</text>
+            <text class="dg-fs-sm" x="384" y="306">대신 어떤 데이터 소스 앞에도 놓입니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="322" width="680" height="58" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="346" text-anchor="middle">"코드를 거의 안 바꾸고 DynamoDB 읽기를 빠르게" 는 DAX</text>
+            <text class="dg-fs-sm" x="360" y="368" text-anchor="middle">"여러 종류의 데이터 소스 앞에 캐시를 두어야 한다" 는 ElastiCache 입니다</text>
+          </svg>
+        </div>
         <figcaption>
           캐시 계층이 놓이는 자리 — DAX는 DynamoDB 바로 앞에만 붙고 애플리케이션이 캐시 로직을 거의 짜지 않는 반면,
           ElastiCache는 임의의 데이터 소스 앞에 놓이며 지연 로딩이나 라이트 스루 같은 채우기 전략을

@@ -1,0 +1,108 @@
+<svg viewBox="0 0 720 556" role="img" aria-labelledby="d150-title d150-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d150-title">KMS 봉투 암호화의 처리 순서</title>
+  <desc id="d150-desc">애플리케이션 쪽과 AWS KMS 쪽을 두 세로 레인으로 나누고, 봉투 암호화를 여덟 단계로 번호 붙여 보여 줍니다.
+    암호화는 다섯 단계입니다. 애플리케이션이 KMS 키를 지정해 GenerateDataKey 를 호출하면, KMS 가 데이터 키를 만들어
+    평문 데이터 키와 그 KMS 키로 암호화한 데이터 키 두 벌을 함께 돌려줍니다. 애플리케이션은 평문 데이터 키로 데이터를 암호화하고,
+    평문 데이터 키를 즉시 메모리에서 폐기한 다음, 암호문 데이터와 암호문 데이터 키를 함께 저장합니다.
+    복호화는 역순 세 단계입니다. 저장해 둔 암호문 데이터 키를 KMS 에 보내 Decrypt 를 호출하면 키 정책 검사를 거쳐 평문 데이터 키가 돌아오고,
+    그 키로 데이터를 복호화한 뒤 다시 평문 키를 폐기합니다.
+    오른쪽 설명 상자가 가리키는 결론은, 데이터 본체가 애플리케이션 쪽에서만 처리되어 KMS 를 한 번도 통과하지 않는다는 점입니다.
+    KMS 의 Encrypt 작업이 직접 다루는 크기가 최대 4,096 바이트뿐이므로 대용량 데이터는 이 구조로만 암호화할 수 있습니다.</desc>
+
+  <defs>
+    <marker id="d150-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d150-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 레인 머리 -->
+  <rect class="dg-node dg-node--alt" x="20" y="24" width="400" height="30" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="220" y="44" text-anchor="middle">애플리케이션 · 고객 환경</text>
+  <rect class="dg-node dg-node--alt" x="436" y="24" width="264" height="30" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="568" y="44" text-anchor="middle">AWS KMS</text>
+
+  <path class="dg-edge dg-edge--muted dg-edge--dashed" d="M428 62 L428 462"/>
+
+  <!-- ── 암호화 ────────────────────────────────────────────── -->
+  <text class="dg-fs-md dg-bold" x="20" y="76">암호화</text>
+
+  <circle class="dg-node" cx="34" cy="102" r="11"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="107" text-anchor="middle">1</text>
+  <rect class="dg-node" x="54" y="84" width="240" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="174" y="107" text-anchor="middle">GenerateDataKey 호출</text>
+  <path class="dg-edge" d="M300 102 L464 102" marker-end="url(#d150-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="382" y="94" text-anchor="middle">KMS 키 지정</text>
+  <rect class="dg-node dg-node--accent" x="470" y="84" width="214" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="577" y="107" text-anchor="middle">데이터 키 생성</text>
+
+  <circle class="dg-node" cx="34" cy="146" r="11"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="151" text-anchor="middle">2</text>
+  <rect class="dg-node dg-node--warn" x="54" y="128" width="116" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="112" y="151" text-anchor="middle">평문 데이터 키</text>
+  <rect class="dg-node dg-node--ok" x="178" y="128" width="116" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="236" y="151" text-anchor="middle">암호문 데이터 키</text>
+  <path class="dg-edge dg-edge--accent" d="M464 146 L300 146" marker-end="url(#d150-ar-accent)"/>
+  <rect class="dg-node dg-node--accent" x="470" y="128" width="214" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="577" y="151" text-anchor="middle">두 벌을 함께 반환</text>
+
+  <circle class="dg-node" cx="34" cy="190" r="11"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="195" text-anchor="middle">3</text>
+  <rect class="dg-node dg-node--accent" x="54" y="172" width="240" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="174" y="195" text-anchor="middle">평문 키로 데이터 암호화</text>
+
+  <circle class="dg-node" cx="34" cy="234" r="11"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="239" text-anchor="middle">4</text>
+  <rect class="dg-node dg-node--danger" x="54" y="216" width="240" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="186" y="239" text-anchor="middle">평문 데이터 키 즉시 폐기</text>
+  <path class="dg-x" d="M64 226 L78 240 M78 226 L64 240"/>
+
+  <circle class="dg-node" cx="34" cy="278" r="11"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="283" text-anchor="middle">5</text>
+  <rect class="dg-node dg-node--ok" x="54" y="260" width="240" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="174" y="283" text-anchor="middle">암호문과 암호문 키를 함께 저장</text>
+
+  <rect class="dg-node dg-node--empty" x="440" y="172" width="260" height="124" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="454" y="196">데이터 본체가 지나는 곳</text>
+  <text class="dg-fs-sm" x="454" y="220">암호화와 복호화 연산은</text>
+  <text class="dg-fs-sm" x="454" y="242">전부 이 레인 왼쪽에서만 일어납니다</text>
+  <text class="dg-fs-sm dg-bold" x="454" y="266">대용량 데이터는 KMS 를</text>
+  <text class="dg-fs-sm dg-bold" x="454" y="288">한 번도 통과하지 않습니다</text>
+
+  <!-- ── 복호화 ────────────────────────────────────────────── -->
+  <text class="dg-fs-md dg-bold" x="20" y="324">복호화 — 역순</text>
+
+  <circle class="dg-node" cx="34" cy="350" r="11"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="355" text-anchor="middle">6</text>
+  <rect class="dg-node" x="54" y="332" width="240" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="174" y="355" text-anchor="middle">저장된 암호문 데이터 키 전송</text>
+  <path class="dg-edge" d="M300 350 L464 350" marker-end="url(#d150-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="382" y="342" text-anchor="middle">Decrypt</text>
+  <rect class="dg-node dg-node--accent" x="470" y="332" width="214" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="577" y="355" text-anchor="middle">키 정책 · IAM 검사</text>
+
+  <circle class="dg-node" cx="34" cy="394" r="11"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="399" text-anchor="middle">7</text>
+  <rect class="dg-node dg-node--warn" x="54" y="376" width="240" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="174" y="399" text-anchor="middle">평문 데이터 키를 되받음</text>
+  <path class="dg-edge dg-edge--accent" d="M464 394 L300 394" marker-end="url(#d150-ar-accent)"/>
+  <rect class="dg-node dg-node--accent" x="470" y="376" width="214" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="577" y="399" text-anchor="middle">평문 데이터 키 반환</text>
+
+  <circle class="dg-node" cx="34" cy="438" r="11"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="443" text-anchor="middle">8</text>
+  <rect class="dg-node dg-node--ok" x="54" y="420" width="240" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="174" y="443" text-anchor="middle">복호화 후 평문 키 다시 폐기</text>
+  <rect class="dg-node dg-node--empty" x="440" y="420" width="260" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="454" y="443">여기서도 데이터는 로컬 처리</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="472" width="680" height="72" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="500">평문 데이터 키는 메모리에만 잠깐 존재하고, 데이터 본체는 KMS 를 통과하지 않습니다</text>
+  <text class="dg-fs-sm" x="34" y="526">KMS 의 Encrypt 가 직접 다루는 크기는 최대 4,096 바이트입니다</text>
+</svg>

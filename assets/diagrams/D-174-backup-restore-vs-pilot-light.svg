@@ -1,0 +1,106 @@
+<svg viewBox="0 0 720 500" role="img" aria-labelledby="d174-title d174-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d174-title">백업 및 복원과 파일럿 라이트의 평상시 구성 대비</title>
+  <desc id="d174-desc">두 전략에서 장애가 나기 전 평상시에 대상 리전에 무엇이 켜져 있는지를 나란히 놓고 비교합니다.
+    위쪽 소스 리전은 두 전략 모두 같습니다. 웹 계층과 앱 계층과 데이터베이스가 정상 운영 중입니다.
+    왼쪽 백업 및 복원에서는 대상 리전에 백업과 스냅샷만 보관되어 있고 데이터베이스, 애플리케이션 계층, 로드 밸런서와 DNS 는 모두 꺼져 있거나 아예 없습니다.
+    그래서 장애가 나면 인프라를 처음부터 만들고 데이터를 복원해야 하므로 RTO 가 가장 깁니다.
+    오른쪽 파일럿 라이트에서는 데이터 복제가 계속 진행되고 데이터베이스가 최소 규모로 상시 가동되어 있습니다.
+    애플리케이션 계층은 여전히 꺼져 있고 로드 밸런서와 DNS 는 구성만 준비되어 있습니다.
+    데이터베이스가 이미 살아 있으므로 복구는 애플리케이션 계층을 띄우고 트래픽을 돌리는 일로 줄어들어 RTO 가 더 짧습니다.
+    두 그림의 차이는 데이터베이스 한 줄이며, 그 한 줄이 RTO 차이를 만든다는 것이 결론입니다.</desc>
+
+  <defs>
+    <marker id="d174-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d174-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- ── 왼쪽: 백업 및 복원 ── -->
+  <text class="dg-fs-md dg-bold" x="20" y="26">백업 및 복원</text>
+  <rect class="dg-panel" x="20" y="34" width="330" height="390" rx="4"/>
+
+  <rect class="dg-node dg-node--alt" x="34" y="48" width="302" height="78" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="68">소스 리전 — 평상시 운영</text>
+  <rect class="dg-node dg-node--ok" x="44" y="80" width="92" height="34" rx="4"/>
+  <text class="dg-fs-sm" x="90" y="102" text-anchor="middle">웹 계층</text>
+  <rect class="dg-node dg-node--ok" x="144" y="80" width="92" height="34" rx="4"/>
+  <text class="dg-fs-sm" x="190" y="102" text-anchor="middle">앱 계층</text>
+  <rect class="dg-node dg-node--ok" x="244" y="80" width="92" height="34" rx="4"/>
+  <text class="dg-fs-sm" x="290" y="102" text-anchor="middle">데이터베이스</text>
+
+  <path class="dg-edge" d="M120 130 L120 154" marker-end="url(#d174-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="132" y="147">주기적 백업 · 스냅샷 복사</text>
+
+  <rect class="dg-node" x="34" y="160" width="302" height="200" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="180">대상 리전 — 평상시에 켜져 있는 것</text>
+
+  <rect class="dg-node dg-node--ok" x="44" y="190" width="282" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="54" y="212">백업 · 스냅샷</text>
+  <text class="dg-fs-sm" x="316" y="212" text-anchor="end">보관 중</text>
+
+  <rect class="dg-node dg-node--empty" x="44" y="230" width="282" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="54" y="252">데이터베이스</text>
+  <text class="dg-fs-sm dg-muted" x="316" y="252" text-anchor="end">꺼져 있음</text>
+
+  <rect class="dg-node dg-node--empty" x="44" y="270" width="282" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="54" y="292">애플리케이션 계층</text>
+  <text class="dg-fs-sm dg-muted" x="316" y="292" text-anchor="end">꺼져 있음</text>
+
+  <rect class="dg-node dg-node--empty" x="44" y="310" width="282" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="54" y="332">로드 밸런서 · DNS</text>
+  <text class="dg-fs-sm dg-muted" x="316" y="332" text-anchor="end">없음</text>
+
+  <rect class="dg-node dg-node--warn" x="34" y="370" width="302" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="390">RTO 가 가장 깁니다</text>
+  <text class="dg-fs-sm" x="44" y="408">인프라를 처음부터 만들고 복원합니다</text>
+
+  <!-- ── 오른쪽: 파일럿 라이트 ── -->
+  <text class="dg-fs-md dg-bold" x="370" y="26">파일럿 라이트</text>
+  <rect class="dg-panel" x="370" y="34" width="330" height="390" rx="4"/>
+
+  <rect class="dg-node dg-node--alt" x="384" y="48" width="302" height="78" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="394" y="68">소스 리전 — 평상시 운영</text>
+  <rect class="dg-node dg-node--ok" x="394" y="80" width="92" height="34" rx="4"/>
+  <text class="dg-fs-sm" x="440" y="102" text-anchor="middle">웹 계층</text>
+  <rect class="dg-node dg-node--ok" x="494" y="80" width="92" height="34" rx="4"/>
+  <text class="dg-fs-sm" x="540" y="102" text-anchor="middle">앱 계층</text>
+  <rect class="dg-node dg-node--ok" x="594" y="80" width="92" height="34" rx="4"/>
+  <text class="dg-fs-sm" x="640" y="102" text-anchor="middle">데이터베이스</text>
+
+  <path class="dg-edge dg-edge--accent" d="M470 130 L470 154" marker-end="url(#d174-ar-accent)"/>
+  <text class="dg-fs-sm dg-bold" x="482" y="147">지속적인 데이터 복제</text>
+
+  <rect class="dg-node" x="384" y="160" width="302" height="200" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="394" y="180">대상 리전 — 평상시에 켜져 있는 것</text>
+
+  <rect class="dg-node dg-node--ok" x="394" y="190" width="282" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="404" y="212">데이터 복제</text>
+  <text class="dg-fs-sm" x="666" y="212" text-anchor="end">계속 진행</text>
+
+  <rect class="dg-node dg-node--accent" x="394" y="230" width="282" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="404" y="252">데이터베이스</text>
+  <text class="dg-fs-sm dg-bold" x="666" y="252" text-anchor="end">최소 규모로 가동</text>
+
+  <rect class="dg-node dg-node--empty" x="394" y="270" width="282" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="404" y="292">애플리케이션 계층</text>
+  <text class="dg-fs-sm dg-muted" x="666" y="292" text-anchor="end">꺼져 있음</text>
+
+  <rect class="dg-node dg-node--muted" x="394" y="310" width="282" height="34" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="404" y="332">로드 밸런서 · DNS</text>
+  <text class="dg-fs-sm dg-muted" x="666" y="332" text-anchor="end">구성만 준비</text>
+
+  <rect class="dg-node dg-node--ok" x="384" y="370" width="302" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="394" y="390">RTO 가 더 짧습니다</text>
+  <text class="dg-fs-sm" x="394" y="408">데이터베이스가 이미 살아 있습니다</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--accent" x="20" y="440" width="680" height="52" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="464">두 그림의 차이는 데이터베이스 한 줄입니다</text>
+  <text class="dg-fs-sm" x="34" y="484">평상시 켜 두는 범위가 넓어질수록 복구는 빨라지고 상시 비용은 함께 오릅니다</text>
+</svg>

@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-07-30",
+  "decks": [
+    {
+      "deckId": "saa-service-picker",
+      "file": "saa-service-picker.json",
+      "title": "SAA — 상황별 서비스 고르기",
+      "exam": "SAA",
+      "chapter": "ch08",
+      "count": 20
+    },
+    {
+      "deckId": "saa-numbers",
+      "file": "saa-numbers.json",
+      "title": "SAA — 확인된 한도 · 기본값 암기",
+      "exam": "SAA",
+      "chapter": "ch08",
+      "count": 22
+    },
+    {
+      "deckId": "saa-trap-pairs",
+      "file": "saa-trap-pairs.json",
+      "title": "SAA — 헷갈리는 쌍 판단 기준",
+      "exam": "SAA",
+      "chapter": "ch10",
+      "count": 20
+    },
+    {
+      "deckId": "saa-storage-classes",
+      "file": "saa-storage-classes.json",
+      "title": "SAA — 스토리지 클래스 · 볼륨 세부값",
+      "exam": "SAA",
+      "chapter": "ch08",
+      "count": 18
+    },
+    {
+      "deckId": "saa-security-concepts",
+      "file": "saa-security-concepts.json",
+      "title": "SAA — 보안 · 거버넌스 판단 기준",
+      "exam": "SAA",
+      "chapter": "ch02",
+      "count": 18
+    }
+  ]
+}

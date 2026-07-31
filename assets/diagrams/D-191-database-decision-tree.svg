@@ -1,0 +1,100 @@
+<svg viewBox="0 0 720 484" role="img" aria-labelledby="d191-title d191-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d191-title">데이터베이스 선택 결정 트리</title>
+  <desc id="d191-desc">관계형 데이터인가라는 질문에서 시작해 왼쪽 관계형 갈래와 오른쪽 비관계형 갈래로 나뉘는 위에서 아래로 내려가는 결정 트리입니다.
+    관계형 갈래에서는 먼저 운영 부담을 얼마나 줄여야 하는지를 묻습니다. 최소로 줄여야 하면 Amazon Aurora 이고,
+    표준 관리형으로 충분하면 Amazon RDS 입니다. 그다음 읽기 확장과 가용성 가운데 무엇이 요구인지를 묻습니다.
+    읽기 확장이면 읽기 전용 복제본이고 가용성이면 Multi-AZ 배포입니다. 둘은 서로 다른 문제이므로 처방도 다릅니다.
+    비관계형 갈래에서는 데이터 모델을 묻습니다. 키-값이고 대규모 처리량이면 Amazon DynamoDB,
+    MongoDB 호환 문서면 Amazon DocumentDB, 관계를 탐색하는 그래프면 Amazon Neptune,
+    시계열이면 Amazon Timestream, 인메모리 캐시나 초저지연 저장소면 Amazon ElastiCache 와 MemoryDB 입니다.
+    문제문에 LEAST operational overhead 라는 한정어가 보이면 관리형과 서버리스 쪽으로 꺾는 신호입니다.</desc>
+
+  <defs>
+    <marker id="d191-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d191-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node dg-node--accent" x="200" y="30" width="320" height="40" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="360" y="56" text-anchor="middle">관계형 데이터인가</text>
+  <path class="dg-edge dg-edge--accent" d="M360 70 L360 86 M185 86 L535 86"/>
+  <path class="dg-edge dg-edge--accent" d="M185 86 L185 98" marker-end="url(#d191-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M535 86 L535 98" marker-end="url(#d191-ar-accent)"/>
+
+  <!-- 관계형 -->
+  <rect class="dg-node dg-node--alt" x="20" y="102" width="330" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="185" y="125" text-anchor="middle">예 — 관계형</text>
+  <path class="dg-edge" d="M185 138 L185 146" marker-end="url(#d191-ar)"/>
+
+  <rect class="dg-node" x="20" y="150" width="330" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="185" y="173" text-anchor="middle">운영 부담을 얼마나 줄여야 하는가</text>
+  <path class="dg-edge" d="M185 186 L185 190 M100 190 L270 190"/>
+  <path class="dg-edge" d="M100 190 L100 196" marker-end="url(#d191-ar)"/>
+  <path class="dg-edge" d="M270 190 L270 196" marker-end="url(#d191-ar)"/>
+
+  <rect class="dg-node dg-node--ok" x="20" y="196" width="160" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="100" y="217" text-anchor="middle">최소로 줄인다</text>
+  <text class="dg-fs-sm dg-bold" x="100" y="238" text-anchor="middle">Amazon Aurora</text>
+  <rect class="dg-node dg-node--ok" x="190" y="196" width="160" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="270" y="217" text-anchor="middle">표준으로 충분</text>
+  <text class="dg-fs-sm dg-bold" x="270" y="238" text-anchor="middle">Amazon RDS</text>
+
+  <path class="dg-edge" d="M100 250 L100 258 L270 258 M270 250 L270 258"/>
+  <path class="dg-edge" d="M185 258 L185 262" marker-end="url(#d191-ar)"/>
+
+  <rect class="dg-node" x="20" y="266" width="330" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="185" y="289" text-anchor="middle">읽기 확장과 가용성 중 무엇이 요구인가</text>
+  <path class="dg-edge" d="M185 302 L185 306 M100 306 L270 306"/>
+  <path class="dg-edge" d="M100 306 L100 312" marker-end="url(#d191-ar)"/>
+  <path class="dg-edge" d="M270 306 L270 312" marker-end="url(#d191-ar)"/>
+
+  <rect class="dg-node dg-node--ok" x="20" y="312" width="160" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="100" y="333" text-anchor="middle">읽기 확장</text>
+  <text class="dg-fs-sm dg-bold" x="100" y="354" text-anchor="middle">읽기 전용 복제본</text>
+  <rect class="dg-node dg-node--ok" x="190" y="312" width="160" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-muted" x="270" y="333" text-anchor="middle">가용성</text>
+  <text class="dg-fs-sm dg-bold" x="270" y="354" text-anchor="middle">Multi-AZ 배포</text>
+
+  <text class="dg-fs-sm dg-muted" x="20" y="388">읽기 확장과 가용성은 서로 다른 문제입니다</text>
+
+  <!-- 비관계형 -->
+  <rect class="dg-node dg-node--alt" x="370" y="102" width="330" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="535" y="125" text-anchor="middle">아니오 — 비관계형</text>
+  <path class="dg-edge" d="M535 138 L535 146" marker-end="url(#d191-ar)"/>
+
+  <rect class="dg-node" x="370" y="150" width="330" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="535" y="173" text-anchor="middle">어떤 데이터 모델인가</text>
+  <path class="dg-edge" d="M535 186 L535 190 L376 190 L376 391
+                            M376 215 L384 215 M376 259 L384 259 M376 303 L384 303
+                            M376 347 L384 347 M376 391 L384 391"/>
+
+  <rect class="dg-node dg-node--ok" x="384" y="196" width="316" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="396" y="220">키-값 · 대규모 처리량</text>
+  <text class="dg-fs-sm dg-bold" x="690" y="220" text-anchor="end">Amazon DynamoDB</text>
+
+  <rect class="dg-node dg-node--ok" x="384" y="240" width="316" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="396" y="264">문서 (MongoDB 호환)</text>
+  <text class="dg-fs-sm dg-bold" x="690" y="264" text-anchor="end">Amazon DocumentDB</text>
+
+  <rect class="dg-node dg-node--ok" x="384" y="284" width="316" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="396" y="308">그래프 · 관계 탐색</text>
+  <text class="dg-fs-sm dg-bold" x="690" y="308" text-anchor="end">Amazon Neptune</text>
+
+  <rect class="dg-node dg-node--ok" x="384" y="328" width="316" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="396" y="352">시계열</text>
+  <text class="dg-fs-sm dg-bold" x="690" y="352" text-anchor="end">Amazon Timestream</text>
+
+  <rect class="dg-node dg-node--ok" x="384" y="372" width="316" height="38" rx="4"/>
+  <text class="dg-fs-sm" x="396" y="396">인메모리 · 초저지연</text>
+  <text class="dg-fs-sm dg-bold" x="690" y="396" text-anchor="end">ElastiCache · MemoryDB</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="424" width="680" height="48" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="446">LEAST operational overhead 한정어는 관리형과 서버리스 쪽으로 꺾는 신호입니다</text>
+  <text class="dg-fs-sm" x="34" y="464">읽기 확장과 가용성은 서로 다른 요구이므로 처방도 다릅니다</text>
+</svg>

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-29",
+  "generatedAt": "2026-07-30",
   "examCode": "SAA-C03",
   "total": 62,
-  "built": 60,
+  "built": 62,
   "sections": [
     {
       "id": "home",
@@ -380,17 +380,17 @@
           "id": "lab11",
           "path": "labs/lab11.html",
           "title": "KMS 고객 관리형 키 암호화",
-          "pageTitle": null,
+          "pageTitle": "실습 11 · KMS 고객 관리형 키로 암호화",
           "num": "11",
-          "exists": false
+          "exists": true
         },
         {
           "id": "lab12",
           "path": "labs/lab12.html",
           "title": "CloudWatch 알람 + SNS 알림",
-          "pageTitle": null,
+          "pageTitle": "실습 12 · CloudWatch 알람 + SNS 알림",
           "num": "12",
-          "exists": false
+          "exists": true
         }
       ]
     },

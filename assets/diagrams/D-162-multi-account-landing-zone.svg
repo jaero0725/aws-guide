@@ -1,0 +1,73 @@
+<svg viewBox="0 0 720 424" role="img" aria-labelledby="d162-title d162-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d162-title">다중 계정 랜딩 존의 계정 분리와 중앙 집계 경로</title>
+  <desc id="d162-desc">맨 위에 관리 계정이 있고 그 아래로 두 개의 조직 단위가 갈라집니다.
+    왼쪽 워크로드 조직 단위에는 운영 워크로드 계정과 개발 워크로드 계정이 있고, 오른쪽 보안 조직 단위에는 로그 아카이브 계정과 감사 계정이 있습니다.
+    두 조직 단위에는 각각 SCP 가드레일이 붙어 있습니다. SCP 는 조직 단위 수준에 붙어 그 아래 모든 계정의 권한 상한을 정하며
+    멤버 계정의 루트 사용자에게도 적용됩니다.
+    가운데 화살표는 로그가 모이는 경로입니다. 워크로드 계정들의 CloudTrail 이벤트와 AWS Config 구성 기록이
+    로그 아카이브 계정의 중앙 버킷으로 흘러 들어갑니다. 그 버킷은 삭제가 제한되어 있습니다.
+    감사 계정은 그 로그를 읽기 전용으로만 조회합니다. 로그를 만드는 계정과 보관하는 계정과 조사하는 계정이 서로 다르기 때문에
+    워크로드 계정에서 사고가 나도 증거가 남습니다.
+    결론은 계정을 나누는 일 자체가 보안 경계라는 것입니다. 권한 실수와 리소스 폭주가 계정 밖으로 번지지 않습니다.</desc>
+
+  <defs>
+    <marker id="d162-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d162-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <rect class="dg-node" x="260" y="36" width="200" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="62" text-anchor="middle">관리 계정 (조직 루트)</text>
+  <path class="dg-edge" d="M360 80 L360 94 M160 94 L560 94"/>
+  <path class="dg-edge" d="M160 94 L160 106" marker-end="url(#d162-ar)"/>
+  <path class="dg-edge" d="M560 94 L560 106" marker-end="url(#d162-ar)"/>
+
+  <!-- 워크로드 OU -->
+  <rect class="dg-panel" x="20" y="110" width="280" height="152" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="134">워크로드 OU</text>
+  <rect class="dg-node dg-node--warn" x="170" y="116" width="118" height="22" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="229" y="133" text-anchor="middle">SCP 가드레일</text>
+
+  <rect class="dg-node" x="32" y="146" width="256" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="165">운영 워크로드 계정</text>
+  <text class="dg-fs-sm dg-muted" x="44" y="183">애플리케이션이 도는 곳</text>
+
+  <rect class="dg-node" x="32" y="202" width="256" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="44" y="221">개발 워크로드 계정</text>
+  <text class="dg-fs-sm dg-muted" x="44" y="239">실험과 검증</text>
+
+  <!-- 집계 화살표 -->
+  <path class="dg-edge dg-edge--accent" d="M304 168 L416 168" marker-end="url(#d162-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M304 224 L360 224 L360 180 L416 180" marker-end="url(#d162-ar-accent)"/>
+
+  <!-- 보안 OU -->
+  <rect class="dg-panel" x="420" y="110" width="280" height="152" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="432" y="134">보안 OU</text>
+  <rect class="dg-node dg-node--warn" x="570" y="116" width="118" height="22" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="629" y="133" text-anchor="middle">SCP 가드레일</text>
+
+  <rect class="dg-node dg-node--accent" x="432" y="146" width="256" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="444" y="165">로그 아카이브 계정</text>
+  <text class="dg-fs-sm" x="444" y="183">중앙 버킷 · 삭제 제한</text>
+
+  <path class="dg-edge dg-edge--dotted" d="M560 190 L560 198" marker-end="url(#d162-ar)"/>
+
+  <rect class="dg-node" x="432" y="202" width="256" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="444" y="221">감사 계정</text>
+  <text class="dg-fs-sm dg-muted" x="444" y="239">읽기 전용으로만 조회</text>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="288">워크로드 계정의 CloudTrail 이벤트와 AWS Config 구성 기록이 로그 아카이브 계정으로 모입니다</text>
+
+  <rect class="dg-node dg-node--warn" x="20" y="300" width="680" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="324">가드레일은 OU 단위로 붙어 그 아래 모든 계정의 권한 상한을 정합니다</text>
+  <text class="dg-fs-sm" x="34" y="344">SCP 는 권한을 부여하지 않고 상한만 정하며 멤버 계정의 루트 사용자에게도 적용됩니다</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="368" width="680" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="396" text-anchor="middle">계정을 나누는 일 자체가 보안 경계입니다 — 사고가 계정 밖으로 번지지 않습니다</text>
+</svg>

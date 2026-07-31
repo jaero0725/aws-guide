@@ -1,0 +1,74 @@
+<svg viewBox="0 0 720 490" role="img" aria-labelledby="d172-title d172-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d172-title">6R 마이그레이션 전략을 코드 변경량과 얻는 이점 두 축에 배치</title>
+  <desc id="d172-desc">가로축은 애플리케이션 코드를 얼마나 고쳐야 하는가이고, 세로축은 클라우드에서 얻는 것이 얼마나 큰가입니다.
+    왼쪽 아래에는 Retain 이 있습니다. 옮기지 않고 그대로 두는 결정이라 변경도 없고 얻는 것도 없습니다.
+    그 위의 Retire 는 쓰지 않는 시스템을 폐기하는 결정이며, 옮길 대상 자체를 줄이는 것이 이득입니다.
+    Rehost 는 서버를 그대로 들어 옮기는 리프트 앤 시프트로, 코드 변경이 가장 적고 얻는 것도 가장 적습니다. 이 그림에서 강조 표시된 기준점입니다.
+    Replatform 은 관리형 데이터베이스로 바꾸는 정도의 부분 수정으로 운영 부담을 덜어 냅니다.
+    Repurchase 는 자체 구축을 버리고 SaaS 제품으로 갈아타는 결정이라 우리 코드 변경은 거의 없지만 얻는 것은 큽니다.
+    Refactor 는 서버리스나 마이크로서비스로 다시 설계하는 것이라 변경이 가장 크고 얻는 것도 가장 큽니다.
+    아래쪽 두 상자는 지원 도구입니다. AWS Application Migration Service 는 서버를 통째로 복제해 Rehost 를 지원하고,
+    AWS Database Migration Service 는 데이터베이스를 옮겨 Rehost 와 Replatform 을 지원합니다.</desc>
+
+  <defs>
+    <marker id="d172-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d172-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 축 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="46">얻는 이점</text>
+  <text class="dg-fs-sm dg-muted" x="92" y="82" text-anchor="end">큼</text>
+  <text class="dg-fs-sm dg-muted" x="92" y="326" text-anchor="end">적음</text>
+  <path class="dg-edge" d="M100 330 L100 62" marker-end="url(#d172-ar)"/>
+  <path class="dg-edge" d="M100 330 L702 330" marker-end="url(#d172-ar)"/>
+  <text class="dg-fs-sm dg-muted" x="104" y="352">적음</text>
+  <text class="dg-fs-sm dg-muted" x="640" y="352">많음</text>
+  <text class="dg-fs-sm dg-bold" x="360" y="352" text-anchor="middle">코드 변경량</text>
+
+  <!-- 전략 -->
+  <rect class="dg-node dg-node--muted" x="110" y="272" width="140" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="180" y="292" text-anchor="middle">Retain</text>
+  <text class="dg-fs-sm" x="180" y="310" text-anchor="middle">그대로 둡니다</text>
+
+  <rect class="dg-node dg-node--muted" x="110" y="210" width="140" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="180" y="230" text-anchor="middle">Retire</text>
+  <text class="dg-fs-sm" x="180" y="248" text-anchor="middle">폐기합니다</text>
+
+  <rect class="dg-node dg-node--accent" x="250" y="244" width="140" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="320" y="264" text-anchor="middle">Rehost</text>
+  <text class="dg-fs-sm" x="320" y="282" text-anchor="middle">그대로 옮깁니다</text>
+
+  <rect class="dg-node" x="330" y="176" width="140" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="400" y="196" text-anchor="middle">Replatform</text>
+  <text class="dg-fs-sm" x="400" y="214" text-anchor="middle">일부만 손봅니다</text>
+
+  <rect class="dg-node" x="110" y="96" width="140" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="180" y="116" text-anchor="middle">Repurchase</text>
+  <text class="dg-fs-sm" x="180" y="134" text-anchor="middle">SaaS 로 갈아탑니다</text>
+
+  <rect class="dg-node" x="540" y="84" width="140" height="46" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="610" y="104" text-anchor="middle">Refactor</text>
+  <text class="dg-fs-sm" x="610" y="122" text-anchor="middle">다시 설계합니다</text>
+
+  <!-- 지원 도구 -->
+  <path class="dg-edge dg-edge--muted dg-edge--dashed" d="M185 370 L318 294" marker-end="url(#d172-ar-muted)"/>
+  <path class="dg-edge dg-edge--muted dg-edge--dashed" d="M535 370 L404 226" marker-end="url(#d172-ar-muted)"/>
+
+  <rect class="dg-node dg-node--alt" x="20" y="372" width="330" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="394">AWS Application Migration Service</text>
+  <text class="dg-fs-sm" x="34" y="414">서버를 통째로 복제 — Rehost 를 지원합니다</text>
+
+  <rect class="dg-node dg-node--alt" x="370" y="372" width="330" height="52" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="384" y="394">AWS Database Migration Service</text>
+  <text class="dg-fs-sm" x="384" y="414">DB 이전 — Rehost · Replatform 지원</text>
+
+  <rect class="dg-node dg-node--empty" x="20" y="434" width="680" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="461" text-anchor="middle">오른쪽 위로 갈수록 고칠 것이 많아지고 얻는 것도 커집니다 — 요구가 정하는 지점이 정답입니다</text>
+</svg>

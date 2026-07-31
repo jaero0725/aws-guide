@@ -1,0 +1,112 @@
+<svg viewBox="0 0 720 548" role="img" aria-labelledby="d173-title d173-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d173-title">DR 4전략을 RTO 와 RPO 축 위에 놓은 스펙트럼</title>
+  <desc id="d173-desc">가로축은 RPO, 즉 허용되는 데이터 손실의 폭이고 세로축은 RTO, 즉 복구까지 걸리는 시간입니다.
+    두 축의 눈금은 값이 아니라 일 단위, 시간 단위, 분 단위, 거의 없음이라는 순서 척도입니다. 어떤 전략의 RTO 도 숫자로 단정하지 않습니다.
+    왼쪽 아래에서 오른쪽 위로 백업 및 복원, 파일럿 라이트, 웜 스탠바이, 다중 사이트 액티브-액티브가 차례로 놓입니다.
+    백업 및 복원은 백업만 대상 리전에 보관하고 인프라는 없습니다. 파일럿 라이트는 데이터 복제가 계속되고 데이터베이스 같은 최소 코어만 켜 둡니다.
+    웜 스탠바이는 전체 스택이 축소된 규모로 항상 떠 있고 트래픽만 받지 않습니다. 다중 사이트 액티브-액티브는 양쪽이 모두 운영 트래픽을 처리합니다.
+    축 아래 화살표가 말하듯, 요구가 짧아질수록 대상 리전에 상시 가동해야 하는 구성 요소가 늘어나고 상시 비용도 함께 올라갑니다.
+    그 아래 다섯 개의 칩이 상시 가동 구성 요소이며, 지금은 파일럿 라이트가 선택된 상태라 데이터 복제와 데이터베이스 최소 코어만 켜져 있고
+    애플리케이션 계층, 로드 밸런서, 운영 트래픽 처리는 꺼져 있습니다.
+    요구 지점을 옮기면 선택되는 전략과 켜지는 구성 요소가 함께 바뀝니다.</desc>
+
+  <defs>
+    <marker id="d173-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d173-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="30">RTO — 복구까지 걸리는 시간 (아래로 갈수록 깁니다)</text>
+
+  <!-- 축 -->
+  <path class="dg-grid" d="M100 40 L100 290 M100 290 L706 290"/>
+  <path class="dg-grid" d="M183 290 L183 296 M331 290 L331 296 M479 290 L479 296 M627 290 L627 296
+                            M94 256 L100 256 M94 196 L100 196 M94 136 L100 136 M94 76 L100 76"/>
+
+  <text class="dg-fs-sm dg-muted" x="90" y="261" text-anchor="end">일 단위</text>
+  <text class="dg-fs-sm dg-muted" x="90" y="201" text-anchor="end">시간 단위</text>
+  <text class="dg-fs-sm dg-muted" x="90" y="141" text-anchor="end">분 단위</text>
+  <text class="dg-fs-sm dg-muted" x="90" y="81" text-anchor="end">거의 없음</text>
+
+  <text class="dg-fs-sm dg-muted" x="183" y="312" text-anchor="middle">일 단위</text>
+  <text class="dg-fs-sm dg-muted" x="331" y="312" text-anchor="middle">시간 단위</text>
+  <text class="dg-fs-sm dg-muted" x="479" y="312" text-anchor="middle">분 단위</text>
+  <text class="dg-fs-sm dg-muted" x="627" y="312" text-anchor="middle">거의 없음</text>
+  <text class="dg-fs-sm dg-bold" x="400" y="334" text-anchor="middle">RPO — 허용되는 데이터 손실 (왼쪽으로 갈수록 큽니다)</text>
+
+  <!-- 요구 지점 표시 -->
+  <g data-dg="rpo-marker">
+    <path d="M331 288 L324 274 L338 274 Z" fill="var(--dg-accent)" stroke="none"/>
+  </g>
+  <g data-dg="rto-marker">
+    <path d="M114 196 L102 189 L102 203 Z" fill="var(--dg-accent)" stroke="none"/>
+  </g>
+
+  <!-- 전략 -->
+  <g data-dg="strategy-backup">
+    <rect class="dg-node" x="108" y="232" width="150" height="48" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="183" y="252" text-anchor="middle">백업 및 복원</text>
+    <text class="dg-fs-sm dg-muted" x="183" y="270" text-anchor="middle">백업만 보관</text>
+  </g>
+  <g data-dg="strategy-pilot" data-state="on">
+    <rect class="dg-node" x="256" y="172" width="150" height="48" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="331" y="192" text-anchor="middle">파일럿 라이트</text>
+    <text class="dg-fs-sm dg-muted" x="331" y="210" text-anchor="middle">최소 코어만 가동</text>
+  </g>
+  <g data-dg="strategy-warm">
+    <rect class="dg-node" x="404" y="112" width="150" height="48" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="479" y="132" text-anchor="middle">웜 스탠바이</text>
+    <text class="dg-fs-sm dg-muted" x="479" y="150" text-anchor="middle">축소 규모로 상시</text>
+  </g>
+  <g data-dg="strategy-active">
+    <rect class="dg-node" x="552" y="52" width="150" height="48" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="627" y="72" text-anchor="middle">다중 사이트</text>
+    <text class="dg-fs-sm dg-muted" x="627" y="90" text-anchor="middle">액티브-액티브</text>
+  </g>
+
+  <!-- 스펙트럼 방향 -->
+  <text class="dg-fs-sm dg-bold" x="20" y="362">요구가 짧아질수록 대상 리전에 상시 가동할 것이 늘고 상시 비용도 오릅니다</text>
+  <path class="dg-edge dg-edge--accent" d="M100 378 L700 378" marker-end="url(#d173-ar-accent)"/>
+  <text class="dg-fs-sm dg-muted" x="20" y="382">상시 비용</text>
+  <text class="dg-fs-sm dg-muted" x="104" y="396">가장 낮음</text>
+  <text class="dg-fs-sm dg-muted" x="700" y="396" text-anchor="end">가장 높음</text>
+
+  <!-- 상시 가동 구성 요소 -->
+  <text class="dg-fs-md dg-bold" x="20" y="424">대상 리전에 상시 가동해야 하는 구성 요소</text>
+
+  <g data-dg="comp-data" data-state="on">
+    <rect class="dg-node" x="20" y="434" width="128" height="56" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="84" y="458" text-anchor="middle">데이터 복제</text>
+    <text class="dg-fs-sm dg-muted" x="84" y="478" text-anchor="middle">계속 진행</text>
+  </g>
+  <g data-dg="comp-db" data-state="on">
+    <rect class="dg-node" x="158" y="434" width="128" height="56" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="222" y="458" text-anchor="middle">데이터베이스</text>
+    <text class="dg-fs-sm dg-muted" x="222" y="478" text-anchor="middle">최소 규모 가동</text>
+  </g>
+  <g data-dg="comp-app" data-state="off">
+    <rect class="dg-node" x="296" y="434" width="128" height="56" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="360" y="458" text-anchor="middle">애플리케이션</text>
+    <text class="dg-fs-sm dg-muted" x="360" y="478" text-anchor="middle">축소 규모 가동</text>
+  </g>
+  <g data-dg="comp-lb" data-state="off">
+    <rect class="dg-node" x="434" y="434" width="128" height="56" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="498" y="458" text-anchor="middle">로드 밸런서</text>
+    <text class="dg-fs-sm dg-muted" x="498" y="478" text-anchor="middle">DNS 전환 준비</text>
+  </g>
+  <g data-dg="comp-traffic" data-state="off">
+    <rect class="dg-node" x="572" y="434" width="128" height="56" rx="4"/>
+    <text class="dg-fs-sm dg-bold" x="636" y="458" text-anchor="middle">운영 트래픽</text>
+    <text class="dg-fs-sm dg-muted" x="636" y="478" text-anchor="middle">양쪽에서 처리</text>
+  </g>
+
+  <!-- 판정 -->
+  <rect class="dg-node dg-node--accent" x="20" y="500" width="680" height="36" rx="4"/>
+  <text data-dg="verdict" class="dg-fs-sm dg-bold" x="360" y="524" text-anchor="middle">선택된 전략 — 파일럿 라이트 · 데이터 복제와 최소 코어만 켜 둡니다 · 상시 비용 낮음</text>
+</svg>

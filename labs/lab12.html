@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="ko" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>실습 12 · CloudWatch 알람 + SNS 알림 — AWS SAA Guide</title>
+  <meta name="description" content="SNS 주제와 구독을 만들고 CloudWatch 지표 알람을 연결합니다. 로그 지표 필터로 오류 로그를 지표로 만들고, 복합 알람으로 알림 소음을 줄이는 구성을 AWS CLI로 만들고 검증합니다.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/code.css">
+  <link rel="stylesheet" href="../assets/css/viz.css">
+  <link rel="stylesheet" href="../assets/css/chart.css">
+  <script src="../assets/js/boot.js"></script>
+</head>
+<body class="has-sidebar has-toc">
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <div id="sidebar-mount" data-section="labs" data-page="lab12"></div>
+
+  <main id="main" class="page" data-page-id="labs/lab12">
+    <nav class="breadcrumb" aria-label="경로">
+      <ol>
+        <li><a href="../index.html">홈</a></li>
+        <li><a href="../index.html#sections">실습 예제</a></li>
+        <li><span aria-current="page">실습 12 · CloudWatch 알람 + SNS 알림</span></li>
+      </ol>
+    </nav>
+
+    <header class="page__header">
+      <p class="page__eyebrow">실습 예제 · 12</p>
+      <h1>CloudWatch 알람 + SNS 알림</h1>
+      <p class="page__lead">
+        알림 파이프라인의 목적은 <strong>사람이 대응해야 하는 순간에만 알리는 것</strong>입니다.
+        너무 자주 울리면 아무도 보지 않게 되고, 그 순간 감시는 없는 것과 같아집니다.
+        이 실습은 지표 알람과 로그 지표 필터를 만들고,
+        복합 알람으로 소음을 줄이는 구성까지 만듭니다.
+      </p>
+      <p class="page__meta">
+        관련 도메인: <a href="../saa/domain-resilient.html">복원력 있는 아키텍처 설계(26%)</a>
+      </p>
+    </header>
+
+    <section class="objectives" aria-labelledby="objectives">
+      <h2 id="objectives">학습 목표</h2>
+      <ul>
+        <li>SNS 주제와 구독을 만들고 알람의 동작 대상으로 연결할 수 있습니다.</li>
+        <li>지표 알람의 평가 기간과 데이터 포인트 조건을 설계할 수 있습니다.</li>
+        <li>누락 데이터 처리 방식이 알람 상태를 어떻게 바꾸는지 설명할 수 있습니다.</li>
+        <li>로그 지표 필터로 로그 패턴을 지표로 만들 수 있습니다.</li>
+        <li>복합 알람으로 알림 수를 줄일 수 있습니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="scenario">
+      <h2 id="scenario">시나리오</h2>
+      <p>
+        <a href="lab02.html">실습 2</a>의 웹 티어를 감시합니다. 알리고 싶은 상황은 셋입니다.
+      </p>
+      <ul>
+        <li>정상 대상 수가 <strong>기준 아래로</strong> 떨어졌다.</li>
+        <li>애플리케이션 로그에 <strong>오류가 급증</strong>했다.</li>
+        <li>두 조건이 <strong>동시에</strong> 성립했다 — 이때만 야간에도 호출한다.</li>
+      </ul>
+      <p>
+        마지막 조건이 복합 알람의 이유입니다.
+        개별 알람은 기록을 남기고, <strong>사람을 부르는 것은 복합 알람만</strong> 하게 만듭니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="architecture">
+      <h2 id="architecture">아키텍처 개요</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>구성 요소와 역할</caption>
+          <thead>
+            <tr>
+              <th scope="col">구성 요소</th>
+              <th scope="col">역할</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">SNS 주제(운영)</th>
+              <td>기록용 알림. 채팅이나 티켓 시스템으로 보낸다</td>
+            </tr>
+            <tr>
+              <th scope="row">SNS 주제(호출)</th>
+              <td>사람을 부르는 알림. 복합 알람만 연결한다</td>
+            </tr>
+            <tr>
+              <th scope="row">지표 알람</th>
+              <td>지표가 임계값을 넘는지 평가</td>
+            </tr>
+            <tr>
+              <th scope="row">로그 지표 필터</th>
+              <td>로그 패턴 발생 횟수를 지표로 변환</td>
+            </tr>
+            <tr>
+              <th scope="row">복합 알람</th>
+              <td>여러 알람의 조합을 하나의 조건으로 평가</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <strong>메모리와 디스크 사용률은 EC2의 기본 지표가 아닙니다.</strong>
+          하이퍼바이저에서 보이는 값이 아니기 때문이며,
+          수집하려면 CloudWatch 에이전트를 설치해야 합니다.
+          "메모리 사용률에 알람을 걸어야 한다"는 요구가 나오면 이 사실이 답의 일부가 됩니다.
+        </p>
+      </aside>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="steps">
+      <h2 id="steps">구성 단계</h2>
+
+      <h3 id="step-topics">1 · SNS 주제와 구독</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-topics.sh</span> — 기록용과 호출용 주제를 나눠 생성 (주소는 예시입니다)</figcaption>
+        <pre><code class="lang-bash">OPS_TOPIC=$(aws sns create-topic --name lab12-ops \
+  --query 'TopicArn' --output text)
+
+PAGE_TOPIC=$(aws sns create-topic --name lab12-page \
+  --query 'TopicArn' --output text)
+
+aws sns subscribe \
+  --topic-arn "$OPS_TOPIC" \
+  --protocol email \
+  --notification-endpoint ops@example.com
+
+aws sns subscribe \
+  --topic-arn "$PAGE_TOPIC" \
+  --protocol email \
+  --notification-endpoint oncall@example.com
+
+# 구독은 확인 절차를 거쳐야 활성화됩니다.
+aws sns list-subscriptions-by-topic \
+  --topic-arn "$OPS_TOPIC" \
+  --query 'Subscriptions[].[Protocol,Endpoint,SubscriptionArn]' \
+  --output table</code></pre>
+      </figure>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          이메일 구독은 <strong>수신자가 확인 링크를 눌러야 활성화</strong>됩니다.
+          확인 전에는 구독 ARN이 <code>PendingConfirmation</code>으로 표시되고
+          알림이 전달되지 않습니다.
+          "알람은 울리는데 메일이 안 온다"의 흔한 원인입니다.
+        </p>
+      </aside>
+
+      <h3 id="step-metric-alarm">2 · 지표 알람</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-target-alarm.sh</span> — 정상 대상 수 알람 (차원 값은 실습 2의 리소스에서 가져옵니다)</figcaption>
+        <pre><code class="lang-bash">aws cloudwatch put-metric-alarm \
+  --alarm-name lab12-healthy-hosts-low \
+  --alarm-description "정상 대상 수가 기준 아래로 떨어졌습니다" \
+  --namespace AWS/ApplicationELB \
+  --metric-name HealthyHostCount \
+  --dimensions Name=TargetGroup,Value=targetgroup/lab02-tg/0123456789abcdef \
+               Name=LoadBalancer,Value=app/lab02-alb/0123456789abcdef \
+  --statistic Minimum \
+  --period 60 \
+  --evaluation-periods 3 \
+  --datapoints-to-alarm 2 \
+  --threshold 2 \
+  --comparison-operator LessThanThreshold \
+  --treat-missing-data breaching \
+  --alarm-actions "$OPS_TOPIC" \
+  --ok-actions "$OPS_TOPIC"</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>알람 평가를 결정하는 설정</caption>
+          <thead>
+            <tr>
+              <th scope="col">설정</th>
+              <th scope="col">의미</th>
+              <th scope="col">정하는 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>--period</code></th>
+              <td>데이터 포인트 하나의 시간 폭</td>
+              <td>지표가 실제로 게시되는 주기보다 짧게 잡지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>--evaluation-periods</code></th>
+              <td>평가에 사용할 데이터 포인트 수</td>
+              <td>순간적인 튐에 반응하지 않을 만큼</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>--datapoints-to-alarm</code></th>
+              <td>그중 몇 개가 위반이면 경보로 갈지</td>
+              <td>"3개 중 2개"처럼 완화된 조건을 만들 때 쓴다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>--statistic</code></th>
+              <td>기간 안의 값을 어떻게 요약할지</td>
+              <td>가용성 지표는 <code>Minimum</code>, 부하 지표는 <code>Average</code>가 흔하다</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>--treat-missing-data</code></th>
+              <td>데이터가 없을 때의 취급</td>
+              <td>아래 표 참조</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>누락 데이터 처리 방식</caption>
+          <thead>
+            <tr>
+              <th scope="col">값</th>
+              <th scope="col">동작</th>
+              <th scope="col">쓰는 상황</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>missing</code> (기본)</th>
+              <td>해당 데이터 포인트를 평가에서 제외</td>
+              <td>지표가 간헐적으로만 게시되는 경우</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>notBreaching</code></th>
+              <td>정상으로 간주</td>
+              <td>데이터가 없는 것이 곧 무부하인 경우</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>breaching</code></th>
+              <td>위반으로 간주</td>
+              <td><strong>지표가 끊긴 것 자체가 이상</strong>인 경우</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>ignore</code></th>
+              <td>현재 상태를 유지</td>
+              <td>상태가 흔들리는 것을 피하고 싶을 때</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        위 예시에서 <code>breaching</code>을 고른 이유는,
+        정상 대상 수 지표가 사라지는 상황이 <strong>대상 그룹 자체의 문제</strong>일 수 있기 때문입니다.
+        데이터가 없다고 안심하면 장애를 놓칩니다.
+      </p>
+
+      <h3 id="step-log-filter">3 · 로그 지표 필터</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-metric-filter.sh</span> — 오류 로그를 지표로 변환</figcaption>
+        <pre><code class="lang-bash">aws logs put-metric-filter \
+  --log-group-name /app/lab12 \
+  --filter-name lab12-error-count \
+  --filter-pattern '?ERROR ?Exception' \
+  --metric-transformations \
+      metricName=AppErrorCount,metricNamespace=Lab12/App,metricValue=1,defaultValue=0
+
+aws cloudwatch put-metric-alarm \
+  --alarm-name lab12-error-spike \
+  --alarm-description "애플리케이션 오류 로그가 급증했습니다" \
+  --namespace Lab12/App \
+  --metric-name AppErrorCount \
+  --statistic Sum \
+  --period 60 \
+  --evaluation-periods 5 \
+  --datapoints-to-alarm 3 \
+  --threshold 20 \
+  --comparison-operator GreaterThanThreshold \
+  --treat-missing-data notBreaching \
+  --alarm-actions "$OPS_TOPIC"</code></pre>
+      </figure>
+
+      <aside class="note" data-label="참고">
+        <p>
+          <code>defaultValue=0</code>을 지정하면 <strong>패턴이 없을 때 0이 게시</strong>됩니다.
+          이 값이 없으면 오류가 없는 동안 지표가 아예 게시되지 않아
+          누락 데이터 처리에 의존하게 됩니다.
+          비교와 알람 동작이 훨씬 예측 가능해지므로 넣어 두는 편이 좋습니다.
+        </p>
+        <p>
+          임계값(위 예시의 20)은 <strong>서비스의 평상시 오류 수를 측정한 뒤</strong> 정합니다.
+          이 값은 예시일 뿐이며, 측정 없이 정하면 소음이거나 무용지물이 됩니다.
+        </p>
+      </aside>
+
+      <h3 id="step-composite">4 · 복합 알람</h3>
+
+      <figure class="code">
+        <figcaption><span class="code__name">create-composite-alarm.sh</span> — 두 조건이 모두 성립할 때만 호출</figcaption>
+        <pre><code class="lang-bash">aws cloudwatch put-composite-alarm \
+  --alarm-name lab12-service-degraded \
+  --alarm-description "용량 부족과 오류 급증이 동시에 발생했습니다" \
+  --alarm-rule "ALARM(lab12-healthy-hosts-low) AND ALARM(lab12-error-spike)" \
+  --alarm-actions "$PAGE_TOPIC" \
+  --ok-actions "$PAGE_TOPIC"</code></pre>
+      </figure>
+
+      <p>
+        규칙에는 <code>ALARM()</code>, <code>OK()</code>, <code>INSUFFICIENT_DATA()</code>와
+        <code>AND</code>, <code>OR</code>, <code>NOT</code>을 쓸 수 있습니다.
+        배포 중에는 알림을 억제하는 <strong>동작 억제기</strong>도 지정할 수 있어,
+        계획된 작업 때문에 사람이 불려 나가는 일을 막을 수 있습니다.
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="verify">
+      <h2 id="verify">검증 방법</h2>
+
+      <figure class="code">
+        <figcaption><span class="code__name">verify.sh</span> — 알람 상태와 이력 확인</figcaption>
+        <pre><code class="lang-bash">aws cloudwatch describe-alarms \
+  --alarm-names lab12-healthy-hosts-low lab12-error-spike \
+  --query 'MetricAlarms[].[AlarmName,StateValue,StateReason]' \
+  --output table
+
+aws cloudwatch describe-alarms \
+  --alarm-types CompositeAlarm \
+  --query 'CompositeAlarms[].[AlarmName,StateValue,AlarmRule]' \
+  --output table
+
+aws cloudwatch describe-alarm-history \
+  --alarm-name lab12-healthy-hosts-low \
+  --max-records 5 \
+  --query 'AlarmHistoryItems[].[Timestamp,HistoryItemType,HistorySummary]' \
+  --output table</code></pre>
+      </figure>
+
+      <h3 id="verify-trigger">알람을 일부러 울려 본다</h3>
+      <p>
+        알림 경로가 실제로 동작하는지는 <strong>울려 봐야</strong> 압니다.
+        상태를 강제로 바꾸면 지표를 건드리지 않고도 경로를 확인할 수 있습니다.
+      </p>
+
+      <figure class="code">
+        <figcaption><span class="code__name">test-alarm.sh</span> — 상태를 강제로 바꿔 알림 전달 확인</figcaption>
+        <pre><code class="lang-bash">aws cloudwatch set-alarm-state \
+  --alarm-name lab12-error-spike \
+  --state-value ALARM \
+  --state-reason "알림 경로 점검"
+
+# 사용자 지정 지표에 값을 직접 넣어 실제 평가를 확인할 수도 있습니다.
+aws cloudwatch put-metric-data \
+  --namespace Lab12/App \
+  --metric-name AppErrorCount \
+  --value 50
+
+# 확인이 끝나면 되돌립니다. 다음 평가 주기에 실제 상태로 복귀합니다.
+aws cloudwatch set-alarm-state \
+  --alarm-name lab12-error-spike \
+  --state-value OK \
+  --state-reason "점검 완료"</code></pre>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>검증 항목과 통과 기준</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">통과 기준</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">구독 확인</th>
+              <td>구독 ARN이 <code>PendingConfirmation</code>이 아니다</td>
+            </tr>
+            <tr>
+              <th scope="row">알림 전달</th>
+              <td>상태를 <code>ALARM</code>으로 바꾸면 메일이 온다</td>
+            </tr>
+            <tr>
+              <th scope="row">복구 알림</th>
+              <td><code>OK</code>로 돌아올 때도 알림이 온다</td>
+            </tr>
+            <tr>
+              <th scope="row">복합 알람</th>
+              <td>한쪽만 경보일 때는 호출 주제로 알림이 가지 않는다</td>
+            </tr>
+            <tr>
+              <th scope="row">로그 지표</th>
+              <td>패턴이 없을 때도 0이 게시된다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cost">
+      <h2 id="cost">비용 고려</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>요금이 발생하는 항목</caption>
+          <thead>
+            <tr>
+              <th scope="col">항목</th>
+              <th scope="col">성격</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">알람</th>
+              <td>알람 개수. 고해상도 알람은 별도로 계산된다</td>
+            </tr>
+            <tr>
+              <th scope="row">사용자 지정 지표</th>
+              <td>지표 개수. <strong>차원 조합마다 별도의 지표</strong>가 된다</td>
+            </tr>
+            <tr>
+              <th scope="row">로그 수집과 저장</th>
+              <td>수집량과 보존 기간</td>
+            </tr>
+            <tr>
+              <th scope="row">SNS</th>
+              <td>게시와 전달 수</td>
+            </tr>
+            <tr>
+              <th scope="row">대시보드</th>
+              <td>대시보드 개수</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        비용이 예상보다 커지는 원인은 대개 <strong>차원 조합</strong>입니다.
+        사용자 지정 지표에 인스턴스 ID나 요청 ID처럼 값이 많은 차원을 넣으면
+        지표 수가 폭증합니다.
+        그리고 로그 보존 기간을 지정하지 않으면 <strong>무기한 쌓입니다.</strong>
+      </p>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="production">
+      <h2 id="production">프로덕션 고려사항</h2>
+      <ul>
+        <li><strong>알림 등급을 나눕니다.</strong>
+          기록용과 호출용 주제를 분리하고, 사람을 부르는 조건은 최소로 유지합니다.</li>
+        <li><strong>모든 알람에 대응 절차를 붙입니다.</strong>
+          무엇을 확인하고 무엇을 할지 적혀 있지 않은 알람은 소음이 됩니다.</li>
+        <li><strong>배포 중 억제</strong>를 설계합니다. 계획된 작업으로 알람이 울리면
+          사람들이 알람을 무시하기 시작합니다.</li>
+        <li><strong>주제 정책과 암호화</strong>를 설정합니다.
+          누가 게시할 수 있는지 제한하고, 필요하면 저장 데이터 암호화를 켭니다.</li>
+        <li><strong>SNS의 배달 못한 편지 대기열</strong>을 설정하면
+          전달 실패가 조용히 사라지지 않습니다.</li>
+        <li><strong>로그 보존 기간을 반드시 지정</strong>합니다.
+          비용과 개인정보 양쪽 문제가 됩니다.</li>
+        <li><strong>이상 탐지 기반 알람</strong>은 임계값을 정하기 어려운 지표에 유용합니다.
+          다만 학습 기간이 필요합니다.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="cleanup">
+      <h2 id="cleanup">정리 — 리소스 삭제</h2>
+
+      <aside class="note note--warn" data-label="주의">
+        <p>
+          <strong>복합 알람이 참조하는 알람은 먼저 삭제할 수 없습니다.</strong>
+          복합 알람을 먼저 지운 뒤 개별 알람을 삭제합니다.
+        </p>
+      </aside>
+
+      <figure class="code">
+        <figcaption><span class="code__name">cleanup.sh</span> — 복합 알람부터 순서대로 삭제</figcaption>
+        <pre><code class="lang-bash">aws cloudwatch delete-alarms --alarm-names lab12-service-degraded
+aws cloudwatch delete-alarms --alarm-names lab12-healthy-hosts-low lab12-error-spike
+
+aws logs delete-metric-filter \
+  --log-group-name /app/lab12 \
+  --filter-name lab12-error-count
+
+aws sns delete-topic --topic-arn "$OPS_TOPIC"
+aws sns delete-topic --topic-arn "$PAGE_TOPIC"
+
+# 실습용 로그 그룹도 정리합니다.
+aws logs delete-log-group --log-group-name /app/lab12</code></pre>
+      </figure>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="pitfalls">
+      <h2 id="pitfalls">자주 하는 실수</h2>
+
+      <div class="table-scroll">
+        <table class="config-table config-table--plain">
+          <caption>자주 나오는 실수와 증상</caption>
+          <thead>
+            <tr>
+              <th scope="col">실수</th>
+              <th scope="col">증상</th>
+              <th scope="col">고치는 법</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">구독을 확인하지 않음</th>
+              <td>알람은 울리는데 메일이 오지 않는다</td>
+              <td>수신함에서 확인 링크를 누른다</td>
+            </tr>
+            <tr>
+              <th scope="row">차원을 빠뜨리거나 잘못 지정</th>
+              <td>알람이 계속 <code>INSUFFICIENT_DATA</code>다</td>
+              <td>지표의 실제 차원 이름과 값을 조회해 맞춘다</td>
+            </tr>
+            <tr>
+              <th scope="row">평가 기간이 지표 게시 주기보다 짧음</th>
+              <td>데이터가 없어 평가되지 않는다</td>
+              <td>게시 주기에 맞춰 <code>--period</code>를 정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">누락 데이터 처리를 기본값으로 방치</th>
+              <td>지표가 끊긴 장애를 놓친다</td>
+              <td>지표 성격에 맞게 <code>breaching</code> 등을 지정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">EC2 메모리 지표를 기본으로 기대</th>
+              <td>지표가 존재하지 않는다</td>
+              <td>CloudWatch 에이전트를 설치한다</td>
+            </tr>
+            <tr>
+              <th scope="row">평가 기간을 1로 두고 민감하게 설정</th>
+              <td>순간적인 튐마다 알림이 온다</td>
+              <td>평가 기간과 데이터 포인트 조건을 조정한다</td>
+            </tr>
+            <tr>
+              <th scope="row">모든 알람을 호출 주제에 연결</th>
+              <td>알림 피로로 아무도 보지 않게 된다</td>
+              <td>복합 알람으로 호출 조건을 좁힌다</td>
+            </tr>
+            <tr>
+              <th scope="row">로그 보존 기간 미설정</th>
+              <td>로그가 무기한 쌓인다</td>
+              <td>로그 그룹마다 보존 기간을 지정한다</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="see-also">
+      <h2 id="see-also">이어서 볼 곳</h2>
+      <ul class="card-grid">
+        <li><a class="card" href="../basics/ch17.html">
+          <span class="card__title">17장 · 모니터링 · 운영 · 계정 관리</span>
+          <span class="card__desc">CloudWatch 지표·로그·알람의 관계, CloudTrail과 Config의 역할 구분을 다룹니다.</span>
+          <span class="card__meta">기본개념 · 도메인 1·2</span>
+        </a></li>
+        <li><a class="card" href="lab02.html">
+          <span class="card__title">실습 2 · ALB + ASG 웹 티어</span>
+          <span class="card__desc">이 실습이 감시하는 대상을 먼저 만듭니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="lab07.html">
+          <span class="card__title">실습 7 · SQS + Lambda 비동기 처리</span>
+          <span class="card__desc">DLQ 적체에 알람을 걸어 실패를 조기에 잡는 구성으로 이어집니다.</span>
+          <span class="card__meta">실습 예제</span>
+        </a></li>
+        <li><a class="card" href="../cases/case05.html">
+          <span class="card__title">케이스 5 · 단일 AZ 설계가 장애로 전면 중단됐다</span>
+          <span class="card__desc">정상 대상 수 지표가 왜 중요한 신호인지 장애 흐름으로 확인합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+        <li><a class="card" href="../cases/case10.html">
+          <span class="card__title">케이스 10 · 규정 준수 감사에 대응하라</span>
+          <span class="card__desc">감시와 감사가 답하는 질문이 어떻게 다른지 정리합니다.</span>
+          <span class="card__meta">아키텍처 케이스</span>
+        </a></li>
+      </ul>
+    </section>
+
+    <!-- ================================================================= -->
+    <section aria-labelledby="sources" id="references">
+      <h2 id="sources">공식 문서 출처</h2>
+      <ul>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutMetricAlarm.html">Amazon CloudWatch API 레퍼런스 — PutMetricAlarm</a>
+          — 기간·평가 기간·경보 데이터 포인트, 통계 값, 비교 연산자, 누락 데이터 처리</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_PutCompositeAlarm.html">Amazon CloudWatch API 레퍼런스 — PutCompositeAlarm</a>
+          — 알람 규칙 문법과 동작 억제기, 참조된 알람을 먼저 지울 수 없다는 제약</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_SetAlarmState.html">Amazon CloudWatch API 레퍼런스 — SetAlarmState</a>
+          — 상태를 임시로 바꿔 알림 경로를 시험하는 방법</li>
+        <li><a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutMetricFilter.html">Amazon CloudWatch Logs API 레퍼런스 — PutMetricFilter</a>
+          — 필터 패턴과 지표 변환, 기본값 설정</li>
+        <li><a href="https://docs.aws.amazon.com/sns/latest/api/API_CreateTopic.html">Amazon SNS API 레퍼런스 — CreateTopic</a>
+          — 주제 생성과 속성</li>
+        <li><a href="https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html">Amazon SNS API 레퍼런스 — Subscribe</a>
+          — 프로토콜별 엔드포인트와 구독 확인 절차</li>
+      </ul>
+    </section>
+
+    <nav class="pager" aria-label="이전/다음"></nav>
+  </main>
+
+  <script src="../assets/js/progress.js" defer></script>
+  <script src="../assets/js/highlight.js" defer></script>
+  <script src="../assets/js/viz.js" defer></script>
+  <script src="../assets/vendor/chart.umd.min.js" defer></script>
+  <script src="../assets/js/charts.js" defer></script>
+  <script src="../assets/js/charts-content.js" defer></script>
+  <script src="../assets/js/charts-dash.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/quiz.js" defer></script>
+</body>
+</html>

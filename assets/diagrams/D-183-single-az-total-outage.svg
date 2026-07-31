@@ -1,0 +1,85 @@
+<svg viewBox="0 0 720 538" role="img" aria-labelledby="d183-title d183-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d183-title">단일 가용 영역 설계의 전면 중단과 다중 AZ 로 바꾼 구성의 영향 범위</title>
+  <desc id="d183-desc">위쪽은 로드 밸런서, EC2 인스턴스 네 대, RDS 단일 인스턴스, NAT 게이트웨이가 모두 한 가용 영역에 들어 있는 구성입니다.
+    그 가용 영역이 손상되면 네 가지가 순서대로 끊깁니다. 로드 밸런서에 등록된 대상이 전부 빠지고, 인스턴스 네 대가 함께 사라지고,
+    데이터베이스 접속이 끊기고, 아웃바운드 통신까지 멈춥니다. 결과는 서비스 전면 중단입니다.
+    인스턴스가 네 대라는 사실은 아무런 보호가 되지 않습니다. 넷이 같은 장애 도메인 안에 있기 때문입니다.
+    아래쪽은 같은 시스템을 다중 가용 영역 배치와 Auto Scaling 과 상태 비저장 설계로 바꾼 구성입니다.
+    로드 밸런서는 두 가용 영역의 서브넷에 모두 등록되어 있고, Auto Scaling 그룹은 두 영역에 인스턴스를 나눠 두었으며,
+    데이터베이스는 다른 영역에 대기 인스턴스를 둡니다.
+    같은 장애가 나면 영향은 AZ-a 안으로 갇힙니다. 로드 밸런서는 남은 영역으로 트래픽을 돌리고,
+    Auto Scaling 은 남은 영역에서 인스턴스를 보충하며, 데이터베이스는 대기 인스턴스로 장애 조치되고 엔드포인트는 그대로입니다.</desc>
+
+  <defs>
+    <marker id="d183-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <!-- 위: 단일 AZ -->
+  <text class="dg-fs-md dg-bold" x="20" y="26">단일 가용 영역에 전부 몰린 구성</text>
+
+  <rect class="dg-panel" x="20" y="44" width="300" height="200" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="64">AZ-a — 손상</text>
+
+  <rect class="dg-node dg-node--danger" x="34" y="72" width="272" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="48" y="95">로드 밸런서 (한 서브넷에만)</text>
+  <rect class="dg-node dg-node--danger" x="34" y="116" width="272" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="48" y="139">EC2 인스턴스 4대</text>
+  <rect class="dg-node dg-node--danger" x="34" y="160" width="272" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="48" y="183">RDS 단일 인스턴스</text>
+  <rect class="dg-node dg-node--danger" x="34" y="204" width="272" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="48" y="227">NAT 게이트웨이</text>
+
+  <path class="dg-edge dg-edge--danger" d="M324 90 L392 90" marker-end="url(#d183-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M324 134 L392 134" marker-end="url(#d183-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M324 178 L392 178" marker-end="url(#d183-ar-danger)"/>
+  <path class="dg-edge dg-edge--danger" d="M324 222 L392 222" marker-end="url(#d183-ar-danger)"/>
+
+  <rect class="dg-node" x="398" y="72" width="302" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="412" y="95">1  등록된 대상이 전부 빠집니다</text>
+  <rect class="dg-node" x="398" y="116" width="302" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="412" y="139">2  인스턴스 4대가 함께 사라집니다</text>
+  <rect class="dg-node" x="398" y="160" width="302" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="412" y="183">3  데이터베이스 접속이 끊깁니다</text>
+  <rect class="dg-node" x="398" y="204" width="302" height="36" rx="4"/>
+  <text class="dg-fs-sm" x="412" y="227">4  아웃바운드 통신도 멈춥니다</text>
+
+  <rect class="dg-node dg-node--danger" x="20" y="254" width="680" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="277" text-anchor="middle">서비스 전면 중단 — 인스턴스가 4대여도 같은 장애 도메인 안이라면 고가용성이 아닙니다</text>
+
+  <!-- 아래: 다중 AZ -->
+  <text class="dg-fs-md dg-bold" x="20" y="316">다중 가용 영역 · Auto Scaling · 상태 비저장으로 바꾼 구성</text>
+
+  <rect class="dg-node" x="20" y="328" width="436" height="36" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="238" y="351" text-anchor="middle">로드 밸런서 — 두 AZ 서브넷에 모두 등록</text>
+
+  <rect class="dg-panel" x="20" y="372" width="210" height="100" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="32" y="390">AZ-a — 손상</text>
+  <rect class="dg-node dg-node--danger" x="32" y="396" width="186" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="66" y="417">EC2 (ASG)</text>
+  <path class="dg-x" d="M40 405 L52 417 M52 405 L40 417"/>
+  <rect class="dg-node dg-node--danger" x="32" y="434" width="186" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="66" y="455">RDS 프라이머리</text>
+  <path class="dg-x" d="M40 443 L52 455 M52 443 L40 455"/>
+
+  <rect class="dg-panel" x="246" y="372" width="210" height="100" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="258" y="390">AZ-b — 정상</text>
+  <rect class="dg-node dg-node--ok" x="258" y="396" width="186" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="272" y="417">EC2 (ASG) — 보충됩니다</text>
+  <rect class="dg-node dg-node--ok" x="258" y="434" width="186" height="32" rx="4"/>
+  <text class="dg-fs-sm" x="272" y="455">RDS 대기 → 승격</text>
+
+  <rect class="dg-node dg-node--ok" x="472" y="328" width="228" height="144" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="486" y="352">같은 장애의 영향 범위</text>
+  <text class="dg-fs-sm" x="486" y="378">AZ-a 안으로 갇힙니다</text>
+  <text class="dg-fs-sm" x="486" y="400">로드 밸런서가 남은 AZ 로</text>
+  <text class="dg-fs-sm" x="486" y="418">트래픽을 돌립니다</text>
+  <text class="dg-fs-sm" x="486" y="440">ASG 가 인스턴스를 보충하고</text>
+  <text class="dg-fs-sm" x="486" y="458">DB 엔드포인트는 그대로입니다</text>
+
+  <rect class="dg-node dg-node--accent" x="20" y="486" width="680" height="40" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="511" text-anchor="middle">가용성을 만드는 것은 인스턴스 대수가 아니라 장애 도메인을 가로지르는 배치입니다</text>
+</svg>

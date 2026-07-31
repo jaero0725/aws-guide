@@ -74,7 +74,70 @@
         요청은 <strong>7일 뒤 만료</strong>됩니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-030">
+      <figure class="diagram" data-diagram="D-030" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 400" role="img" aria-labelledby="d-030-1-d030-title d-030-1-d030-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-030-1-d030-title">VPC 피어링의 비전이성과 Transit Gateway 허브</title>
+            <desc id="d-030-1-d030-desc">왼쪽은 VPC 네 개를 서로 모두 통하게 만든 피어링 구성입니다.
+              피어링은 전이 라우팅을 지원하지 않아 중간 VPC 를 거쳐 갈 수 없으므로 통신이 필요한 모든 쌍에 직접 연결을 만들어야 하고,
+              연결 수는 N 곱하기 N 빼기 1 을 2로 나눈 값으로 늘어납니다. VPC 가 넷이면 여섯 개, 열이면 마흔다섯 개입니다.
+              오른쪽은 같은 네 VPC 를 Transit Gateway 허브에 붙인 구성입니다.
+              연결 수가 VPC 개수와 같아지고 라우팅 테이블을 허브 한 곳에서 관리하게 됩니다.
+              VPC 수가 늘어날수록 선택이 피어링에서 Transit Gateway 로 넘어가는 지점이 이 그림의 결론입니다.</desc>
+
+            <text class="dg-fs-md dg-bold" x="180" y="30" text-anchor="middle">VPC 피어링 — 완전 연결</text>
+            <text class="dg-fs-md dg-bold" x="550" y="30" text-anchor="middle">Transit Gateway 허브</text>
+
+            <path class="dg-grid" d="M360 46 L360 320"/>
+
+            <!-- 피어링 메시 -->
+            <path class="dg-edge" d="M105 114 L255 114"/>
+            <path class="dg-edge" d="M105 114 L105 250"/>
+            <path class="dg-edge" d="M255 114 L255 250"/>
+            <path class="dg-edge" d="M105 250 L255 250"/>
+            <path class="dg-edge" d="M105 114 L255 250"/>
+            <path class="dg-edge" d="M255 114 L105 250"/>
+
+            <rect class="dg-node" x="60" y="70" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="105" y="98" text-anchor="middle">VPC A</text>
+            <rect class="dg-node" x="210" y="70" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="255" y="98" text-anchor="middle">VPC B</text>
+            <rect class="dg-node" x="60" y="250" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="105" y="278" text-anchor="middle">VPC C</text>
+            <rect class="dg-node" x="210" y="250" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="255" y="278" text-anchor="middle">VPC D</text>
+
+            <text class="dg-fs-sm dg-bold" x="180" y="314" text-anchor="middle">연결 6개 = N(N-1)/2</text>
+
+            <!-- TGW 허브 -->
+            <path class="dg-edge dg-edge--accent" d="M475 114 L522 158"/>
+            <path class="dg-edge dg-edge--accent" d="M625 114 L578 158"/>
+            <path class="dg-edge dg-edge--accent" d="M475 250 L522 206"/>
+            <path class="dg-edge dg-edge--accent" d="M625 250 L578 206"/>
+
+            <rect class="dg-node" x="430" y="70" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="475" y="98" text-anchor="middle">VPC A</text>
+            <rect class="dg-node" x="580" y="70" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="625" y="98" text-anchor="middle">VPC B</text>
+            <rect class="dg-node" x="430" y="250" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="475" y="278" text-anchor="middle">VPC C</text>
+            <rect class="dg-node" x="580" y="250" width="90" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="625" y="278" text-anchor="middle">VPC D</text>
+
+            <rect class="dg-node dg-node--accent" x="480" y="158" width="140" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="550" y="188" text-anchor="middle">Transit Gateway</text>
+
+            <text class="dg-fs-sm dg-bold" x="550" y="314" text-anchor="middle">연결 4개 = N</text>
+
+            <rect class="dg-node dg-node--warn" x="20" y="332" width="330" height="58" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="185" y="354" text-anchor="middle">전이 라우팅이 되지 않습니다</text>
+            <text class="dg-fs-sm" x="185" y="376" text-anchor="middle">중간 VPC 를 거쳐 갈 수 없어 쌍마다 직접 연결</text>
+
+            <rect class="dg-node dg-node--accent" x="370" y="332" width="330" height="58" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="535" y="354" text-anchor="middle">허브에서 전이 라우팅을 처리합니다</text>
+            <text class="dg-fs-sm" x="535" y="376" text-anchor="middle">라우팅 테이블을 한곳에서 관리합니다</text>
+          </svg>
+        </div>
         <figcaption>
           피어링의 비전이성과 Transit Gateway 허브 — 왼쪽은 VPC 네 개를 모두 잇기 위해
           피어링 연결 여섯 개가 필요한 완전 연결 구성이고, 오른쪽은 Transit Gateway 하나에
@@ -313,7 +376,87 @@
         유형은 두 가지이고, <strong>구현 위치가 근본적으로 다릅니다.</strong>
       </p>
 
-      <figure class="diagram" data-diagram="D-031">
+      <figure class="diagram" data-diagram="D-031" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 470" role="img" aria-labelledby="d-031-1-d031-title d-031-1-d031-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-031-1-d031-title">게이트웨이 엔드포인트와 인터페이스 엔드포인트의 구현 위치 차이</title>
+            <desc id="d-031-1-d031-desc">두 VPC 엔드포인트는 이름만 비슷하고 구현 위치가 전혀 다릅니다.
+              게이트웨이 엔드포인트는 서브넷 안에 아무것도 만들지 않고 라우팅 테이블에 접두사 목록을 대상으로 하는 경로 한 줄을 추가합니다.
+              지원 대상은 Amazon S3 와 Amazon DynamoDB 둘뿐이며 보안 그룹을 붙일 수 없습니다.
+              인터페이스 엔드포인트는 지정한 서브넷 안에 사설 IP 를 가진 탄력적 네트워크 인터페이스를 실제로 만들고,
+              프라이빗 DNS 를 켜면 서비스의 공용 DNS 이름이 그 사설 IP 로 해석되어 트래픽이 가로채집니다.
+              ENI 이므로 보안 그룹을 붙일 수 있고 지원 대상 서비스도 훨씬 넓습니다.
+              라우팅 테이블에 경로가 생기는가, 서브넷에 ENI 가 생기는가 — 이 구현 위치의 차이가 결론입니다.</desc>
+
+            <defs>
+              <marker id="d-031-1-d031-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="185" y="30" text-anchor="middle">게이트웨이 엔드포인트</text>
+            <text class="dg-fs-md dg-bold" x="535" y="30" text-anchor="middle">인터페이스 엔드포인트 (PrivateLink)</text>
+
+            <!-- 왼쪽 -->
+            <rect class="dg-panel" x="20" y="44" width="330" height="146" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="32" y="64">VPC · 프라이빗 서브넷</text>
+            <rect class="dg-node" x="34" y="74" width="130" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="99" y="103" text-anchor="middle">EC2 인스턴스</text>
+            <rect class="dg-node dg-node--accent" x="186" y="74" width="150" height="100" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="261" y="96" text-anchor="middle">라우팅 테이블</text>
+            <text class="dg-fs-sm dg-mono" x="261" y="120" text-anchor="middle">pl-xxxx (S3)</text>
+            <text class="dg-fs-sm dg-mono" x="261" y="142" text-anchor="middle">→ vpce-0a1b2c</text>
+            <text class="dg-fs-sm dg-muted" x="261" y="164" text-anchor="middle">경로 한 줄이 전부</text>
+            <path class="dg-edge dg-edge--accent" d="M164 98 L182 98" marker-end="url(#d-031-1-d031-ar)"/>
+
+            <rect class="dg-node" x="90" y="216" width="200" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="190" y="244" text-anchor="middle">Amazon S3 · DynamoDB</text>
+            <path class="dg-edge dg-edge--accent" d="M261 174 L261 200 L190 200 L190 212" marker-end="url(#d-031-1-d031-ar)"/>
+
+            <!-- 오른쪽 -->
+            <rect class="dg-panel" x="370" y="44" width="330" height="146" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="382" y="64">VPC · 프라이빗 서브넷</text>
+            <rect class="dg-node" x="384" y="74" width="130" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="449" y="103" text-anchor="middle">EC2 인스턴스</text>
+            <rect class="dg-node dg-node--accent" x="536" y="74" width="150" height="100" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="611" y="96" text-anchor="middle">ENI</text>
+            <text class="dg-fs-sm dg-mono" x="611" y="120" text-anchor="middle">10.0.2.15</text>
+            <text class="dg-fs-sm dg-muted" x="611" y="142" text-anchor="middle">서브넷 안에 생성</text>
+            <text class="dg-fs-sm dg-muted" x="611" y="164" text-anchor="middle">보안 그룹 부착 가능</text>
+            <path class="dg-edge dg-edge--accent" d="M514 98 L532 98" marker-end="url(#d-031-1-d031-ar)"/>
+
+            <rect class="dg-node" x="440" y="216" width="200" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="540" y="244" text-anchor="middle">대부분의 AWS 서비스</text>
+            <path class="dg-edge dg-edge--accent" d="M611 174 L611 200 L540 200 L540 212" marker-end="url(#d-031-1-d031-ar)"/>
+
+            <!-- 비교표 -->
+            <rect class="dg-node dg-node--alt" x="20" y="282" width="680" height="26" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="30" y="300">비교 항목</text>
+            <text class="dg-fs-sm dg-bold" x="216" y="300">게이트웨이 엔드포인트</text>
+            <text class="dg-fs-sm dg-bold" x="466" y="300">인터페이스 엔드포인트</text>
+            <rect class="dg-node" x="20" y="308" width="680" height="112" rx="4"/>
+            <path class="dg-grid" d="M20 336 L700 336 M20 364 L700 364 M20 392 L700 392 M210 308 L210 420 M460 308 L460 420"/>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="327">구현 위치</text>
+            <text class="dg-fs-sm dg-bold" x="216" y="327">라우팅 테이블의 경로</text>
+            <text class="dg-fs-sm dg-bold" x="466" y="327">서브넷 안의 ENI</text>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="355">대상 서비스</text>
+            <text class="dg-fs-sm" x="216" y="355">S3 · DynamoDB 만</text>
+            <text class="dg-fs-sm" x="466" y="355">대부분의 AWS · 파트너 서비스</text>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="383">트래픽 유도</text>
+            <text class="dg-fs-sm" x="216" y="383">접두사 목록(pl-) 경로</text>
+            <text class="dg-fs-sm" x="466" y="383">프라이빗 DNS 가 가로챔</text>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="411">보안 그룹</text>
+            <text class="dg-fs-sm" x="216" y="411">붙일 수 없음</text>
+            <text class="dg-fs-sm" x="466" y="411">ENI 에 붙일 수 있음</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="446">둘 다 트래픽이 인터넷으로 나가지 않는다는 점은 같습니다 — 다른 것은 구현 위치입니다</text>
+          </svg>
+        </div>
         <figcaption>
           두 엔드포인트의 구현 위치 — 게이트웨이 엔드포인트는 라우팅 테이블에
           서비스의 접두사 목록을 대상으로 하는 경로 항목으로 붙고,
@@ -485,7 +628,78 @@
         <strong>조건을 만족하는 것과 만족하지 않는 것이 갈립니다.</strong>
       </p>
 
-      <figure class="diagram" data-diagram="D-032">
+      <figure class="diagram" data-diagram="D-032" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 430" role="img" aria-labelledby="d-032-1-d032-title d-032-1-d032-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-032-1-d032-title">프라이빗 서브넷에서 Amazon S3에 닿는 세 경로</title>
+            <desc id="d-032-1-d032-desc">프라이빗 서브넷의 인스턴스가 Amazon S3 에 닿는 세 가지 경로를 한 화면에 놓고 비교합니다.
+              경로 A 는 NAT 게이트웨이와 인터넷 게이트웨이를 지나 공용 인터넷을 경유합니다.
+              경로 B 는 라우팅 테이블에 붙은 게이트웨이 엔드포인트를 지나 AWS 네트워크 안에서만 이동합니다.
+              경로 C 는 서브넷 안 ENI 로 만들어진 인터페이스 엔드포인트를 지나 역시 AWS 네트워크 안에서만 이동합니다.
+              기본으로 강조된 경로는 B 입니다.
+              문항에 트래픽이 인터넷을 거쳐서는 안 된다는 한정어가 붙으면 경로 A 는 즉시 탈락하고 답은 B 또는 C 로 좁혀집니다.</desc>
+
+            <defs>
+              <marker id="d-032-1-d032-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-032-1-d032-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node" x="20" y="140" width="130" height="100" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="85" y="180" text-anchor="middle">EC2 인스턴스</text>
+            <text class="dg-fs-sm dg-muted" x="85" y="200" text-anchor="middle">프라이빗 서브넷</text>
+            <text class="dg-fs-sm dg-muted" x="85" y="220" text-anchor="middle">퍼블릭 IP 없음</text>
+
+            <rect class="dg-node" x="590" y="140" width="110" height="100" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="645" y="186" text-anchor="middle">Amazon S3</text>
+            <text class="dg-fs-sm dg-muted" x="645" y="206" text-anchor="middle">리전 서비스</text>
+
+            <!-- 경로 A -->
+            <g data-dg="path-nat">
+              <text class="dg-fs-sm dg-bold" x="330" y="42">경로 A — NAT 게이트웨이 + 인터넷 게이트웨이</text>
+              <rect class="dg-node" x="180" y="56" width="110" height="46" rx="4"/>
+              <text class="dg-fs-sm dg-bold" x="235" y="84" text-anchor="middle">NAT 게이트웨이</text>
+              <rect class="dg-node" x="320" y="56" width="110" height="46" rx="4"/>
+              <text class="dg-fs-sm dg-bold" x="375" y="84" text-anchor="middle">인터넷 GW</text>
+              <rect class="dg-node dg-node--danger" x="460" y="56" width="110" height="46" rx="4"/>
+              <text class="dg-fs-sm dg-bold" x="515" y="84" text-anchor="middle">공용 인터넷</text>
+              <path class="dg-edge" d="M150 160 L165 160 L165 79 L176 79" marker-end="url(#d-032-1-d032-ar)"/>
+              <path class="dg-edge" d="M290 79 L316 79" marker-end="url(#d-032-1-d032-ar)"/>
+              <path class="dg-edge" d="M430 79 L456 79" marker-end="url(#d-032-1-d032-ar)"/>
+              <path class="dg-edge" d="M570 79 L580 79 L580 156 L586 156" marker-end="url(#d-032-1-d032-ar)"/>
+              <text class="dg-fs-sm dg-bold" x="235" y="122">인터넷을 경유합니다</text>
+            </g>
+
+            <!-- 경로 B -->
+            <g data-dg="path-gateway" data-state="active">
+              <text class="dg-fs-sm dg-bold" x="300" y="152">경로 B — 게이트웨이 엔드포인트</text>
+              <rect class="dg-node" x="300" y="166" width="180" height="46" rx="4"/>
+              <text class="dg-fs-sm dg-bold" x="390" y="194" text-anchor="middle">게이트웨이 엔드포인트</text>
+              <path class="dg-edge" d="M150 190 L296 190" marker-end="url(#d-032-1-d032-ar-accent)"/>
+              <path class="dg-edge" d="M480 190 L586 190" marker-end="url(#d-032-1-d032-ar-accent)"/>
+              <text class="dg-fs-sm dg-bold" x="300" y="232">AWS 네트워크 안에서만 이동합니다</text>
+            </g>
+
+            <!-- 경로 C -->
+            <g data-dg="path-interface">
+              <text class="dg-fs-sm dg-bold" x="300" y="272">경로 C — 인터페이스 엔드포인트 (PrivateLink)</text>
+              <rect class="dg-node" x="300" y="286" width="180" height="46" rx="4"/>
+              <text class="dg-fs-sm dg-bold" x="390" y="314" text-anchor="middle">서브넷 안의 ENI</text>
+              <path class="dg-edge" d="M150 220 L165 220 L165 309 L296 309" marker-end="url(#d-032-1-d032-ar)"/>
+              <path class="dg-edge" d="M480 309 L580 309 L580 224 L586 224" marker-end="url(#d-032-1-d032-ar)"/>
+              <text class="dg-fs-sm dg-bold" x="300" y="352">AWS 네트워크 안에서만 이동합니다</text>
+            </g>
+
+            <rect class="dg-node dg-node--accent" x="20" y="366" width="680" height="56" rx="4"/>
+            <text data-dg="verdict" class="dg-fs-md dg-bold" x="360" y="390" text-anchor="middle">현재 경로: 게이트웨이 엔드포인트 — 인터넷을 경유하지 않습니다</text>
+            <text class="dg-fs-sm" x="360" y="412" text-anchor="middle">"트래픽이 인터넷을 거쳐서는 안 된다"는 한정어가 보이면 경로 A 는 즉시 탈락합니다</text>
+          </svg>
+        </div>
         <figcaption>
           프라이빗 서브넷에서 Amazon S3에 닿는 세 경로 —
           NAT 게이트웨이와 인터넷 게이트웨이를 지나는 경로는 퍼블릭 엔드포인트를 향하고,
@@ -613,7 +827,67 @@
     <section aria-labelledby="hybrid-connectivity">
       <h2 id="hybrid-connectivity">온프레미스와 잇기 — VPN과 Direct Connect</h2>
 
-      <figure class="diagram" data-diagram="D-033">
+      <figure class="diagram" data-diagram="D-033" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 400" role="img" aria-labelledby="d-033-1-d033-title d-033-1-d033-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-033-1-d033-title">Site-to-Site VPN과 Direct Connect의 하이브리드 배치</title>
+            <desc id="d-033-1-d033-desc">온프레미스 데이터센터에서 AWS 로 들어오는 두 경로를 같은 그림에 놓았습니다.
+              위쪽 경로는 Site-to-Site VPN 입니다. 고객 게이트웨이에서 암호화된 터널 두 개가 나가고 공용 인터넷을 지나
+              가상 프라이빗 게이트웨이나 Transit Gateway 에 붙습니다. 빠르게 구축할 수 있지만 대역폭과 지연이 인터넷 상태에 좌우됩니다.
+              아래쪽 경로는 AWS Direct Connect 입니다. Direct Connect 로케이션을 거쳐 전용 회선으로 들어오므로 인터넷을 경유하지 않고
+              대역폭과 지연이 일정하지만 회선을 준비하는 데 시간이 걸리고 회선 자체가 단일 장애점이 됩니다.
+              그래서 Direct Connect 를 주 경로로 두고 Site-to-Site VPN 을 백업으로 함께 구성하는 조합이 표준이 됩니다.</desc>
+
+            <defs>
+              <marker id="d-033-1-d033-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-033-1-d033-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <rect class="dg-node" x="20" y="120" width="140" height="120" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="90" y="170" text-anchor="middle">온프레미스</text>
+            <text class="dg-fs-sm dg-bold" x="90" y="190" text-anchor="middle">데이터센터</text>
+
+            <rect class="dg-node" x="196" y="58" width="120" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="256" y="80" text-anchor="middle">고객 게이트웨이</text>
+            <text class="dg-fs-sm dg-muted" x="256" y="100" text-anchor="middle">CGW</text>
+
+            <rect class="dg-node dg-node--accent" x="196" y="250" width="120" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="256" y="272" text-anchor="middle">Direct Connect</text>
+            <text class="dg-fs-sm dg-muted" x="256" y="292" text-anchor="middle">로케이션</text>
+
+            <rect class="dg-panel" x="380" y="90" width="320" height="180" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="392" y="110">AWS · VPC</text>
+            <rect class="dg-node" x="396" y="140" width="140" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="466" y="170" text-anchor="middle">VGW 또는</text>
+            <text class="dg-fs-sm dg-bold" x="466" y="192" text-anchor="middle">Transit Gateway</text>
+            <rect class="dg-node" x="560" y="140" width="126" height="80" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="623" y="186" text-anchor="middle">VPC 리소스</text>
+            <path class="dg-edge" d="M536 180 L556 180" marker-end="url(#d-033-1-d033-ar)"/>
+
+            <path class="dg-edge" d="M160 150 L180 150 L180 74 L192 74" marker-end="url(#d-033-1-d033-ar)"/>
+            <path class="dg-edge dg-edge--dashed" d="M316 72 L392 152" marker-end="url(#d-033-1-d033-ar)"/>
+            <path class="dg-edge dg-edge--dashed" d="M316 92 L392 168" marker-end="url(#d-033-1-d033-ar)"/>
+            <text class="dg-fs-sm" x="330" y="66">터널 1</text>
+            <text class="dg-fs-sm" x="330" y="112">터널 2</text>
+
+            <path class="dg-edge dg-edge--accent" d="M160 210 L180 210 L180 276 L192 276" marker-end="url(#d-033-1-d033-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M316 276 L392 208" marker-end="url(#d-033-1-d033-ar-accent)"/>
+            <text class="dg-fs-sm dg-bold" x="330" y="292">전용 회선</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="42">Site-to-Site VPN — 인터넷을 경유하는 암호화 터널 2개 · 빠르게 구축</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="330">AWS Direct Connect — 인터넷을 경유하지 않는 전용 회선 · 대역폭과 지연이 일정 · 구축에 시간 필요</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="342" width="680" height="52" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="364" text-anchor="middle">Direct Connect 를 주 경로로, Site-to-Site VPN 을 백업으로</text>
+            <text class="dg-fs-sm" x="360" y="384" text-anchor="middle">전용 회선 하나만 두면 그 회선이 단일 장애점이 되므로 두 경로를 함께 구성합니다</text>
+          </svg>
+        </div>
         <figcaption>
           두 하이브리드 경로 — Site-to-Site VPN은 고객 게이트웨이에서 터널 두 개로
           가상 프라이빗 게이트웨이나 Transit Gateway에 붙고, AWS Direct Connect는

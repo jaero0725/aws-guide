@@ -79,7 +79,124 @@
         실제로 줄여야 하는 것은 데이터가 아니라 <strong>데이터가 지나는 경계의 수</strong>입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-170">
+      <figure class="diagram" data-diagram="D-170" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 504" role="img" aria-labelledby="d-170-1-d170-title d-170-1-d170-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-170-1-d170-title">데이터 전송 방향별 과금 범주 지도</title>
+            <desc id="d-170-1-d170-desc">데이터가 움직이는 일곱 방향을 한 줄에 하나씩 놓고, 출발지에서 도착지로 가는 화살표마다
+              무료, 과금, 비쌈 세 범주 가운데 하나만 표시한 지도입니다. 금액은 쓰지 않습니다.
+              인터넷에서 리전 안으로 들어오는 수신은 무료입니다. 같은 가용 영역 안에서 프라이빗 IP 로 주고받는 통신도 무료입니다.
+              같은 리전 안에서 가용 영역을 넘는 통신과 리전 사이의 통신은 과금 대상입니다.
+              AWS 에서 인터넷으로 나가는 송신은 가장 큰 전송 비용 항목이라 비쌈으로 표시했습니다.
+              NAT 게이트웨이를 지나는 트래픽은 게이트웨이가 떠 있는 시간 요금과 통과한 모든 기가바이트의 처리 요금이 겹쳐 붙으므로
+              이 줄만 강조 테두리로 표시했습니다. 목적지가 같은 리전의 Amazon S3 여도 처리 요금이 붙기 때문에
+              게이트웨이 엔드포인트로 경로를 바꾸는 것이 유일한 절감입니다.
+              마지막 줄은 CloudFront 경유입니다. 엣지 캐시에 적중한 만큼 오리진에서 나가는 송신량 자체가 줄어듭니다.</desc>
+
+            <defs>
+              <marker id="d-170-1-d170-ar-ok" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--ok" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-170-1-d170-ar-warn" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--warn" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-170-1-d170-ar-danger" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--danger" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">방향별 과금 범주 — 금액이 아니라 방향만 다룹니다</text>
+
+            <text class="dg-fs-sm dg-muted" x="20" y="52">출발</text>
+            <text class="dg-fs-sm dg-muted" x="210" y="52">도착</text>
+            <text class="dg-fs-sm dg-muted" x="376" y="52">범주</text>
+            <text class="dg-fs-sm dg-muted" x="452" y="52">설계에 주는 함의</text>
+
+            <!-- NAT 줄 강조 배경 -->
+            <rect class="dg-node dg-node--accent" x="12" y="324" width="696" height="56" rx="4"/>
+
+            <!-- 1 인바운드 -->
+            <rect class="dg-node" x="20" y="60" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="87" text-anchor="middle">인터넷</text>
+            <path class="dg-edge dg-edge--ok dg-edge--dotted" d="M176 82 L204 82" marker-end="url(#d-170-1-d170-ar-ok)"/>
+            <rect class="dg-node" x="210" y="60" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="285" y="87" text-anchor="middle">리전 안 리소스</text>
+            <rect class="dg-node dg-node--ok" x="376" y="68" width="64" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="408" y="87" text-anchor="middle">무료</text>
+            <text class="dg-fs-sm" x="452" y="87">올리는 것은 비용 요인이 아닙니다</text>
+
+            <!-- 2 같은 AZ 프라이빗 -->
+            <rect class="dg-node" x="20" y="114" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="141" text-anchor="middle">EC2 (AZ-a)</text>
+            <path class="dg-edge dg-edge--ok dg-edge--dotted" d="M176 136 L204 136" marker-end="url(#d-170-1-d170-ar-ok)"/>
+            <rect class="dg-node" x="210" y="114" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="285" y="134" text-anchor="middle">EC2 (같은 AZ-a)</text>
+            <text class="dg-fs-sm dg-muted" x="285" y="150" text-anchor="middle">프라이빗 IP</text>
+            <rect class="dg-node dg-node--ok" x="376" y="122" width="64" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="408" y="141" text-anchor="middle">무료</text>
+            <text class="dg-fs-sm" x="452" y="141">퍼블릭 IP 로 우회하지 않게 합니다</text>
+
+            <!-- 3 AZ 간 -->
+            <rect class="dg-node" x="20" y="168" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="195" text-anchor="middle">EC2 (AZ-a)</text>
+            <path class="dg-edge dg-edge--warn dg-edge--dashed" d="M176 190 L204 190" marker-end="url(#d-170-1-d170-ar-warn)"/>
+            <rect class="dg-node" x="210" y="168" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="285" y="195" text-anchor="middle">EC2 (AZ-b)</text>
+            <rect class="dg-node dg-node--warn" x="376" y="176" width="64" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="408" y="195" text-anchor="middle">과금</text>
+            <text class="dg-fs-sm" x="452" y="195">가용성과 전송비를 함께 삽니다</text>
+
+            <!-- 4 리전 간 -->
+            <rect class="dg-node" x="20" y="222" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="249" text-anchor="middle">리전 A</text>
+            <path class="dg-edge dg-edge--warn dg-edge--dashed" d="M176 244 L204 244" marker-end="url(#d-170-1-d170-ar-warn)"/>
+            <rect class="dg-node" x="210" y="222" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="285" y="249" text-anchor="middle">리전 B</text>
+            <rect class="dg-node dg-node--warn" x="376" y="230" width="64" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="408" y="249" text-anchor="middle">과금</text>
+            <text class="dg-fs-sm" x="452" y="249">교차 리전 복제와 DR 은 늘 과금됩니다</text>
+
+            <!-- 5 인터넷 아웃 -->
+            <rect class="dg-node" x="20" y="276" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="303" text-anchor="middle">EC2 · S3 오리진</text>
+            <path class="dg-edge dg-edge--danger" d="M176 298 L204 298" marker-end="url(#d-170-1-d170-ar-danger)"/>
+            <rect class="dg-node" x="210" y="276" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="285" y="303" text-anchor="middle">인터넷 (송신)</text>
+            <rect class="dg-node dg-node--danger" x="376" y="284" width="64" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="408" y="303" text-anchor="middle">비쌈</text>
+            <text class="dg-fs-sm" x="452" y="303">가장 큰 전송 비용 항목입니다</text>
+
+            <!-- 6 NAT 경유 -->
+            <rect class="dg-node" x="20" y="330" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="357" text-anchor="middle">프라이빗 서브넷</text>
+            <path class="dg-edge dg-edge--danger" d="M176 352 L204 352" marker-end="url(#d-170-1-d170-ar-danger)"/>
+            <rect class="dg-node" x="210" y="330" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="285" y="350" text-anchor="middle">NAT 게이트웨이 경유</text>
+            <text class="dg-fs-sm dg-muted" x="285" y="366" text-anchor="middle">목적지가 어디든</text>
+            <rect class="dg-node dg-node--danger" x="376" y="338" width="64" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="408" y="357" text-anchor="middle">비쌈</text>
+            <text class="dg-fs-sm dg-bold" x="452" y="348">시간 요금 + 통과한 모든 GB 처리 요금</text>
+            <text class="dg-fs-sm" x="452" y="366">지나지 않게 만드는 것이 유일한 절감</text>
+
+            <!-- 7 CloudFront -->
+            <rect class="dg-node" x="20" y="384" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="95" y="411" text-anchor="middle">오리진 (S3 · ALB)</text>
+            <path class="dg-edge dg-edge--warn dg-edge--dashed" d="M176 406 L204 406" marker-end="url(#d-170-1-d170-ar-warn)"/>
+            <rect class="dg-node" x="210" y="384" width="150" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="285" y="411" text-anchor="middle">CloudFront 엣지</text>
+            <rect class="dg-node dg-node--warn" x="376" y="392" width="64" height="28" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="408" y="411" text-anchor="middle">과금</text>
+            <text class="dg-fs-sm" x="452" y="411">적중한 만큼 오리진 송신이 줄어듭니다</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--empty" x="20" y="444" width="680" height="48" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="466">확인 순서 — 인터넷으로 나가는가 · 가용 영역이나 리전을 넘는가 · NAT 를 지나는가</text>
+            <text class="dg-fs-sm" x="34" y="484">수신은 무료이므로 업로드 비용을 줄인다는 선택지는 대체로 의미가 없습니다</text>
+          </svg>
+        </div>
         <figcaption>
           인바운드 · 같은 가용 영역 내 프라이빗 통신 · 가용 영역 간 · 리전 간 · 인터넷 송신 ·
           NAT 경유 · CloudFront 경유 각 방향의 과금 성격을 무료 · 과금 · 비쌈 세 범주로 표시한 지도.

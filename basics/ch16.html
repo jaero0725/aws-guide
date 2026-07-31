@@ -72,7 +72,99 @@
         차이는 하나입니다 — <strong>키 정책을 우리가 편집할 수 있는가</strong>입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-151">
+      <figure class="diagram" data-diagram="D-151" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 516" role="img" aria-labelledby="d-151-1-d151-title d-151-1-d151-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-151-1-d151-title">KMS 키 세 종류의 통제 범위와 접근을 결정하는 세 겹</title>
+            <desc id="d-151-1-d151-desc">위쪽은 KMS 키 세 종류를 고객이 제어할 수 있는 범위 축 위에 왼쪽부터 놓은 그림입니다.
+              AWS 소유 키는 AWS 가 여러 계정에서 공용으로 쓰며 계정 안에서 조회조차 되지 않아 제어 범위가 없습니다.
+              AWS 관리형 키는 서비스가 계정 안에 자동으로 만들고 aws 로 시작하는 별칭이 붙으며, 사용 내역은 볼 수 있지만 키 정책은 편집할 수 없습니다.
+              고객 관리형 키만 우리가 CreateKey 로 직접 만들고 키 정책, 별칭, 자동 교체, 비활성화, 삭제 일정, 교차 계정 공유를 모두 통제합니다.
+              그 아래 띠는 자동 교체의 경계입니다. 앞의 두 종류는 교체 주기를 AWS 가 정하고, 고객 관리형 키에서만 자동 교체를 직접 켜고 끄며 주기를 지정할 수 있습니다.
+              아래쪽은 접근 결정 구조입니다. 키 정책, IAM 정책, 권한 부여 세 겹이 함께 판정하며 세 갈래 화살표가 하나의 결론으로 모입니다.
+              키 정책은 모든 KMS 키에 반드시 하나 붙어 있고, 키 정책이 허용하지 않으면 IAM 정책만으로는 그 키를 쓸 수 없다는 것이 이 그림의 결론입니다.</desc>
+
+            <defs>
+              <marker id="d-151-1-d151-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-151-1-d151-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-md dg-bold" x="20" y="26">키 종류 — 고객이 제어할 수 있는 범위</text>
+
+            <!-- 카드 1 -->
+            <rect class="dg-node dg-node--muted" x="20" y="40" width="216" height="152" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="128" y="64" text-anchor="middle">AWS 소유 키</text>
+            <path class="dg-grid" d="M20 74 L236 74"/>
+            <text class="dg-fs-sm dg-muted" x="34" y="96">만드는 주체</text>
+            <text class="dg-fs-sm" x="34" y="116">AWS · 여러 계정 공용</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="142">우리가 할 수 있는 것</text>
+            <text class="dg-fs-sm dg-bold" x="34" y="162">없음</text>
+            <text class="dg-fs-sm" x="34" y="182">계정에서 조회되지 않습니다</text>
+
+            <!-- 카드 2 -->
+            <rect class="dg-node" x="252" y="40" width="216" height="152" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="64" text-anchor="middle">AWS 관리형 키</text>
+            <path class="dg-grid" d="M252 74 L468 74"/>
+            <text class="dg-fs-sm dg-muted" x="266" y="96">만드는 주체</text>
+            <text class="dg-fs-sm" x="266" y="116">서비스가 자동 생성</text>
+            <text class="dg-fs-sm dg-mono" x="266" y="136">alias/aws/s3</text>
+            <text class="dg-fs-sm dg-muted" x="266" y="158">우리가 할 수 있는 것</text>
+            <text class="dg-fs-sm" x="266" y="178">사용 내역 조회만 가능</text>
+
+            <!-- 카드 3 -->
+            <rect class="dg-node dg-node--accent" x="484" y="40" width="216" height="152" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="592" y="64" text-anchor="middle">고객 관리형 키</text>
+            <path class="dg-grid" d="M484 74 L700 74"/>
+            <text class="dg-fs-sm dg-muted" x="498" y="96">만드는 주체</text>
+            <text class="dg-fs-sm dg-bold" x="498" y="116">우리가 CreateKey 로</text>
+            <text class="dg-fs-sm dg-muted" x="498" y="142">우리가 할 수 있는 것</text>
+            <text class="dg-fs-sm" x="498" y="162">키 정책 · 별칭 · 비활성화</text>
+            <text class="dg-fs-sm" x="498" y="182">삭제 일정 · 교차 계정 공유</text>
+
+            <!-- 제어 범위 축 -->
+            <path class="dg-edge dg-edge--accent" d="M20 210 L698 210" marker-end="url(#d-151-1-d151-ar-accent)"/>
+            <text class="dg-fs-sm dg-muted" x="20" y="230">제어 범위 없음</text>
+            <text class="dg-fs-sm dg-bold" x="700" y="230" text-anchor="end">전부 통제</text>
+
+            <!-- 자동 교체 띠 -->
+            <text class="dg-fs-md dg-bold" x="20" y="258">자동 교체를 켤 수 있는 경계</text>
+            <rect class="dg-node dg-node--muted" x="20" y="268" width="216" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="128" y="293" text-anchor="middle">AWS 가 알아서 교체</text>
+            <rect class="dg-node dg-node--muted" x="252" y="268" width="216" height="40" rx="4"/>
+            <text class="dg-fs-sm" x="360" y="293" text-anchor="middle">AWS 가 자동 교체</text>
+            <rect class="dg-node dg-node--ok" x="484" y="268" width="216" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="592" y="293" text-anchor="middle">직접 켜고 주기 지정</text>
+
+            <!-- 접근 세 겹 -->
+            <text class="dg-fs-md dg-bold" x="20" y="342">키 접근은 세 겹이 함께 결정합니다</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="356" width="200" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="120" y="382" text-anchor="middle">키 정책</text>
+            <text class="dg-fs-sm" x="120" y="402" text-anchor="middle">키마다 반드시 하나</text>
+
+            <rect class="dg-node" x="260" y="356" width="200" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="382" text-anchor="middle">IAM 정책</text>
+            <text class="dg-fs-sm" x="360" y="402" text-anchor="middle">호출자에게 붙는 권한</text>
+
+            <rect class="dg-node" x="500" y="356" width="200" height="60" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="600" y="382" text-anchor="middle">권한 부여 (grant)</text>
+            <text class="dg-fs-sm" x="600" y="402" text-anchor="middle">한시적 위임</text>
+
+            <path class="dg-edge dg-edge--accent" d="M120 416 L120 452" marker-end="url(#d-151-1-d151-ar-accent)"/>
+            <path class="dg-edge" d="M360 416 L360 452" marker-end="url(#d-151-1-d151-ar)"/>
+            <path class="dg-edge" d="M600 416 L600 452" marker-end="url(#d-151-1-d151-ar)"/>
+
+            <rect class="dg-node dg-node--ok" x="20" y="456" width="680" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="480" text-anchor="middle">세 겹을 모두 통과해야 이 KMS 키를 쓸 수 있습니다</text>
+            <text class="dg-fs-sm" x="360" y="500" text-anchor="middle">키 정책이 허용하지 않으면 IAM 정책만으로는 접근할 수 없습니다</text>
+          </svg>
+        </div>
         <figcaption>
           KMS 키 종류를 제어 가능 범위에 따라 배치한 그림 — AWS 소유 키는 계정 안에서 보이지도 않고,
           AWS 관리형 키는 보이지만 키 정책을 편집할 수 없으며, 고객 관리형 키만 키 정책 · 별칭 ·
@@ -142,7 +234,116 @@
         이 구조가 봉투 암호화(envelope encryption)입니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-150">
+      <figure class="diagram" data-diagram="D-150" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 556" role="img" aria-labelledby="d-150-1-d150-title d-150-1-d150-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-150-1-d150-title">KMS 봉투 암호화의 처리 순서</title>
+            <desc id="d-150-1-d150-desc">애플리케이션 쪽과 AWS KMS 쪽을 두 세로 레인으로 나누고, 봉투 암호화를 여덟 단계로 번호 붙여 보여 줍니다.
+              암호화는 다섯 단계입니다. 애플리케이션이 KMS 키를 지정해 GenerateDataKey 를 호출하면, KMS 가 데이터 키를 만들어
+              평문 데이터 키와 그 KMS 키로 암호화한 데이터 키 두 벌을 함께 돌려줍니다. 애플리케이션은 평문 데이터 키로 데이터를 암호화하고,
+              평문 데이터 키를 즉시 메모리에서 폐기한 다음, 암호문 데이터와 암호문 데이터 키를 함께 저장합니다.
+              복호화는 역순 세 단계입니다. 저장해 둔 암호문 데이터 키를 KMS 에 보내 Decrypt 를 호출하면 키 정책 검사를 거쳐 평문 데이터 키가 돌아오고,
+              그 키로 데이터를 복호화한 뒤 다시 평문 키를 폐기합니다.
+              오른쪽 설명 상자가 가리키는 결론은, 데이터 본체가 애플리케이션 쪽에서만 처리되어 KMS 를 한 번도 통과하지 않는다는 점입니다.
+              KMS 의 Encrypt 작업이 직접 다루는 크기가 최대 4,096 바이트뿐이므로 대용량 데이터는 이 구조로만 암호화할 수 있습니다.</desc>
+
+            <defs>
+              <marker id="d-150-1-d150-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-150-1-d150-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 레인 머리 -->
+            <rect class="dg-node dg-node--alt" x="20" y="24" width="400" height="30" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="220" y="44" text-anchor="middle">애플리케이션 · 고객 환경</text>
+            <rect class="dg-node dg-node--alt" x="436" y="24" width="264" height="30" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="568" y="44" text-anchor="middle">AWS KMS</text>
+
+            <path class="dg-edge dg-edge--muted dg-edge--dashed" d="M428 62 L428 462"/>
+
+            <!-- ── 암호화 ────────────────────────────────────────────── -->
+            <text class="dg-fs-md dg-bold" x="20" y="76">암호화</text>
+
+            <circle class="dg-node" cx="34" cy="102" r="11"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="107" text-anchor="middle">1</text>
+            <rect class="dg-node" x="54" y="84" width="240" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="174" y="107" text-anchor="middle">GenerateDataKey 호출</text>
+            <path class="dg-edge" d="M300 102 L464 102" marker-end="url(#d-150-1-d150-ar)"/>
+            <text class="dg-fs-sm dg-muted" x="382" y="94" text-anchor="middle">KMS 키 지정</text>
+            <rect class="dg-node dg-node--accent" x="470" y="84" width="214" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="577" y="107" text-anchor="middle">데이터 키 생성</text>
+
+            <circle class="dg-node" cx="34" cy="146" r="11"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="151" text-anchor="middle">2</text>
+            <rect class="dg-node dg-node--warn" x="54" y="128" width="116" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="112" y="151" text-anchor="middle">평문 데이터 키</text>
+            <rect class="dg-node dg-node--ok" x="178" y="128" width="116" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="236" y="151" text-anchor="middle">암호문 데이터 키</text>
+            <path class="dg-edge dg-edge--accent" d="M464 146 L300 146" marker-end="url(#d-150-1-d150-ar-accent)"/>
+            <rect class="dg-node dg-node--accent" x="470" y="128" width="214" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="577" y="151" text-anchor="middle">두 벌을 함께 반환</text>
+
+            <circle class="dg-node" cx="34" cy="190" r="11"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="195" text-anchor="middle">3</text>
+            <rect class="dg-node dg-node--accent" x="54" y="172" width="240" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="174" y="195" text-anchor="middle">평문 키로 데이터 암호화</text>
+
+            <circle class="dg-node" cx="34" cy="234" r="11"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="239" text-anchor="middle">4</text>
+            <rect class="dg-node dg-node--danger" x="54" y="216" width="240" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="186" y="239" text-anchor="middle">평문 데이터 키 즉시 폐기</text>
+            <path class="dg-x" d="M64 226 L78 240 M78 226 L64 240"/>
+
+            <circle class="dg-node" cx="34" cy="278" r="11"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="283" text-anchor="middle">5</text>
+            <rect class="dg-node dg-node--ok" x="54" y="260" width="240" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="174" y="283" text-anchor="middle">암호문과 암호문 키를 함께 저장</text>
+
+            <rect class="dg-node dg-node--empty" x="440" y="172" width="260" height="124" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="454" y="196">데이터 본체가 지나는 곳</text>
+            <text class="dg-fs-sm" x="454" y="220">암호화와 복호화 연산은</text>
+            <text class="dg-fs-sm" x="454" y="242">전부 이 레인 왼쪽에서만 일어납니다</text>
+            <text class="dg-fs-sm dg-bold" x="454" y="266">대용량 데이터는 KMS 를</text>
+            <text class="dg-fs-sm dg-bold" x="454" y="288">한 번도 통과하지 않습니다</text>
+
+            <!-- ── 복호화 ────────────────────────────────────────────── -->
+            <text class="dg-fs-md dg-bold" x="20" y="324">복호화 — 역순</text>
+
+            <circle class="dg-node" cx="34" cy="350" r="11"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="355" text-anchor="middle">6</text>
+            <rect class="dg-node" x="54" y="332" width="240" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="174" y="355" text-anchor="middle">저장된 암호문 데이터 키 전송</text>
+            <path class="dg-edge" d="M300 350 L464 350" marker-end="url(#d-150-1-d150-ar)"/>
+            <text class="dg-fs-sm dg-muted" x="382" y="342" text-anchor="middle">Decrypt</text>
+            <rect class="dg-node dg-node--accent" x="470" y="332" width="214" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="577" y="355" text-anchor="middle">키 정책 · IAM 검사</text>
+
+            <circle class="dg-node" cx="34" cy="394" r="11"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="399" text-anchor="middle">7</text>
+            <rect class="dg-node dg-node--warn" x="54" y="376" width="240" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="174" y="399" text-anchor="middle">평문 데이터 키를 되받음</text>
+            <path class="dg-edge dg-edge--accent" d="M464 394 L300 394" marker-end="url(#d-150-1-d150-ar-accent)"/>
+            <rect class="dg-node dg-node--accent" x="470" y="376" width="214" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="577" y="399" text-anchor="middle">평문 데이터 키 반환</text>
+
+            <circle class="dg-node" cx="34" cy="438" r="11"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="443" text-anchor="middle">8</text>
+            <rect class="dg-node dg-node--ok" x="54" y="420" width="240" height="36" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="174" y="443" text-anchor="middle">복호화 후 평문 키 다시 폐기</text>
+            <rect class="dg-node dg-node--empty" x="440" y="420" width="260" height="36" rx="4"/>
+            <text class="dg-fs-sm" x="454" y="443">여기서도 데이터는 로컬 처리</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="472" width="680" height="72" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="500">평문 데이터 키는 메모리에만 잠깐 존재하고, 데이터 본체는 KMS 를 통과하지 않습니다</text>
+            <text class="dg-fs-sm" x="34" y="526">KMS 의 Encrypt 가 직접 다루는 크기는 최대 4,096 바이트입니다</text>
+          </svg>
+        </div>
         <figcaption>
           봉투 암호화의 순서 — KMS가 평문 데이터 키와 암호화된 데이터 키를 함께 반환하고,
           애플리케이션이 평문 키로 데이터를 암호화한 뒤 평문 키를 폐기하고 암호문 키만 데이터와 함께 저장합니다.
@@ -560,7 +761,80 @@ aws acm describe-certificate \
         이 지점에서 TLS가 종료되고, 그 뒤 구간은 별도로 설계합니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-153">
+      <figure class="diagram" data-diagram="D-153" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 412" role="img" aria-labelledby="d-153-1-d153-title d-153-1-d153-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-153-1-d153-title">ACM 인증서가 TLS 를 종료하는 지점과 그 제약</title>
+            <desc id="d-153-1-d153-desc">뷰어에서 시작한 HTTPS 연결이 Amazon CloudFront, Application Load Balancer, Amazon API Gateway
+              세 지점 가운데 하나에서 TLS 로 종료되는 배치를 보여 줍니다. 이 세 곳이 AWS Certificate Manager 가 발급한 인증서를 붙일 수 있는 자리입니다.
+              그 뒤의 오리진 구간, 즉 EC2 와 컨테이너, Amazon S3 오리진, Lambda 백엔드로 가는 구간은 별개의 연결이며 별도의 인증서와 정책으로 다룹니다.
+              아래쪽 붉은 상자는 이 그림의 결론입니다. ACM 이 발급한 공인 인증서는 EC2 인스턴스나 온프레미스 서버에 내려받아 직접 설치할 수 없습니다.
+              서버에 직접 설치해야 하는 요구라면 외부 인증 기관의 인증서를 쓰거나 AWS Private CA 를 씁니다.
+              맨 아래 주의 상자는 리전 제약입니다. CloudFront 배포에 붙일 인증서는 반드시 US East 노스버지니아 리전에서 발급해야 하고,
+              ALB 와 API Gateway 에 붙일 인증서는 그 리소스가 있는 리전에서 발급해야 합니다.</desc>
+
+            <defs>
+              <marker id="d-153-1-d153-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-153-1-d153-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-sm dg-bold" x="20" y="48">뷰어</text>
+            <text class="dg-fs-sm dg-bold" x="166" y="48">TLS 가 종료되는 지점 (ACM)</text>
+            <text class="dg-fs-sm dg-bold" x="436" y="48">뒤쪽 오리진 구간 — 별도 연결</text>
+
+            <!-- 뷰어 -->
+            <rect class="dg-node" x="20" y="120" width="112" height="80" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="76" y="152" text-anchor="middle">브라우저</text>
+            <text class="dg-fs-sm dg-muted" x="76" y="176" text-anchor="middle">HTTPS 요청</text>
+
+            <path class="dg-edge dg-edge--accent" d="M136 148 L162 92" marker-end="url(#d-153-1-d153-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M136 160 L162 160" marker-end="url(#d-153-1-d153-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M136 172 L162 228" marker-end="url(#d-153-1-d153-ar-accent)"/>
+
+            <!-- TLS 종료 지점 -->
+            <rect class="dg-node dg-node--ok" x="166" y="64" width="238" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="180" y="88">Amazon CloudFront</text>
+            <text class="dg-fs-sm" x="180" y="108">ACM 인증서 — us-east-1 발급</text>
+
+            <rect class="dg-node dg-node--ok" x="166" y="132" width="238" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="180" y="156">Application Load Balancer</text>
+            <text class="dg-fs-sm" x="180" y="176">ACM 인증서 — 같은 리전</text>
+
+            <rect class="dg-node dg-node--ok" x="166" y="200" width="238" height="56" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="180" y="224">Amazon API Gateway</text>
+            <text class="dg-fs-sm" x="180" y="244">ACM 인증서 — 같은 리전</text>
+
+            <path class="dg-edge dg-edge--dashed" d="M408 92 L432 92" marker-end="url(#d-153-1-d153-ar)"/>
+            <path class="dg-edge dg-edge--dashed" d="M408 160 L432 160" marker-end="url(#d-153-1-d153-ar)"/>
+            <path class="dg-edge dg-edge--dashed" d="M408 228 L432 228" marker-end="url(#d-153-1-d153-ar)"/>
+
+            <!-- 오리진 -->
+            <rect class="dg-panel" x="436" y="58" width="264" height="204" rx="4"/>
+            <rect class="dg-node" x="452" y="72" width="232" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="568" y="97" text-anchor="middle">EC2 · 컨테이너</text>
+            <rect class="dg-node" x="452" y="140" width="232" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="568" y="165" text-anchor="middle">Amazon S3 오리진</text>
+            <rect class="dg-node" x="452" y="208" width="232" height="40" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="568" y="233" text-anchor="middle">Lambda · 백엔드</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--danger" x="20" y="278" width="680" height="58" rx="4"/>
+            <path class="dg-x" d="M36 296 L52 312 M52 296 L36 312"/>
+            <text class="dg-fs-md dg-bold" x="68" y="304">ACM 공인 인증서는 EC2 나 온프레미스 서버에 내려받아 설치할 수 없습니다</text>
+            <text class="dg-fs-sm" x="68" y="326">서버에 직접 설치해야 한다면 외부 인증 기관의 인증서나 AWS Private CA 를 씁니다</text>
+
+            <!-- 리전 제약 -->
+            <rect class="dg-node dg-node--warn" x="20" y="346" width="680" height="54" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="370">CloudFront 배포에 붙일 인증서는 반드시 US East (N. Virginia) 리전에서 발급합니다</text>
+            <text class="dg-fs-sm" x="34" y="390">ALB 와 API Gateway 용 인증서는 그 리소스가 있는 리전에서 발급합니다</text>
+          </svg>
+        </div>
         <figcaption>
           ACM 인증서가 붙는 지점 — Application Load Balancer · Amazon CloudFront ·
           Amazon API Gateway에서 TLS가 종료되고, 뒤쪽 오리진 구간은 별도의 인증서와 정책으로 다룹니다.
@@ -638,7 +912,110 @@ aws acm describe-certificate \
         그래서 시험은 <strong>겹치지 않는 지점 하나</strong>로 갈림길을 만듭니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-152">
+      <figure class="diagram" data-diagram="D-152" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 522" role="img" aria-labelledby="d-152-1-d152-title d-152-1-d152-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-152-1-d152-title">AWS Secrets Manager 와 Parameter Store 의 대비</title>
+            <desc id="d-152-1-d152-desc">왼쪽은 AWS Secrets Manager 입니다. 비밀에 교체 Lambda 함수를 붙여 두면 정해진 주기마다 새 값이 만들어져
+              AWSPENDING 준비 라벨을 달고, 검증이 끝나면 AWSCURRENT 로 승격되어 순환합니다. 교체가 실패해도 현재 값이 살아 있습니다.
+              오른쪽은 AWS Systems Manager Parameter Store 입니다. 파라미터 이름을 슬래시로 나눈 경로처럼 계층화해 설정값을 정리하고
+              값 유형은 String, StringList, SecureString 세 가지이며, 자동 교체 기능 자체가 없어 새 값을 넣는 일은 사용자 몫입니다.
+              그 지점을 가위표로 표시했습니다.
+              아래 비교표는 주 용도, 자동 교체, 교체 동작, 계층, 비용 성격, 문제문에서 고르는 신호 여섯 항목을 나란히 놓습니다.
+              결론은 자격 증명을 주기적으로 자동 교체하라는 요구가 Secrets Manager 한쪽만 지목한다는 것이며,
+              교체 요구가 없고 추가 비용을 들이지 않아야 한다면 Parameter Store 가 답입니다.</desc>
+
+            <defs>
+              <marker id="d-152-1-d152-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-152-1-d152-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 좌 · Secrets Manager -->
+            <rect class="dg-panel" x="20" y="34" width="330" height="200" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="26">AWS Secrets Manager</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="54">교체가 내장된 비밀 저장소</text>
+
+            <rect class="dg-node dg-node--accent" x="36" y="66" width="140" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="106" y="92" text-anchor="middle">비밀 (Secret)</text>
+            <path class="dg-edge dg-edge--accent" d="M180 87 L192 87" marker-end="url(#d-152-1-d152-ar-accent)"/>
+            <rect class="dg-node dg-node--accent" x="196" y="66" width="140" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="266" y="92" text-anchor="middle">교체 Lambda</text>
+
+            <path class="dg-edge dg-edge--accent" d="M266 112 L266 132" marker-end="url(#d-152-1-d152-ar-accent)"/>
+            <rect class="dg-node" x="196" y="136" width="140" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="266" y="155" text-anchor="middle">새 버전</text>
+            <text class="dg-fs-sm dg-mono" x="266" y="172" text-anchor="middle">AWSPENDING</text>
+
+            <path class="dg-edge dg-edge--accent" d="M192 157 L180 157" marker-end="url(#d-152-1-d152-ar-accent)"/>
+            <rect class="dg-node dg-node--ok" x="36" y="136" width="140" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="106" y="155" text-anchor="middle">승격</text>
+            <text class="dg-fs-sm dg-mono" x="106" y="172" text-anchor="middle">AWSCURRENT</text>
+
+            <path class="dg-edge dg-edge--accent dg-edge--dashed" d="M106 132 L106 112" marker-end="url(#d-152-1-d152-ar-accent)"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="204">정해진 주기마다 자동으로 순환합니다</text>
+            <text class="dg-fs-sm dg-muted" x="34" y="224">교체가 실패해도 현재 값은 살아 있습니다</text>
+
+            <!-- 우 · Parameter Store -->
+            <rect class="dg-panel" x="370" y="34" width="330" height="200" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="384" y="26">Parameter Store</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="54">경로로 계층화하는 설정값 저장소</text>
+
+            <text class="dg-fs-sm dg-mono dg-bold" x="392" y="86">/prod/orders/</text>
+            <path class="dg-grid" d="M400 92 L400 152 M400 112 L418 112 M400 142 L418 142"/>
+            <text class="dg-fs-sm dg-mono" x="424" y="117">db/password</text>
+            <text class="dg-fs-sm dg-muted" x="546" y="117">SecureString</text>
+            <text class="dg-fs-sm dg-mono" x="424" y="147">feature-flags/new</text>
+            <text class="dg-fs-sm dg-muted" x="612" y="147">String</text>
+
+            <rect class="dg-node dg-node--danger" x="386" y="164" width="298" height="42" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="420" y="190">자동 교체 기능이 없습니다</text>
+            <path class="dg-x" d="M396 176 L410 190 M410 176 L396 190"/>
+            <text class="dg-fs-sm dg-muted" x="384" y="224">새 값을 넣는 것은 사용자 몫입니다</text>
+
+            <!-- 비교표 -->
+            <rect class="dg-node dg-node--empty" x="20" y="250" width="680" height="210" rx="4"/>
+            <path class="dg-grid" d="M20 280 L700 280 M20 310 L700 310 M20 340 L700 340 M20 370 L700 370
+                                      M20 400 L700 400 M20 430 L700 430
+                                      M200 250 L200 460 M450 250 L450 460"/>
+
+            <text class="dg-fs-sm dg-muted" x="30" y="271">항목</text>
+            <text class="dg-fs-sm dg-bold" x="210" y="271">Secrets Manager</text>
+            <text class="dg-fs-sm dg-bold" x="460" y="271">Parameter Store</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="301">주 용도</text>
+            <text class="dg-fs-sm" x="210" y="301">DB 자격 증명 · API 키</text>
+            <text class="dg-fs-sm" x="460" y="301">설정값 · 파라미터</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="331">자동 교체</text>
+            <text class="dg-fs-sm dg-bold" x="210" y="331">내장 — 교체 함수를 붙임</text>
+            <text class="dg-fs-sm dg-bold" x="460" y="331">없음</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="361">교체 동작</text>
+            <text class="dg-fs-sm dg-mono" x="210" y="361">AWSPENDING → AWSCURRENT</text>
+            <text class="dg-fs-sm" x="460" y="361">해당 없음</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="391">계층</text>
+            <text class="dg-fs-sm" x="210" y="391">비밀 단위</text>
+            <text class="dg-fs-sm" x="460" y="391">이름을 경로로 계층화</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="421">비용 성격</text>
+            <text class="dg-fs-sm" x="210" y="421">비밀 개수와 API 호출에 과금</text>
+            <text class="dg-fs-sm" x="460" y="421">표준 계층은 추가 비용 없음</text>
+
+            <text class="dg-fs-sm dg-bold" x="30" y="451">고르는 신호</text>
+            <text class="dg-fs-sm" x="210" y="451">주기적으로 자동 교체</text>
+            <text class="dg-fs-sm" x="460" y="451">설정값 · 비용을 더 안 들이고</text>
+
+            <rect class="dg-node dg-node--accent" x="20" y="470" width="680" height="44" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="497" text-anchor="middle">문제문에 자동 교체나 회전이 보이면 Secrets Manager, 없으면 Parameter Store 입니다</text>
+          </svg>
+        </div>
         <figcaption>
           AWS Secrets Manager와 AWS Systems Manager Parameter Store의 대비 —
           저장 대상, 자동 교체 기능의 유무, KMS 연동 방식, 계층 구조를 나란히 놓습니다.
@@ -737,7 +1114,91 @@ aws ssm put-parameter \
         입력이 다르면 답할 수 있는 질문도 다릅니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-154">
+      <figure class="diagram" data-diagram="D-154" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 406" role="img" aria-labelledby="d-154-1-d154-title d-154-1-d154-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-154-1-d154-title">위협 탐지 서비스 네 가지의 입력 데이터 구분</title>
+            <desc id="d-154-1-d154-desc">왼쪽에 입력 데이터, 가운데에 그 데이터를 읽는 서비스, 오른쪽에 집계 서비스를 놓은 좌우 흐름입니다.
+              Amazon GuardDuty 는 CloudTrail 이벤트, VPC Flow Logs, Route 53 DNS 쿼리 로그 같은 로그와 네트워크 신호를 읽어 위협 활동을 탐지합니다.
+              Amazon Inspector 는 EC2 인스턴스와 컨테이너 이미지, Lambda 함수에 설치된 소프트웨어 구성을 읽어 알려진 취약점을 평가합니다.
+              Amazon Macie 는 Amazon S3 버킷 안 객체의 내용을 읽어 개인 식별 정보 같은 민감 데이터를 찾아냅니다.
+              AWS Security Hub 는 데이터를 직접 읽지 않습니다. 앞의 세 서비스와 파트너 제품이 만든 결과를 모아 보안 표준에 대조하고 우선순위를 매겨 돌려줍니다.
+              그래서 시나리오에서 서비스를 고르는 유일한 기준은 문제문이 어떤 입력 데이터를 말하고 있는가입니다.</desc>
+
+            <defs>
+              <marker id="d-154-1-d154-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-154-1-d154-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <text class="dg-fs-sm dg-bold" x="20" y="44">무엇을 입력으로 읽는가</text>
+            <text class="dg-fs-sm dg-bold" x="294" y="44">읽는 서비스</text>
+            <text class="dg-fs-sm dg-bold" x="520" y="44">결과를 모으는 곳</text>
+
+            <!-- 입력 1 -->
+            <rect class="dg-node dg-node--alt" x="20" y="58" width="250" height="88" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="80">로그 · 네트워크 신호</text>
+            <text class="dg-fs-sm" x="34" y="102">CloudTrail 이벤트</text>
+            <text class="dg-fs-sm" x="34" y="120">VPC Flow Logs</text>
+            <text class="dg-fs-sm" x="34" y="138">Route 53 DNS 쿼리 로그</text>
+            <path class="dg-edge" d="M274 102 L290 102" marker-end="url(#d-154-1-d154-ar)"/>
+
+            <rect class="dg-node" x="294" y="76" width="180" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="384" y="98" text-anchor="middle">Amazon GuardDuty</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="118" text-anchor="middle">위협 활동 탐지</text>
+
+            <!-- 입력 2 -->
+            <rect class="dg-node dg-node--alt" x="20" y="166" width="250" height="68" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="188">워크로드의 소프트웨어 구성</text>
+            <text class="dg-fs-sm" x="34" y="208">EC2 · 컨테이너 이미지 · Lambda</text>
+            <text class="dg-fs-sm" x="34" y="226">설치된 패키지 목록</text>
+            <path class="dg-edge" d="M274 200 L290 200" marker-end="url(#d-154-1-d154-ar)"/>
+
+            <rect class="dg-node" x="294" y="174" width="180" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="384" y="196" text-anchor="middle">Amazon Inspector</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="216" text-anchor="middle">취약점 평가</text>
+
+            <!-- 입력 3 -->
+            <rect class="dg-node dg-node--alt" x="20" y="254" width="250" height="68" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="34" y="276">Amazon S3 의 객체 내용</text>
+            <text class="dg-fs-sm" x="34" y="296">버킷 안에 실제로 담긴 데이터</text>
+            <text class="dg-fs-sm" x="34" y="314">개인 식별 정보 · 자격 증명</text>
+            <path class="dg-edge" d="M274 288 L290 288" marker-end="url(#d-154-1-d154-ar)"/>
+
+            <rect class="dg-node" x="294" y="262" width="180" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="384" y="284" text-anchor="middle">Amazon Macie</text>
+            <text class="dg-fs-sm dg-muted" x="384" y="304" text-anchor="middle">민감 데이터 탐지</text>
+
+            <!-- 집계 -->
+            <path class="dg-edge dg-edge--accent" d="M478 102 L516 102" marker-end="url(#d-154-1-d154-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M478 200 L516 200" marker-end="url(#d-154-1-d154-ar-accent)"/>
+            <path class="dg-edge dg-edge--accent" d="M478 288 L516 288" marker-end="url(#d-154-1-d154-ar-accent)"/>
+
+            <rect class="dg-node dg-node--accent" x="520" y="58" width="180" height="264" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="534" y="82">AWS Security Hub</text>
+            <text class="dg-fs-sm" x="534" y="106">원본 데이터를 직접</text>
+            <text class="dg-fs-sm" x="534" y="124">읽지 않습니다</text>
+            <path class="dg-grid" d="M534 140 L686 140"/>
+            <text class="dg-fs-sm dg-muted" x="534" y="162">입력</text>
+            <text class="dg-fs-sm" x="534" y="182">GuardDuty · Inspector</text>
+            <text class="dg-fs-sm" x="534" y="200">Macie · 파트너 제품</text>
+            <path class="dg-grid" d="M534 216 L686 216"/>
+            <text class="dg-fs-sm dg-muted" x="534" y="238">출력</text>
+            <text class="dg-fs-sm" x="534" y="258">보안 표준 대조 결과</text>
+            <text class="dg-fs-sm" x="534" y="276">우선순위가 매겨진</text>
+            <text class="dg-fs-sm" x="534" y="294">통합 조사 결과</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--ok" x="20" y="340" width="680" height="56" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="34" y="366">서비스를 고르는 기준은 문제문이 말하는 입력 데이터입니다</text>
+            <text class="dg-fs-sm" x="34" y="388">로그와 네트워크는 GuardDuty · 설치된 소프트웨어는 Inspector · S3 객체 내용은 Macie</text>
+          </svg>
+        </div>
         <figcaption>
           위협 탐지 서비스의 역할 분담 — Amazon GuardDuty는 로그와 네트워크 신호를,
           Amazon Inspector는 워크로드의 소프트웨어 구성을, Amazon Macie는 Amazon S3의 객체 내용을 읽고,
@@ -901,7 +1362,93 @@ aws ssm put-parameter \
         이 둘을 뭉뚱그려 이해하면 문항에서 반드시 걸립니다.
       </p>
 
-      <figure class="diagram" data-diagram="D-155">
+      <figure class="diagram" data-diagram="D-155" data-dg-inlined="1">
+        <div class="dg-scroll">
+          <svg viewBox="0 0 720 566" role="img" aria-labelledby="d-155-1-d155-title d-155-1-d155-desc" class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+            <title id="d-155-1-d155-title">Amazon Cognito 사용자 풀과 자격 증명 풀의 2단 구조</title>
+            <desc id="d-155-1-d155-desc">위에서 아래로 내려가는 두 단계 흐름입니다.
+              1단계는 인증입니다. 최종 사용자가 Amazon Cognito 사용자 풀에 로그인하면 사용자 풀이 사용자 디렉터리 역할을 하며
+              MFA 와 소셜 로그인, SAML 연동을 처리하고, 인증에 성공하면 ID 토큰과 액세스 토큰을 발급합니다.
+              앱이 자기 백엔드 API 만 호출한다면 여기서 흐름이 끝납니다. 오른쪽으로 갈라진 가지가 그 경우입니다.
+              2단계는 자격 증명 교환입니다. 앱이 AWS API 를 직접 호출해야 할 때만 필요합니다.
+              1단계에서 받은 토큰을 Amazon Cognito 자격 증명 풀에 넘기면 자격 증명 풀이 토큰을 검증하고 IAM 역할에 매핑해
+              AWS Security Token Service 의 임시 AWS 자격 증명을 돌려줍니다. 그 자격 증명으로 비로소 Amazon S3 나 DynamoDB 를 직접 호출할 수 있습니다.
+              결론은 사용자 풀이 인증을 담당하고 자격 증명 풀이 AWS 자격 증명 교환을 담당하는 서로 다른 역할이라는 점입니다.</desc>
+
+            <defs>
+              <marker id="d-155-1-d155-ar" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-155-1-d155-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+              <marker id="d-155-1-d155-ar-muted" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="7" markerHeight="7" orient="auto">
+                <path class="dg-marker dg-marker--muted" d="M0 0 L10 5 L0 10 Z"/>
+              </marker>
+            </defs>
+
+            <!-- 단계 라벨 -->
+            <text class="dg-fs-md dg-bold" x="20" y="118">1단계</text>
+            <text class="dg-fs-sm" x="20" y="140">사용자를 인증하고</text>
+            <text class="dg-fs-sm" x="20" y="158">토큰을 발급합니다</text>
+
+            <text class="dg-fs-md dg-bold" x="20" y="306">2단계</text>
+            <text class="dg-fs-sm" x="20" y="328">토큰을 임시 AWS</text>
+            <text class="dg-fs-sm" x="20" y="346">자격 증명으로 바꿉니다</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="370">AWS API 를 직접</text>
+            <text class="dg-fs-sm dg-muted" x="20" y="388">호출할 때만 필요</text>
+
+            <!-- 1 사용자 -->
+            <rect class="dg-node" x="210" y="46" width="300" height="44" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="74" text-anchor="middle">최종 사용자 · 클라이언트 앱</text>
+            <path class="dg-edge dg-edge--accent" d="M360 90 L360 106" marker-end="url(#d-155-1-d155-ar-accent)"/>
+
+            <!-- 2 사용자 풀 -->
+            <rect class="dg-node dg-node--accent" x="180" y="110" width="360" height="76" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="136" text-anchor="middle">Amazon Cognito 사용자 풀</text>
+            <text class="dg-fs-sm" x="360" y="158" text-anchor="middle">사용자 디렉터리 · 로그인 · MFA</text>
+            <text class="dg-fs-sm" x="360" y="176" text-anchor="middle">소셜 로그인 · SAML · OIDC 연동</text>
+            <path class="dg-edge dg-edge--accent" d="M360 186 L360 198" marker-end="url(#d-155-1-d155-ar-accent)"/>
+
+            <!-- 3 토큰 -->
+            <rect class="dg-node dg-node--ok" x="210" y="202" width="300" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="224" text-anchor="middle">ID 토큰 · 액세스 토큰</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="244" text-anchor="middle">JWT — 아직 AWS 자격 증명이 아닙니다</text>
+
+            <!-- 오른쪽 가지 -->
+            <path class="dg-edge dg-edge--muted dg-edge--dashed" d="M514 228 L556 228" marker-end="url(#d-155-1-d155-ar-muted)"/>
+            <rect class="dg-node dg-node--muted" x="560" y="202" width="140" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="630" y="224" text-anchor="middle">앱 자체 API</text>
+            <text class="dg-fs-sm" x="630" y="244" text-anchor="middle">여기서 끝납니다</text>
+
+            <path class="dg-edge dg-edge--accent" d="M360 254 L360 286" marker-end="url(#d-155-1-d155-ar-accent)"/>
+            <text class="dg-fs-sm dg-bold" x="372" y="274">AWS API 를 직접 호출해야 할 때만</text>
+
+            <!-- 4 자격 증명 풀 -->
+            <rect class="dg-node dg-node--accent" x="180" y="290" width="360" height="76" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="316" text-anchor="middle">Amazon Cognito 자격 증명 풀</text>
+            <text class="dg-fs-sm" x="360" y="338" text-anchor="middle">토큰 검증 후 IAM 역할에 매핑</text>
+            <text class="dg-fs-sm" x="360" y="356" text-anchor="middle">인증됨 · 인증 안 됨 두 역할</text>
+            <path class="dg-edge dg-edge--accent" d="M360 366 L360 378" marker-end="url(#d-155-1-d155-ar-accent)"/>
+
+            <!-- 5 STS -->
+            <rect class="dg-node dg-node--ok" x="210" y="382" width="300" height="52" rx="4"/>
+            <text class="dg-fs-sm dg-bold" x="360" y="404" text-anchor="middle">AWS STS 임시 자격 증명</text>
+            <text class="dg-fs-sm dg-muted" x="360" y="424" text-anchor="middle">만료 시각이 있는 액세스 키 · 세션 토큰</text>
+            <path class="dg-edge dg-edge--accent" d="M360 434 L360 450" marker-end="url(#d-155-1-d155-ar-accent)"/>
+
+            <!-- 6 AWS 서비스 -->
+            <rect class="dg-node" x="180" y="454" width="360" height="44" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="482" text-anchor="middle">Amazon S3 · DynamoDB 직접 호출</text>
+
+            <!-- 결론 -->
+            <rect class="dg-node dg-node--accent" x="20" y="514" width="680" height="44" rx="4"/>
+            <text class="dg-fs-md dg-bold" x="360" y="542" text-anchor="middle">사용자 풀은 인증하고, 자격 증명 풀은 AWS 자격 증명으로 바꿉니다</text>
+          </svg>
+        </div>
         <figcaption>
           Amazon Cognito의 2단 구조 — 사용자 풀이 사용자를 인증하고 토큰을 발급하면,
           자격 증명 풀이 그 토큰을 받아 AWS Security Token Service의 <strong>임시 AWS 자격 증명</strong>으로

@@ -1,0 +1,284 @@
+{
+  "setId": "basics-ch15",
+  "title": "15장 · 데이터 분석 파이프라인 — 확인 문제",
+  "exam": "BASICS",
+  "domain": "데이터 분석 파이프라인",
+  "examCode": "SAA-C03",
+  "questions": [
+    {
+      "id": "basics-ch15-001",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 스트리밍 파이프라인에서 여러 소비자 애플리케이션이 같은 이벤트를 각자 다른 속도로 처리하고, 처리에 실패한 소비자는 나중에 같은 레코드를 다시 읽어야 합니다. 이 요구에 가장 적합한 수집 서비스는 무엇입니까?",
+      "choices": [
+        { "id": "A", "text": "Amazon Data Firehose — 목적지에 적재만 하면 되므로 운영 부담이 가장 적습니다." },
+        { "id": "B", "text": "Amazon Kinesis Data Streams — 레코드를 보존 기간 동안 샤드에 남겨 여러 소비자가 각자 읽고 필요하면 다시 처리할 수 있습니다." },
+        { "id": "C", "text": "AWS Glue ETL 작업 — 야간에 한 번 실행해 데이터를 한꺼번에 정리합니다." },
+        { "id": "D", "text": "Amazon Athena — S3에 이미 쌓인 데이터를 SQL로 조회합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "여러 소비자가 각자 다른 속도로 읽고, 실패 시 다시 읽어야 한다는 두 조건은 데이터가 어딘가에 남아 있어야 함을 뜻합니다. Kinesis Data Streams는 레코드를 샤드에 보존 기간 동안 유지하므로 소비자마다 자기 속도로 읽고 필요하면 되감아 재처리할 수 있습니다. 반대로 Firehose는 배달이 끝나면 데이터를 보관하지 않으므로 이 두 조건 중 어느 것도 만족하지 못합니다. Glue와 Athena는 각각 배치 변환과 조회 단계의 도구라 애초에 수집 단계의 요구사항과 맞지 않습니다.",
+      "distractorNotes": {
+        "A": "Firehose는 버퍼에 모았다가 목적지로 배달하고 끝나며 배달된 데이터를 보관하지 않습니다. 재처리가 필요한 요구사항과 정면으로 어긋납니다.",
+        "C": "Glue ETL 작업은 카탈로그와 변환 단계의 도구이며 일정 실행이 전제입니다. 여러 소비자가 각자 실시간으로 읽는다는 요구와는 단계 자체가 다릅니다.",
+        "D": "Athena는 조회 단계의 도구로, S3에 이미 저장된 데이터를 SQL로 분석합니다. 이벤트를 실시간으로 받아들이는 수집 단계의 대체재가 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_CreateStream.html", "title": "Amazon Kinesis Data Streams API 레퍼런스 — CreateStream" },
+        { "url": "https://docs.aws.amazon.com/firehose/latest/APIReference/Welcome.html", "title": "Amazon Data Firehose API 레퍼런스" }
+      ],
+      "tags": ["kinesis", "data-streams", "firehose", "streaming"]
+    },
+    {
+      "id": "basics-ch15-002",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "한 온라인 쇼핑몰이 클릭 이벤트에서 이상 트래픽을 초 단위로 탐지해 즉시 경보를 보내야 합니다. 후보는 AWS Glue 야간 ETL 작업, Amazon EMR 배치 작업, Amazon Athena 예약 쿼리, Amazon Kinesis Data Streams입니다. 이 요구에 맞는 것은 무엇입니까?",
+      "choices": [
+        { "id": "A", "text": "AWS Glue 야간 ETL 작업 — 매일 한 번 실행해 데이터를 정리합니다." },
+        { "id": "B", "text": "Amazon EMR 배치 작업 — Spark로 대량 데이터를 한꺼번에 처리합니다." },
+        { "id": "C", "text": "Amazon Athena 예약 쿼리 — 정해진 시간마다 S3를 조회합니다." },
+        { "id": "D", "text": "Amazon Kinesis Data Streams — 이벤트를 실시간으로 수집해 즉시 처리하는 소비자에게 전달합니다." }
+      ],
+      "answer": ["D"],
+      "explanation": "문제문의 real-time 신호는 배치 도구를 전부 소거하는 강력한 단서입니다. Glue 야간 작업과 EMR 배치 작업, Athena 예약 쿼리는 모두 정해진 주기로 한꺼번에 처리하므로 초 단위 탐지를 만족할 수 없습니다. Kinesis Data Streams만이 이벤트가 도착하는 즉시 소비자에게 전달해 실시간 처리를 가능하게 합니다. 같은 상황이라도 \"매일 밤 집계\"로 바뀌면 답은 배치 도구 쪽으로 뒤집힙니다.",
+      "distractorNotes": {
+        "A": "야간에 한 번 도는 ETL 작업은 결과가 다음 날 나옵니다. 초 단위 탐지라는 시간 축 요구를 애초에 만족시킬 수 없습니다.",
+        "B": "EMR 배치 작업도 클러스터를 띄워 대량 데이터를 한 번에 처리하는 방식이라 지연이 큽니다. Spark 프레임워크가 필요하다는 신호가 없다면 더더욱 EMR을 고를 이유가 없습니다.",
+        "C": "예약 쿼리는 정해진 간격으로만 실행되므로 그 간격 사이의 이상 트래픽을 놓칩니다. Athena 자체도 수집 도구가 아니라 조회 도구입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_CreateStream.html", "title": "Amazon Kinesis Data Streams API 레퍼런스 — CreateStream" },
+        { "url": "https://docs.aws.amazon.com/athena/latest/APIReference/Welcome.html", "title": "Amazon Athena API 레퍼런스" }
+      ],
+      "tags": ["kinesis", "real-time", "athena", "batch-vs-streaming"]
+    },
+    {
+      "id": "basics-ch15-003",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 엔지니어가 \"Amazon Data Firehose도 Kinesis 계열이니 레코드가 지연 없이 즉시 도착하고, 처리에 실패하면 원본 스트림에서 다시 읽으면 된다\"고 주장합니다. 이 주장에 대한 올바른 평가는 무엇입니까?",
+      "choices": [
+        { "id": "A", "text": "맞습니다 — Firehose는 지연 없이 즉시 전달하며 언제든 다시 읽을 수 있습니다." },
+        { "id": "B", "text": "틀렸습니다 — 지연은 없지만 재생은 애초에 불가능한 구조입니다." },
+        { "id": "C", "text": "틀렸습니다 — 버퍼 조건이 차야 배달되어 지연이 있고, 배달 후에는 보관하지 않아 재생할 수 없습니다." },
+        { "id": "D", "text": "틀렸습니다 — 재생은 가능하지만 배달 지연은 여전히 남아 있습니다." }
+      ],
+      "answer": ["C"],
+      "explanation": "Firehose는 버퍼 크기 기본값 5 MiB나 버퍼 간격 기본값 300초 중 하나가 차야 목적지로 배달하므로 완전한 실시간이 아닙니다. 배달이 끝나면 Firehose 안에는 아무것도 남지 않으므로 재생이라는 개념 자체가 성립하지 않습니다. 이름에 Kinesis가 들어간다는 이유로 Data Streams와 같은 성질을 가진다고 넘겨짚는 것이 이 주장의 오류입니다. \"처리 실패 시 다시 읽어야 한다\"거나 \"여러 소비자가 각자 처리해야 한다\"는 요구가 나오면 Firehose가 아니라 Data Streams를 골라야 합니다.",
+      "distractorNotes": {
+        "A": "지연도 있고 재생도 불가능하므로 두 성질 모두 틀렸습니다. Firehose를 Data Streams와 동일시하는 흔한 오해입니다.",
+        "B": "지연이 없다는 절반만 틀렸습니다. 버퍼링 자체가 지연을 만드는 구조이므로 이 부분도 사실이 아닙니다.",
+        "D": "재생이 가능하다는 절반만 틀렸습니다. Firehose는 배달된 데이터를 보관하지 않으므로 재생은 애초에 불가능합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/firehose/latest/APIReference/API_BufferingHints.html", "title": "Amazon Data Firehose API 레퍼런스 — BufferingHints" },
+        { "url": "https://docs.aws.amazon.com/firehose/latest/APIReference/Welcome.html", "title": "Amazon Data Firehose API 레퍼런스" }
+      ],
+      "tags": ["firehose", "kinesis", "buffering", "streaming"]
+    },
+    {
+      "id": "basics-ch15-004",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "한 회사가 온프레미스에서 운영하던 Apache Kafka 클러스터의 프로듀서·컨슈머 코드를 변경하지 않고 그대로 AWS로 옮기려 합니다. 운영 부담이 가장 적으면서(LEAST operational overhead) 이 제약을 지키는 방법은 무엇입니까?",
+      "choices": [
+        { "id": "A", "text": "Amazon MSK로 마이그레이션해 기존 Kafka API와 생태계 도구를 그대로 사용합니다." },
+        { "id": "B", "text": "Amazon Kinesis Data Streams로 프로듀서와 컨슈머를 다시 구현합니다." },
+        { "id": "C", "text": "Amazon Data Firehose로 목적지에 적재만 하도록 전환합니다." },
+        { "id": "D", "text": "AWS Glue ETL 작업으로 Kafka 토픽을 대체합니다." }
+      ],
+      "answer": ["A"],
+      "explanation": "문제문에 \"기존 Kafka\"와 \"코드 변경 없이\"가 함께 나오면 판단 기준은 기능이 아니라 API 호환성입니다. Amazon MSK는 Apache Kafka를 관리형으로 제공하므로 프로듀서와 컨슈머 코드, Kafka Connect 커넥터 같은 생태계 도구를 그대로 쓸 수 있습니다. Kinesis Data Streams는 기능은 비슷해도 API가 달라 코드를 다시 써야 하므로 \"코드 변경 없이\"라는 제약을 위반합니다. 명시된 제약을 위반하는 선택지는 아무리 관리형이고 매력적이어도 가장 먼저 소거하는 대상입니다.",
+      "distractorNotes": {
+        "B": "Kinesis는 Kafka와 API가 다르므로 프로듀서·컨슈머를 다시 작성해야 합니다. 이 시나리오가 명시한 \"코드 변경 없이\"라는 제약을 정면으로 어깁니다.",
+        "C": "Firehose는 적재 전용 서비스라 Kafka의 토픽·파티션·컨슈머 그룹 같은 개념 자체를 지원하지 않습니다. 기존 Kafka 애플리케이션을 그대로 옮기는 목적과 맞지 않습니다.",
+        "D": "Glue ETL 작업은 배치 변환 도구이며 Kafka의 프로듀서·컨슈머 모델을 대체하지 못합니다. 스트리밍 수집 계층 자체를 다른 개념으로 바꾸는 셈입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/msk/1.0/apireference/what-is-msk.html", "title": "Amazon MSK API 레퍼런스" }
+      ],
+      "tags": ["msk", "kafka", "migration", "streaming"]
+    },
+    {
+      "id": "basics-ch15-005",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "분석팀이 S3에 쌓인 로그를 한 달에 몇 차례만 임시로 SQL 조회합니다. 상시 가동 인프라 없이 가장 비용 효율적인(MOST cost-effective) 방법은 무엇입니까?",
+      "choices": [
+        { "id": "A", "text": "Amazon Redshift 클러스터를 상시 가동해 둡니다." },
+        { "id": "B", "text": "Amazon EMR 클러스터를 상시 가동해 둡니다." },
+        { "id": "C", "text": "Amazon OpenSearch Service 도메인을 만들어 로그를 색인합니다." },
+        { "id": "D", "text": "Amazon Athena로 필요할 때만 쿼리를 실행합니다." }
+      ],
+      "answer": ["D"],
+      "explanation": "가끔 임시로 조회한다는 조건은 상시 가동 클러스터가 필요 없다는 신호이며, 이 신호가 나오면 서버리스 조회 도구를 먼저 살핍니다. Athena는 실행한 쿼리에 대해서만 비용을 내고 인프라를 준비할 필요가 없으므로 이 요구에 정확히 맞습니다. Redshift와 EMR은 클러스터를 켜 두는 동안 계속 비용이 들어 조회 빈도가 낮은 이 시나리오에는 과잉 설계입니다. OpenSearch Service는 검색을 위한 도구라 SQL 집계라는 목적과도 어긋납니다.",
+      "distractorNotes": {
+        "A": "Redshift 클러스터는 상시 가동 비용이 들어갑니다. 한 달에 몇 차례만 조회하는 낮은 빈도에는 맞지 않는 상시 가동 자원입니다.",
+        "B": "EMR도 클러스터를 켜 두는 동안 비용이 발생하는 상시 가동 자원입니다. 이 시나리오에는 Spark 같은 프레임워크가 필요하다는 신호도 없습니다.",
+        "C": "OpenSearch Service는 로그 검색과 운영 대시보드에 쓰는 도구입니다. 이 시나리오가 요구하는 것은 SQL 집계이지 전문 검색이 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/athena/latest/APIReference/Welcome.html", "title": "Amazon Athena API 레퍼런스" }
+      ],
+      "tags": ["athena", "redshift", "cost-optimization", "analytics"]
+    },
+    {
+      "id": "basics-ch15-006",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "한 파이프라인이 초당 3,500개의 레코드를 안정적으로 써야 하고, 레코드 하나는 평균 800바이트입니다(초당 약 2.8 MB). Kinesis Data Streams 프로비저닝 모드에서 샤드 하나가 초당 1,000 레코드·1 MiB까지 쓸 수 있을 때, 필요한 최소 샤드 수는 몇 개입니까?",
+      "choices": [
+        { "id": "A", "text": "3개 — 데이터 크기(초당 약 2.8 MB) 기준만 계산하면 충분합니다." },
+        { "id": "B", "text": "4개 — 레코드 수 기준(3,500÷1,000=3.5→4)과 데이터 크기 기준(약 2.8÷1→3)을 각각 계산해 더 큰 값을 채택합니다." },
+        { "id": "C", "text": "5개 — 계산된 값에 안전 마진으로 한 개를 더합니다." },
+        { "id": "D", "text": "7개 — 레코드 수 기준과 데이터 크기 기준을 각각 채우고 두 값을 더합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "샤드 하나의 쓰기 한도는 레코드 수와 데이터 크기 두 축으로 동시에 걸려 있으므로 둘을 각각 계산해야 합니다. 레코드 수 기준으로는 3,500을 1,000으로 나누면 3.5이므로 올림해 4개가 필요하고, 데이터 크기 기준으로는 약 2.8 MB를 1 MiB로 나누면 약 2.7이므로 올림해 3개가 필요합니다. 두 제약은 동시에 만족되어야 하므로 둘 중 더 큰 값인 4개가 최소 샤드 수입니다. 한쪽 기준만 보거나 두 값을 더하는 계산은 실제 제약의 동작 방식과 맞지 않습니다.",
+      "distractorNotes": {
+        "A": "데이터 크기 기준만 보면 레코드 수 기준을 놓칩니다. 3.5개가 필요한 레코드 수 제약을 무시하면 처리량 초과 오류가 발생합니다.",
+        "C": "필요한 최소 개수는 두 기준의 최댓값인 4개입니다. 안전 마진을 더하는 것은 운영상 흔한 선택이지만 문제가 묻는 \"최소\" 요구치와는 다릅니다.",
+        "D": "두 기준은 같은 샤드가 동시에 만족해야 하는 별개의 제약이지 더해서 채워야 하는 별도의 용량이 아닙니다. 이렇게 계산하면 필요 이상으로 과다 프로비저닝됩니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_CreateStream.html", "title": "Amazon Kinesis Data Streams API 레퍼런스 — CreateStream" }
+      ],
+      "tags": ["kinesis", "shard", "throughput", "capacity-planning"]
+    },
+    {
+      "id": "basics-ch15-007",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "S3에 쌓인 JSON 로그를 표준 SQL로 분석해야 합니다. 운영 부담을 최소화(LEAST operational overhead)하면서 이 목표를 달성하려면 무엇을 해야 합니까? (2개 선택)",
+      "choices": [
+        { "id": "A", "text": "Amazon EMR 클러스터를 띄워 Spark로 처리합니다." },
+        { "id": "B", "text": "AWS Glue 크롤러로 스키마를 추론해 데이터 카탈로그에 등록합니다." },
+        { "id": "C", "text": "Amazon Redshift 클러스터를 만들어 데이터를 적재합니다." },
+        { "id": "D", "text": "Amazon Athena로 카탈로그의 테이블을 대상으로 SQL 쿼리를 실행합니다." },
+        { "id": "E", "text": "Amazon Kinesis Data Streams로 로그를 다시 수집합니다." }
+      ],
+      "answer": ["B", "D"],
+      "explanation": "S3의 파일은 그 자체로 어떤 컬럼이 있는지 모르므로, 먼저 Glue 크롤러가 스키마를 추론해 데이터 카탈로그에 테이블로 등록해야 합니다. 그 카탈로그를 대상으로 Athena가 표준 SQL을 실행하면 서버리스로, 실행한 쿼리에 대해서만 비용을 내며 조회가 끝납니다. 이 두 단계가 함께 정답에 들어가는 이유는 Athena가 카탈로그 없이는 조회할 대상을 알지 못하기 때문입니다. EMR과 Redshift는 상시 가동 클러스터를 요구해 운영 부담을 늘리므로 이 한정어와 맞지 않고, 로그는 이미 S3에 있으므로 다시 수집할 필요도 없습니다.",
+      "distractorNotes": {
+        "A": "EMR 클러스터는 상시 가동 자원이며 운영 부담이 큽니다. 단순 SQL 집계에 Spark 프레임워크가 필요하다는 신호도 이 시나리오에는 없습니다.",
+        "C": "Redshift도 클러스터를 적재하고 유지해야 하므로 운영 부담이 큽니다. 임시 조회 성격의 요구에는 과잉 설계입니다.",
+        "E": "로그는 이미 S3에 저장되어 있으므로 다시 수집할 이유가 없습니다. Kinesis Data Streams는 수집 단계의 도구이지 이미 저장된 데이터를 분석하는 도구가 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/glue/latest/webapi/API_CreateCrawler.html", "title": "AWS Glue API 레퍼런스 — CreateCrawler" },
+        { "url": "https://docs.aws.amazon.com/athena/latest/APIReference/Welcome.html", "title": "Amazon Athena API 레퍼런스" }
+      ],
+      "tags": ["glue", "athena", "data-catalog", "cost-optimization"]
+    },
+    {
+      "id": "basics-ch15-008",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "hard",
+      "type": "multiple",
+      "question": "여러 소비자 애플리케이션이 같은 Kinesis Data Stream을 각자 최대 속도로 읽어야 하고, 한 소비자의 처리 지연이 다른 소비자의 읽기 속도에 영향을 주면 안 됩니다. 어떤 조치를 취해야 합니까? (2개 선택)",
+      "choices": [
+        { "id": "A", "text": "모든 소비자가 공유 처리량(초당 5 트랜잭션·2 MiB) 모드로 그대로 읽도록 둡니다." },
+        { "id": "B", "text": "소비자를 스트림에 확장된 팬아웃(enhanced fan-out) 소비자로 등록합니다." },
+        { "id": "C", "text": "Amazon Data Firehose로 전환해 각 소비자에게 개별 배달 스트림을 만듭니다." },
+        { "id": "D", "text": "등록된 소비자가 HTTP/2 기반 SubscribeToShard API로 레코드를 받도록 구성합니다." },
+        { "id": "E", "text": "샤드 수를 소비자 수만큼 늘립니다." }
+      ],
+      "answer": ["B", "D"],
+      "explanation": "여러 소비자가 서로 영향을 주지 않고 각자 최대 속도로 읽어야 한다는 요구는 확장된 팬아웃의 정의 그 자체입니다. 소비자를 확장된 팬아웃 소비자로 등록하면 등록된 소비자마다 샤드당 2 MiB/초를 독립적으로 받아, 다른 소비자의 처리 속도와 무관하게 동작합니다. 이 등록은 HTTP/2 기반 SubscribeToShard API로 레코드를 받는 방식으로 구현되므로 두 선택지가 하나의 조치를 이룹니다. 기본 공유 처리량 모드를 그대로 두면 소비자들이 같은 대역을 나눠 쓰다 서로 굶는 문제가 그대로 남습니다.",
+      "distractorNotes": {
+        "A": "공유 처리량 모드는 모든 소비자가 샤드당 초당 5 트랜잭션·2 MiB를 나눠 쓰는 방식이라, 한 소비자가 느려지면 다른 소비자의 몫도 줄어듭니다. 이 시나리오가 피하려는 바로 그 문제입니다.",
+        "C": "Firehose는 구성한 목적지 하나로 적재하는 서비스라 여러 소비자가 각자 스트림을 읽는 모델 자체가 없습니다. 요구사항이 말하는 다중 소비자 구조와 맞지 않습니다.",
+        "E": "샤드 수를 늘리면 스트림의 전체 쓰기·읽기 용량은 늘지만, 공유 처리량 모드에서 소비자끼리 대역을 나눠 쓰는 문제 자체는 해결되지 않습니다. 이 문제를 직접 해결하는 것은 확장된 팬아웃입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_RegisterStreamConsumer.html", "title": "Amazon Kinesis Data Streams API 레퍼런스 — RegisterStreamConsumer" }
+      ],
+      "tags": ["kinesis", "enhanced-fan-out", "consumer", "streaming"]
+    },
+    {
+      "id": "basics-ch15-009",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "easy",
+      "type": "matching",
+      "question": "각 요구사항에 가장 적합한 분석 서비스를 연결하세요. 목록에는 정답이 아닌 미끼 값이 섞여 있습니다.",
+      "pairs": [
+        { "id": "p1", "left": "가끔 임시로 S3에 쌓인 로그를 표준 SQL로 조회하고 상시 가동 인프라를 두고 싶지 않다", "right": "Amazon Athena" },
+        { "id": "p2", "left": "고정된 BI 대시보드가 하루 종일 무거운 조인과 집계 쿼리를 반복 실행한다", "right": "Amazon Redshift" },
+        { "id": "p3", "left": "Apache Spark 프레임워크로 대규모 로그를 처리해야 한다", "right": "Amazon EMR" },
+        { "id": "p4", "left": "운영 로그에서 전문 검색과 이상 징후 탐색이 필요하다", "right": "Amazon OpenSearch Service" },
+        { "id": "p5", "left": "여러 데이터 소스를 연결해 사람이 보는 대시보드 화면을 만든다", "right": "Amazon QuickSight" }
+      ],
+      "extraRights": ["AWS Glue", "Amazon MSK"],
+      "explanation": "조회와 처리 도구를 고르는 기준은 반복성과 처리 방식의 성격입니다. 임시 조회는 서버리스인 Athena, 상시 반복되는 무거운 BI 쿼리는 클러스터를 유지하는 Redshift가 맡습니다. Spark 같은 프레임워크 이름이 문제에 직접 등장하면 EMR을 가리키는 결정적 신호이고, 같은 로그라도 목적이 검색이면 OpenSearch Service로 갈립니다. 미끼로 넣은 Glue는 카탈로그와 변환 단계의 도구이고 MSK는 수집 단계의 도구라서, 조회·시각화 단계를 묻는 이 문제의 정답이 될 수 없습니다.",
+      "distractorNotes": {
+        "p1": "상시 가동 인프라를 두고 싶지 않다는 조건이 Redshift나 EMR이 아니라 Athena를 가리키는 결정적 신호입니다.",
+        "p2": "하루 종일 반복되는 무거운 쿼리라는 표현이 임시 조회와 Redshift를 가르는 지점입니다.",
+        "p3": "Spark라는 프레임워크 이름이 직접 등장하면 EMR을 가장 먼저 의심합니다. 신호가 없는데 EMR을 고르면 운영 부담 한정어에 걸립니다.",
+        "p4": "같은 로그라도 SQL 집계가 목적이면 Athena, 검색이 목적이면 OpenSearch Service로 갈립니다.",
+        "p5": "QuickSight는 파이프라인의 마지막 칸으로, 데이터를 처리하지 않고 사람이 보는 화면만 만듭니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/athena/latest/APIReference/Welcome.html", "title": "Amazon Athena API 레퍼런스" },
+        { "url": "https://docs.aws.amazon.com/emr/latest/APIReference/Welcome.html", "title": "Amazon EMR API 레퍼런스" },
+        { "url": "https://docs.aws.amazon.com/opensearch-service/latest/APIReference/Welcome.html", "title": "Amazon OpenSearch Service API 레퍼런스" },
+        { "url": "https://docs.aws.amazon.com/quicksight/latest/APIReference/Welcome.html", "title": "Amazon QuickSight API 레퍼런스" }
+      ],
+      "tags": ["athena", "redshift", "emr", "opensearch-service", "quicksight"]
+    },
+    {
+      "id": "basics-ch15-010",
+      "exam": "BASICS",
+      "domain": "데이터 분석 파이프라인",
+      "chapter": "ch15",
+      "difficulty": "medium",
+      "type": "ordering",
+      "question": "클릭스트림 이벤트를 실시간으로 수집해 대시보드로 보여주기까지, 파이프라인이 데이터를 처리하는 순서를 배열하세요.",
+      "items": [
+        { "id": "i4", "text": "Amazon Athena가 카탈로그의 테이블을 SQL로 조회한다" },
+        { "id": "i2", "text": "동일 스트림을 소스로 하는 Amazon Data Firehose가 원본을 Amazon S3에 적재한다" },
+        { "id": "i5", "text": "Amazon QuickSight가 조회 결과로 대시보드를 만든다" },
+        { "id": "i1", "text": "Amazon Kinesis Data Streams로 클릭 이벤트를 실시간 수집한다" },
+        { "id": "i3", "text": "AWS Glue 크롤러가 S3의 스키마를 추론해 데이터 카탈로그에 등록한다" }
+      ],
+      "answer": ["i1", "i2", "i3", "i4", "i5"],
+      "explanation": "데이터는 언제나 수집에서 시작해 저장, 카탈로그, 조회를 거쳐 시각화로 끝납니다. 이벤트가 먼저 Kinesis Data Streams로 들어오고, 같은 스트림을 소스로 하는 Firehose가 원본을 S3에 적재하면서 저장 단계가 완성됩니다. S3에 쌓인 파일은 그 자체로 스키마를 모르므로 Glue 크롤러가 먼저 스키마를 추론해 카탈로그에 등록해야 Athena가 SQL로 조회할 수 있습니다. 마지막으로 QuickSight가 그 조회 결과를 받아 사람이 보는 대시보드로 바꾸며, 이 순서를 건너뛰면 뒤 단계의 도구가 참조할 대상이 없어집니다.",
+      "distractorNotes": {
+        "i2": "Firehose가 적재하려면 먼저 Kinesis Data Streams로 이벤트가 들어와 있어야 합니다. 저장 단계는 수집 단계 다음입니다.",
+        "i4": "Athena는 카탈로그에 등록된 테이블을 조회합니다. Glue 크롤러가 스키마를 등록하기 전에는 조회할 대상 자체가 없습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/kinesis/latest/APIReference/API_CreateStream.html", "title": "Amazon Kinesis Data Streams API 레퍼런스 — CreateStream" },
+        { "url": "https://docs.aws.amazon.com/firehose/latest/APIReference/API_CreateDeliveryStream.html", "title": "Amazon Data Firehose API 레퍼런스 — CreateDeliveryStream" },
+        { "url": "https://docs.aws.amazon.com/glue/latest/webapi/API_CreateCrawler.html", "title": "AWS Glue API 레퍼런스 — CreateCrawler" },
+        { "url": "https://docs.aws.amazon.com/quicksight/latest/APIReference/Welcome.html", "title": "Amazon QuickSight API 레퍼런스" }
+      ],
+      "tags": ["pipeline", "kinesis", "glue", "quicksight"]
+    }
+  ]
+}

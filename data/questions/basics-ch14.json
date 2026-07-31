@@ -1,0 +1,295 @@
+{
+  "setId": "basics-ch14",
+  "title": "14장 · 엣지와 DNS — 확인 문제",
+  "exam": "BASICS",
+  "domain": "엣지와 DNS",
+  "examCode": "SAA-C03",
+  "questions": [
+    {
+      "id": "basics-ch14-001",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "회사 도메인의 영역 정점인 `example.com` 이 Application Load Balancer를 가리켜야 합니다. Route 53에서 어떤 레코드를 만들어야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "영역 정점에 CNAME 레코드를 만들어 로드 밸런서의 DNS 이름을 지정합니다." },
+        { "id": "B", "text": "별칭 레코드를 만들고 대상으로 그 로드 밸런서를 선택합니다." },
+        { "id": "C", "text": "A 레코드를 만들고 로드 밸런서의 현재 IP 주소를 직접 적습니다." },
+        { "id": "D", "text": "`www` 서브도메인에만 CNAME을 만들고 정점은 비워 둡니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "DNS 표준상 영역 정점에는 CNAME 레코드를 둘 수 없습니다. 그래서 `example.com` 처럼 서브도메인이 없는 이름을 AWS 리소스로 보내려면 Route 53의 별칭 레코드를 씁니다. 별칭은 Route 53 내부에서 대상 리소스의 주소로 해석되므로 정점에서도 사용할 수 있고, TTL을 따로 지정하지 않으며 별칭 질의에 대한 추가 요금도 없습니다. 로드 밸런서의 IP는 관리 주체가 AWS이고 시간에 따라 바뀌므로 A 레코드에 직접 적는 방식은 언젠가 반드시 깨집니다.",
+      "distractorNotes": {
+        "A": "영역 정점에는 CNAME을 만들 수 없습니다. 이 제약이 별칭 레코드가 존재하는 이유입니다.",
+        "C": "로드 밸런서의 IP는 고정되어 있지 않습니다. 고정 진입 IP가 필요하면 Network Load Balancer 쪽을 검토해야 합니다.",
+        "D": "정점을 비워 두면 사용자가 도메인만 입력했을 때 서비스에 도달하지 못합니다. 요구사항을 포기하는 안입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_AliasTarget.html", "title": "Amazon Route 53 API 레퍼런스 — AliasTarget" },
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html", "title": "Amazon Route 53 API 레퍼런스 — ResourceRecordSet" }
+      ],
+      "tags": ["route53", "alias-record", "dns", "elb"]
+    },
+    {
+      "id": "basics-ch14-002",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "single",
+      "question": "S3 버킷의 정적 자산을 Amazon CloudFront로 배포하면서, 사용자가 버킷 URL로 직접 접근하는 것은 막아야 합니다. 어떻게 구성해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "버킷을 퍼블릭으로 열고 CloudFront 도메인만 사용자에게 알려 줍니다." },
+        { "id": "B", "text": "오리진 액세스 제어를 구성하고 버킷 정책에서 CloudFront 서비스 주체를 허용합니다." },
+        { "id": "C", "text": "객체 ACL을 조정해 CloudFront에만 읽기 권한을 부여합니다." },
+        { "id": "D", "text": "버킷의 정적 웹사이트 호스팅을 켜고 그 엔드포인트를 오리진으로 지정합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "비공개 버킷을 CloudFront로만 노출하는 표준 구성은 오리진 액세스 제어입니다. 버킷은 퍼블릭 액세스 차단을 켠 채로 두고, 버킷 정책에서 CloudFront 서비스 주체가 특정 배포를 통해 들어올 때만 읽기를 허용합니다. 그러면 사용자가 버킷 주소를 알아내도 접근이 거부되고, 모든 트래픽이 배포를 지나면서 로깅과 WAF 같은 통제도 함께 적용됩니다. 예전에 쓰이던 오리진 액세스 아이덴티티보다 지원 범위가 넓어 신규 설계에서는 오리진 액세스 제어를 씁니다.",
+      "distractorNotes": {
+        "A": "버킷을 퍼블릭으로 여는 순간 직접 접근을 막을 방법이 사라집니다. 주소를 알리지 않는 것은 통제가 아닙니다.",
+        "C": "신규 버킷은 ACL이 비활성화된 상태로 만들어지며 접근 제어는 버킷 정책으로 합니다. ACL을 쓰려는 선택지 자체가 오래된 방식입니다.",
+        "D": "정적 웹사이트 엔드포인트는 사용자 지정 오리진으로 취급되어 오리진 액세스 제어를 붙일 수 없습니다. 결국 버킷을 열어야 합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html", "title": "Amazon CloudFront 개발자 안내서 — Amazon S3 오리진에 대한 액세스 제한" },
+        { "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_OriginAccessControlConfig.html", "title": "Amazon CloudFront API 레퍼런스 — OriginAccessControlConfig" }
+      ],
+      "tags": ["cloudfront", "s3", "origin-access-control", "security"]
+    },
+    {
+      "id": "basics-ch14-003",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "규제에 따라 특정 국가에서 들어온 사용자는 반드시 그 나라의 리전에 있는 스택에서 서비스를 받아야 합니다. 어떤 Route 53 라우팅 정책을 써야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "지연 시간 기반 라우팅으로 가장 빠른 리전에 연결합니다." },
+        { "id": "B", "text": "지리적 위치 라우팅으로 질의 출발지 국가에 따라 대상을 지정합니다." },
+        { "id": "C", "text": "가중치 기반 라우팅으로 국가별 비율을 조정해 분배합니다." },
+        { "id": "D", "text": "다중값 응답 라우팅으로 여러 리전의 레코드를 함께 반환합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "이름이 비슷한 두 정책을 구분하는 것이 이 문항의 핵심입니다. 지연 시간 기반은 측정된 네트워크 성능을 기준으로 삼기 때문에 어느 리전으로 갈지 보장되지 않고, 규제나 데이터 레지던시 같은 결정론적 요구를 담을 수 없습니다. 지리적 위치 라우팅은 질의가 어디서 왔는지를 기준으로 대상을 지정하므로, 국가별로 반드시 특정 스택에 연결해야 하는 요구에 정확히 맞습니다. 비슷해 보이는 지리 근접 라우팅은 사용자와 리소스 사이의 거리를 기준으로 삼고 담당 영역을 넓히거나 좁힐 수 있어 목적이 다릅니다.",
+      "distractorNotes": {
+        "A": "성능 기준이라 어느 리전으로 갈지 규제 관점에서 보장할 수 없습니다. 이 혼동이 데이터 레지던시 문항의 대표적 오답입니다.",
+        "C": "비율로 나누는 정책이므로 특정 국가 사용자를 특정 대상으로 고정하지 못합니다.",
+        "D": "여러 레코드를 함께 반환해 클라이언트가 고르게 하는 방식이라 대상 통제가 되지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html", "title": "Amazon Route 53 API 레퍼런스 — ResourceRecordSet" },
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_GeoProximityLocation.html", "title": "Amazon Route 53 API 레퍼런스 — GeoProximityLocation" }
+      ],
+      "tags": ["route53", "geolocation-routing", "latency-routing", "compliance"]
+    },
+    {
+      "id": "basics-ch14-004",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "전 세계에 서비스하는 게임 백엔드가 UDP 트래픽을 처리하며, 클라이언트가 방화벽에 등록할 수 있는 변하지 않는 진입 IP가 필요합니다. 콘텐츠 캐시는 필요하지 않습니다. 무엇을 써야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "CloudFront 배포를 만들고 오리진으로 Network Load Balancer를 지정합니다." },
+        { "id": "B", "text": "AWS Global Accelerator를 만들고 리전별 엔드포인트 그룹을 구성합니다." },
+        { "id": "C", "text": "Route 53 지연 시간 기반 라우팅으로 가까운 리전을 고르게 합니다." },
+        { "id": "D", "text": "리전마다 Application Load Balancer를 두고 DNS 이름을 배포합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "엣지 서비스를 고를 때는 캐시가 필요한지와 어떤 프로토콜을 쓰는지를 먼저 봅니다. CloudFront는 HTTP 계열 콘텐츠를 캐시해 전달하는 서비스라 UDP 게임 트래픽에는 맞지 않습니다. Global Accelerator는 캐시하지 않고 TCP와 UDP 트래픽을 AWS 글로벌 네트워크로 태워 가까운 정상 엔드포인트로 보내며, 정적 애니캐스트 IP를 제공해 클라이언트가 고정 주소를 등록할 수 있게 합니다. DNS 기반 라우팅은 클라이언트 캐시와 TTL의 영향을 받아 전환이 즉각적이지 않고 고정 IP도 제공하지 않습니다.",
+      "distractorNotes": {
+        "A": "CloudFront는 HTTP 계열 요청을 다루는 콘텐츠 전송 서비스입니다. UDP 게임 트래픽의 경로가 아닙니다.",
+        "C": "DNS는 이름을 주소로 바꿔 줄 뿐 고정 IP를 제공하지 않으며, 응답이 캐시되어 장애 전환도 느립니다.",
+        "D": "리전마다 다른 DNS 이름과 IP가 생기므로 방화벽 등록 요구를 충족하지 못합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/global-accelerator/latest/api/Welcome.html", "title": "AWS Global Accelerator API 레퍼런스" },
+        { "url": "https://docs.aws.amazon.com/global-accelerator/latest/api/API_EndpointGroup.html", "title": "AWS Global Accelerator API 레퍼런스 — EndpointGroup" }
+      ],
+      "tags": ["global-accelerator", "cloudfront", "udp", "static-ip"]
+    },
+    {
+      "id": "basics-ch14-005",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "single",
+      "question": "CloudFront 배포의 캐시 적중률이 매우 낮고 오리진 요청이 줄지 않습니다. 확인해 보니 모든 요청 헤더와 쿠키가 캐시 키에 포함되어 있습니다. 무엇을 해야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "캐시 TTL을 0으로 낮춰 항상 최신 콘텐츠를 제공하게 합니다." },
+        { "id": "B", "text": "응답 내용에 영향을 주지 않는 헤더와 쿠키를 캐시 키에서 제외합니다." },
+        { "id": "C", "text": "콘텐츠를 갱신할 때마다 전체 경로에 무효화 요청을 실행합니다." },
+        { "id": "D", "text": "더 많은 엣지 로케이션을 포함하는 가격 등급으로 변경합니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "캐시 키는 어떤 요청들을 같은 응답으로 볼지 정하는 기준입니다. 헤더나 쿠키를 캐시 키에 넣을수록 조합이 늘어나 같은 콘텐츠가 여러 벌로 쪼개져 저장되고, 그만큼 적중률이 떨어집니다. 따라서 응답이 실제로 달라지게 만드는 값만 캐시 키에 남기는 것이 개선의 방향입니다. 오리진이 그 값을 받아야 한다면 캐시 키에서 빼되 오리진 요청 정책으로 전달하면 되므로, 캐시 키 축소와 오리진 전달은 서로 배타적인 선택이 아닙니다. 비용 관점에서도 같은 바이트를 오리진에서 두 번 내보내지 않는 구성이 언제나 유리합니다.",
+      "distractorNotes": {
+        "A": "TTL을 0으로 두면 캐시가 사실상 사라져 오리진 부하와 전송 비용이 최대가 됩니다. 문제를 정반대 방향으로 키웁니다.",
+        "C": "무효화는 예외적인 상황을 위한 수단입니다. 잦은 갱신은 파일 이름에 버전을 넣는 방식으로 처리하는 편이 낫습니다.",
+        "D": "가격 등급은 어느 지역의 엣지를 사용할지를 정합니다. 캐시가 쪼개지는 원인과는 무관합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_DefaultCacheBehavior.html", "title": "Amazon CloudFront API 레퍼런스 — DefaultCacheBehavior" },
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Expiration.html", "title": "Amazon CloudFront 개발자 안내서 — 캐시에 콘텐츠가 머무는 기간 관리" }
+      ],
+      "tags": ["cloudfront", "cache-key", "performance", "cost-optimization"]
+    },
+    {
+      "id": "basics-ch14-006",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "hard",
+      "type": "single",
+      "question": "캐시에 없는 요청에 한해, 요청 정보를 보고 외부 시스템을 조회한 뒤 어느 오리진으로 보낼지 결정하는 로직이 필요합니다. 어떤 엣지 실행 방식을 골라야 합니까?",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "CloudFront Functions를 뷰어 요청 이벤트에 연결합니다." },
+        { "id": "B", "text": "Lambda@Edge를 오리진 요청 이벤트에 연결합니다." },
+        { "id": "C", "text": "CloudFront Functions를 오리진 요청 이벤트에 연결합니다." },
+        { "id": "D", "text": "AWS WAF 규칙을 만들어 조건에 따라 다른 오리진으로 보냅니다." }
+      ],
+      "answer": ["B"],
+      "explanation": "두 엣지 실행 방식은 실행 위치와 능력이 다릅니다. CloudFront Functions는 뷰어 요청과 뷰어 응답 두 이벤트에서만 동작하고 네트워크 호출이나 요청 본문 접근이 불가능한 대신 아주 가볍고 빠릅니다. Lambda@Edge는 뷰어와 오리진 양쪽의 네 가지 이벤트에서 모두 실행할 수 있고 외부 호출도 가능합니다. 이 문항은 캐시에 없을 때만 실행되어야 하고 외부 조회가 필요하므로 오리진 요청 이벤트와 Lambda@Edge라는 조합으로 좁혀집니다. 캐시 적중 시에도 매번 실행되는 뷰어 이벤트에 무거운 로직을 두면 비용과 지연이 함께 늘어납니다.",
+      "distractorNotes": {
+        "A": "뷰어 요청은 캐시 적중 여부와 무관하게 모든 요청에서 실행됩니다. 캐시 미스일 때만 돌아야 한다는 조건과 어긋납니다.",
+        "C": "CloudFront Functions는 오리진 쪽 이벤트에 연결할 수 없습니다. 존재하지 않는 조합입니다.",
+        "D": "WAF는 요청을 허용하거나 차단하는 계층이며 오리진 선택을 바꾸는 도구가 아닙니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/edge-functions.html", "title": "Amazon CloudFront 개발자 안내서 — 엣지에서 함수로 사용자 지정" },
+        { "url": "https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CustomOriginConfig.html", "title": "Amazon CloudFront API 레퍼런스 — CustomOriginConfig" }
+      ],
+      "tags": ["cloudfront", "lambda-edge", "cloudfront-functions", "edge"]
+    },
+    {
+      "id": "basics-ch14-007",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "easy",
+      "type": "multiple",
+      "question": "Amazon Route 53의 레코드와 라우팅 정책에 대한 설명으로 옳은 것을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "단순 라우팅을 제외한 모든 라우팅 정책에는 `SetIdentifier` 가 필요합니다." },
+        { "id": "B", "text": "별칭 레코드는 영역 정점에 만들 수 있고 TTL을 따로 지정하지 않습니다." },
+        { "id": "C", "text": "다중값 응답 라우팅은 별칭 레코드로도 구성할 수 있습니다." },
+        { "id": "D", "text": "장애 조치 라우팅에서 주와 보조가 모두 비정상이면 아무 응답도 반환하지 않습니다." },
+        { "id": "E", "text": "상태 확인의 요청 간격과 실패 임계값은 만든 뒤 언제든 바꿀 수 있습니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "단순 라우팅을 제외한 정책들은 같은 이름과 유형을 가진 레코드가 여러 개 존재하는 구조입니다. 그래서 각 레코드를 구분할 식별자가 반드시 필요하고, 이것이 없으면 레코드를 만들 수 없습니다. 별칭 레코드는 Route 53 안에서 대상 리소스로 해석되는 특수한 형태여서 CNAME이 불가능한 영역 정점에서도 쓸 수 있고 TTL을 지정하지 않습니다. 두 사실은 도메인을 AWS 리소스에 연결하는 거의 모든 작업의 출발점이 되므로 함께 기억해 두는 편이 좋습니다.",
+      "distractorNotes": {
+        "C": "다중값 응답 라우팅은 별칭 레코드로 구성할 수 없습니다. 정상 레코드들을 함께 반환하는 방식이라 대상이 개별 값이어야 합니다.",
+        "D": "보조가 비정상이면 주의 상태와 무관하게 주 레코드를 반환합니다. 응답을 아예 주지 않는 동작은 없습니다.",
+        "E": "상태 확인의 요청 간격과 실패 임계값은 생성 후 변경할 수 없습니다. 나중에 조정하면 된다고 가정하면 다시 만들어야 합니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html", "title": "Amazon Route 53 API 레퍼런스 — ResourceRecordSet" },
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_HealthCheckConfig.html", "title": "Amazon Route 53 API 레퍼런스 — HealthCheckConfig" }
+      ],
+      "tags": ["route53", "alias-record", "health-check", "failover-routing"]
+    },
+    {
+      "id": "basics-ch14-008",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "multiple",
+      "question": "CloudFront로 배포하는 유료 콘텐츠의 접근 통제를 설계하고 있습니다. 옳은 설명을 고르십시오. (2개 선택)",
+      "code": null,
+      "choices": [
+        { "id": "A", "text": "여러 파일을 한꺼번에 보호해야 하거나 URL을 바꿀 수 없으면 서명 쿠키를 씁니다." },
+        { "id": "B", "text": "지리적 제한은 국가 단위로 지정하며 배포 전체에 적용됩니다." },
+        { "id": "C", "text": "서명 URL과 서명 쿠키가 함께 제시되면 쿠키 쪽이 우선 적용됩니다." },
+        { "id": "D", "text": "지리적 제한은 캐시 동작마다 서로 다른 국가 목록을 지정할 수 있습니다." },
+        { "id": "E", "text": "차단된 국가에서 온 요청에는 200 응답과 빈 본문이 반환됩니다." }
+      ],
+      "answer": ["A", "B"],
+      "explanation": "서명 URL과 서명 쿠키는 같은 목적을 다른 방식으로 달성합니다. 파일 하나를 특정 사용자에게만 열어 줄 때는 그 파일 주소에 서명을 붙이는 편이 간단하고, 스트리밍 조각처럼 다수의 파일을 함께 보호하거나 애플리케이션이 URL 형식을 바꿀 수 없을 때는 쿠키가 적합합니다. 지리적 제한은 성격이 다릅니다. 배포 단위로 국가 목록을 적용하는 굵은 통제라 경로마다 다르게 걸 수 없고, 차단된 요청에는 접근 거부 응답이 돌아갑니다. 더 세밀한 조건이 필요하면 AWS WAF의 규칙으로 내려갑니다.",
+      "distractorNotes": {
+        "C": "두 방식이 함께 제시되면 서명 URL이 우선합니다. 우선순위를 반대로 기억하면 통제 결과를 잘못 예측하게 됩니다.",
+        "D": "지리적 제한은 배포 전체에 적용됩니다. 경로별로 다른 국가 제한이 필요하면 다른 수단을 찾아야 합니다.",
+        "E": "차단된 요청에는 접근이 금지되었다는 응답이 반환됩니다. 성공 응답이 나가지 않습니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-choosing-signed-urls-cookies.html", "title": "Amazon CloudFront 개발자 안내서 — 서명 URL과 서명 쿠키 중 선택" },
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/georestrictions.html", "title": "Amazon CloudFront 개발자 안내서 — 콘텐츠의 지리적 배포 제한" }
+      ],
+      "tags": ["cloudfront", "signed-url", "signed-cookie", "geo-restriction"]
+    },
+    {
+      "id": "basics-ch14-009",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "medium",
+      "type": "matching",
+      "question": "각 요구사항에 알맞은 Route 53 라우팅 정책을 연결하세요. 목록에는 정답이 아닌 미끼 값이 섞여 있습니다.",
+      "code": null,
+      "pairs": [
+        { "id": "p1", "left": "평소에는 주 사이트로 보내고 주 사이트가 상태 확인에 실패할 때만 대기 사이트로 보낸다", "right": "장애 조치 라우팅" },
+        { "id": "p2", "left": "새 버전 스택에 전체 트래픽의 10퍼센트만 보내며 비율을 점진적으로 늘린다", "right": "가중치 기반 라우팅" },
+        { "id": "p3", "left": "측정된 네트워크 성능을 기준으로 사용자에게 가장 빠르게 응답하는 리전으로 보낸다", "right": "지연 시간 기반 라우팅" },
+        { "id": "p4", "left": "질의가 발생한 국가를 기준으로 규제에 맞는 스택에 연결한다", "right": "지리적 위치 라우팅" },
+        { "id": "p5", "left": "사용자와 리소스 사이의 거리를 기준으로 하되 특정 리전이 담당하는 영역을 넓히거나 좁힌다", "right": "지리 근접 라우팅" }
+      ],
+      "extraRights": ["다중값 응답 라우팅", "IP 기반 라우팅"],
+      "explanation": "라우팅 정책은 무엇을 기준으로 대상을 고르는지로 구분됩니다. 상태 확인 결과가 기준이면 장애 조치, 비율이 기준이면 가중치, 측정된 성능이 기준이면 지연 시간입니다. 위치를 기준으로 삼는 정책이 셋이나 되어 헷갈리는데, 질의가 어디서 왔는지만 보는 것과 리소스와의 거리를 함께 보는 것, 그리고 클라이언트의 IP 대역을 기준으로 삼는 것이 각각 다릅니다. 미끼로 넣은 다중값 응답은 정상인 레코드 여러 개를 함께 돌려주어 클라이언트가 고르게 하는 방식이며 로드 밸런서의 대체재가 아닙니다.",
+      "distractorNotes": {
+        "p1": "상태 확인이 붙는다는 이유만으로 다른 정책과 헷갈리기 쉽습니다. 주와 보조라는 역할 구분이 이 정책의 표지입니다.",
+        "p2": "점진적 전환이나 비율이라는 단어가 나오면 이 정책입니다. 배포 전략과 함께 자주 등장합니다.",
+        "p3": "성능이 기준이라는 점 때문에 결정론적 요구에는 쓸 수 없습니다. 규제 요구와 구분해야 합니다.",
+        "p4": "질의 출발지만 본다는 점이 핵심입니다. 리소스의 위치는 고려하지 않습니다.",
+        "p5": "담당 영역을 조절할 수 있다는 서술이 이 정책의 결정적 특징입니다. 이 조절 기능이 없으면 다른 정책입니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_ResourceRecordSet.html", "title": "Amazon Route 53 API 레퍼런스 — ResourceRecordSet" },
+        { "url": "https://docs.aws.amazon.com/Route53/latest/APIReference/API_GeoProximityLocation.html", "title": "Amazon Route 53 API 레퍼런스 — GeoProximityLocation" }
+      ],
+      "tags": ["route53", "routing-policy", "failover-routing", "dns"]
+    },
+    {
+      "id": "basics-ch14-010",
+      "exam": "BASICS",
+      "domain": "엣지와 DNS",
+      "chapter": "ch14",
+      "difficulty": "hard",
+      "type": "ordering",
+      "question": "캐시에 없는 요청 하나가 CloudFront를 거쳐 오리진까지 갔다가 사용자에게 돌아오는 과정을 순서대로 배열하세요.",
+      "code": null,
+      "items": [
+        { "id": "i4", "text": "오리진 응답 이벤트가 발생하고 응답이 캐시 정책에 따라 엣지에 저장된다" },
+        { "id": "i1", "text": "사용자 요청이 엣지에 도착하며 뷰어 요청 이벤트가 발생한다" },
+        { "id": "i5", "text": "뷰어 응답 이벤트가 발생하고 응답이 사용자에게 전달된다" },
+        { "id": "i2", "text": "캐시 키로 엣지 캐시를 조회했으나 일치하는 항목이 없다" },
+        { "id": "i3", "text": "오리진 요청 이벤트가 발생하고 요청이 오리진으로 전달된다" }
+      ],
+      "answer": ["i1", "i2", "i3", "i4", "i5"],
+      "explanation": "네 개의 이벤트는 요청이 지나는 지점에 하나씩 배치되어 있습니다. 뷰어 쪽 두 이벤트는 캐시 적중 여부와 관계없이 모든 요청에서 실행되고, 오리진 쪽 두 이벤트는 캐시에 없어 오리진까지 갈 때만 실행됩니다. 이 차이가 어떤 로직을 어디에 두어야 하는지를 결정합니다. 모든 요청에 걸리는 가벼운 처리는 뷰어 이벤트에, 캐시 미스일 때만 필요한 무거운 처리는 오리진 이벤트에 둡니다. 캐시 조회에 쓰이는 캐시 키의 구성이 적중률을 좌우한다는 점도 이 흐름 안에서 이해하면 자연스럽습니다.",
+      "distractorNotes": {
+        "i2": "캐시 조회가 언제 일어나는지를 놓치면 두 종류의 이벤트가 왜 나뉘는지 설명할 수 없습니다. 조회 결과가 이후 경로를 가릅니다.",
+        "i3": "오리진 요청 이벤트가 모든 요청에서 실행된다고 오해하기 쉽습니다. 캐시에 있으면 이 단계 자체가 생략됩니다.",
+        "i4": "응답을 캐시에 저장하는 시점이 오리진에서 돌아온 직후라는 점이 중요합니다. 캐시 정책이 여기서 적용됩니다."
+      },
+      "refs": [
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/edge-functions.html", "title": "Amazon CloudFront 개발자 안내서 — 엣지에서 함수로 사용자 지정" },
+        { "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html", "title": "Amazon CloudFront 개발자 안내서 — CloudFront란" }
+      ],
+      "tags": ["cloudfront", "edge", "cache-key", "lambda-edge"]
+    }
+  ]
+}

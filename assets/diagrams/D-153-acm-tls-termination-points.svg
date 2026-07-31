@@ -1,0 +1,72 @@
+<svg viewBox="0 0 720 412" role="img" aria-labelledby="d153-title d153-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d153-title">ACM 인증서가 TLS 를 종료하는 지점과 그 제약</title>
+  <desc id="d153-desc">뷰어에서 시작한 HTTPS 연결이 Amazon CloudFront, Application Load Balancer, Amazon API Gateway
+    세 지점 가운데 하나에서 TLS 로 종료되는 배치를 보여 줍니다. 이 세 곳이 AWS Certificate Manager 가 발급한 인증서를 붙일 수 있는 자리입니다.
+    그 뒤의 오리진 구간, 즉 EC2 와 컨테이너, Amazon S3 오리진, Lambda 백엔드로 가는 구간은 별개의 연결이며 별도의 인증서와 정책으로 다룹니다.
+    아래쪽 붉은 상자는 이 그림의 결론입니다. ACM 이 발급한 공인 인증서는 EC2 인스턴스나 온프레미스 서버에 내려받아 직접 설치할 수 없습니다.
+    서버에 직접 설치해야 하는 요구라면 외부 인증 기관의 인증서를 쓰거나 AWS Private CA 를 씁니다.
+    맨 아래 주의 상자는 리전 제약입니다. CloudFront 배포에 붙일 인증서는 반드시 US East 노스버지니아 리전에서 발급해야 하고,
+    ALB 와 API Gateway 에 붙일 인증서는 그 리소스가 있는 리전에서 발급해야 합니다.</desc>
+
+  <defs>
+    <marker id="d153-ar" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+    <marker id="d153-ar-accent" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto">
+      <path class="dg-marker dg-marker--accent" d="M0 0 L10 5 L0 10 Z"/>
+    </marker>
+  </defs>
+
+  <text class="dg-fs-sm dg-bold" x="20" y="48">뷰어</text>
+  <text class="dg-fs-sm dg-bold" x="166" y="48">TLS 가 종료되는 지점 (ACM)</text>
+  <text class="dg-fs-sm dg-bold" x="436" y="48">뒤쪽 오리진 구간 — 별도 연결</text>
+
+  <!-- 뷰어 -->
+  <rect class="dg-node" x="20" y="120" width="112" height="80" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="76" y="152" text-anchor="middle">브라우저</text>
+  <text class="dg-fs-sm dg-muted" x="76" y="176" text-anchor="middle">HTTPS 요청</text>
+
+  <path class="dg-edge dg-edge--accent" d="M136 148 L162 92" marker-end="url(#d153-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M136 160 L162 160" marker-end="url(#d153-ar-accent)"/>
+  <path class="dg-edge dg-edge--accent" d="M136 172 L162 228" marker-end="url(#d153-ar-accent)"/>
+
+  <!-- TLS 종료 지점 -->
+  <rect class="dg-node dg-node--ok" x="166" y="64" width="238" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="180" y="88">Amazon CloudFront</text>
+  <text class="dg-fs-sm" x="180" y="108">ACM 인증서 — us-east-1 발급</text>
+
+  <rect class="dg-node dg-node--ok" x="166" y="132" width="238" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="180" y="156">Application Load Balancer</text>
+  <text class="dg-fs-sm" x="180" y="176">ACM 인증서 — 같은 리전</text>
+
+  <rect class="dg-node dg-node--ok" x="166" y="200" width="238" height="56" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="180" y="224">Amazon API Gateway</text>
+  <text class="dg-fs-sm" x="180" y="244">ACM 인증서 — 같은 리전</text>
+
+  <path class="dg-edge dg-edge--dashed" d="M408 92 L432 92" marker-end="url(#d153-ar)"/>
+  <path class="dg-edge dg-edge--dashed" d="M408 160 L432 160" marker-end="url(#d153-ar)"/>
+  <path class="dg-edge dg-edge--dashed" d="M408 228 L432 228" marker-end="url(#d153-ar)"/>
+
+  <!-- 오리진 -->
+  <rect class="dg-panel" x="436" y="58" width="264" height="204" rx="4"/>
+  <rect class="dg-node" x="452" y="72" width="232" height="40" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="568" y="97" text-anchor="middle">EC2 · 컨테이너</text>
+  <rect class="dg-node" x="452" y="140" width="232" height="40" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="568" y="165" text-anchor="middle">Amazon S3 오리진</text>
+  <rect class="dg-node" x="452" y="208" width="232" height="40" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="568" y="233" text-anchor="middle">Lambda · 백엔드</text>
+
+  <!-- 결론 -->
+  <rect class="dg-node dg-node--danger" x="20" y="278" width="680" height="58" rx="4"/>
+  <path class="dg-x" d="M36 296 L52 312 M52 296 L36 312"/>
+  <text class="dg-fs-md dg-bold" x="68" y="304">ACM 공인 인증서는 EC2 나 온프레미스 서버에 내려받아 설치할 수 없습니다</text>
+  <text class="dg-fs-sm" x="68" y="326">서버에 직접 설치해야 한다면 외부 인증 기관의 인증서나 AWS Private CA 를 씁니다</text>
+
+  <!-- 리전 제약 -->
+  <rect class="dg-node dg-node--warn" x="20" y="346" width="680" height="54" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="34" y="370">CloudFront 배포에 붙일 인증서는 반드시 US East (N. Virginia) 리전에서 발급합니다</text>
+  <text class="dg-fs-sm" x="34" y="390">ALB 와 API Gateway 용 인증서는 그 리소스가 있는 리전에서 발급합니다</text>
+</svg>

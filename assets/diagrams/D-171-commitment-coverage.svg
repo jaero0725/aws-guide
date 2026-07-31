@@ -1,0 +1,55 @@
+<svg viewBox="0 0 720 520" role="img" aria-labelledby="d171-title d171-desc"
+     class="ag-diagram" preserveAspectRatio="xMidYMid meet">
+  <title id="d171-title">컴퓨팅 약정 레버가 덮는 부분과 변동분이 남는 부분</title>
+  <desc id="d171-desc">시간에 따라 오르내리는 사용량 곡선을 그리고, 그 아래 영역을 두 부분으로 나눈 그림입니다.
+    축에는 눈금 값이 없습니다. 비율도 금액도 쓰지 않고 어느 부분을 무엇으로 덮는가만 다룹니다.
+    아래쪽 가로 띠는 시간이 흘러도 사라지지 않는 상시 기저 부하입니다. 이 부분은 Savings Plans 나 예약 인스턴스 같은
+    1년 또는 3년 약정으로 덮습니다. 약정은 시간당 사용량을 미리 약속하는 것이므로 그만큼은 쓰지 않아도 지불합니다.
+    그래서 확실히 상시로 돌아가는 만큼만 약정 대상으로 잡습니다.
+    기저선 위쪽, 곡선과 기저선 사이의 영역이 예측되지 않는 변동분입니다. 이 부분은 온디맨드로 처리하고,
+    중단을 견디도록 설계된 작업이라면 스팟 인스턴스로 처리해 비용을 더 낮춥니다.
+    결론은 두 레버가 서로 다른 부분을 덮는다는 것이며, 정답은 비율이 아니라 어느 부분에 어떤 레버를 대는가입니다.</desc>
+
+  <text class="dg-fs-md dg-bold" x="20" y="26">사용량 곡선 — 축에는 값을 쓰지 않습니다</text>
+
+  <!-- 축 -->
+  <text class="dg-fs-sm dg-muted" x="20" y="62">사용량</text>
+  <path class="dg-grid" d="M70 70 L70 300 M70 300 L700 300"/>
+  <text class="dg-fs-sm dg-muted" x="700" y="320" text-anchor="end">시간</text>
+
+  <!-- 기저 부하 띠 -->
+  <rect x="80" y="230" width="610" height="70" fill="var(--dg-accent-soft)" stroke="none"/>
+  <!-- 변동분 영역 -->
+  <path d="M80 230 L140 212 L200 196 L260 150 L320 105 L380 140 L440 175 L500 120 L560 165 L620 208 L690 230 Z"
+        fill="var(--dg-warn-soft)" stroke="none"/>
+
+  <!-- 기저선 -->
+  <path class="dg-edge dg-edge--accent dg-edge--dashed" d="M80 230 L690 230"/>
+  <!-- 사용량 곡선 -->
+  <path class="dg-edge" d="M80 230 L140 212 L200 196 L260 150 L320 105 L380 140 L440 175 L500 120 L560 165 L620 208 L690 230"/>
+
+  <!-- 라벨 -->
+  <text class="dg-fs-sm dg-bold" x="400" y="76" text-anchor="middle">변동분 — 온디맨드 · 스팟</text>
+  <path class="dg-edge dg-edge--warn dg-edge--dotted" d="M400 84 L400 152"/>
+
+  <text class="dg-fs-sm dg-bold" x="385" y="262" text-anchor="middle">기저 부하 — Savings Plans · 예약 인스턴스가 덮습니다</text>
+  <text class="dg-fs-sm dg-muted" x="385" y="284" text-anchor="middle">시간이 지나도 사라지지 않는 상시 사용량</text>
+
+  <text class="dg-fs-sm dg-muted" x="84" y="224">사용량 곡선</text>
+
+  <!-- 카드 -->
+  <rect class="dg-node dg-node--accent" x="20" y="340" width="330" height="112" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="34" y="364">기저 부하를 덮는 레버</text>
+  <text class="dg-fs-sm" x="34" y="388">Savings Plans · 예약 인스턴스</text>
+  <text class="dg-fs-sm" x="34" y="410">1년 또는 3년 약정 — 시간당 사용량을 약속</text>
+  <text class="dg-fs-sm dg-bold" x="34" y="432">쓰지 않아도 약정분은 지불합니다</text>
+
+  <rect class="dg-node dg-node--warn" x="370" y="340" width="330" height="112" rx="4"/>
+  <text class="dg-fs-md dg-bold" x="384" y="364">변동분을 처리하는 레버</text>
+  <text class="dg-fs-sm" x="384" y="388">온디맨드 · 스팟 인스턴스</text>
+  <text class="dg-fs-sm" x="384" y="410">온디맨드는 언제든 껐다 켤 수 있습니다</text>
+  <text class="dg-fs-sm dg-bold" x="384" y="432">스팟은 중단을 견디는 작업에만</text>
+
+  <rect class="dg-node dg-node--empty" x="20" y="464" width="680" height="44" rx="4"/>
+  <text class="dg-fs-sm dg-bold" x="360" y="491" text-anchor="middle">비율과 금액이 아니라 어느 부분을 무엇으로 덮는가가 결론입니다</text>
+</svg>
